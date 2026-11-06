@@ -4,6 +4,117 @@ Every public class a mod can use in Bunny Loader, member by member, side by side
 with tModLoader. Use the [guides](../README.md) to learn how something works and
 this reference to look up what exists.
 
+## The classes you build a mod with
+
+Create a class that derives from one of these and Bunny Loader finds it by itself. Click a name to see all its hooks.
+
+### The mod itself
+
+| Class | What you use it for |
+|---|---|
+| [Mod](sistemas.md#mod) | The mod's main class. Every mod needs one. It holds `Load`, `Call` and `HandlePacket`. |
+| [ModSystem](sistemas.md#modsystem) | Code for the whole mod: world data, recipes, interface layers, world generation. |
+| [ModPlayer](jogadores.md#modplayer) | Data and hooks attached to each player. |
+| [ModConfig](interface.md#modconfig) | Options the player can change in the game. |
+| [ModCommand](sistemas.md#modcommand) | A chat command. |
+
+### Items
+
+| Class | What you use it for |
+|---|---|
+| [ModItem](itens.md#moditem) | An item: weapon, tool, armor, accessory, material, potion... |
+| [ModPrefix](itens.md#modprefix) | A prefix, such as Legendary. |
+| [ModRarity](itens.md#modrarity) | A rarity, with its own color. |
+
+### NPCs and enemies
+
+| Class | What you use it for |
+|---|---|
+| [ModNPC](npcs.md#modnpc) | An enemy, a boss or a town NPC. |
+| [ModInvasion](npcs.md#modinvasion) | A wave-based event. Only in Bunny Loader. |
+| [ModBossBar](npcs.md#modbossbar) | The health bar of a boss. |
+| [ModBossBarStyle](npcs.md#modbossbarstyle) | Replaces the whole boss bar display. |
+| [ModEmoteBubble](npcs.md#modemotebubble) | An emote. |
+
+### Projectiles and buffs
+
+| Class | What you use it for |
+|---|---|
+| [ModProjectile](projeteis.md#modprojectile) | A projectile: arrow, magic bolt, minion, whip, hook... |
+| [ModBuff](jogadores.md#modbuff) | A buff or debuff. |
+
+### Player
+
+| Class | What you use it for |
+|---|---|
+| [ModMount](jogadores.md#modmount) | A mount or minecart. |
+| [ModHair](jogadores.md#modhair) | A hairstyle. |
+| [ModResourceOverlay](jogadores.md#modresourceoverlay) | Draws over the hearts and the mana stars. |
+
+### Blocks and the world
+
+| Class | What you use it for |
+|---|---|
+| [ModTile](tiles.md#modtile) | A block or piece of furniture. |
+| [ModWall](tiles.md#modwall) | A wall. |
+| [ModBannerTile](tiles.md#modbannertile) | An enemy banner tile. |
+| [ModPylon](tiles.md#modpylon) | A pylon tile. |
+| [ModTileEntity](tiles.md#modtileentity) | Data and updates attached to a placed tile. |
+| [ModTree](tiles.md#modtree) | A kind of tree. |
+| [ModCactus](tiles.md#modcactus) | A kind of cactus. |
+| [ModBiome](tiles.md#modbiome) | A biome. |
+| [ModBiomeConversion](tiles.md#modbiomeconversion) | A conversion, such as the one the Clentaminator does. |
+
+### Scenery and effects
+
+| Class | What you use it for |
+|---|---|
+| [ModSceneEffect](tiles.md#modsceneeffect) | Music and scenery that apply under a condition. |
+| [ModSurfaceBackgroundStyle](tiles.md#modsurfacebackgroundstyle) | A surface background. |
+| [ModUndergroundBackgroundStyle](tiles.md#modundergroundbackgroundstyle) | An underground background. |
+| [ModWaterStyle](tiles.md#modwaterstyle) | A water style. |
+| [ModWaterfallStyle](tiles.md#modwaterfallstyle) | A waterfall style. |
+| [ModCloud](tiles.md#modcloud) | A cloud. |
+| [ModDust](tiles.md#moddust) | A dust particle. |
+| [ModGore](tiles.md#modgore) | A gore piece. |
+
+### Interface and input
+
+| Class | What you use it for |
+|---|---|
+| [ModMenu](interface.md#modmenu) | A title menu theme. |
+| [ModMapLayer](tiles.md#modmaplayer) | Draws icons over the map. |
+| [ModAchievement](interface.md#modachievement) | An achievement. |
+| [ModKeybind](interface.md#modkeybind) | An input binding, a touch button on the phone. Not derived: created with `KeybindLoader.RegisterKeybind`. |
+| [ModTouchButton](interface.md#modtouchbutton) | A button on the screen. Only in Bunny Loader. Not derived: created with `TouchButtonLoader.RegisterButton`. |
+| [ModTouchJoystick](interface.md#modtouchjoystick) | A button the player drags to aim. Only in Bunny Loader. Not derived: created with `TouchButtonLoader.RegisterJoystick`. |
+
+### Change what already exists
+
+| Class | What you use it for |
+|---|---|
+| [GlobalItem](itens.md#globalitem) | Every item, from the game or from any mod. |
+| [GlobalNPC](npcs.md#globalnpc) | Every NPC. |
+| [GlobalProjectile](projeteis.md#globalprojectile) | Every projectile. |
+| [GlobalBuff](jogadores.md#globalbuff) | Every buff. |
+| [GlobalTile](tiles.md#globaltile) | Every tile. |
+| [GlobalWall](tiles.md#globalwall) | Every wall. |
+| [GlobalPylon](tiles.md#globalpylon) | Every pylon. |
+| [GlobalBossBar](npcs.md#globalbossbar) | Every boss bar. |
+| [GlobalEmoteBubble](npcs.md#globalemotebubble) | Every emote. |
+| [GlobalBackgroundStyle](outros.md#globalbackgroundstyle) | Every background. |
+
+### Also content, without Mod in the name
+
+| Class | What you use it for |
+|---|---|
+| [DamageClass](itens.md#damageclass) | A damage class. |
+| [ExtraJump](outros.md#extrajump) | An extra jump, like the Cloud in a Bottle. |
+| [InfoDisplay](outros.md#infodisplay) | A line of information accessories. |
+| [BuilderToggle](outros.md#buildertoggle) | A builder accessory switch. |
+| [PlayerDrawLayer](jogadores.md#playerdrawlayer) | A layer of the player's drawing. |
+
+
 ## How to read the tables
 
 | Column | Meaning |

@@ -1,0 +1,66 @@
+# The mod itself
+Mod|The mod's main class. Every mod needs one. It holds `Load`, `Call` and `HandlePacket`.
+ModSystem|Code for the whole mod: world data, recipes, interface layers, world generation.
+ModPlayer|Data and hooks attached to each player.
+ModConfig|Options the player can change in the game.
+ModCommand|A chat command.
+# Items
+ModItem|An item: weapon, tool, armor, accessory, material, potion...
+ModPrefix|A prefix, such as Legendary.
+ModRarity|A rarity, with its own color.
+# NPCs and enemies
+ModNPC|An enemy, a boss or a town NPC.
+ModInvasion|A wave-based event. Only in Bunny Loader.
+ModBossBar|The health bar of a boss.
+ModBossBarStyle|Replaces the whole boss bar display.
+ModEmoteBubble|An emote.
+# Projectiles and buffs
+ModProjectile|A projectile: arrow, magic bolt, minion, whip, hook...
+ModBuff|A buff or debuff.
+# Player
+ModMount|A mount or minecart.
+ModHair|A hairstyle.
+ModResourceOverlay|Draws over the hearts and the mana stars.
+# Blocks and the world
+ModTile|A block or piece of furniture.
+ModWall|A wall.
+ModBannerTile|An enemy banner tile.
+ModPylon|A pylon tile.
+ModTileEntity|Data and updates attached to a placed tile.
+ModTree|A kind of tree.
+ModCactus|A kind of cactus.
+ModBiome|A biome.
+ModBiomeConversion|A conversion, such as the one the Clentaminator does.
+# Scenery and effects
+ModSceneEffect|Music and scenery that apply under a condition.
+ModSurfaceBackgroundStyle|A surface background.
+ModUndergroundBackgroundStyle|An underground background.
+ModWaterStyle|A water style.
+ModWaterfallStyle|A waterfall style.
+ModCloud|A cloud.
+ModDust|A dust particle.
+ModGore|A gore piece.
+# Interface and input
+ModMenu|A title menu theme.
+ModMapLayer|Draws icons over the map.
+ModAchievement|An achievement.
+ModKeybind|An input binding, a touch button on the phone. Not derived: created with `KeybindLoader.RegisterKeybind`.
+ModTouchButton|A button on the screen. Only in Bunny Loader. Not derived: created with `TouchButtonLoader.RegisterButton`.
+ModTouchJoystick|A button the player drags to aim. Only in Bunny Loader. Not derived: created with `TouchButtonLoader.RegisterJoystick`.
+# Change what already exists
+GlobalItem|Every item, from the game or from any mod.
+GlobalNPC|Every NPC.
+GlobalProjectile|Every projectile.
+GlobalBuff|Every buff.
+GlobalTile|Every tile.
+GlobalWall|Every wall.
+GlobalPylon|Every pylon.
+GlobalBossBar|Every boss bar.
+GlobalEmoteBubble|Every emote.
+GlobalBackgroundStyle|Every background.
+# Also content, without Mod in the name
+DamageClass|A damage class.
+ExtraJump|An extra jump, like the Cloud in a Bottle.
+InfoDisplay|A line of information accessories.
+BuilderToggle|A builder accessory switch.
+PlayerDrawLayer|A layer of the player's drawing.

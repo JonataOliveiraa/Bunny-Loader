@@ -4,6 +4,8 @@ Every public class a mod can use in Bunny Loader, member by member, side by side
 with tModLoader. Use the [guides](../README.md) to learn how something works and
 this reference to look up what exists.
 
+{{START}}
+
 ## How to read the tables
 
 | Column | Meaning |

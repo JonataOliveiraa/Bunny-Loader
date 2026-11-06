@@ -241,10 +241,30 @@ static string Trivial(TypeInfo type, Member member)
     };
 }
 
+string StartSection()
+{
+    var text = new StringBuilder("## The classes you build a mod with\n\nCreate a class that derives from one of these and Bunny Loader finds it by itself. Click a name to see all its hooks.\n");
+    var listed = new HashSet<string>();
+    foreach (string line in File.ReadAllLines(Path.Combine(root, "tools/docs/ApiReference/start.txt")).Where(l => l.Trim().Length > 0))
+    {
+        if (line.StartsWith('#'))
+        {
+            text.Append($"\n### {line[1..].Trim()}\n\n| Class | What you use it for |\n|---|---|\n");
+            continue;
+        }
+        string name = line[..line.IndexOf('|')];
+        Group group = groups.First(g => pages[g.File].Any(t => t.Name == name));
+        listed.Add(name);
+        text.Append($"| [{name}]({group.File}.md#{name.ToLowerInvariant()}) | {Cell(line[(line.IndexOf('|') + 1)..])} |\n");
+    }
+    missing.AddRange(documented.Where(t => Regex.IsMatch(t.Name, "^(Mod|Global)[A-Z][A-Za-z]*$") && t.Kind.Contains("class") && !listed.Contains(t.Name) && !Groups.NotStarting(t.Name)).Select(t => t.FullName + " is not in start.txt"));
+    return text.ToString();
+}
+
 void WriteIndex()
 {
     var text = new StringBuilder();
-    text.Append(File.ReadAllText(Path.Combine(root, "tools/docs/ApiReference/intro.md")).Replace("\r\n", "\n").TrimEnd()).Append("\n\n");
+    text.Append(File.ReadAllText(Path.Combine(root, "tools/docs/ApiReference/intro.md")).Replace("\r\n", "\n").Replace("{{START}}", StartSection()).TrimEnd()).Append("\n\n");
     text.Append($"**{documented.Count} classes, {counts.Total} members:** {counts.Same} the same as tModLoader or the PC game, {counts.Differs} with a different signature, {counts.Ours} only here, {counts.NotHere} not here. tModLoader's loaders have {counts.Runners} more methods that only run hooks: each page counts them under its loader.\n\n");
     foreach (Group group in groups)
     {
@@ -476,6 +496,8 @@ static class Groups
     }
 
     public static bool SkipMissing(string name) => name is "Main" or "Lang" or "WorldGen" or "Item" or "NPC" or "Player" or "Projectile" or "Tile" or "Mount" or "UICommon" or "GameTipID";
+
+    public static bool NotStarting(string name) => name is "ModContent" or "ModLoader" or "ModPacket" or "ModType" or "ModTexturedType" or "ModTypeLookup" or "ModBlockType" or "ModBackgroundStyle" or "GlobalType";
 
     public static bool SkipAbsent(TypeInfo type) =>
         type.Namespace.Contains(".UI") && !type.Namespace.EndsWith("Terraria.UI") || type.Namespace.Contains(".Engine") || type.Namespace.Contains(".Core") ||
