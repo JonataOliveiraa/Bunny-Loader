@@ -1,4 +1,35 @@
+Invasions: {
+	PaladinCrusade: {
+		DisplayName: Cruzada dos Paladinos
+		Start: A cruzada dos Paladinos começou!
+		Fail: Os Paladinos recuam ao amanhecer.
+		Complete: A cruzada dos Paladinos foi repelida!
+	}
+
+	GraveLegion: {
+		DisplayName: Legião da Cova
+	}
+}
+
 Items: {
+	ConsecratedAxe: {
+		DisplayName: Machado Consagrado
+		Tooltip:
+			'''
+			Invoca a Cruzada dos Paladinos
+			Só pode ser usado à noite
+			'''
+	}
+
+	GraveBell: {
+		DisplayName: Sino da Cova
+		Tooltip:
+			'''
+			Invoca a Legião da Cova
+			Três ondas de mortos-vivos
+			'''
+	}
+
 	ActiveSoundShowcase: {
 		DisplayName: Demonstração de Som Ativo
 		Tooltip: ""

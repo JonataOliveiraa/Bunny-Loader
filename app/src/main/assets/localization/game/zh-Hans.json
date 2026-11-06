@@ -71,5 +71,10 @@
   "FxPanelHotReload": "热重载开启",
   "FxPanelScreen": "全屏",
   "FxShaderFailed": "（着色器出错）",
-  "CommonItemTooltip.SummonTagDamage": "{0} 召唤标记伤害"
+  "CommonItemTooltip.SummonTagDamage": "{0} 召唤标记伤害",
+  "InvasionStart": "{0}正在逼近！",
+  "InvasionWave": "{0}：第{1}波，共{2}波！",
+  "InvasionComplete": "{0}已被击败！",
+  "InvasionFail": "{0}撤退了。",
+  "InvasionAlreadyActive": "已有入侵正在进行。"
 }

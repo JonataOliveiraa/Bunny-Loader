@@ -71,6 +71,7 @@ GUIVirtualInputController
 GUIVirtualInputControllerEdit
 GUIVirtualInputControllerEdit_ControlPanel+ControlPanelActionSetting
 Terraria.RemoteClient
+GUIEvents
 GUIQuickActionButton
 GUIReforge
 GUIReforgePopup

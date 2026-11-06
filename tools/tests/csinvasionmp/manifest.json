@@ -1,0 +1,17 @@
+{
+  "uid": "eeb5a526-59c5-4603-a2c1-6b343e60c653",
+  "id": "CsInvasionMp",
+  "name": "Test: Checks ModInvasion on two devices.",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Checks ModInvasion on two devices.",
+  "description": "Compile with tools/tests/build-cs.sh csinvasionmp.",
+  "updated": "2026-11-05",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

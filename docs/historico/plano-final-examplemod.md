@@ -226,6 +226,7 @@ the type directly.
   downed flag, block against a vanilla invasion.
 - `csinvasionmp` on two MuMus with `run-mp.sh`, written so that group M9 of the
   multiplayer plan can reuse it on the phone.
+- Result: `csinvasion` 26/0 on the phone with the sample, `csinvasionmp` host 7/0 and client 8/0 on two MuMus. The second MuMu needs its own character (`MPCliente`) and `dedServers.dat` in the beta package.
 - New guide page, as tML has no documentation for this.
 
 ## 7. Examples

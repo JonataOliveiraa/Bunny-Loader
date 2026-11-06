@@ -26,6 +26,8 @@ public readonly partial struct NPC
     public static NPC NewNPCDirect(IEntitySource source, Vector2 position, int type, int start = 0, float ai0 = 0f, float ai1 = 0f, float ai2 = 0f, float ai3 = 0f, int target = 255) =>
         NewNPCDirect(source, (int)position.X, (int)position.Y, type, start, ai0, ai1, ai2, ai3, target);
 
+    public void StrikeInstantKill() => SimpleStrikeNPC(lifeMax + defense * 2 + 1000, 0, false, 0f);
+
     public int SimpleStrikeNPC(int damage, int hitDirection, bool crit = false, float knockBack = 0f, DamageClass? damageType = null, bool damageVariation = false, float luck = 0f, bool noPlayerInteraction = false)
     {
         if (damageVariation) damage = Main.DamageVar(damage, luck);

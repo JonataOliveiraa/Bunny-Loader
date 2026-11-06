@@ -72,5 +72,10 @@
   "FxPanelHotReload": "hot reload on",
   "FxPanelScreen": "screen",
   "FxShaderFailed": "(shader failed)",
-  "CommonItemTooltip.SummonTagDamage": "{0} summon tag damage"
+  "CommonItemTooltip.SummonTagDamage": "{0} summon tag damage",
+  "InvasionStart": "{0} is approaching!",
+  "InvasionWave": "{0}: wave {1} of {2}!",
+  "InvasionComplete": "{0} has been defeated!",
+  "InvasionFail": "{0} has retreated.",
+  "InvasionAlreadyActive": "An invasion is already happening."
 }

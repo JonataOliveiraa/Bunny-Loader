@@ -72,5 +72,10 @@
   "FxPanelHotReload": "recarga activada",
   "FxPanelScreen": "pantalla",
   "FxShaderFailed": "(shader con error)",
-  "CommonItemTooltip.SummonTagDamage": "{0} de daño de marca de invocación"
+  "CommonItemTooltip.SummonTagDamage": "{0} de daño de marca de invocación",
+  "InvasionStart": "¡{0} se acerca!",
+  "InvasionWave": "¡{0}: oleada {1} de {2}!",
+  "InvasionComplete": "¡{0} fue derrotada!",
+  "InvasionFail": "{0} se retiró.",
+  "InvasionAlreadyActive": "Ya hay una invasión en curso."
 }

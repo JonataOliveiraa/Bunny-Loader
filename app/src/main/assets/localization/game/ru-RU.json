@@ -72,5 +72,10 @@
   "FxPanelHotReload": "автоперезагрузка",
   "FxPanelScreen": "экран",
   "FxShaderFailed": "(ошибка шейдера)",
-  "CommonItemTooltip.SummonTagDamage": "{0} ед. урона от метки призыва"
+  "CommonItemTooltip.SummonTagDamage": "{0} ед. урона от метки призыва",
+  "InvasionStart": "{0} приближается!",
+  "InvasionWave": "{0}: волна {1} из {2}!",
+  "InvasionComplete": "{0} повержен!",
+  "InvasionFail": "{0} отступает.",
+  "InvasionAlreadyActive": "Вторжение уже идёт."
 }

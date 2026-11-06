@@ -1,0 +1,17 @@
+{
+  "uid": "7da5c52e-dcbc-40f9-9779-ef8272e8b1bb",
+  "id": "CsInvasion",
+  "name": "Test: Checks ModInvasion alone.",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Checks ModInvasion alone.",
+  "description": "Compile with tools/tests/build-cs.sh csinvasion.",
+  "updated": "2026-11-05",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

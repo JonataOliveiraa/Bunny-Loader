@@ -102,6 +102,12 @@ internal static unsafe class ModNet
                 ConfigNetHooks.Receive(reader, from);
                 return;
             }
+            if (kind == InvasionLoader.KindInvasion)
+            {
+                name = "invasion";
+                InvasionLoader.Receive(reader, from);
+                return;
+            }
             if (kind != KindPacket) return;
             name = reader.ReadString();
             Mod? mod = Host.FindMod(name);

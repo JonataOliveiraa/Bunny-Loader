@@ -1,4 +1,35 @@
+Invasions: {
+	PaladinCrusade: {
+		DisplayName: Paladin Crusade
+		Start: The Paladins' crusade has begun!
+		Fail: The Paladins retreat at dawn.
+		Complete: The Paladins' crusade has been repelled!
+	}
+
+	GraveLegion: {
+		DisplayName: Grave Legion
+	}
+}
+
 Items: {
+	ConsecratedAxe: {
+		DisplayName: Consecrated Axe
+		Tooltip:
+			'''
+			Summons the Paladin Crusade
+			Can only be used at night
+			'''
+	}
+
+	GraveBell: {
+		DisplayName: Grave Bell
+		Tooltip:
+			'''
+			Summons the Grave Legion
+			Three waves of the undead
+			'''
+	}
+
 	ActiveSoundShowcase: {
 		DisplayName: Active Sound Showcase
 		Tooltip: ""
