@@ -121,29 +121,17 @@ These are not missing. They exist since `39f90c17`:
   `+0xf94` (gun) and `+0x1ccc` (swing), checking the instruction bytes first.
 - `ExampleBoneMerchant` overrides the gun, `ExampleTravelingMerchant` the swing.
 
-What is still open:
+Done in `cstownattack`, with the phone's captures as proof (decision D4):
 
-1. **Nothing checks the result.** `cstownnpc` only checks that the callback was
-   called ("native gun drawing reaches the filtered callback"), with `ai` forced
-   by the test.
-2. **`GlobalNPC` on a vanilla NPC probably never runs.** From reading the code,
-   `TownNPCHooks.Install` sets the draw flag per mod type, and
-   `TownAttackHooks.InstallAll` only asks for attack hooks (bit 1), not draw
-   hooks (bit 2). To confirm with a test.
-3. **Never looked at on a phone.** Offsets are ARM code, so the phone and MuMu run
-   the same bytes, but the screen has not been checked.
+1. A mod NPC of attack type 1 and of type 3, and a `GlobalNPC` on the vanilla Arms
+   Dealer and Dye Trader, each replacing the texture and the scale. The plan said
+   Nurse, but the Nurse throws: the vanilla swing types are 207, 353 and 441.
+2. The suspicion that `GlobalNPC` never runs on a vanilla NPC was wrong. Its flags
+   reach the native hook as "all types", and the test measures it. No change needed.
+3. `ExampleBoneMerchant` and `ExampleTravelingMerchant` are captured in the same run.
 
-Work:
-
-1. New pack `cstownattack`: a mod NPC of attack type 1 and 3, plus a `GlobalNPC`
-   on a vanilla Arms Dealer and Nurse. Replace the texture and scale in the hook
-   and log them, then capture the screen during the attack.
-2. Fix item 2 by installing the draw hooks for all NPCs when a `GlobalNPC`
-   overrides them.
-3. Play the two merchants on the phone and capture the gun and the swing.
-
-No concrete failure was reported (decision D4): `cstownattack` and these captures
-are what settle whether the two hooks work.
+On MuMu the callbacks run but the new NPCs do not show in the captures, unlike on the
+phone. The cause was not found, so the phone is the reference for this block.
 
 ## 6. Block D: `ModInvasion`
 

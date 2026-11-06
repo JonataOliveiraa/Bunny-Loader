@@ -1,0 +1,17 @@
+{
+  "uid": "535461d5-8253-4dc9-a98f-0e00500963c1",
+  "id": "CsTownAttack",
+  "name": "Test: town attack drawing",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Checks DrawTownAttackGun and DrawTownAttackSwing.",
+  "description": "Compile with tools/tests/build-cs.sh cstownattack.",
+  "updated": "2026-11-05",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}
