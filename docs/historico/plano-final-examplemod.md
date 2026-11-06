@@ -322,6 +322,19 @@ MuMu and phone).
 | Wall `CanPlace`, `CanExplode` | `PlaceThing_Walls`; a scope around `ExplodeTiles` read in the `KillWall` hook |
 | Wall `PreDraw`, `PostDraw` | Around `WallDrawing.DrawWalls`. `PreDraw` runs before all the walls, not cell by cell, because the phone draws walls on threads; `false` hides the wall with the echo flag for that pass. This covers `ModWall` too, which had the same gap through `ModBlockType` |
 
+Later, from the user's tests on the phone (`csbugs`, 21 checks):
+
+- `Mod.AddNPCHeadTexture` in `Load` returned -1, and the phone reads
+  `NpcHead[index]` with no bounds check, which crashed on a town pet. Head slots
+  now exist when the head is registered, and each call gets its own slot.
+- `self` in hooks on methods that do not use `this` can be null: the compiler
+  drops the argument. `Option1Clicked` and `Option2Clicked` are like that.
+- `EmoteOver` calls `EmoteID.Search.GetName`, which throws on a mod emote.
+- The phone's interaction with projectiles compares `checkProjectilesFrame` with
+  the current frame in the draw, where `Main.mouseRight` is already off. Mod
+  projectiles see `mouseRight` on in that frame, so tML code works as written.
+- `{InputTrigger_ToggleOrOpen}` does not exist on the phone and showed raw.
+
 Found on the way: every mod tile was born with `tileFrameImportant` true. The
 tables grow with their most common value, and they grow after the game fills
 them, where most tiles are furniture. A mod block never ran the block framing, so

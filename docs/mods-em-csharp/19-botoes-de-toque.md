@@ -97,6 +97,10 @@ The game's action list keeps its size: after the game's actions comes
 there are more, **More**). Opening the list of a slot that already has a mod
 button shows its page.
 
+Inside this list, a page change waits for the grid to finish drawing: while the
+game walks the grid it reads the options array without bounds checks, and it
+closes the list on any finger release that no button handled.
+
 The layout file of the game (`VirtualControls.json`) never keeps a mod button,
 so it stays valid without the mod or without Bunny Loader. The mod buttons of
 each layout go to `BunnyLoader.touchbuttons.json`, by name and slot; a button
