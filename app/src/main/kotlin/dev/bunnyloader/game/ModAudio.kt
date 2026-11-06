@@ -125,114 +125,56 @@ object ModAudio {
 
     // ------------------------------- musica -------------------------------
 
-    private class Track(val path: String) {
-        var player: MediaPlayer? = null
-        var prepared = false
-        var failed = false
-        var volume = 0f            // o que o jogo pediu por ultimo
-        var pausedByApp = false    // tocava quando o app foi para o fundo
-    }
+    private val players = HashMap<Int, MediaPlayer>()
 
-    private val tracks = ConcurrentHashMap<Int, Track>()
-    @Volatile private var nextTrack = 1
-
-    /** Registra uma musica (nada e lido ainda). O id. */
-    @JvmStatic
-    @Synchronized
-    fun musicRegister(path: String): Int {
-        val id = nextTrack++
-        tracks[id] = Track(path)
-        return id
-    }
-
-    /**
-     * O volume da musica agora (0..1), chamado a cada quadro pelo jogo com o
-     * fade ja aplicado. Acima de 0 ela toca (prepara na primeira vez, sem
-     * travar o jogo); em 0 ela para e volta ao comeco, como a faixa do jogo.
-     */
-    @JvmStatic
-    @Synchronized
-    fun musicVolume(id: Int, volume: Float) {
-        val t = tracks[id] ?: return
-        if (t.failed) return
-        t.volume = volume
-        val p = t.player ?: if (volume > 0f) prepare(id, t) else return
-        if (!t.prepared) return
-        if (volume > 0f) {
-            p.setVolume(volume, volume)
-            if (!p.isPlaying && !t.pausedByApp) p.start()
-        } else if (p.isPlaying) {
-            p.pause()
-            p.seekTo(0)
-        }
-    }
-
-    /** -1 falhou, 0 parada, 1 preparando, 2 tocando. */
-    @JvmStatic
-    @Synchronized
-    fun musicState(id: Int): Int {
-        val t = tracks[id] ?: return -1
-        return when {
-            t.failed -> -1
-            t.player == null -> 0
-            !t.prepared -> 1
-            t.player!!.isPlaying -> 2
-            else -> 0
-        }
-    }
-
-    private fun prepare(id: Int, t: Track): MediaPlayer {
-        val p = MediaPlayer()
-        t.player = p
-        try {
-            p.setAudioAttributes(attributes(AudioAttributes.CONTENT_TYPE_MUSIC))
-            p.setDataSource(t.path)
-            p.isLooping = true
-            p.setOnPreparedListener { onPrepared(id) }
-            p.setOnErrorListener { _, what, extra ->
-                Log.e(TAG, "musica de mod ${t.path}: erro $what/$extra")
-                synchronized(this) { t.failed = true }
-                true
+    private val music: MusicQueue by lazy {
+        MusicQueue(object : MusicQueue.Backend {
+            override fun prepare(id: Int, path: String) {
+                val p = MediaPlayer()
+                players[id] = p
+                p.setAudioAttributes(attributes(AudioAttributes.CONTENT_TYPE_MUSIC))
+                p.setDataSource(path)
+                p.isLooping = true
+                p.setOnPreparedListener { music.onPrepared(id) }
+                p.setOnErrorListener { _, what, extra ->
+                    Log.e(TAG, "mod music $id ($path): error $what/$extra")
+                    music.onFailed(id)
+                    true
+                }
+                p.prepareAsync()
             }
-            p.prepareAsync()
-        } catch (e: Exception) {
-            Log.e(TAG, "musica de mod ${t.path}: ${e.message}")
-            t.failed = true
-        }
-        return p
+
+            override fun volume(id: Int, value: Float) = players.getValue(id).setVolume(value, value)
+            override fun start(id: Int) = players.getValue(id).start()
+            override fun pause(id: Int) = players.getValue(id).pause()
+            override fun rewind(id: Int) = players.getValue(id).seekTo(0)
+            override fun failed(id: Int, error: Exception) {
+                Log.e(TAG, "mod music $id: ${error.message}")
+            }
+        })
     }
 
-    @Synchronized
-    private fun onPrepared(id: Int) {
-        val t = tracks[id] ?: return
-        t.prepared = true
-        musicVolume(id, t.volume)
-    }
+    @JvmStatic
+    fun musicRegister(path: String): Int = music.register(path)
+
+    @JvmStatic
+    fun musicVolume(id: Int, volume: Float) = music.setVolume(id, volume)
+
+    @JvmStatic
+    fun musicState(id: Int): Int = music.state(id)
 
     // ------------------------------- app -------------------------------
 
     /** O jogo foi para o fundo: nada de mod soando por cima de outro app. */
     @JvmStatic
-    @Synchronized
     fun pauseAll() {
         effects.pause()
-        for (t in tracks.values) {
-            val p = t.player ?: continue
-            if (t.prepared && p.isPlaying) {
-                p.pause()
-                t.pausedByApp = true
-            }
-        }
+        music.pause()
     }
 
     @JvmStatic
-    @Synchronized
     fun resumeAll() {
         effects.resume()
-        for (t in tracks.values) {
-            if (!t.pausedByApp) continue
-            t.pausedByApp = false
-            if (t.volume > 0f) t.player?.start()
-        }
+        music.resume()
     }
 }

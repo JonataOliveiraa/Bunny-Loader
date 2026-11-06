@@ -1,0 +1,17 @@
+{
+  "uid": "cc01a946-9147-464a-a81d-a8aa86791d8a",
+  "id": "CsMusicBox",
+  "name": "Test: rapid music box toggling (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Toggles the game's music box and the Example Mod one at 5 Hz and measures frame time, UpdateAudio time, threads and memory per phase.",
+  "description": "Build with tools/tests/build-cs.sh csmusicbox. Run together with the Example Mod. Logs csmusicbox SEC per second, csmusicbox PHASE per phase, and csmusicbox END.",
+  "updated": "2026-11-05",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}
