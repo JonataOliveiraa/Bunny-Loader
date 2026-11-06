@@ -73,7 +73,7 @@ Small, and each one blocks real tModLoader code from compiling.
 | `ItemUseStyleID.Search` | CS0117 | Check against the dump, then add or leave out |
 | `PreDrawInWorld`, `PostDrawInWorld` with `WorldItem` | CS0115 | Match tML's signature (breaking for our sample) |
 | `[ReinitializeDuringResizeArrays]` | CS0246 | Honour it with the existing set factory |
-| `Item.AddCustomShimmerResult` | CS1061 | Add it, check how the phone's shimmer reads results |
+| `Recipe.AddCustomShimmerResult` returning `Recipe` | CS1061, the game's method returns `Item`, so chaining fails | Wrap it, as tML does; the phone's shimmer already reads `customShimmerResults` |
 | `PosData<T>` | CS0246 | Port as plain C# |
 | `ItemDefinition` and family (`NPC`, `Projectile`, `Buff`, `Tile`, `Wall`, `Prefix`) | CS0246 | Port `EntityDefinition`, with a row in the config menu |
 | `DefaultDictionaryKeyValue`, `ToFromStringConverter<T>` | CS0246 | Port |

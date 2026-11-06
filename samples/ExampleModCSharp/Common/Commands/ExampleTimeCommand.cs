@@ -52,7 +52,7 @@ public class ExampleTimeCommand : ModCommand
             fullTime -= Main.dayLength;
         Main.time = fullTime;
 
-        if (Main.netMode == NetmodeID.Server)
+        if ((Main.netMode & NetmodeID.Server) != 0)
             NetMessage.SendData(MessageID.WorldData);
     }
 }

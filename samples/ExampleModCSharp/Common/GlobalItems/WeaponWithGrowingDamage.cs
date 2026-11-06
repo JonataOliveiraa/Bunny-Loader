@@ -1,5 +1,3 @@
-using ItemCreationContext = Terraria.ModLoader.ItemCreationContext;
-using RecipeItemCreationContext = Terraria.ModLoader.RecipeItemCreationContext;
 using ExampleMod.Common.Configs;
 using ExampleMod.Content.NPCs;
 using Microsoft.Xna.Framework;

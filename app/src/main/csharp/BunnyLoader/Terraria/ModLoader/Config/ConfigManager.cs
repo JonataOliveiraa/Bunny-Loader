@@ -22,8 +22,6 @@ public static class ConfigManager
 
     static readonly Dictionary<Type, ConfigOption[]> options = new();
 
-    static readonly JsonSerializerOptions dataOptions = new() { IncludeFields = true };
-
     static string? savePath;
 
     public static string ModConfigPath => Path.Combine(SavePath(), "ModConfigs");
@@ -163,7 +161,7 @@ public static class ConfigManager
     {
         foreach (ConfigOption option in OptionsOf(config.GetType()))
         {
-            if (!data.TryGetPropertyValue(option.Name, out JsonNode? node) || node == null)
+            if (!data.TryGetPropertyValue(option.JsonName, out JsonNode? node) || node == null)
                 continue;
             try
             {
@@ -173,7 +171,7 @@ public static class ConfigManager
                     ConfigOptionKind.Range => option.Coerce(node.GetValue<double>()),
                     ConfigOptionKind.Choice => option.Coerce(node.GetValue<string>()),
                     ConfigOptionKind.Color => option.Coerce(node.GetValue<string>()),
-                    _ => node.Deserialize(option.Type, dataOptions)
+                    _ => node.Deserialize(option.Type, ConfigJson.Options)
                 };
                 if (value != null || option.Kind == ConfigOptionKind.Data)
                     option.Set(config, value);
@@ -191,13 +189,13 @@ public static class ConfigManager
         foreach (ConfigOption option in OptionsOf(config.GetType()))
         {
             object? value = option.Get(config);
-            data[option.Name] = option.Kind switch
+            data[option.JsonName] = option.Kind switch
             {
                 ConfigOptionKind.Toggle => JsonValue.Create((bool)value!),
                 ConfigOptionKind.Range => JsonValue.Create(Convert.ToDouble(value, System.Globalization.CultureInfo.InvariantCulture)),
                 ConfigOptionKind.Choice => JsonValue.Create(value?.ToString()),
                 ConfigOptionKind.Color => JsonValue.Create(ConfigOption.FormatColor((Color)value!)),
-                _ => JsonSerializer.SerializeToNode(value, option.Type, dataOptions)
+                _ => JsonSerializer.SerializeToNode(value, option.Type, ConfigJson.Options)
             };
         }
 

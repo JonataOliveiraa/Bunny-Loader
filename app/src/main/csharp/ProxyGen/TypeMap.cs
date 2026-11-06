@@ -66,6 +66,8 @@ sealed class TypeMap
     {
         Type top = Outermost(t);
         string ns = top.Namespace ?? "";
+        if (ns == "Terraria.DataStructures" && top.Name == "ItemCreationContext")
+            return "BunnyLoader.Interop.DataStructures";
         if ((ns == "Terraria.WorldBuilding" && top.Name is "GenPass" or "GenBase") ||
             (ns == "Terraria.GameContent.Generation" && top.Name is "PassLegacy" or "WorldGenLegacyMethod"))
             return "BunnyLoader.Interop.WorldGen";

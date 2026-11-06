@@ -58,9 +58,8 @@ namespace ExampleMod.Content.Items.Weapons
             return true;
         }
 
-        public override void PostDrawInWorld(SpriteBatch spriteBatch, Color lightColor, Color alphaColor, float rotation, float scale, int whoAmI) {
+        public override void PostDrawInWorld(WorldItem item, SpriteBatch spriteBatch, Color lightColor, Color alphaColor, float rotation, float scale, int whoAmI) {
 
-            WorldItem item = Main.item[whoAmI];
             Texture2D texture = glowTexture.Value;
             spriteBatch.Draw
             (

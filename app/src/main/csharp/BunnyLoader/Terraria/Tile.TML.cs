@@ -56,7 +56,19 @@ public unsafe partial struct Tile
         set => wallFrameNumber((byte)value);
     }
 
-    public bool HasTile => active();
+    public bool HasTile
+    {
+        get => active();
+        set => active(value);
+    }
+
+    public bool TopSlope => topSlope();
+
+    public bool BottomSlope => bottomSlope();
+
+    public bool LeftSlope => leftSlope();
+
+    public bool RightSlope => rightSlope();
 
     public bool HasUnactuatedTile => nactive();
 

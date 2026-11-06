@@ -30,7 +30,7 @@ public class Glow : ModItem
 
     public override Color? GetAlpha(Color lightColor) => Tint;
 
-    public override bool PreDrawInWorld(SpriteBatch spriteBatch, Color lightColor, Color alphaColor, ref float rotation, ref float scale, int whoAmI)
+    public override bool PreDrawInWorld(WorldItem item, SpriteBatch spriteBatch, Color lightColor, Color alphaColor, ref float rotation, ref float scale, int whoAmI)
     {
         WorldPre++;
         LastWhoAmI = whoAmI;
@@ -39,7 +39,7 @@ public class Glow : ModItem
         return true;
     }
 
-    public override void PostDrawInWorld(SpriteBatch spriteBatch, Color lightColor, Color alphaColor, float rotation, float scale, int whoAmI)
+    public override void PostDrawInWorld(WorldItem item, SpriteBatch spriteBatch, Color lightColor, Color alphaColor, float rotation, float scale, int whoAmI)
     {
         WorldPost++;
         LastScale = scale;

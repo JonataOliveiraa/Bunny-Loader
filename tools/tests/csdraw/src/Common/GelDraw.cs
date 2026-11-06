@@ -14,7 +14,7 @@ public class GelDraw : GlobalItem
 
     public override Color? GetAlpha(Item item, Color lightColor) => item.type == ItemID.Gel ? Tint : null;
 
-    public override bool PreDrawInWorld(Item item, SpriteBatch spriteBatch, Color lightColor, Color alphaColor, ref float rotation, ref float scale, int whoAmI)
+    public override bool PreDrawInWorld(WorldItem item, SpriteBatch spriteBatch, Color lightColor, Color alphaColor, ref float rotation, ref float scale, int whoAmI)
     {
         if (item.type == ItemID.Gel) WorldPre++;
         return true;

@@ -20,6 +20,8 @@ Terraria.ID.ProjectileID
 Terraria.ID.BuffID
 Terraria.ID.DustID
 Terraria.ID.ItemUseStyleID
+Terraria.ID.ItemHoldStyleID
+!Terraria.Recipe.AddCustomShimmerResult
 Terraria.ID.SoundID
 Terraria.ID.SetFactory
 Terraria.GameContent.Items.UniqueTagEffect

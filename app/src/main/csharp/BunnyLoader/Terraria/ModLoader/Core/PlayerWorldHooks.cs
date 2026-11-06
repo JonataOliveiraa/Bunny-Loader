@@ -210,7 +210,7 @@ internal static class PlayerWorldHooks
         shop = scope;
         try { orig(inv, slot, rightClickIsValid, leftClickIsValid); }
         finally { shop = outer; }
-        if (scope.Bought && !Main.mouseItem.IsNull) ItemLoader.OnCreated(Main.mouseItem, new BuyItemCreationContext(scope.Item));
+        if (scope.Bought && !Main.mouseItem.IsNull) ItemLoader.OnCreated(Main.mouseItem, new BuyItemCreationContext(Main.mouseItem, scope.Vendor));
         if (scope.Bought)
             PlayerLoader.Each(player, nameof(ModPlayer.PostBuyItem), (scope.Vendor, scope.Inventory, Main.mouseItem),
                 static (m, s) => m.PostBuyItem(s.Vendor, s.Inventory, s.mouseItem));

@@ -1,42 +1,10 @@
-using System;
-using System.Linq;
-using System.Reflection;
-using BunnyLoader.Interop;
 using ReLogic.Reflection;
 
 namespace Terraria.ID;
 
 public class NPCAIStyleID
 {
-    public static readonly IdDictionary Search;
-    static readonly GameHandle searchHandle;
-
-    static unsafe NPCAIStyleID()
-    {
-        var fields = typeof(NPCAIStyleID).GetFields(BindingFlags.Public | BindingFlags.Static)
-            .Where(field => field.IsLiteral && field.FieldType == typeof(short)).ToArray();
-        Search = IdDictionary.New(fields.Max(field => (short)field.GetRawConstantValue()!) + 1);
-        searchHandle = new GameHandle(Search.Pointer);
-        var prototype = NPCID.Search._idToName;
-        if (prototype.IsNull) throw new InvalidOperationException("NPC AI style reverse index type is unavailable");
-        nint indexClass = *(nint*)prototype.Pointer;
-        nint index = BunnyLoader.Host.Native()->NewObject(indexClass);
-        if (index == 0) throw new OutOfMemoryException("NPC AI style reverse index could not be allocated");
-        using (var indexHandle = new GameHandle(index))
-        {
-            byte* signature = BunnyLoader.Host.Utf8("void .ctor()");
-            nint method;
-            try { method = BunnyLoader.Host.Native()->FindMethodBySignature(indexClass, signature); }
-            finally { BunnyLoader.Host.FreeUtf8(signature); }
-            if (method == 0) throw new MissingMethodException("NPC AI style reverse index has no constructor");
-            var call = GameCall.Returning(RetKind.Int);
-            call.Arg(index);
-            call.Arg(method);
-            call.Invoke(BunnyLoader.Host.Native()->MethodPointer(method));
-            Search._idToName = new GameObject(index);
-        }
-        foreach (var field in fields) Search.Add(field.Name, (short)field.GetRawConstantValue()!);
-    }
+    public static readonly IdDictionary Search = ConstantSearch.Build(typeof(NPCAIStyleID), typeof(short));
 
     public const short FaceClosestPlayer = 0;
     public const short Slime = 1;

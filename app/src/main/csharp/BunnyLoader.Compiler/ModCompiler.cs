@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Emit;
 
 namespace BunnyLoader.Compiler;
@@ -111,8 +112,35 @@ public static class ModCompiler
             if (d.Severity == DiagnosticSeverity.Error && result.Errors.Count < MaxMessages) result.Errors.Add(Format(d));
             else if (d.Severity == DiagnosticSeverity.Warning && result.Warnings.Count < MaxMessages) result.Warnings.Add(Format(d));
         }
+        foreach (string warning in NetModeWarnings(trees))
+        {
+            if (result.Warnings.Count >= MaxMessages) break;
+            result.Warnings.Add(warning);
+        }
         return result;
     }
+
+    public static IEnumerable<string> NetModeWarnings(IEnumerable<SyntaxTree> trees)
+    {
+        foreach (SyntaxTree tree in trees)
+        {
+            foreach (BinaryExpressionSyntax test in tree.GetRoot().DescendantNodes().OfType<BinaryExpressionSyntax>())
+            {
+                if (!test.IsKind(SyntaxKind.EqualsExpression) && !test.IsKind(SyntaxKind.NotEqualsExpression)) continue;
+                if (!(IsNetMode(test.Left) && IsServer(test.Right)) && !(IsNetMode(test.Right) && IsServer(test.Left))) continue;
+                FileLinePositionSpan span = test.GetLocation().GetLineSpan();
+                string use = test.IsKind(SyntaxKind.EqualsExpression) ? "(Main.netMode & NetmodeID.Server) != 0" : "(Main.netMode & NetmodeID.Server) == 0";
+                yield return $"{span.Path}({span.StartLinePosition.Line + 1},{span.StartLinePosition.Character + 1}): BL0001: '{test}' does not treat a phone host as the server, because its netMode is 3. To mean \"I am the server\", use {use}. To mean \"I do not render\", the test is fine.";
+            }
+        }
+    }
+
+    static bool IsNetMode(ExpressionSyntax expression) =>
+        expression is MemberAccessExpressionSyntax { Name.Identifier.ValueText: "netMode" } or IdentifierNameSyntax { Identifier.ValueText: "netMode" };
+
+    static bool IsServer(ExpressionSyntax expression) =>
+        expression is MemberAccessExpressionSyntax { Name.Identifier.ValueText: "Server", Expression: var owner } && owner.ToString().EndsWith("NetmodeID", StringComparison.Ordinal)
+        || expression is LiteralExpressionSyntax { Token.ValueText: "2" };
 
     static string Format(Diagnostic d)
     {

@@ -118,6 +118,14 @@ namespace Microsoft.Xna.Framework.Graphics
 
         public static Color operator *(float scale, Color value) => value * scale;
 
+        public static bool operator ==(Color a, Color b) => a.R == b.R && a.G == b.G && a.B == b.B && a.A == b.A;
+
+        public static bool operator !=(Color a, Color b) => !(a == b);
+
+        public override readonly bool Equals(object? obj) => obj is Color other && this == other;
+
+        public override readonly int GetHashCode() => R | G << 8 | B << 16 | A << 24;
+
         public Color(float r, float g, float b, float a)
             : this((int)(r * 255f + 0.5f), (int)(g * 255f + 0.5f), (int)(b * 255f + 0.5f), (int)(a * 255f + 0.5f)) { }
 

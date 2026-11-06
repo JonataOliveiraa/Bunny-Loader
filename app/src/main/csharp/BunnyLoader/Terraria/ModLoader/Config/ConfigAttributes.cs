@@ -313,3 +313,31 @@ public class DefaultListValueAttribute : Attribute
 
     public DefaultListValueAttribute(string value) => Value = value;
 }
+
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+public class DefaultDictionaryKeyValueAttribute : Attribute
+{
+    public virtual object? Value { get; }
+
+    public DefaultDictionaryKeyValueAttribute(Type type, string value) => Value = System.ComponentModel.TypeDescriptor.GetConverter(type).ConvertFromInvariantString(value);
+
+    public DefaultDictionaryKeyValueAttribute(char value) => Value = value;
+
+    public DefaultDictionaryKeyValueAttribute(byte value) => Value = value;
+
+    public DefaultDictionaryKeyValueAttribute(short value) => Value = value;
+
+    public DefaultDictionaryKeyValueAttribute(int value) => Value = value;
+
+    public DefaultDictionaryKeyValueAttribute(long value) => Value = value;
+
+    public DefaultDictionaryKeyValueAttribute(float value) => Value = value;
+
+    public DefaultDictionaryKeyValueAttribute(double value) => Value = value;
+
+    public DefaultDictionaryKeyValueAttribute(bool value) => Value = value;
+
+    public DefaultDictionaryKeyValueAttribute(string value) => Value = value;
+
+    public DefaultDictionaryKeyValueAttribute(object value) => Value = value;
+}

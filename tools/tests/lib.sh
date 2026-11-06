@@ -38,9 +38,18 @@ restore_saves() {
     adb -s "$1" shell "su -c 'rm -f $data/Players/BagTest.plr* $data/Worlds/QA_B1_Sonda.wld* && cp /data/local/tmp/plrbak/* $data/Players/ && cp /data/local/tmp/${WORLD:-wldflat}/* $data/Worlds/ && chmod 666 $data/Players/BagTest.plr* $data/Worlds/QA_B1_Sonda.wld*'"
 }
 
+push_dll() {
+    local dev="$1" root
+    root="$(cd "$here/../.." && (pwd -W 2>/dev/null || pwd))"
+    adb -s "$dev" push "$root/app/src/main/csharp/BunnyLoader/bin/Release/net10.0/BunnyLoader.dll" /data/local/tmp/BunnyLoader.dll >/dev/null || return 1
+    adb -s "$dev" shell "chmod 644 /data/local/tmp/BunnyLoader.dll; run-as $pkg cp /data/local/tmp/BunnyLoader.dll files/dotnet/BunnyLoader.dll; rm -f /data/local/tmp/BunnyLoader.dll"
+    [ "$(adb -s "$dev" shell run-as $pkg sha256sum files/dotnet/BunnyLoader.dll | cut -d' ' -f1)" = "$(sha256sum "$root/app/src/main/csharp/BunnyLoader/bin/Release/net10.0/BunnyLoader.dll" | cut -d' ' -f1)" ] || { echo "!! BunnyLoader.dll differs on $dev" >&2; return 1; }
+}
+
 prepare() {
     local dev="$1" saves="$2" u
     shift 2
+    [ "${DLL:-0}" = 1 ] && { push_dll "$dev" || return 1; }
     [ -f "$here/csauto/CsAuto.dll" ] || bash "$here/build-cs.sh" csauto >/dev/null
     adb -s "$dev" shell am force-stop $pkg
     adb -s "$dev" shell "run-as $pkg rm -f shared_prefs/bunny_powers.xml" >/dev/null 2>&1
@@ -113,7 +122,17 @@ enter_single() {
         tap_until "$dev" 808 330 "mode=1 " players &&
         tap_until "$dev" 997 327 "mode=6 " worlds &&
         tap_until "$dev" 997 318 "mode=10 |^world" loading &&
-        wait_state "$dev" "^world" 120 world
+        wait_state "$dev" "^world" 120 world &&
+        dismiss_controls "$dev"
+}
+
+dismiss_controls() {
+    local dev="$1"
+    for _ in 1 2 3 4 5 6; do
+        sleep 2
+        state "$dev" | grep -q "paused=True" && adb -s "$dev" shell input tap 550 532
+    done
+    return 0
 }
 
 enter_host() {
@@ -152,7 +171,11 @@ wait_mods() {
 
 wait_end() {
     local dev="$1" test="$2" seconds="${3:-180}"
+    local taken="" name
     for _ in $(seq 1 "$seconds"); do
+        for name in $(adb -s "$dev" logcat -d | grep -o "$test SHOT [a-z0-9_]*" | awk '{print $3}'); do
+            case " $taken " in *" $name "*) ;; *) shot "$dev" "${dev##*:}-$test-$name" >/dev/null; taken="$taken $name" ;; esac
+        done
         adb -s "$dev" logcat -d | grep -q "\[mod\].* $test END" && return 0
         adb -s "$dev" logcat -d | grep -qE "Forwarding signal|FATAL" && break
         sleep 1

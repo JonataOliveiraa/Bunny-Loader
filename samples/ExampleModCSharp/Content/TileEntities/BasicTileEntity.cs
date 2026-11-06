@@ -29,7 +29,7 @@ public class BasicTileEntity : ModTileEntity
             waterFillLevel = newFillLevel;
             if (syncNeeded)
             {
-                if (Main.netMode == NetmodeID.Server)
+                if ((Main.netMode & NetmodeID.Server) != 0)
                 {
                     NetMessage.SendData(MessageID.TileEntitySharing, number: ID);
                 }

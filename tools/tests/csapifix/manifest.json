@@ -1,0 +1,17 @@
+{
+  "uid": "c6d44a11-3c52-4bf7-8459-4cfef0543788",
+  "id": "CsApiFix",
+  "name": "Test: block A API fixes",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Checks the block A API fixes.",
+  "description": "Compile with tools/tests/build-cs.sh csapifix.",
+  "updated": "2026-11-05",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

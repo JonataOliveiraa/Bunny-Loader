@@ -1,3 +1,4 @@
+using Terraria.DataStructures;
 using System.Collections.Generic;
 using System;
 using BunnyLoader.Interop;

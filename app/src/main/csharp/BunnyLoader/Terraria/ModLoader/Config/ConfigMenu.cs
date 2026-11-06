@@ -895,7 +895,12 @@ internal static unsafe class ConfigMenu
                 string key = entry.Active.FullName + "." + option.Name;
                 if (option.HeaderText(entry.Active) is { } header)
                     rows.Add(new Row { Kind = "header", Entry = entry, Header = header, Key = key + ":header", Height = height + HeaderExtra });
-                if (option.Kind == ConfigOptionKind.Color)
+                if (option.Kind == ConfigOptionKind.Definition)
+                {
+                    rows.Add(new Row { Kind = "definition", Entry = entry, Option = option, Key = key, Height = height });
+                    rows.Add(new Row { Kind = "definitionslider", Entry = entry, Option = option, Key = key + ":slider", Height = height });
+                }
+                else if (option.Kind == ConfigOptionKind.Color)
                 {
                     rows.Add(new Row { Kind = "color", Entry = entry, Option = option, Key = key + ":color", Height = height });
                     rows.Add(new Row { Kind = "hue", Entry = entry, Option = option, Key = key + ":hue", Height = height });
@@ -1121,6 +1126,8 @@ internal static unsafe class ConfigMenu
             case "radio": DrawRadio(s, p, row, enabled); break;
             case "dropdown": DrawDropdown(s, row, enabled); break;
             case "cycle": DrawCycle(s, p, row, enabled); break;
+            case "definition": DrawDefinition(s, p, row, enabled); break;
+            case "definitionslider": DrawDefinitionSlider(s, row, enabled); break;
             case "color": DrawColor(s, p, row, enabled); break;
             case "hue":
             case "saturation":
@@ -1503,6 +1510,45 @@ internal static unsafe class ConfigMenu
             SetValue(row, o.Choices[(index + 1) % o.Choices.Length]);
             SoundEngine.PlaySound(TickSound);
         }
+    }
+
+    static int DefinitionType(EntityDefinition definition) => Math.Clamp(definition.Type, definition.MinType, definition.MaxType);
+
+    static void DrawDefinition(SettingsOverlay_Layout s, Parts p, Row row, bool enabled)
+    {
+        ConfigOption o = row.Option!;
+        RowState st = StateOf(row);
+        var current = (EntityDefinition)o.Get(row.Entry.View)!;
+        var state = GUITransactionButton.Draw(s.ToggleTemplate.ToggleButton, default(Item), Label(row), !enabled, ref st.Scale, false, Focus(), false, false);
+        String_Layout value = s.SliderTemplate.Value;
+        p.Cycle.Location = new Vector2(CycleX, value.Location.Y);
+        GUIString.Draw(p.Cycle, "<  " + current.DisplayName + "  >", enabled ? value.Color : s.SliderTemplate.DisabledValueColor, false);
+        if (enabled && state == GUITransactionButton.InputState.Clicked && !RowBlocked())
+        {
+            int span = current.MaxType - current.MinType + 1;
+            Rectangle r = ControlAnchor._gridItemRegion;
+            int step = Main.mouseX < r.X + r.Width / 2 ? -1 : 1;
+            int next = current.MinType + ((DefinitionType(current) - current.MinType + step) % span + span) % span;
+            o.Set(row.Entry.View, current.AtType(next));
+            SoundEngine.PlaySound(TickSound);
+        }
+    }
+
+    static void DrawDefinitionSlider(SettingsOverlay_Layout s, Row row, bool enabled)
+    {
+        ConfigOption o = row.Option!;
+        var current = (EntityDefinition)o.Get(row.Entry.View)!;
+        int span = Math.Max(1, current.MaxType - current.MinType);
+        float? v = DrawSlider(s, row, "   ID", enabled, s.SliderTemplate.Option, (DefinitionType(current) - current.MinType) / (float)span,
+            (Slider_Layout l, bool disable, ref float value, GUISlider.DragState drag, bool force) => GUISlider.Draw(l, disable, ref value, drag, default(GUISlider.DrawBackingHandler), force, -1, -1, false));
+        if (v != null)
+        {
+            int next = current.MinType + (int)Math.Round(v.Value * span);
+            if (next != DefinitionType(current))
+                o.Set(row.Entry.View, current.AtType(next));
+        }
+
+        DrawValue(s, DefinitionType((EntityDefinition)o.Get(row.Entry.View)!).ToString(System.Globalization.CultureInfo.InvariantCulture), enabled);
     }
 
     static float[] ToHsl(Color c)

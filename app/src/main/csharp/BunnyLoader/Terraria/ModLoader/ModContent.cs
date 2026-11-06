@@ -213,6 +213,9 @@ public static class ModContent
         yield return 0;
         Terraria.ID.SetFactory.GrowToContent();
         yield return 0;
+        foreach (Mod mod in mods)
+            Run(mod, "ReinitializeDuringResizeArrays", () => Terraria.ID.SetFactory.ReinitializeSets(mod));
+        yield return 0;
         SystemLoader.ResizeArrays();
         SystemLoader.OnLocalizationsLoaded();
         yield return 0;

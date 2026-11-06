@@ -137,19 +137,20 @@ internal static unsafe class ItemDrawHooks
         try
         {
             var args = (WorldArgs*)raw;
-            Item item = new WorldItem(worldItem).inner;
+            WorldItem world = new WorldItem(worldItem);
+            Item item = world.inner;
             SpriteBatch batch = Main.spriteBatch;
             float rotation = args->Rotation, scale = args->Scale;
             bool go = true;
             if (ItemHooks.ModItemOf(item) is ModItem m)
             {
-                try { go &= m.PreDrawInWorld(batch, args->Light, args->Alpha, ref rotation, ref scale, worldIndex); }
+                try { go &= m.PreDrawInWorld(world, batch, args->Light, args->Alpha, ref rotation, ref scale, worldIndex); }
                 catch (Exception e) { ItemHooks.Report($"{m.FullName}.PreDrawInWorld", e); }
             }
             foreach (GlobalItem? g in ItemHooks.GlobalsOf(item))
             {
                 if (g == null) continue;
-                try { go &= g.PreDrawInWorld(item, batch, args->Light, args->Alpha, ref rotation, ref scale, worldIndex); }
+                try { go &= g.PreDrawInWorld(world, batch, args->Light, args->Alpha, ref rotation, ref scale, worldIndex); }
                 catch (Exception e) { ItemHooks.Report($"{g.FullName}.PreDrawInWorld", e); }
             }
             args->Rotation = rotation;
@@ -171,18 +172,19 @@ internal static unsafe class ItemDrawHooks
         if (worldItem == IntPtr.Zero || !worldDrawn) return;
         try
         {
-            Item item = new WorldItem(worldItem).inner;
+            WorldItem world = new WorldItem(worldItem);
+            Item item = world.inner;
             SpriteBatch batch = Main.spriteBatch;
             WorldArgs a = worldArgs;
             if (ItemHooks.ModItemOf(item) is ModItem m)
             {
-                try { m.PostDrawInWorld(batch, a.Light, a.Alpha, a.Rotation, a.Scale, worldIndex); }
+                try { m.PostDrawInWorld(world, batch, a.Light, a.Alpha, a.Rotation, a.Scale, worldIndex); }
                 catch (Exception e) { ItemHooks.Report($"{m.FullName}.PostDrawInWorld", e); }
             }
             foreach (GlobalItem? g in ItemHooks.GlobalsOf(item))
             {
                 if (g == null) continue;
-                try { g.PostDrawInWorld(item, batch, a.Light, a.Alpha, a.Rotation, a.Scale, worldIndex); }
+                try { g.PostDrawInWorld(world, batch, a.Light, a.Alpha, a.Rotation, a.Scale, worldIndex); }
                 catch (Exception e) { ItemHooks.Report($"{g.FullName}.PostDrawInWorld", e); }
             }
         }

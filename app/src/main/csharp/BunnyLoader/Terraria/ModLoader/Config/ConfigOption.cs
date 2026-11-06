@@ -3,8 +3,10 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria.Localization;
 
@@ -16,6 +18,7 @@ internal enum ConfigOptionKind
     Range,
     Choice,
     Color,
+    Definition,
     Data
 }
 
@@ -53,6 +56,8 @@ internal sealed class ConfigOption
     internal MemberInfo Member { get; }
 
     internal string Name => Member.Name;
+
+    internal string JsonName => Member.GetCustomAttribute<Newtonsoft.Json.JsonPropertyAttribute>()?.PropertyName ?? Member.Name;
 
     internal Type Type { get; }
 
@@ -110,6 +115,8 @@ internal sealed class ConfigOption
             return ConfigOptionKind.Toggle;
         if (Type == typeof(Color))
             return ConfigOptionKind.Color;
+        if (typeof(EntityDefinition).IsAssignableFrom(Type) && !Type.IsAbstract)
+            return ConfigOptionKind.Definition;
         if (Type.IsEnum)
         {
             Choices = Enum.GetValues(Type).Cast<object>().ToArray();
@@ -154,6 +161,19 @@ internal sealed class ConfigOption
                 Default = args[0].Value is System.Collections.ObjectModel.ReadOnlyCollection<CustomAttributeTypedArgument> list ? list.Select(a => a.Value).ToArray() : args[0].Value;
             return;
         }
+
+        if (member.GetCustomAttribute<JsonDefaultValueAttribute>() is { } json && !string.IsNullOrEmpty(json.Json))
+        {
+            try
+            {
+                Default = JsonSerializer.Deserialize(json.Json, Type, ConfigJson.Options);
+                HasDefault = true;
+            }
+            catch (Exception e)
+            {
+                BunnyLoader.Log.Warn($"{member.DeclaringType?.Name}.{member.Name}: JsonDefaultValue could not be read ({e.Message})");
+            }
+        }
     }
 
     internal object? Coerce(object? value)
@@ -194,7 +214,30 @@ internal sealed class ConfigOption
         return Integer ? Math.Round(snapped) : snapped;
     }
 
-    static object? Parse(Type target, string text) => target == typeof(Color) ? ParseColor(text) : TypeDescriptor.GetConverter(target).ConvertFromInvariantString(text);
+    static object? Parse(Type target, string text)
+    {
+        if (target == typeof(Color))
+            return ParseColor(text);
+        if (target == typeof(Vector2))
+            return ParseVector2(text);
+        if (target == typeof(Point))
+            return ParsePoint(text);
+        return TypeDescriptor.GetConverter(target).ConvertFromInvariantString(text);
+    }
+
+    internal static Vector2 ParseVector2(string text)
+    {
+        string[] parts = text.Split(',');
+        return parts.Length == 2 && float.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out float x) && float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out float y)
+            ? new Vector2(x, y) : default;
+    }
+
+    internal static Point ParsePoint(string text)
+    {
+        string[] parts = text.Split(',');
+        return parts.Length == 2 && int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int x) && int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int y)
+            ? new Point(x, y) : default;
+    }
 
     internal static Color? ParseColor(string text)
     {
@@ -259,7 +302,7 @@ internal sealed class ConfigOption
 
     internal static bool Shown(MemberInfo member)
     {
-        if (member.GetCustomAttribute<JsonIgnoreAttribute>() != null && member.GetCustomAttribute<ShowDespiteJsonIgnoreAttribute>() == null)
+        if ((member.GetCustomAttribute<JsonIgnoreAttribute>() != null || member.GetCustomAttribute<Newtonsoft.Json.JsonIgnoreAttribute>() != null) && member.GetCustomAttribute<ShowDespiteJsonIgnoreAttribute>() == null)
             return false;
         if (member is PropertyInfo property)
             return property.CanRead && property.CanWrite && property.GetIndexParameters().Length == 0 && property.GetMethod!.IsPublic && property.SetMethod!.IsPublic;

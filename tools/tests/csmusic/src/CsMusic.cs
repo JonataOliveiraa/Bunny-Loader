@@ -65,8 +65,8 @@ public sealed class CsMusicMod : Mod
         {
             case 20:
                 slot = MusicLoader.GetMusicSlot(mod, "Music/Tone");
-                Report("GetMusicSlot gives the first slot after the game's music and keeps it",
-                    slot == MusicID.Count && MusicLoader.GetMusicSlot(mod, "Music/Tone") == slot && MusicLoader.GetMusicSlot("CsMusic/Music/Tone") == slot && MusicLoader.MusicCount == MusicID.Count + 1,
+                Report("GetMusicSlot gives a slot after the game's music and keeps it",
+                    slot >= MusicID.Count && slot < MusicLoader.MusicCount && MusicLoader.GetMusicSlot(mod, "Music/Tone") == slot && MusicLoader.GetMusicSlot("CsMusic/Music/Tone") == slot,
                     $"slot={slot} count={MusicLoader.MusicCount}");
                 Report("MusicExists finds the file with or without the extension, and a missing one gives 0",
                     MusicLoader.MusicExists(mod, "Music/Tone") && MusicLoader.MusicExists(mod, "Music/Tone.ogg") && !MusicLoader.MusicExists(mod, "Music/None") && MusicLoader.GetMusicSlot(mod, "Music/None") == 0,

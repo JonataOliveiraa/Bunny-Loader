@@ -102,6 +102,12 @@ public readonly partial struct Recipe
         return this;
     }
 
+    public Recipe AddCustomShimmerResult(int itemType, int itemStack = 1)
+    {
+        AddCustomShimmerResult_(itemType, itemStack);
+        return this;
+    }
+
     public Recipe AddCondition(LocalizedText description, Func<bool> condition) => AddCondition(new Condition(description, condition));
 
     public Recipe AddCondition(params Condition[] conditions) => AddCondition((IEnumerable<Condition>)conditions);

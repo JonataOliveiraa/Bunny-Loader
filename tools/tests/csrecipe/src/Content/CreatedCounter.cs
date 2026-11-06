@@ -1,3 +1,4 @@
+using Terraria.DataStructures;
 using Terraria;
 using Terraria.ModLoader;
 

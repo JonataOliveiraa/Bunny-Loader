@@ -930,6 +930,11 @@ tModLoader that tests `Main.netMode == NetmodeID.Server` to pass a packet on
 to the other clients has to use the `&` form, as the ExampleMod's
 `HandlePacket` does.
 
+The mod compiler warns about these tests (`BL0001`). A test that means "I am
+the server" has to change. A test that means "I do not render", such as
+`if (Main.netMode != NetmodeID.Server)` around gore or dust, is fine as it is,
+because the host renders.
+
 ### Getting hurt: `Player.HurtModifiers` and `HurtInfo`
 
 ```csharp
