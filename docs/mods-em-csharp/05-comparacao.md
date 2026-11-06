@@ -1,6 +1,6 @@
 # 5. Bunny Loader × tModLoader
 
-> [Overview](README.md) · [1. First mod](01-primeiro-mod.md) · [2. Hooks](02-hooks.md) · [3. `ref`, `out`, `Nullable`](03-ref-out-e-nullable.md) · [4. Values and objects](04-valores-e-objetos.md) · **5. Bunny Loader × tModLoader** · [6. Performance](06-desempenho.md) · [7. Migration to C#](07-migracao-para-csharp.md) · [8. Under the hood](08-por-baixo-dos-panos.md) · [9. Content classes](09-conteudo.md)
+> [Overview](README.md) · [1. First mod](01-primeiro-mod.md) · [2. Hooks](02-hooks.md) · [3. `ref`, `out`, `Nullable`](03-ref-out-e-nullable.md) · [4. Values and objects](04-valores-e-objetos.md) · **5. Bunny Loader × tModLoader** · [6. Performance](06-desempenho.md) · [7. Migration to C#](07-migracao-para-csharp.md) · [8. Under the hood](08-por-baixo-dos-panos.md) · [9. Content classes](09-conteudo.md) · [API reference](referencia/README.md)
 
 Bunny Loader's API is tModLoader's: same namespaces, same class names, same
 member signatures. A tModLoader mod ports by copying its classes and fixing
@@ -74,5 +74,8 @@ game's parameters. Hooks follow the game they run on.)
 
 Where a content class works differently on the phone, its guide says so next
 to the class.
+
+The [API reference](referencia/README.md) compares both, class by class and member
+by member, and says why each thing that tModLoader has is missing here.
 
 Next tab: [6. Performance](06-desempenho.md).

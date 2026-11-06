@@ -1,6 +1,6 @@
 # 2. Hooks
 
-> [Overview](README.md) · [1. First mod](01-primeiro-mod.md) · **2. Hooks** · [3. `ref`, `out`, `Nullable`](03-ref-out-e-nullable.md) · [4. Values and objects](04-valores-e-objetos.md) · [5. Bunny Loader × tModLoader](05-comparacao.md) · [6. Performance](06-desempenho.md) · [7. Migration to C#](07-migracao-para-csharp.md) · [8. Under the hood](08-por-baixo-dos-panos.md) · [9. Content classes](09-conteudo.md)
+> [Overview](README.md) · [1. First mod](01-primeiro-mod.md) · **2. Hooks** · [3. `ref`, `out`, `Nullable`](03-ref-out-e-nullable.md) · [4. Values and objects](04-valores-e-objetos.md) · [5. Bunny Loader × tModLoader](05-comparacao.md) · [6. Performance](06-desempenho.md) · [7. Migration to C#](07-migracao-para-csharp.md) · [8. Under the hood](08-por-baixo-dos-panos.md) · [9. Content classes](09-conteudo.md) · [API reference](referencia/README.md)
 
 A hook is how a C# mod changes Terraria. This page teaches hooks from zero,
 one idea at a time, with an example for each.
@@ -151,7 +151,7 @@ You rarely need to build the name yourself: type `On_WorldGen.InWorld` and
 the editor shows the options.
 
 > tModLoader names some overloads slightly differently (`refInt32` instead of
-> `outint`). See [the comparison](05-comparacao.md#c-on-bunny-loader-vs-tmodloader).
+> `outint`). See [the comparison](05-comparacao.md#what-is-different).
 
 ## Properties: `get_` and `set_`
 

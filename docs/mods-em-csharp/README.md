@@ -1,6 +1,6 @@
 # Making mods in C#
 
-> **Overview** · [1. First mod](01-primeiro-mod.md) · [2. Hooks](02-hooks.md) · [3. `ref`, `out`, `Nullable`](03-ref-out-e-nullable.md) · [4. Values and objects](04-valores-e-objetos.md) · [5. Bunny Loader × tModLoader](05-comparacao.md) · [6. Performance](06-desempenho.md) · [7. Migration to C#](07-migracao-para-csharp.md) · [8. Under the hood](08-por-baixo-dos-panos.md) · [9. Content classes](09-conteudo.md) · [10. Tiles](10-tiles.md) · [11. Systems](11-sistemas.md) · [12. World generation](12-worldgen.md) · [13. Biomes and scenes](13-biomas.md) · [14. Title menu](14-menu.md) · [15. Sounds](15-sons.md) · [16. Mod configs](16-configs.md) · [17. Chat commands](17-comandos.md) · [18. Achievements](18-conquistas.md) · [19. Touch buttons](19-botoes-de-toque.md) · [20. Interface](20-interface.md) · [21. Screen effects](21-efeitos-de-tela.md) · [22. Fonts and texture packs](22-fontes-e-pacotes.md) · [23. Invasions](23-invasoes.md)
+> **Overview** · [1. First mod](01-primeiro-mod.md) · [2. Hooks](02-hooks.md) · [3. `ref`, `out`, `Nullable`](03-ref-out-e-nullable.md) · [4. Values and objects](04-valores-e-objetos.md) · [5. Bunny Loader × tModLoader](05-comparacao.md) · [6. Performance](06-desempenho.md) · [7. Migration to C#](07-migracao-para-csharp.md) · [8. Under the hood](08-por-baixo-dos-panos.md) · [9. Content classes](09-conteudo.md) · [10. Tiles](10-tiles.md) · [11. Systems](11-sistemas.md) · [12. World generation](12-worldgen.md) · [13. Biomes and scenes](13-biomas.md) · [14. Title menu](14-menu.md) · [15. Sounds](15-sons.md) · [16. Mod configs](16-configs.md) · [17. Chat commands](17-comandos.md) · [18. Achievements](18-conquistas.md) · [19. Touch buttons](19-botoes-de-toque.md) · [20. Interface](20-interface.md) · [21. Screen effects](21-efeitos-de-tela.md) · [22. Fonts and texture packs](22-fontes-e-pacotes.md) · [23. Invasions](23-invasoes.md) · [API reference](referencia/README.md)
 
 Bunny Loader runs mods in **C#**, the language of Terraria and of tModLoader.
 A mod is compiled ahead of time (on your PC or by the phone itself), it gets
@@ -80,6 +80,8 @@ reference "tabs": open them when you need them.
 | [6. Performance](06-desempenho.md) | Measured on a real phone: what reading the game, calling it and hooking it cost, and how to write a fast mod. |
 | [7. Migration to C#](07-migracao-para-csharp.md) | For mods made for Bunny Loader 0.3 and older: why the engine changed, the measured comparison, porting and saves. |
 | [8. Under the hood](08-por-baixo-dos-panos.md) | The runtime, the generated proxies, the calling convention and the two garbage collectors. |
+| **Reference** | |
+| [API reference](referencia/README.md) | Every public class and member, side by side with tModLoader: what is the same, what differs, what exists only here and what is missing. |
 
 ## What you need
 

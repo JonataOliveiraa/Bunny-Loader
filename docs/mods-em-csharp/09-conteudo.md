@@ -1,6 +1,6 @@
 # 9. Content classes
 
-> [Overview](README.md) · [1. First mod](01-primeiro-mod.md) · [2. Hooks](02-hooks.md) · [3. `ref`, `out`, `Nullable`](03-ref-out-e-nullable.md) · [4. Values and objects](04-valores-e-objetos.md) · [5. Bunny Loader × tModLoader](05-comparacao.md) · [6. Performance](06-desempenho.md) · [7. Migration to C#](07-migracao-para-csharp.md) · [8. Under the hood](08-por-baixo-dos-panos.md) · **9. Content classes**
+> [Overview](README.md) · [1. First mod](01-primeiro-mod.md) · [2. Hooks](02-hooks.md) · [3. `ref`, `out`, `Nullable`](03-ref-out-e-nullable.md) · [4. Values and objects](04-valores-e-objetos.md) · [5. Bunny Loader × tModLoader](05-comparacao.md) · [6. Performance](06-desempenho.md) · [7. Migration to C#](07-migracao-para-csharp.md) · [8. Under the hood](08-por-baixo-dos-panos.md) · **9. Content classes** · [API reference](referencia/README.md)
 
 Hooks change what the game already has. **Content classes** add new things:
 a class that extends `ModItem` becomes a new item. They follow tModLoader:
@@ -2381,9 +2381,10 @@ overrides it; a mod that doesn't override any of them adds no cost.
 | `NeedSaving` / `SaveData` / `LoadData` | The world save. See below. |
 | `TownNPCProfile` / `ModifyTownNPCProfile` (global) | The town NPC's appearance profile. See below. |
 
-`ModifyNPCHappiness` isn't part of the API: in tModLoader it exists only as
-commented-out code. Happiness goes in `SetStaticDefaults` through
-`NPC.Happiness`.
+Happiness goes in `SetStaticDefaults` through `NPC.Happiness`.
+`ModifyNPCHappiness` also runs here, when the game works out the shop price,
+with `primaryPlayerBiome` always 0.
+In tModLoader the hook exists but its call is commented out.
 
 **World save.** A mod NPC is saved when it is a town NPC, when
 `NPCID.Sets.SavesAndLoads` is set, or when `NeedSaving()` returns `true`.

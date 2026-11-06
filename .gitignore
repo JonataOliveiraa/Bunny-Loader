@@ -100,3 +100,7 @@ tools/tests/*/*.dll
 tools/tests/*/bin/
 tools/mods/csbuild/bin/
 tools/mods/csbuild/obj/
+
+tools/docs/ApiReference/bin/
+tools/docs/ApiReference/obj/
+tools/docs/ApiReference/missing.txt

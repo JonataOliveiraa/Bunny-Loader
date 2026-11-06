@@ -1,0 +1,1705 @@
+# Run: dotnet run -c Release -- <repo> <Terraria PC source folder>
+# key|text describes a class or member. key~|text adds a Phone: note. key!|text says why something is not here.
+# A key ending in .* covers every class under that prefix without a text of its own.
+
+# Patterns
+Terraria.GameContent.ItemDropRules.Conditions.*|A condition from the game for `ItemDropRule.ByCondition`. The name says when the drop is allowed.
+Terraria.ModLoader.*Jump|One of the game's extra jumps, as an `ExtraJump` you can position against or read from `Player.GetJumpState`.
+Terraria.ModLoader.*DamageClass|One of the game's damage classes. Reach it with `DamageClass.X`.
+Terraria.ModLoader.ModAchievement.Position|Where an achievement goes in the list.
+Terraria.ModLoader.ModAchievement.After|Places an achievement after another one.
+Terraria.ModLoader.ModAchievement.Before|Places an achievement before another one.
+Terraria.ModLoader.ModAchievement.Default|Places an achievement in its default spot, at the end.
+Terraria.ModLoader.BuilderToggle.Position|Where a builder toggle goes in the row.
+Terraria.ModLoader.BuilderToggle.After|Places a builder toggle after another one.
+Terraria.ModLoader.BuilderToggle.Before|Places a builder toggle before another one.
+Terraria.ModLoader.BuilderToggle.Default|Places a builder toggle in its default spot.
+Terraria.ModLoader.ExtraJump.Position|Where an extra jump goes in the order the game tries them.
+Terraria.ModLoader.ExtraJump.After|Places an extra jump after another one.
+Terraria.ModLoader.ExtraJump.Before|Places an extra jump before another one.
+Terraria.ModLoader.ModMapLayer.Position|Where a map layer goes in the draw order.
+Terraria.ModLoader.ModMapLayer.After|Draws a map layer after another one.
+Terraria.ModLoader.ModMapLayer.Before|Draws a map layer before another one.
+
+# Items
+Terraria.ID.AmmoID|Ammo types: the value of `Item.ammo` and `Item.useAmmo`.
+Terraria.ID.AmmoID.Sets|Tables indexed by ammo.
+Terraria.ID.AmmoID.Sets.LauncherAmmoMatches|Which rocket each launcher fires for a given ammo.
+Terraria.ID.ArmorIDs|Equipment texture slots: the numbers in `Item.headSlot`, `bodySlot` and `legSlot`.
+Terraria.ID.ArmorIDs.Body|Body slots.
+Terraria.ID.ArmorIDs.Body.Sets|Tables indexed by body slot.
+Terraria.ID.ArmorIDs.Head|Head slots.
+Terraria.ID.ArmorIDs.Head.Sets|Tables indexed by head slot.
+Terraria.ID.ArmorIDs.Head.Sets.DrawHeadSet|Whether the player's head shows under a given helmet.
+Terraria.ID.ArmorIDs.Legs|Leg slots.
+Terraria.ID.ArmorIDs.Legs.Sets|Tables indexed by leg slot.
+Terraria.Condition|A named check with text, used by recipes and shops. The static fields are the game's conditions, such as `Condition.InBeach`; `new Condition(text, check)` makes your own.
+Terraria.GameContent.ItemDropRules.Conditions|The game's drop conditions, each as a nested class.
+Terraria.ModLoader.DamageClassData|The stats a player keeps per damage class: damage, crit, knockback, attack speed, armor penetration.
+Terraria.ModLoader.DamageClassLoader|Registers damage classes and reads their stats.
+Terraria.Item|What Bunny Loader adds to the game's item. The game's own members, such as `damage`, come from the mobile game.
+Terraria.Item.NewItemModifier|Options for how a new item is created in the world, as the phone's `Item.NewItem` expects them.
+Terraria.DataStructures.ItemCreationContext|Why an item was created. `RecipeItemCreationContext` is the crafting case, passed to `OnCreated`.
+Terraria.GameContent.ItemDropRules.ItemDropAttemptResult|The outcome of one attempt to run a drop rule.
+Terraria.GameContent.ItemDropRules.ItemDropAttemptResultState|How a drop attempt ended.
+Terraria.GameContent.ItemDropRules.ItemDropDatabase|The game's table of rules for each NPC and bag.
+Terraria.GameContent.ItemDropRules.ItemDropResolver|Runs the rules when something dies or a bag opens.
+Terraria.GameContent.ItemDropRules.ItemDropRule|Shortcuts that build the common rules, such as `ItemDropRule.Common(type, 3)`.
+Terraria.GameContent.ItemDropRules.ItemDropRuleResolveAction|The method a rule chain uses to run the next rule.
+Terraria.GameContent.ItemDropRules.ItemDropWithConditionRule|A `CommonDrop` that also needs a condition.
+Terraria.ID.ItemHoldStyleID|Values of `Item.holdStyle`.
+Terraria.ID.ItemID|Item types. The numbers are the game's; a mod item's type comes from `ModContent.ItemType<T>()`.
+Terraria.ID.ItemID.Sets|Tables indexed by item type.
+Terraria.ModLoader.IO.ItemIO|Writes and reads items: `Save` and `Load` for a `TagCompound`, `Send` and `Receive` for packets.
+Terraria.ID.ItemUseStyleID|Values of `Item.useStyle`.
+Terraria.ModLoader.ModRarity|A rarity of your own: its color and where it sits in the order.
+Terraria.ID.PrefixID|The game's prefixes.
+Terraria.ModLoader.PrefixLoader|Finds mod prefixes and runs their hooks.
+Terraria.ModLoader.RarityLoader|Finds mod rarities.
+Terraria.Recipe.IngredientQuantityRules|Reduces how many ingredients a recipe consumes, for `AddConsumeIngredientCallback`.
+Terraria.ModLoader.Exceptions.RecipeException|Thrown when a recipe is built wrongly, such as an ingredient added twice.
+Terraria.RecipeGroup|An ingredient that accepts any item in the group, such as any wood.
+Terraria.DataStructures.RecipeItemCreationContext|The items used and the recipe, passed to `OnCreated` when an item is crafted.
+Terraria.ModLoader.StatModifier|A stat change made of an additive part, a multiplier and flat amounts, as in `player.GetDamage(DamageClass.Melee) += 0.1f`.
+
+# NPCs
+Terraria.ModLoader.AbstractNPCShop|A shop of any shape. Most mods use `NPCShop`.
+Terraria.ModLoader.AbstractNPCShop.Entry|One line of a shop: the item and its conditions.
+Terraria.GameContent.Bestiary.BestiaryEntry|An NPC's page in the bestiary. `Info` holds what the page shows.
+Terraria.GameContent.Bestiary.BestiaryInfoList|The list behind `BestiaryEntry.Info`, with `Add` and `AddRange`.
+Terraria.ModLoader.BossBarLoader|Runs the hooks of mod boss bars.
+Terraria.GameContent.UI.EmoteBubble|The emote bubble above a player or NPC. `MakePlayerEmote` shows one.
+Terraria.ModLoader.EmoteBubbleLoader|Registers emotes and runs their hooks.
+Terraria.GameContent.UI.EmoteID|Emote types, and the categories of the emote menu in `EmoteID.Category`.
+Terraria.ModLoader.GlobalEmoteBubble|Changes emote bubbles of the game and of every mod.
+Terraria.GameContent.ItemDropRules.IItemDropRule|A drop rule. Build your own by implementing it, or use `ItemDropRule`.
+Terraria.GameContent.ItemDropRules.IItemDropRuleChainAttempt|A rule chained to another, run only if the first one meets its test.
+Terraria.GameContent.ItemDropRules.IItemDropRuleCondition|A condition for a drop rule.
+Terraria.GameContent.ITownNPCProfile|Chooses a town NPC's texture, head, name and variant.
+Terraria.ModLoader.InvasionEnemy|An enemy of an invasion wave: its NPC type, how often it spawns and the points it gives.
+Terraria.ModLoader.InvasionLoader|Runs invasions: `Start`, `Stop`, `AddPoints`, and reads the wave and progress. Keeps the host and clients in sync.
+Terraria.ModLoader.InvasionWave|One wave of an invasion: the points to clear it and its enemies.
+Terraria.ModLoader.ModInvasion|A wave-based event that uses the game's progress bar. See [guide 23](../23-invasoes.md). Your subclass lists the waves.
+Terraria.NPC|What Bunny Loader adds to the game's NPC.
+Terraria.NPC.Spawner|Spawns a boss or event the way the game does, through the phone's `NPC.Spawner`.
+Terraria.ID.NPCAIStyleID|Values of `NPC.aiStyle`.
+Terraria.ID.NPCID|NPC types. A mod NPC's type comes from `ModContent.NPCType<T>()`.
+Terraria.ID.NPCID.BestiaryDrawOffsets|`NPCID.Sets.NPCBestiaryDrawOffset`: how an NPC is drawn in the bestiary.
+Terraria.ID.NPCID.PortraitOffsetTable|`NPCID.Sets.NPCPortraitsCloseUpOffsets`: the position of a portrait in chat.
+Terraria.ID.NPCID.PortraitTable|`NPCID.Sets.NPCPortraits`: the portrait shown in chat, per NPC.
+Terraria.ID.NPCID.Sets|Tables indexed by NPC type.
+Terraria.ID.NPCID.Sets.NPCBestiaryDrawModifiers|How to draw an NPC in the bestiary: position, velocity, scale, frame.
+Terraria.GameContent.NPCInteraction|A button of a town NPC's chat. Add yours with `ModNPC.RegisterChatButtons` or `GlobalNPC.RegisterChatButtons`.
+Terraria.ModLoader.NPCInteractionDatabase.DedicatedButton|A chat button with a fixed place: Close, Happiness, Housing.
+Terraria.GameContent.NPCInteractions|Ready-made chat buttons.
+Terraria.GameContent.NPCInteractions.Actions|The game's chat buttons as `NPCInteraction` objects.
+Terraria.GameContent.NPCInteractions.Actions.CloseChat|The Close button.
+Terraria.GameContent.NPCInteractions.Actions.GuideReverseCrafting|The Guide's crafting button.
+Terraria.GameContent.NPCInteractions.Actions.GuideTip|The Guide's help button.
+Terraria.GameContent.NPCInteractions.Actions.OpenShop|A button that opens a shop by name.
+Terraria.GameContent.NPCInteractions.Actions.VanillaOption|One of the two buttons the game gives an NPC.
+Terraria.ModLoader.NPCShop|A town NPC's shop: `new NPCShop(Type).Add<MyItem>().Register()`.
+Terraria.ModLoader.NPCShop.Entry|One line of an `NPCShop`.
+Terraria.ModLoader.NPCShopDatabase|Every shop by name. `GetShopName` builds the name.
+Terraria.ModLoader.NPCSpawnInfo|Where and how an NPC would spawn, passed to `SpawnChance`.
+Terraria.GameContent.Profiles|Ready-made `ITownNPCProfile` classes.
+Terraria.GameContent.Profiles.StackedNPCProfile|A profile that picks from others, usually normal and shimmered.
+Terraria.Projectile|What Bunny Loader adds to the game's projectile.
+Terraria.ID.ProjectileID|Projectile types. A mod projectile's type comes from `ModContent.ProjectileType<T>()`.
+Terraria.ID.ProjectileID.Sets|Tables indexed by projectile type.
+
+# Players
+Terraria.ModLoader.Gender|The gender a mod hair picks when the player randomizes.
+Terraria.ModLoader.HairLoader|Registers mod hairs.
+Terraria.Mount|What Bunny Loader adds to the game's mount.
+Terraria.Mount.MountData|What Bunny Loader adds to a mount's data.
+Terraria.Mount.MountDelegatesData|Replaceable methods of a mount, such as `MinecartDust`.
+Terraria.Player|What Bunny Loader adds to the game's player.
+Terraria.ModLoader.PlayerDrawLayer.Transformation|A change applied to every layer in a group, as `PlayerDrawLayer` positions it.
+Terraria.ModLoader.PlayerDrawLayerLoader|Orders the layers and draws them.
+Terraria.ModLoader.PlayerDrawLayerSlot|A layer that stands for a slot where another is drawn.
+Terraria.DataStructures.PlayerDrawLayers|The game's layers by name, as `PlayerDrawLayers.Head`, to position yours against.
+Terraria.GameContent.PlayerEyeHelper|The blink state of the player's eyes.
+Terraria.GameContent.UI.ResourceSets.PlayerStatsSnapshot|The player's life and mana at the moment the resource bars are drawn.
+Terraria.ModLoader.ResourceOverlayDrawContext|What a `ModResourceOverlay` is drawing now: texture, position, color. `Draw` draws it.
+Terraria.ModLoader.ResourceOverlayLoader|Runs the hooks of mod resource overlays.
+
+# Tiles and world
+Terraria.ModLoader.BiomeConversionLoader|Registers conversion types and runs the conversions of tiles and walls.
+Terraria.ModLoader.BiomeLoader|Runs the hooks of mod biomes.
+Terraria.Chest|What Bunny Loader adds to the game's chest.
+Terraria.ModLoader.CloudLoader|Registers mod clouds.
+Terraria.ID.ContentBoolTable|A yes-or-no table by content type. Works for any type, without resizing, and starts false.
+Terraria.ID.ContentIntTable|A number table by content type.
+Terraria.ID.ContentTable|A table by content type that holds objects.
+Terraria.ID.DustID|The game's dust types.
+Terraria.ModLoader.DustLoader|Registers mod dusts.
+Terraria.GameContent.FlexibleTileWand|Lets an item place several tile styles, as the Rubble Maker does.
+Terraria.Gore|What Bunny Loader adds to the game's gore.
+Terraria.ModLoader.GoreLoader|Registers mod gores.
+Terraria.ModLoader.MapLayerLoader|Runs the mod map layers.
+Terraria.GameContent.Bestiary.ModBiomeBestiaryInfoElement|The icon and name of a mod biome in a bestiary page.
+Terraria.ModLoader.PlantLoader|Finds which tree, palm tree or cactus of a mod grows on a ground.
+Terraria.GameContent.PressurePlateHelper|Tells which pressure plates are being stepped on.
+Terraria.ModLoader.PylonLoader|Runs the hooks of `GlobalPylon` and of mod pylons.
+Terraria.ModLoader.SceneEffectLoader.SceneEffectInstance|The scene the player is in now: music, water, backgrounds, each with a priority.
+Terraria.ModLoader.SceneEffectLoader.SceneEffectInstance.PrioritizedPair|A value and the priority that chose it.
+Terraria.GameContent.TeleportPylonInfo|A pylon in the world: its position and type.
+Terraria.TileData|The tile data of the world.
+Terraria.GameContent.Drawing.TileDrawing|What Bunny Loader adds to the game's tile drawing.
+Terraria.DataStructures.TileEntity|A tile with its own data. `TileEntity.TryGet` finds one by position. Mods subclass `ModTileEntity`.
+Terraria.ID.TileID|Tile types. A mod tile's type comes from `ModContent.TileType<T>()`.
+Terraria.ID.TileID.Sets|Tables indexed by tile type.
+Terraria.ObjectData.TileObjectData|The layout of a multi-tile object: size, anchors, styles. Fill `TileObjectData.newTile` in `SetStaticDefaults`.
+Terraria.ModLoader.WaterFallStylesLoader|Registers mod waterfall styles.
+Terraria.ModLoader.WaterStylesLoader|Registers mod water styles.
+Terraria.WorldGen|What Bunny Loader adds to the game's world generation.
+Terraria.GameContent.Generation.WorldGenLegacyMethod|The body of a `PassLegacy`.
+
+# Assets, IO, mods
+ReLogic.Content.Asset|A texture, sound or effect that may still be loading. `Value` waits for it. `ModContent.Request<T>` gives one.
+ReLogic.Content.AssetArray|A game table of assets, such as `TextureAssets.Item`.
+ReLogic.Content.AssetRequestMode|Whether a request loads in the background or now.
+ReLogic.Content.AssetState|Where an asset is in its loading.
+Terraria.ModLoader.IO.BinaryIO|Reads and writes colors, vectors, items and compact numbers in a packet.
+Terraria.ModLoader.IO.BitReader|Reads back what a `BitWriter` wrote.
+Terraria.ModLoader.IO.BitWriter|Packs many `bool` into a few bytes.
+Terraria.ModLoader.CommandCaller|Who ran a chat command: the player and where to reply.
+Terraria.ModLoader.ILocalizedModType|Content with a place in the localization files.
+Terraria.ModLoader.ILocalizedModTypeExtensions|Finds the key and the text of a content's localization.
+Terraria.Lang|What Bunny Loader adds to the game's language tables.
+Terraria.Localization.NetworkText|Text sent over the network, translated on each client.
+Terraria.ModLoader.IO.TagIO|Writes and reads a `TagCompound` in binary.
+Terraria.ModLoader.IO.TagSerializable|An object that saves itself to a `TagCompound`.
+Terraria.ModLoader.UsageException|Throw it in a command to show the player how to use the command.
+
+# Interface
+Terraria.ModLoader.AchievementLoader|Registers mod achievements.
+Terraria.GameContent.Achievements.AchievementsHelper|Reports achievement progress.
+Terraria.Graphics.Shaders.ArmorShaderData|A shader for a dye.
+Terraria.Graphics.Shaders.ArmorShaderDataSet|`GameShaders.Armor`: binds a dye item to its shader.
+Microsoft.Xna.Framework.Graphics.Color|What Bunny Loader adds to the color.
+Terraria.ID.Colors|The game's named colors.
+Terraria.ModLoader.Config.ConfigArgsAttribute|Base of config attributes with arguments.
+Terraria.ModLoader.Config.ConfigKeyAttribute|Base of config attributes that take a localization key.
+Terraria.ModLoader.Config.ConfigManager|Finds configs by type. `ConfigManager.Save` writes one.
+Terraria.UI.GameInterfaceDrawMethod|The body of a `LegacyGameInterfaceLayer`.
+Terraria.UI.GameInterfaceLayer|One layer of the game's interface, from `ModSystem.ModifyInterfaceLayers`.
+Terraria.GameContent.Dyes.HairColorMethod|The color a hair dye gives.
+Terraria.ID.HairID|Hair types.
+Terraria.ID.HairID.Sets|Tables indexed by hair type.
+Terraria.Graphics.Shaders.HairShaderDataSet|`GameShaders.Hair`: binds a hair dye to its shader.
+Terraria.ModLoader.KeybindLoader|Registers a `ModKeybind`. On the phone it gives a `ModTouchButton`.
+Terraria.UI.LegacyGameInterfaceLayer|A layer that draws with a method of yours. The usual way to add one.
+Terraria.ModLoader.MenuLoader|Runs the mod title menus.
+Terraria.ModLoader.ModTouchButton|A button on the screen, placed by the player in the game's controls editor. A `ModKeybind` on the phone. See [guide 19](../19-botoes-de-toque.md).
+Terraria.ModLoader.ModTouchJoystick|A button the player drags to aim. See [guide 19](../19-botoes-de-toque.md).
+Terraria.ModLoader.MusicLoader|Registers mod music and music boxes. `GetMusicSlot` gives a track's number.
+Terraria.GameContent.ItemDropRules.ShowItemDropInUI|Whether a drop shows in the bestiary.
+Terraria.Audio.SoundEngine|Plays sounds. `PlaySound` takes a `SoundStyle`.
+Terraria.Audio.SoundLimitBehavior|What happens when too many of a sound play together.
+Terraria.Audio.SoundUpdateCallback|Runs each frame for a playing sound, to change it or stop it.
+Terraria.ModLoader.TouchButtonLoader|Registers touch buttons and joysticks: `RegisterButton`, `RegisterJoystick`.
+Terraria.ModLoader.UI.UICommon|Common colors and text of the mod menus.
+Terraria.UI.UIElement|The base of every UI piece: position and size in `StyleDimension`, children, events, drawing. See [guide 20](../20-interface.md).
+Terraria.UI.UIEvent|An event of an element.
+Terraria.GameContent.UI.Elements.UIImage|Shows a texture.
+Terraria.GameContent.UI.Elements.UIImageButton|A texture that responds to a touch.
+Terraria.GameContent.UI.Elements.UIImageFramed|Shows one frame of a texture.
+Terraria.UI.UIMouseEvent|A touch on an element.
+Terraria.GameContent.UI.Elements.UIPanel|The game's blue panel.
+Terraria.UI.UIScrollWheelEvent|A scroll on an element.
+Terraria.GameContent.UI.Elements.UIScrollbar|The game's scrollbar.
+Terraria.UI.UIState|A full screen of UI: the root element you give a `UserInterface`.
+Terraria.GameContent.UI.Elements.UIText|Text.
+Terraria.GameContent.UI.Elements.UITextPanel|A panel with text in it.
+Terraria.UI.UserInterface|Runs one `UIState`: update, draw and touch.
+
+# Talking to the game
+BunnyLoader.Interop.GameArray|An array of the game, such as `Main.npc`. Index it as a C# array. `foreach` and LINQ work over a copy, so use `for` in code that runs every frame.
+BunnyLoader.Interop.GameArray2D|A two-dimensional array of the game.
+BunnyLoader.Interop.GameClass|A class of the game by namespace and name, to create arrays of it.
+BunnyLoader.Interop.GameDictionary|A `Dictionary` of the game. Wrap the field: `new GameDictionary(field)`.
+BunnyLoader.Interop.GameException|An exception thrown by the game's code, carried into C#.
+BunnyLoader.Interop.GameHandle|Holds a game object so the game's garbage collector keeps it. Needed for any object you keep past the current call.
+BunnyLoader.Interop.GameList|A `List` of the game. Wrap the field: `new GameList(field)`.
+BunnyLoader.Interop.GameNullable|`int?` and friends of the game. `HasValue` and `Value` work as in C#.
+BunnyLoader.Interop.GameObject|Any object of the game, as a pointer. `IsNull` says if it is empty.
+BunnyLoader.Interop.GameString|A string of the game. It converts to and from a C# `string` by itself.
+BunnyLoader.Interop.IGameObject|Every type that wraps a game object, with its `Pointer`.
+Terraria.IO.GameConfiguration|What Bunny Loader adds to the game's settings file.
+
+# Everything else
+Terraria.ModLoader.AddableFloat|A value that only adds, as in `StatModifier.Base`.
+Terraria.DataStructures.AnchorData|How a tile object attaches to what is around it.
+Terraria.Animation|What Bunny Loader adds to the game's tile animations.
+Terraria.ModLoader.IO.BigEndianReader|A `BinaryReader` that reads big-endian numbers, for NBT files.
+Terraria.ModLoader.IO.BigEndianWriter|A `BinaryWriter` that writes big-endian numbers, for NBT files.
+Terraria.ID.BiomeConversionID|The game's conversion types, as `WorldGen.Convert` takes them.
+Terraria.BlockType|The shape of a tile: solid, half brick, slopes.
+Terraria.ID.BuffID|Buff types. A mod buff's type comes from `ModContent.BuffType<T>()`.
+Terraria.ID.BuffID.Sets|Tables indexed by buff type.
+Terraria.ID.BuffID.Sets.BuffTextHandlerTable|Custom buff time text, per buff.
+Terraria.DataStructures.CachedProjectileCounterBuffTextHandler|A buff text that counts a projectile, as minion buffs do.
+Terraria.UI.CalculatedStyle|The final position and size of an element, in pixels.
+Terraria.Graphics.CameraModifiers.CameraModifierStack|`Main.instance.CameraModifiers`: adds a screen shake or camera move.
+Terraria.GameContent.ItemDropRules.Chains|Chains one rule to another with `OnSuccess`, `OnFailedRoll`, `OnFailedConditions`.
+Terraria.GameContent.ItemDropRules.Chains.TryIfDoesntFillConditions|Runs the next rule when the conditions fail.
+Terraria.GameContent.ItemDropRules.Chains.TryIfFailedRandomRoll|Runs the next rule when the roll fails.
+Terraria.GameContent.ItemDropRules.Chains.TryIfSucceeded|Runs the next rule when this one drops.
+Terraria.Collision|What Bunny Loader adds to the game's collision.
+Terraria.GameContent.ItemDropRules.CommonCode|Helpers that drop items, used by rules.
+Terraria.GameContent.ItemDropRules.CommonDrop|Drops an item with a chance.
+Terraria.GameContent.ItemDropRules.CommonDropNotScalingWithLuck|A `CommonDrop` that ignores luck.
+Terraria.GameContent.ItemDropRules.CommonDropScalingWithOnlyBadLuck|A `CommonDrop` that only bad luck changes.
+Terraria.GameContent.ItemDropRules.CommonDropWithRerolls|A `CommonDrop` with more tries.
+Terraria.ID.ContentSamples|A ready sample of each item, NPC and projectile, set up with defaults.
+Terraria.ID.ContentSamples.BestiaryRarityStars|Stars each NPC gets in the bestiary.
+Terraria.ID.ContentSamples.ItemSamples|`ContentSamples.ItemsByType`.
+Terraria.ID.ContentSamples.ProjectileSamples|`ContentSamples.ProjectilesByType`.
+Terraria.ID.CursorOverrideID|Cursor icons in the inventory.
+Terraria.DataStructures.DrawAnimationVertical|An animation for `Main.RegisterItemAnimation`: frames stacked vertically.
+Terraria.DataStructures.DrawData|A sprite waiting to be drawn, as the player draw layers use it.
+Terraria.DataStructures.DrawDataList|The list a player draw layer adds its `DrawData` to.
+Terraria.GameContent.ItemDropRules.DropAttemptInfo|What is happening when a rule runs: the NPC, player, item and the random source.
+Terraria.GameContent.ItemDropRules.DropBasedOnExpertMode|Runs one rule in Expert and another in Normal.
+Terraria.GameContent.ItemDropRules.DropBasedOnExtraGel|Runs a rule by the extra gel of a slime.
+Terraria.GameContent.ItemDropRules.DropBasedOnMasterAndExpertMode|Runs one of three rules by difficulty.
+Terraria.GameContent.ItemDropRules.DropBasedOnMasterMode|Runs one rule in Master and another below it.
+Terraria.GameContent.ItemDropRules.DropLocalPerClientAndResetsNPCMoneyTo0|Drops for each client, and takes the NPC's money away.
+Terraria.GameContent.ItemDropRules.DropNothing|Drops nothing. Useful in a chain.
+Terraria.GameContent.ItemDropRules.DropOneByOne|Drops items one at a time, each with its chance.
+Terraria.GameContent.ItemDropRules.DropOneByOne.Parameters|The amounts and chances of a `DropOneByOne`.
+Terraria.GameContent.ItemDropRules.DropPerPlayerOnThePlayer|Drops one for each player, at the player.
+Terraria.GameContent.ItemDropRules.DropRateInfo|What the bestiary shows for a drop.
+Terraria.GameContent.ItemDropRules.DropRateInfoChainFeed|The chance carried along a rule chain, for the bestiary.
+Terraria.Entity|What Bunny Loader adds to the game's entity.
+Terraria.DataStructures.EntitySource_ShakeTree|The source of what falls from a shaken tree.
+Terraria.DataStructures.EntitySource_TileBreak|The source of what a broken tile drops.
+Terraria.GameContent.ItemDropRules.Extensions|Chain methods as extensions of a rule.
+Terraria.ModLoader.ExtraJumpLoader|Runs the extra jumps.
+Terraria.Graphics.Effects.FilterManager|`Filters.Scene`: the full-screen filters.
+Terraria.GameContent.Bestiary.FlavorTextBestiaryInfoElement|The description of a bestiary page, by localization key.
+Terraria.GameContent.ItemDropRules.FromOptionsWithoutRepeatsDropRule|Drops some items from a list, with no repeats.
+Terraria.WorldBuilding.GenBase|The base of a world generation step.
+Terraria.WorldBuilding.GenPass|One step of world generation, added in `ModSystem.ModifyWorldGenTasks`.
+Terraria.WorldBuilding.GenerationProgress|The progress text and value of a step.
+Terraria.ModLoader.GlobalType|The base of every `GlobalX`.
+Terraria.ModLoader.IEntityWithGlobals|An entity with `GlobalX` instances.
+Terraria.ModLoader.ILoot|A list of drop rules: `npcLoot` and `itemLoot` in `ModifyNPCLoot` and `ModifyItemLoot`.
+Terraria.Map.IMapLayer|A layer of the full map.
+Terraria.Graphics.CameraModifiers.IModCameraModifier|A change to the camera, per frame.
+Terraria.Graphics.Renderers.IModParticle|A particle you draw yourself.
+Terraria.ModLoader.IModType|Content with a mod and a name.
+Terraria.GameContent.ItemDropRules.INestedItemDropRule|A rule that runs another rule.
+Terraria.ModLoader.IPlant|Common to mod trees, palm trees and cactus.
+Terraria.GameContent.ItemDropRules.IProvideItemConditionDescription|A condition with text for the bestiary.
+Terraria.ModLoader.ITree|Common to mod trees and palm trees.
+Terraria.ID.ImmunityCooldownID|The kinds of immunity after a hit.
+Terraria.GameContent.ItemDropRules.LeadingConditionRule|A condition with no drop, that leads a chain.
+Terraria.GameContent.Dyes.LegacyHairShaderData|A hair dye made of a color method.
+Terraria.Audio.LegacySoundStyle|The game's sound by number.
+Terraria.Main|What Bunny Loader adds to the game's main class.
+Terraria.GameContent.ItemDropRules.MechBossSpawnersDropRule|The spawners of the mechanical bosses.
+Terraria.ModLoader.ModBackgroundStyle|Base of the mod backgrounds.
+Terraria.ModLoader.MultipliableFloat|A value that only multiplies, as in `StatModifier`.
+Terraria.GameContent.ItemDropRules.NativeDropCondition|A condition of the mobile game, with a C# face.
+Terraria.GameContent.ItemDropRules.NativeDropRule|A rule of the mobile game, with a C# face.
+Terraria.GameContent.ItemDropRules.OneFromOptionsDropRule|Drops one item from a list.
+Terraria.GameContent.ItemDropRules.OneFromOptionsNotScaledWithLuckDropRule|Drops one item from a list, ignoring luck.
+Terraria.GameContent.ItemDropRules.OneFromRulesRule|Runs one rule from a list.
+Terraria.Graphics.Effects.OverlayManager|`Overlays.Scene`: the screen overlays.
+Terraria.Graphics.Renderers.ParticleRenderer|Draws `IParticle` objects.
+Terraria.GameContent.Generation.PassLegacy|A `GenPass` from a method.
+Terraria.DataStructures.PlacementHook|A method called when a tile object is placed, for `TileObjectData.newTile`.
+Microsoft.Xna.Framework.Point|What Bunny Loader adds to the point.
+Terraria.DataStructures.Point16|A tile position in two `short`.
+Terraria.ModLoader.PosData|A value at a position, in a sorted array, for sparse data by tile.
+Terraria.ModLoader.PosData.OrderedSparseLookupReader|Reads a `PosData` array walking forward.
+Terraria.ModLoader.PrefixCategory|The kind of item a prefix fits.
+Terraria.ID.ProjAIStyleID|Values of `Projectile.aiStyle`.
+Microsoft.Xna.Framework.Rectangle|What Bunny Loader adds to the rectangle.
+Terraria.GameContent.ItemDropRules.SimpleItemDropRuleCondition|A condition made of a method and a text.
+Terraria.ModLoader.SimpleModCloud|A `ModCloud` made by `Autoload` from a texture in `Clouds/`.
+Terraria.ModLoader.SimpleModGore|A `ModGore` made by `Autoload` from a texture in `Gores/`.
+Terraria.Graphics.Effects.SkyManager|`SkyManager.Instance`: the custom skies.
+Terraria.GameContent.ItemDropRules.SlimeBodyItemDropRule|What a slime carries inside.
+Terraria.SlopeType|The slope of a tile.
+Terraria.DataStructures.SpriteFrame|One frame of a sprite sheet.
+Terraria.ModLoader.StatInheritanceData|How much one damage class takes from another.
+Terraria.GameContent.ItemDropRules.StatueMimicItemDropRule|The drop of a statue mimic.
+Terraria.UI.StyleDimension|A position or size made of pixels plus a share of the parent.
+Terraria.ModLoader.SurfaceBackgroundStylesLoader|Registers the mod surface backgrounds.
+Terraria.GameContent.TextureAssetArray|A table of the game's textures by type.
+Terraria.GameContent.TextureAssets|The game's textures by type: `TextureAssets.Item[type]`.
+Terraria.GameContent.TreePaintingSettings|How a tree takes paint.
+Terraria.Utils|What Bunny Loader adds to the game's helpers.
+Terraria.UtilsExtensions|The extension methods tModLoader has in `Utils`, written here as extensions of the mobile game's types.
+Terraria.Utilities.WeightedRandom|Picks an item by weight.
+Terraria.WhipSettings|What Bunny Loader adds to the whip settings.
+Terraria.GameContent.Items.WhipTagEffect|What a whip's tag does to the minions' hits.
+Terraria.DataStructures.WingStats|The flight time and speed of a pair of wings.
+Terraria.Wiring|What Bunny Loader adds to the game's wiring.
+Terraria.IO.WorldFileData|What Bunny Loader adds to the file data of a world.
+
+# Phone notes that the guides also explain
+Terraria.ModLoader.ModBlockType.PreDraw~|On walls it runs before all the walls are drawn, not cell by cell, because the phone draws walls on threads. On tiles it replaces the tile's own drawing.
+Terraria.ModLoader.GlobalWall.PreDraw~|Runs before all the walls are drawn, not cell by cell. Returning `false` hides that wall for this pass.
+Terraria.ModLoader.GlobalWall.PostDraw~|Runs after all the walls are drawn, not cell by cell.
+Terraria.ModLoader.ModTile.HasSmartInteract~|The phone's smart cursor reaches mod tiles through a port of the game's loop.
+Terraria.ModLoader.ModNPC.PickEmote~|`otherAnchor` can be null: check `otherAnchor.IsNull` before reading it.
+Terraria.ModLoader.GlobalNPC.PickEmote~|`otherAnchor` can be null: check `otherAnchor.IsNull` before reading it.
+Terraria.ModLoader.Mod.AddNPCHeadTexture~|Returns the real slot at once, also from `Load`.
+Terraria.ModLoader.ModProjectile.GlowTexture~|Drawn after the sprite. Spears and other projectiles with their own drawing in the game get it too.
+Terraria.ModLoader.ModHair.RandomizedCharacterCreationGender~|Applied after the game's random character button.
+Terraria.ID.ProjectileID.Sets.IsInteractable~|A tap on the projectile reaches `Main.mouseRight` during its `PreDraw` and `PostDraw`, as tModLoader's code expects.
+Terraria.ModLoader.IO.TagCompound.Set~|Accepts numbers, `bool`, `string`, `byte[]`, `int[]`, lists, `TagCompound`, `TagSerializable` and `Item`.
+Terraria.ModLoader.ModNPC.TownNPCStayingHomeless~|The NPC stays out of the phone's housing list and of the free house.
+Terraria.ID.NPCID.Sets.ActsLikeTownNPC~|Set in `SetStaticDefaults`. Holds in the AI, in talking and in the walking frames.
+
+# Members with the same meaning everywhere
+**.LocalizationCategory|The folder of this content in the localization files.
+**.DisplayName|The name shown to the player, as localized text.
+**.Search|Finds an ID by name and a name by ID.
+**.DESERIALIZER|Rebuilds this value from a `TagCompound`.
+**.FromString|Builds this value from its text form.
+**.Deconstruct|Takes the value apart in a `var (a, b) = value` assignment.
+**Loader.*Count|How many exist, with the game's and every mod's.
+**.Sets.*Table.ContainsKey|Whether there is an entry for this ID.
+**.ContainsKey|Whether there is an entry for this key.
+**.TryGetValue|Reads an entry if there is one.
+**.Remove|Removes an entry.
+**.Count|How many items it holds.
+**.this[]|Reads or writes one entry.
+
+# Items, members
+Terraria.ID.AmmoID.Sets.SpecificLauncherAmmoProjectileFallback|Which launcher's table a launcher falls back to when it has no entry of its own.
+Terraria.ID.AmmoID.Sets.SpecificLauncherAmmoProjectileMatches|The projectile each launcher fires for each rocket ammo.
+Terraria.ID.AmmoID.Sets.LauncherAmmoMatches.Add|Adds the ammo-to-projectile table of a launcher.
+Terraria.ID.ArmorIDs.Body.Sets.HidesTopSkin|The body piece hides the skin of the torso.
+Terraria.ID.ArmorIDs.Body.Sets.HidesBottomSkin|The body piece hides the skin of the lower torso.
+Terraria.ID.ArmorIDs.Body.Sets.HidesHands|The body piece hides the hands.
+Terraria.ID.ArmorIDs.Body.Sets.HidesArms|The body piece hides the arms.
+Terraria.ID.ArmorIDs.Head.Sets.DrawFullHair|The helmet shows all of the hair.
+Terraria.ID.ArmorIDs.Head.Sets.DrawHatHair|The helmet shows the hair that fits under a hat.
+Terraria.ID.ArmorIDs.Head.Sets.DrawsBackHairWithoutHeadgear|The helmet also draws the back of the hair.
+Terraria.ID.ArmorIDs.Head.Sets.DrawHead|Whether the head shows under the helmet.
+Terraria.ID.ArmorIDs.Legs.Sets.HidesTopSkin|The leg piece hides the skin of the hips.
+Terraria.ID.ArmorIDs.Legs.Sets.HidesBottomSkin|The leg piece hides the skin of the legs.
+Terraria.GameContent.ItemDropRules.Conditions.FromCertainWaveAndAbove.neededWave|The first wave that allows the drop.
+Terraria.GameContent.ItemDropRules.Conditions.IsUsingSpecificAIValues.aiSlotToCheck|Which `NPC.ai` slot to read.
+Terraria.GameContent.ItemDropRules.Conditions.IsUsingSpecificAIValues.valueToMatch|The value that slot must have.
+Terraria.GameContent.ItemDropRules.Conditions.NamedNPC.neededName|The name the NPC must have.
+Terraria.ModLoader.DamageClass.Melee|The melee damage class.
+Terraria.ModLoader.DamageClass.Ranged|The ranged damage class.
+Terraria.ModLoader.DamageClass.Magic|The magic damage class.
+Terraria.ModLoader.DamageClass.Summon|The summon damage class.
+Terraria.ModLoader.DamageClass.CountsAsClass|Whether this class counts as the class `T`.
+Terraria.ModLoader.DamageClass.GetsPrefixesFor|Whether this class takes the prefixes of the class `T`.
+Terraria.ModLoader.DamageClassData.damage|Damage bonus for the class.
+Terraria.ModLoader.DamageClassData.critChance|Critical chance bonus for the class.
+Terraria.ModLoader.DamageClassData.attackSpeed|Attack speed bonus for the class.
+Terraria.ModLoader.DamageClassData.armorPen|Armor penetration bonus for the class.
+Terraria.ModLoader.DamageClassData.knockback|Knockback bonus for the class.
+Terraria.ModLoader.DrawableTooltipLine.MaxWidth|The width at which the line wraps.
+Terraria.ModLoader.DrawableTooltipLine.Spread|How far the text's outline goes.
+Terraria.ModLoader.EquipLoader.EquipTypes|Every equipment kind, in the order the game uses.
+Terraria.Item.EntityGlobals|The `GlobalItem` instances of this item.
+Terraria.Item.GetWorldItem|This item as a `WorldItem`, when it lies in the world.
+Terraria.Item.DefaultToPlaceableWall|Sets the fields of an item that places a wall.
+Terraria.Item.CountsAsClass|Whether this item's damage counts as the class `T`.
+Terraria.Item.DefaultToTorch|Sets the fields of a torch.
+Terraria.Item.CloneDefaults|Copies the defaults of another item, keeping this item's type.
+Terraria.Item.DefaultToMusicBox|Sets the fields of an item that places a music box.
+Terraria.Item.NewItemModifier.Invoke|Changes the item before it enters the world.
+Terraria.GameContent.ItemDropRules.ItemDropAttemptResult.State|How the attempt ended.
+Terraria.GameContent.ItemDropRules.ItemDropDatabase.GetRulesForNPCID|The rules of an NPC.
+Terraria.GameContent.ItemDropRules.ItemDropDatabase.RegisterToGlobal|Adds a rule for every NPC.
+Terraria.GameContent.ItemDropRules.ItemDropDatabase.RegisterToNPC|Adds a rule for an NPC.
+Terraria.GameContent.ItemDropRules.ItemDropDatabase.RemoveFromNPC|Removes a rule from an NPC.
+Terraria.GameContent.ItemDropRules.ItemDropDatabase.GetRulesForItemID|The rules of a bag or crate.
+Terraria.GameContent.ItemDropRules.ItemDropDatabase.RegisterToItem|Adds a rule for a bag or crate.
+Terraria.GameContent.ItemDropRules.ItemDropDatabase.RemoveFromItem|Removes a rule from a bag or crate.
+Terraria.GameContent.ItemDropRules.ItemDropResolver.TryDropping|Runs every rule for this attempt.
+Terraria.GameContent.ItemDropRules.ItemDropResolver.ResolveRule|Runs one rule and its chain.
+Terraria.GameContent.ItemDropRules.ItemDropRule.Coins|Drops this value in coins.
+Terraria.GameContent.ItemDropRules.ItemDropRule.CoinsBasedOnNPCValue|Drops the coins of the NPC's `value`.
+Terraria.GameContent.ItemDropRules.ItemDropRule.Common|Drops an item with a 1 in `chanceDenominator` chance.
+Terraria.GameContent.ItemDropRules.ItemDropRule.BossBag|Drops a treasure bag for each player, in Expert and Master.
+Terraria.GameContent.ItemDropRules.ItemDropRule.BossBagByCondition|A `BossBag` that also needs a condition.
+Terraria.GameContent.ItemDropRules.ItemDropRule.ExpertGetsRerolls|More tries in Expert.
+Terraria.GameContent.ItemDropRules.ItemDropRule.MasterModeCommonDrop|Drops only in Master.
+Terraria.GameContent.ItemDropRules.ItemDropRule.MasterModeDropOnAllPlayers|Drops for each player, only in Master.
+Terraria.GameContent.ItemDropRules.ItemDropRule.WithRerolls|Drops with extra tries.
+Terraria.GameContent.ItemDropRules.ItemDropRule.ByCondition|Drops when a condition holds.
+Terraria.GameContent.ItemDropRules.ItemDropRule.ScalingWithOnlyBadLuck|A drop that only bad luck changes.
+Terraria.GameContent.ItemDropRules.ItemDropRule.NotScalingWithLuck|A drop that ignores luck.
+Terraria.GameContent.ItemDropRules.ItemDropRule.OneFromOptionsNotScalingWithLuck|One item from a list, ignoring luck.
+Terraria.GameContent.ItemDropRules.ItemDropRule.OneFromOptionsNotScalingWithLuckWithX|One item from a list, ignoring luck, with a chance of X in Y.
+Terraria.GameContent.ItemDropRules.ItemDropRule.OneFromOptions|One item from a list.
+Terraria.GameContent.ItemDropRules.ItemDropRule.OneFromOptionsWithNumerator|One item from a list, with a chance of X in Y.
+Terraria.GameContent.ItemDropRules.ItemDropRule.DropNothing|Drops nothing. Useful in a chain.
+Terraria.GameContent.ItemDropRules.ItemDropRule.Gel|Gel, with the slime's colour.
+Terraria.GameContent.ItemDropRules.ItemDropRule.NormalvsExpert|One chance in Normal, another in Expert.
+Terraria.GameContent.ItemDropRules.ItemDropRule.NormalvsExpertNotScalingWithLuck|The same, ignoring luck.
+Terraria.GameContent.ItemDropRules.ItemDropRule.NormalvsExpertOneFromOptionsNotScalingWithLuck|One item from a list, a chance per mode, ignoring luck.
+Terraria.GameContent.ItemDropRules.ItemDropRule.NormalvsExpertOneFromOptions|One item from a list, a chance per mode.
+Terraria.GameContent.ItemDropRules.ItemDropRule.Food|Food, with the chance the game gives food.
+Terraria.GameContent.ItemDropRules.ItemDropRule.StatusImmunityItem|An immunity accessory, with the chance the game gives those.
+Terraria.GameContent.ItemDropRules.ItemDropWithConditionRule.condition|The condition of this rule.
+Terraria.ID.ItemID.Sets.SandgunAmmoProjectileData|The projectile and bonus damage a Sandgun gets from each ammo.
+Terraria.ID.ItemID.Sets.CatchingTool|Catches critters.
+Terraria.ID.ItemID.Sets.IsAGolfClub|Is a golf club.
+Terraria.ID.ItemID.Sets.DisableAutomaticPlaceableDrop|The tile it places does not drop this item by itself.
+Terraria.ID.ItemID.Sets.Spears|Is a spear.
+Terraria.ID.ItemID.Sets.PreHardmodeLikeBossBag|A boss bag that counts as pre-Hardmode.
+Terraria.ID.ItemID.Sets.SandgunAmmoInfo.ProjectileType|The projectile fired.
+Terraria.ID.ItemID.Sets.SandgunAmmoInfo.BonusDamage|Damage added to the shot.
+Terraria.ModLoader.IO.ItemIO.Save|Writes an item to a tag: its mod, name, prefix, stack and data.
+Terraria.ModLoader.IO.ItemIO.Load|Rebuilds an item from a tag. An item whose mod is off comes back empty.
+Terraria.ModLoader.IO.ItemIO.Send|Writes an item to a packet.
+Terraria.ModLoader.IO.ItemIO.Receive|Reads an item from a packet.
+Terraria.ModLoader.ItemLoot.Get|The rules of this item.
+Terraria.ModLoader.ItemLoot.Add|Adds a rule.
+Terraria.ModLoader.ItemLoot.RemoveWhere|Removes the rules that match.
+Terraria.ModLoader.ModItem.IsQuestFish|Whether this fish can be an Angler quest.
+Terraria.ModLoader.ModItem.SummonPrefix|Whether this item takes summon prefixes.
+Terraria.ModLoader.ModPrefix.Type|The prefix's number.
+Terraria.ModLoader.ModRarity.Type|The rarity's number, for `Item.rare`.
+Terraria.ModLoader.RarityLoader.GetRarity|The `ModRarity` of a number, or null.
+Terraria.Recipe.Mod|The mod that made the recipe.
+Terraria.Recipe.Conditions|What must hold to craft.
+Terraria.Recipe.DecraftConditions|What must hold to undo the recipe in shimmer.
+Terraria.Recipe.AddCustomShimmerResult|What this recipe gives back in shimmer, instead of the ingredients.
+Terraria.Recipe.AddCondition|Adds a condition to craft.
+Terraria.Recipe.AddDecraftCondition|Adds a condition to undo the recipe in shimmer.
+Terraria.Recipe.HasResult|Whether the recipe makes this item.
+Terraria.Recipe.HasIngredient|Whether the recipe takes this item.
+Terraria.Recipe.HasRecipeGroup|Whether the recipe takes this group.
+Terraria.Recipe.HasTile|Whether the recipe needs this tile.
+Terraria.Recipe.HasCondition|Whether the recipe has this condition.
+Terraria.Recipe.HasShimmerCondition|Whether the recipe has this shimmer condition.
+Terraria.Recipe.TryGetResult|Finds the result that is this item.
+Terraria.Recipe.TryGetIngredient|Finds the ingredient that is this item.
+Terraria.Recipe.RemoveIngredient|Removes an ingredient.
+Terraria.Recipe.RemoveTile|Removes a required tile.
+Terraria.Recipe.RemoveRecipeGroup|Removes a group.
+Terraria.Recipe.RemoveCondition|Removes a condition.
+Terraria.Recipe.RemoveShimmerCondition|Removes a shimmer condition.
+Terraria.Recipe.DisableRecipe|Turns the recipe off. It stays in the list, without showing.
+Terraria.Recipe.ReplaceResult|Changes what the recipe makes.
+Terraria.RecipeGroup.Add|Adds an item to the group.
+Terraria.DataStructures.RecipeItemCreationContext.Recipe|The recipe used.
+Terraria.DataStructures.RecipeItemCreationContext.ConsumedItems|The items spent.
+Terraria.DataStructures.RecipeItemCreationContext.DestinationStack|The stack the result goes into.
+Terraria.ModLoader.StatModifier.Default|No change.
+Terraria.ModLoader.TooltipLine.IsModifier|The line describes a prefix.
+Terraria.ModLoader.TooltipLine.IsModifierBad|The prefix line is a penalty.
+Terraria.ModLoader.TooltipLine.OverrideColor|The line's color, instead of the default.
+Terraria.ModLoader.TooltipLine.OneDropLogo|The line is the One Drop logo.
+Terraria.ModLoader.TooltipLine.Visible|Whether it shows.
+Terraria.ModLoader.TooltipLine.Hide|Hides the line and keeps it in the list.
+
+# NPCs, members
+Terraria.ModLoader.AbstractNPCShop.NpcType|The NPC that owns the shop.
+Terraria.ModLoader.AbstractNPCShop.Name|The shop's own name, such as `Shop`.
+Terraria.ModLoader.AbstractNPCShop.FullName|The shop's name in `NPCShopDatabase`.
+Terraria.ModLoader.AbstractNPCShop.AllEntries|Every line of the shop.
+Terraria.ModLoader.AbstractNPCShop.ActiveEntries|The lines whose conditions hold now.
+Terraria.ModLoader.AbstractNPCShop.FinishSetup|Called once after all mods have added their lines.
+Terraria.ModLoader.AbstractNPCShop.RefreshItems|Fills the shop again.
+Terraria.ModLoader.AbstractNPCShop.Entry.Item|The item sold.
+Terraria.ModLoader.AbstractNPCShop.Entry.Conditions|What must hold to sell it.
+Terraria.ModLoader.AbstractNPCShop.Entry.Disabled|Whether the line is off.
+Terraria.ModLoader.AbstractNPCShop.Entry.Disable|Turns the line off.
+Terraria.ModLoader.AbstractNPCShop.Entry.AddCondition|Adds a condition.
+Terraria.ModLoader.AbstractNPCShop.Entry.ConditionsMet|Whether all conditions hold.
+Terraria.GameContent.Bestiary.BestiaryEntry.Info|What the page shows. Add yours in `SetBestiary`.
+Terraria.GameContent.Bestiary.BestiaryInfoList.Add|Adds an element.
+Terraria.GameContent.Bestiary.BestiaryInfoList.AddRange|Adds several elements.
+Terraria.GameContent.Bestiary.BestiaryInfoList.RemoveAt|Removes one by position.
+Terraria.GameContent.Bestiary.BestiaryInfoList.RemoveAll|Removes those that match.
+Terraria.ModLoader.BossBarLoader.CurrentStyle|The bar style in use.
+Terraria.ModLoader.BossBarLoader.SwitchBossBarStyle|Changes the bar style.
+Terraria.ModLoader.BossBarLoader.GetBossBar|The `ModBossBar` of a number, or null.
+Terraria.ModLoader.ModNPC.ModifyNPCHappiness~|Runs when the game works out the shop price, and `primaryPlayerBiome` is always 0. In tModLoader the call is commented out.
+Terraria.ModLoader.GlobalNPC.ModifyNPCHappiness~|Runs when the game works out the shop price, and `primaryPlayerBiome` is always 0. In tModLoader the call is commented out.
+Terraria.ModLoader.ModNPC.ModifyNPCHappiness|Changes how the NPC feels about a biome or a neighbour.
+Terraria.ModLoader.GlobalNPC.ModifyNPCHappiness|Changes how an NPC feels about a biome or a neighbour.
+Terraria.GameContent.ItemDropRules.IItemDropRule.ChainedRules|The rules chained to this one.
+Terraria.GameContent.ItemDropRules.IItemDropRule.CanDrop|Whether it can drop now.
+Terraria.GameContent.ItemDropRules.IItemDropRule.TryDroppingItem|Tries to drop, and says how it went.
+Terraria.GameContent.ItemDropRules.IItemDropRule.ReportDroprates|Fills the chances the bestiary shows.
+Terraria.GameContent.ItemDropRules.IItemDropRuleChainAttempt.RuleToChain|The next rule.
+Terraria.GameContent.ItemDropRules.IItemDropRuleChainAttempt.CanChainIntoRule|Whether the next rule runs, after this result.
+Terraria.GameContent.ItemDropRules.IItemDropRuleChainAttempt.ReportDroprates|Fills the bestiary's chance for the chain.
+Terraria.GameContent.ItemDropRules.IItemDropRuleCondition.CanDrop|Whether it holds now.
+Terraria.GameContent.ItemDropRules.IItemDropRuleCondition.CanShowItemDropInUI|Whether the drop shows in the bestiary.
+Terraria.GameContent.ITownNPCProfile.RollVariation|Picks a variant for a new NPC.
+Terraria.GameContent.ITownNPCProfile.GetNameForVariant|The name for this variant, or null for a random name.
+Terraria.GameContent.ITownNPCProfile.GetTextureNPCShouldUse|The texture for this NPC now.
+Terraria.GameContent.ITownNPCProfile.GetHeadTextureIndex|The head's slot in `TextureAssets.NpcHead`.
+Terraria.ModLoader.InvasionLoader.All|Every invasion.
+Terraria.ModLoader.InvasionLoader.Active|The running invasion, or null.
+Terraria.ModLoader.InvasionLoader.Wave|The current wave, from 0.
+Terraria.ModLoader.InvasionLoader.Progress|Points earned in this wave.
+Terraria.ModLoader.InvasionLoader.ProgressMax|Points to clear this wave.
+Terraria.ModLoader.InvasionLoader.IsDowned|Whether this invasion was beaten in this world.
+Terraria.ModLoader.InvasionLoader.CanStart|Whether it could start now.
+Terraria.ModLoader.InvasionLoader.Start|Starts it, on any side. Returns `false` if it was refused.
+Terraria.ModLoader.InvasionLoader.AddPoints|Adds wave points.
+Terraria.ModLoader.InvasionLoader.Stop|Ends the invasion, as a win or a loss.
+Terraria.ModLoader.ModBossBar.Type|The bar's number.
+Terraria.ModLoader.ModBossBar.Life|The life shown, set in `ValidateAndCollectNecessaryInfo`.
+Terraria.ModLoader.ModBossBar.LifeMax|The largest life shown.
+Terraria.ModLoader.ModBossBar.Shield|The shield shown.
+Terraria.ModLoader.ModBossBar.ShieldMax|The largest shield shown.
+Terraria.ModLoader.ModBossBar.ValidateAndCollectNecessaryInfo|Whether the bar shows, reading the NPC.
+Terraria.ModLoader.ModInvasion.Type|The invasion's number.
+Terraria.ModLoader.ModInvasion.IconTexture|The icon of the bar. By default `<Texture>_Icon`.
+Terraria.ModLoader.ModInvasion.MessageColor|The color of its messages in chat.
+Terraria.ModLoader.ModInvasion.Music|The music while it runs, as a `MusicID` or `MusicLoader.GetMusicSlot`. `-1` leaves the music alone.
+Terraria.ModLoader.ModInvasion.Waves|The waves. Each has its points and enemies.
+Terraria.ModLoader.ModInvasion.SpawnRate|The spawn rate while it runs. Lower is faster.
+Terraria.ModLoader.ModInvasion.MaxSpawns|How many enemies at once.
+Terraria.ModLoader.ModInvasion.CanStart|Whether it may start now.
+Terraria.ModLoader.ModInvasion.CanSpawn|Whether enemies spawn around this player.
+Terraria.ModLoader.ModInvasion.ShouldFail|Whether it ends in a loss now.
+Terraria.ModLoader.ModInvasion.PointsFor|Points for killing this NPC. `0` to count nothing.
+Terraria.ModLoader.ModInvasion.ScalePoints|Points per wave with more players.
+Terraria.ModLoader.ModInvasion.OnStart|Runs once at the start.
+Terraria.ModLoader.ModInvasion.OnWaveStart|Runs at the start of each wave.
+Terraria.ModLoader.ModInvasion.OnWaveComplete|Runs at the end of each wave.
+Terraria.ModLoader.ModInvasion.OnComplete|Runs when it is won.
+Terraria.ModLoader.ModInvasion.OnFail|Runs when it is lost.
+Terraria.ModLoader.ModInvasion.Update|Runs every tick while it is active.
+Terraria.ModLoader.ModNPC.BossLoot|Changes the potion a boss drops, and what else happens at its death.
+Terraria.ModLoader.ModNPC.SetChatButtons|The text of the two chat buttons. For more buttons use `RegisterChatButtons`.
+Terraria.ModLoader.NPCHappiness.NpcType|The NPC.
+Terraria.ModLoader.NPCHappiness.Get|The happiness of an NPC.
+Terraria.ModLoader.NPCHappiness.SetNPCAffection|How much it likes a neighbour.
+Terraria.ModLoader.NPCHappiness.SetBiomeAffection|How much it likes a biome.
+Terraria.ModLoader.NPCHeadLoader.GetNPCHeadSlot|The default head slot of an NPC, or `-1`.
+Terraria.ID.NPCID.BestiaryDrawOffsets.Add|Sets how an NPC draws in the bestiary.
+Terraria.ID.NPCID.PortraitOffsetTable.Add|Sets a portrait's position.
+Terraria.ID.NPCID.PortraitTable.Add|Sets an NPC's portrait.
+Terraria.ID.NPCID.Sets.NPCBestiaryDrawOffset|How each NPC draws in the bestiary.
+Terraria.ID.NPCID.Sets.NPCPortraits|The portrait of each NPC.
+Terraria.ID.NPCID.Sets.NPCPortraitsCloseUpOffsets|The close-up portrait's position per NPC.
+Terraria.ID.NPCID.Sets.NPCPortraitsFullBodyRetroOffsets|The full body portrait's position per NPC.
+Terraria.ID.NPCID.Sets.BasicPortrait|A portrait from one texture.
+Terraria.GameContent.NPCInteraction.LocalPlayer|The player in the chat.
+Terraria.GameContent.NPCInteraction.TalkNPC|The NPC in the chat.
+Terraria.GameContent.NPCInteraction.TalkNPCType|That NPC's type.
+Terraria.GameContent.NPCInteraction.ShowExclamation|Whether the button shows a `!`.
+Terraria.GameContent.NPCInteraction.Condition|Whether the button shows now.
+Terraria.GameContent.NPCInteraction.GetText|The button's text.
+Terraria.GameContent.NPCInteraction.Interact|Runs when it is tapped.
+Terraria.GameContent.NPCInteraction.TryAddCoins|Shows a price beside the text.
+Terraria.GameContent.NPCInteraction.TextColor|The text's colors.
+Terraria.ModLoader.NPCInteractionList.Type|The NPC this list belongs to.
+Terraria.ModLoader.NPCInteractionList.InsertAfter|Adds a button after another one.
+Terraria.ModLoader.NPCInteractionList.InsertBefore|Adds a button before another one.
+Terraria.GameContent.NPCInteractions.Shop|A button that opens a shop by name.
+Terraria.GameContent.NPCInteractions.Actions.VanillaOption.First|Whether this is the first button of the two.
+Terraria.ModLoader.NPCLoader.NPCAI|Runs the AI hooks and the game's AI.
+Terraria.ModLoader.NPCLoader.WriteExtraAI|The bytes of `SendExtraAI`.
+Terraria.ModLoader.NPCLoader.ReadExtraAI|The bytes for `ReceiveExtraAI`.
+Terraria.ModLoader.NPCLoader.ChooseSpawn|Picks the NPC to spawn from the pool.
+Terraria.ModLoader.NPCLoot.Get|The rules of this NPC.
+Terraria.ModLoader.NPCLoot.Add|Adds a rule.
+Terraria.ModLoader.NPCLoot.RemoveWhere|Removes the rules that match.
+Terraria.ModLoader.NPCShop.Entries|Every line.
+Terraria.ModLoader.NPCShop.FillLastSlot|Whether the last slot is used.
+Terraria.ModLoader.NPCShop.GetEntry|The line of an item.
+Terraria.ModLoader.NPCShop.TryGetEntry|Finds the line of an item.
+Terraria.ModLoader.NPCShop.AllowFillingLastSlot|Lets the shop use its last slot.
+Terraria.ModLoader.NPCShop.Add|Adds a line.
+Terraria.ModLoader.NPCShop.InsertBefore|Adds a line before another one.
+Terraria.ModLoader.NPCShop.InsertAfter|Adds a line after another one.
+Terraria.ModLoader.NPCShop.FillShop|Fills the shop's slots with what is active.
+Terraria.ModLoader.NPCShop.Open|Opens the shop for the local player.
+Terraria.ModLoader.NPCShop.Entry.OrdersLast|Whether it goes after the rest.
+Terraria.ModLoader.NPCShop.Entry.SlotReserved|Whether its slot stays even when its conditions fail.
+Terraria.ModLoader.NPCShop.Entry.SortBefore|Puts it before another line.
+Terraria.ModLoader.NPCShop.Entry.SortAfter|Puts it after another line.
+Terraria.ModLoader.NPCShop.Entry.AddCondition|Adds a condition.
+Terraria.ModLoader.NPCShop.Entry.OrderLast|Puts it after the rest.
+Terraria.ModLoader.NPCShop.Entry.AddShopOpenedCallback|Runs a method when the shop opens, to change the item.
+Terraria.ModLoader.NPCShop.Entry.OnShopOpen|Runs those methods.
+Terraria.ModLoader.NPCShopDatabase.AllShops|Every shop.
+Terraria.ModLoader.NPCShopDatabase.NoPylons|The shops that do not sell pylons.
+Terraria.ModLoader.NPCShopDatabase.GetShop|A shop by name.
+Terraria.ModLoader.NPCShopDatabase.TryGetNPCShop|Finds a shop by name.
+Terraria.ModLoader.NPCShopDatabase.AddShop|Adds a shop.
+Terraria.ModLoader.NPCShopDatabase.OpenShop|Opens a shop by name.
+Terraria.ModLoader.NPCSpawnInfo.Spawner|The game's spawn state behind this.
+Terraria.ModLoader.NPCSpawnInfo.SpawnTileX|Tile column of the spawn.
+Terraria.ModLoader.NPCSpawnInfo.SpawnTileY|Tile row of the spawn.
+Terraria.ModLoader.NPCSpawnInfo.SpawnTileType|The tile under the spawn.
+Terraria.ModLoader.NPCSpawnInfo.GroundTileY|The row of the ground.
+Terraria.ModLoader.NPCSpawnInfo.SpawnWallType|The wall at the spawn.
+Terraria.ModLoader.NPCSpawnInfo.Player|The player the spawn is for.
+Terraria.ModLoader.NPCSpawnInfo.PlayerFloorX|The player's tile column.
+Terraria.ModLoader.NPCSpawnInfo.PlayerFloorY|The tile row under the player.
+Terraria.ModLoader.NPCSpawnInfo.Sky|In space.
+Terraria.ModLoader.NPCSpawnInfo.Lihzahrd|In the Lihzahrd temple.
+Terraria.ModLoader.NPCSpawnInfo.PlayerSafe|The player is behind a safe wall.
+Terraria.ModLoader.NPCSpawnInfo.Invasion|An invasion is near the player.
+Terraria.ModLoader.NPCSpawnInfo.Water|In water.
+Terraria.ModLoader.NPCSpawnInfo.Granite|In a granite cave.
+Terraria.ModLoader.NPCSpawnInfo.Marble|In a marble cave.
+Terraria.ModLoader.NPCSpawnInfo.SpiderCave|In a spider cave.
+Terraria.ModLoader.NPCSpawnInfo.PlayerInTown|The player is in a town.
+Terraria.ModLoader.NPCSpawnInfo.DesertCave|In the underground desert.
+Terraria.ModLoader.NPCSpawnInfo.SafeRangeX|Inside the safe range around spawn.
+Terraria.NPC.GetSource_FromThis|The source for what this NPC creates.
+Terraria.NPC.GetSource_Loot|The source for what it drops.
+Terraria.NPC.GetSource_Death|The source for what it creates at death.
+Terraria.NPC.GetSource_FromAI|The source for what its AI creates.
+Terraria.NPC.GetSource_GiftOrReward|The source for what it gives the player.
+Terraria.NPC.StrikeInstantKill|Kills it, synced in multiplayer.
+Terraria.NPC.SimpleStrikeNPC|Hits it with this damage.
+Terraria.NPC.CanBeChasedBy|Whether a homing projectile or minion may target it.
+Terraria.NPC.VanillaAI|Runs the game's AI for its `aiStyle`.
+Terraria.NPC.ModNPC|Its `ModNPC`, or null.
+Terraria.NPC.EntityGlobals|Its `GlobalNPC` instances.
+Terraria.NPC.SetDefaultsKeepPlayerInteraction|Changes its type and keeps who hit it.
+Terraria.NPC.TownNPCName|A random name for a town NPC.
+Terraria.NPC.HitModifiers.GetDamage|The final damage of the hit.
+Terraria.NPC.HitModifiers.GetKnockback|The final knockback of the hit.
+Terraria.NPC.HitModifiers.ToHitInfo|The hit as a `HitInfo`.
+Terraria.GameContent.Profiles.DefaultNPCProfile.RollVariation|Always `0`.
+Terraria.GameContent.Profiles.DefaultNPCProfile.GetNameForVariant|Null, so the name is random.
+Terraria.GameContent.Profiles.DefaultNPCProfile.GetTextureNPCShouldUse|Its texture, with the party version when there is one.
+Terraria.GameContent.Profiles.DefaultNPCProfile.GetHeadTextureIndex|Its head slot.
+
+# Projectiles and players, members
+Terraria.ModLoader.ModProjectile.ModifyFishingLine|Changes the origin and color of a bobber's line.
+Terraria.Projectile.GetSource_FromThis|The source for what this projectile creates.
+Terraria.Projectile.GetSource_DropAsItem|The source for an item it turns into.
+Terraria.Projectile.GetSource_Death|The source for what it creates at death.
+Terraria.Projectile.KillOldestJavelin|Removes the oldest javelin stuck in the same NPC.
+Terraria.Projectile.EntityGlobals|Its `GlobalProjectile` instances.
+Terraria.Projectile.CountsAsClass|Whether its damage counts as the class `T`.
+Terraria.Projectile.NewProjectile|Creates a projectile. Returns its index in `Main.projectile`.
+Terraria.Projectile.CloneDefaults|Copies the defaults of another projectile, keeping this type.
+Terraria.Projectile.WhipSettings|The segments and range of a whip.
+Terraria.Projectile.FillWhipControlPoints|The points of a whip's line.
+Terraria.ModLoader.ProjectileLoader.ModifyFishingLine|Runs `ModifyFishingLine`.
+Terraria.ModLoader.ProjectileLoader.WriteExtraAI|The bytes of `SendExtraAI`.
+Terraria.ModLoader.ProjectileLoader.ReadExtraAI|The bytes for `ReceiveExtraAI`.
+Terraria.ModLoader.ProjectileLoader.GrappleOutOfRange|Whether a hook has gone too far.
+Terraria.ModLoader.ModHair.Type|The hair's number.
+Terraria.ModLoader.ModMount.GetExtraTexture|The path of one of the mount's textures.
+Terraria.ModLoader.ModPlayer.Index|Its place in `Player.ModPlayers`.
+Terraria.ModLoader.ModPlayer.TypeEquals|Whether both are the same class.
+Terraria.ModLoader.ModPlayer.EmitEnchantmentVisualsAt|Draws dust for a weapon enchantment on a projectile or item.
+Terraria.ModLoader.ModResourceOverlay.Type|The overlay's number.
+Terraria.Mount._mountSpecificData|Free data of the mount, for your `ModMount`.
+Terraria.Mount.MountData.playerYOffsets|How high the player sits, per frame.
+Terraria.Mount.MountDelegatesData.MinecartDust|The dust of a minecart.
+Terraria.Mount.MountDelegatesData.MinecartJumpingSound|The sound of a minecart's jump.
+Terraria.Mount.MountDelegatesData.MinecartLandingSound|The sound of a minecart's landing.
+Terraria.Mount.MountDelegatesData.MinecartBumperSound|The sound of a minecart's bumper.
+Terraria.ModLoader.MountLoader.IsModMount|Whether a mount comes from a mod.
+Terraria.Player.GetSource_FromThis|The source for what the player creates.
+Terraria.Player.GetSource_Buff|The source for what a buff creates.
+Terraria.Player.GetSource_Accessory|The source for what an accessory creates.
+Terraria.Player.GetSource_Accessory_OnHurt|The source for what an accessory creates when hurt.
+Terraria.Player.HasAmmo|Whether the player has ammo for the item.
+Terraria.Player.GetSource_ItemUse_WithPotentialAmmo|The source for a weapon's shot, with its ammo.
+Terraria.Player.PickAmmo|Finds the ammo and works out the shot.
+Terraria.Player.InModBiome|Whether the player is in this biome.
+Terraria.Player.NearbyModTorch|The mod torches near the player.
+Terraria.Player.UseHealthMaxIncreasingItem|The effect of a Life Crystal: text, dust and sound.
+Terraria.Player.UseManaMaxIncreasingItem|The effect of a Mana Crystal: text, dust and sound.
+Terraria.Player.ModPlayers|Its `ModPlayer` instances.
+Terraria.Player.setBonus|The set bonus text.
+Terraria.Player.GetTotalDamage|The damage of a class, with what it inherits.
+Terraria.Player.GetTotalCritChance|The critical chance of a class, with what it inherits.
+Terraria.Player.GetTotalAttackSpeed|The attack speed of a class, with what it inherits.
+Terraria.Player.GetTotalArmorPenetration|The armor penetration of a class, with what it inherits.
+Terraria.Player.GetTotalKnockback|The knockback of a class, with what it inherits.
+Terraria.Player.GetWeaponAttackSpeed|The attack speed for this weapon, with the hooks.
+Terraria.Player.GetWeaponArmorPenetration|The armor penetration for this weapon, with the hooks.
+Terraria.Player.GetJumpState|The state of an extra jump.
+Terraria.Player.ExtraJumps|The state of every extra jump.
+Terraria.Player.ConsumeAllExtraJumps|Spends every extra jump.
+Terraria.Player.ManageSpecialBiomeVisuals|Turns a biome's filter and sky on or off.
+Terraria.Player.HurtInfo.DamageSource|Who or what did it.
+Terraria.Player.HurtInfo.PvP|Whether another player did it.
+Terraria.Player.HurtInfo.CooldownCounter|Which immunity counter it uses.
+Terraria.Player.HurtInfo.Dodgeable|Whether it can be dodged.
+Terraria.Player.HurtInfo.HitDirection|The side it came from.
+Terraria.Player.HurtInfo.Cancelled|Whether a hook cancelled it.
+Terraria.Player.HurtModifiers.GetDamage|The final damage of the hit.
+Terraria.Player.HurtModifiers.GetKnockback|The final knockback of the hit.
+Terraria.Player.HurtModifiers.ToHurtInfo|The hit as a `HurtInfo`.
+Terraria.ModLoader.PlayerDrawLayer.Visible|Whether it draws in this frame.
+Terraria.ModLoader.PlayerDrawLayer.Transform|The change applied around this layer.
+Terraria.ModLoader.PlayerDrawLayer.ChildrenBefore|Layers drawn just before it.
+Terraria.ModLoader.PlayerDrawLayer.ChildrenAfter|Layers drawn just after it.
+Terraria.ModLoader.PlayerDrawLayer.Hide|Hides the layer in this frame.
+Terraria.ModLoader.PlayerDrawLayer.DrawWithTransformationAndChildren|Draws the layer, its children and its change.
+Terraria.ModLoader.PlayerDrawLayer.AfterParent.Parent|The layer it follows.
+Terraria.ModLoader.PlayerDrawLayer.BeforeParent.Parent|The layer it comes before.
+Terraria.ModLoader.PlayerDrawLayer.Between.Layer1|The layer before it.
+Terraria.ModLoader.PlayerDrawLayer.Between.Layer2|The layer after it.
+Terraria.ModLoader.PlayerDrawLayer.Multiple.Positions|Each place, with its condition.
+Terraria.ModLoader.PlayerDrawLayer.Multiple.Add|Adds a place.
+Terraria.ModLoader.PlayerDrawLayer.Transformation.Parent|The change around this one.
+Terraria.ModLoader.PlayerDrawLayer.Transformation.PreDrawRecursive|Applies it before the layer.
+Terraria.ModLoader.PlayerDrawLayer.Transformation.PostDrawRecursive|Undoes it after the layer.
+Terraria.ModLoader.PlayerDrawLayerLoader.Layers|Every layer.
+Terraria.ModLoader.PlayerDrawLayerLoader.DrawOrder|The layers in the order they draw.
+Terraria.ModLoader.PlayerDrawLayerSlot.Layer|The layer behind the slot.
+Terraria.ModLoader.PlayerDrawLayerSlot.Condition|When the slot applies.
+
+# Tiles and world, members
+Terraria.Chest.GetItem|The item in a slot.
+Terraria.Chest.SetItem|Puts an item in a slot.
+Terraria.ModLoader.CloudLoader.cloudLoaded|Whether mod clouds are in.
+Terraria.ModLoader.CloudLoader.ChooseCloud|Picks a cloud.
+Terraria.Gore.ModGore|Its `ModGore`, or null.
+Terraria.Gore.NewGore|Creates a gore. Returns its index.
+Terraria.Gore.NewGoreDirect|Creates a gore. Returns the gore.
+Terraria.Gore.NewGorePerfect|Creates a gore with an exact velocity.
+Terraria.ModLoader.ModBiome.ModBiomeBestiaryInfoElement|The biome's element in a bestiary page.
+Terraria.ModLoader.ModCactus.VanillaCount|How many cactus the game has.
+Terraria.ModLoader.ModCactus.GrowsOnTileId|The tiles it grows on.
+Terraria.ModLoader.ModCactus.GetTexture|The cactus texture.
+Terraria.ModLoader.ModCloud.Type|The cloud's number.
+Terraria.ModLoader.ModCloud.Texture|The texture's path.
+Terraria.ModLoader.ModGore.Type|The gore's number.
+Terraria.ModLoader.ModGore.Texture|The texture's path.
+Terraria.ModLoader.ModMapLayer.Visible|Whether it draws now.
+Terraria.ModLoader.ModMapLayer.BeforeFirstVanillaLayer|Under every layer of the game.
+Terraria.ModLoader.ModMapLayer.AfterLastVanillaLayer|Over every layer of the game.
+Terraria.ModLoader.ModSceneEffect.Type|The scene's number.
+Terraria.ModLoader.ModTile.IsDoor|Whether it is a door.
+Terraria.ModLoader.ModTileEntity.ID|Its number in the world.
+Terraria.ModLoader.ModTileEntity.Position|The top left tile.
+Terraria.ModLoader.ModTileEntity.RequiresUpdates|Whether `Update` runs.
+Terraria.ModLoader.ModTileEntity.Update|Runs each tick on the host.
+Terraria.ModLoader.ModTree.VanillaCount|How many trees the game has.
+Terraria.ModLoader.ModTree.TreeShaderSettings|How the tree takes paint.
+Terraria.ModLoader.ModTree.GrowsOnTileId|The tiles it grows on.
+Terraria.ModLoader.ModTree.GetTexture|The tree texture.
+Terraria.ModLoader.ModWall.CanBeTeleportedTo|Whether teleports may land on this wall.
+Terraria.ModLoader.ModWaterStyle.BlockTexture|The texture of the water block.
+Terraria.ModLoader.ModWaterStyle.SlopeTexture|The texture of the water slope.
+Terraria.ModLoader.PlantLoader.Get|The plant of a kind that grows on a ground.
+Terraria.ModLoader.PlantLoader.Exists|Whether there is one.
+Terraria.ModLoader.PlantLoader.GetCactusFruitTexture|The fruit texture of a cactus.
+Terraria.ModLoader.Default.TEModdedPylon.NetPlaceEntityAttempt|Places the entity on the host, or takes the tile back.
+Terraria.ModLoader.Default.TEModdedPylon.TryGetModPylon|Its `ModPylon`.
+Terraria.ModLoader.Default.TEModdedPylon.Place|Places it and updates the pylon list.
+Terraria.ModLoader.Default.TEModdedPylon.Kill|Removes it and updates the pylon list.
+Terraria.ModLoader.Default.TEModdedPylon.IsTileValidForEntity|Whether this tile is a pylon's top left.
+Terraria.ModLoader.Default.TEModdedPylon.Hook_AfterPlacement|Places the entity after the tile.
+Terraria.ModLoader.Default.TEModdedPylon.PlacementPreviewHook_CheckIfCanPlace|Whether a pylon may be placed.
+Terraria.ModLoader.Default.TEModdedPylon.GetModPylonFromCoords|The `ModPylon` at a position.
+Terraria.DataStructures.TileEntity.TryGet|Finds the entity of this class at a position.
+Terraria.ID.TileID.Sets.FallingBlockProjectile|The projectile a falling tile becomes.
+Terraria.ID.TileID.Sets.Infectable|What Corruption, Crimson and Hallow spread over.
+Terraria.ID.TileID.Sets.PressurePlate|The kind of a pressure plate. `-1` is not one.
+Terraria.ID.TileID.Sets.CountsAsPylon|The tiles that are pylons.
+Terraria.ID.TileID.Sets.IsValidSpawnPoint|A player may set a spawn on it.
+Terraria.ID.TileID.Sets.TreeSapling|Is a sapling.
+Terraria.ID.TileID.Sets.CountsAsHoneyForCrafting|Counts as honey for recipes.
+Terraria.ID.TileID.Sets.CountsAsLavaForCrafting|Counts as lava for recipes.
+Terraria.ID.TileID.Sets.MultiTileSway|Sways in the wind as one object.
+Terraria.ID.TileID.Sets.Clock|Is a clock.
+Terraria.ID.TileID.Sets.OpenDoorID|The tile of this door when open.
+Terraria.ID.TileID.Sets.CloseDoorID|The tile of this door when closed.
+Terraria.ID.TileID.Sets.FallingBlockProjectileInfo.FallingProjectileType|The projectile.
+Terraria.ID.TileID.Sets.FallingBlockProjectileInfo.FallingProjectileDamage|Its damage.
+Terraria.ModLoader.TileLoader.Convert|Runs a conversion on this cell. Returns whether it changed.
+Terraria.ModLoader.TileLoader.CanGrowModCactus|Whether a mod cactus grows on this tile.
+
+# Patterns for whole families
+Terraria.ModLoader.Config.*Definition.Type|The content's number now, found by name. Numbers change between sessions, so only the name is saved.
+Terraria.ModLoader.Config.*Definition.Load|Rebuilds the definition from a tag.
+Terraria.ModLoader.Config.*Definition.IsUnloaded|Whether its mod is off.
+Terraria.ModLoader.*DamageClass.LangKey|Which `Lang.tip` text names this class.
+Terraria.GameContent.ItemDropRules.*.ruleFor*|The rule used in that mode.
+Terraria.GameContent.ItemDropRules.*.chanceDenominator|The Y of a chance of X in Y.
+Terraria.GameContent.ItemDropRules.*.chanceNumerator|The X of a chance of X in Y.
+Terraria.GameContent.ItemDropRules.*.condition|The condition of this rule.
+Terraria.GameContent.ItemDropRules.*.dropIds|The items it picks from.
+Terraria.GameContent.ItemDropRules.Chains.*.RuleToChain|The next rule.
+Terraria.GameContent.ItemDropRules.Chains.*.hideLootReport|Hides the next rule from the bestiary.
+Terraria.GameContent.ItemDropRules.Chains.*.CanChainIntoRule|Whether the next rule runs, after this result.
+Terraria.GameContent.ItemDropRules.Chains.*.ReportDroprates|Fills the bestiary's chance for the chain.
+Terraria.GameContent.ItemDropRules.*.GetConditionDescription|The text that describes the condition in the bestiary.
+Terraria.GameContent.ItemDropRules.*.CanShowItemDropInUI|Whether the drop shows in the bestiary.
+Terraria.GameContent.ItemDropRules.*.CanDrop|Whether it can drop now.
+Terraria.GameContent.ItemDropRules.*.TryDroppingItem|Tries to drop, and says how it went.
+Terraria.GameContent.ItemDropRules.*.ReportDroprates|Fills the chances the bestiary shows.
+Terraria.GameContent.ItemDropRules.*.ChainedRules|The rules chained to this one.
+Terraria.ModLoader.IO.BigEndianReader.Read*|Reads a value with its most significant byte first.
+Terraria.ModLoader.IO.BigEndianWriter.Write|Writes a value with its most significant byte first.
+Terraria.ModLoader.IO.TagCompound.Get*|Reads an entry of this kind, or the kind's empty value when the key is missing.
+Terraria.ModLoader.*Jump.GetDurationMultiplier|How long this jump lasts compared to a Cloud in a Bottle.
+Terraria.ModLoader.ExtraJump.*Mount|The extra jump of this mount.
+Terraria.ModLoader.ExtraJump.*InABottle|The extra jump of this accessory.
+Terraria.ModLoader.ExtraJump.*InAJar|The extra jump of this accessory.
+Terraria.ModLoader.ModAchievement.Add*Condition|Adds a condition that completes the achievement. Each overload takes a custom key or the default one.
+Terraria.GameContent.TextureAssets.*|The game's textures of this kind, by ID. Reading one that is not loaded yet loads it.
+Terraria.Graphics.Effects.*Manager.Activate|Turns an effect on by name.
+Terraria.Graphics.Effects.*Manager.Deactivate|Turns an effect off by name.
+Terraria.Graphics.Shaders.*ShaderDataSet.BindShader|Ties a shader to a dye item.
+Terraria.ModLoader.Config.*Attribute.Value|The value given to the attribute.
+Terraria.ModLoader.Config.Json*Attribute.Json|The default value, written as JSON.
+Terraria.ModLoader.*StylesLoader.Get|The style of a number, or null.
+Terraria.ModLoader.WaterFallStylesLoader.Get|The style of a number, or null.
+Terraria.ModLoader.WaterStylesLoader.Get|The style of a number, or null.
+Terraria.GameContent.ItemDropRules.DropBasedOn*.*|The rule used in that mode.
+Terraria.GameContent.ItemDropRules.DropOneByOne.Parameters.Chance*|The chance of the whole drop.
+Terraria.GameContent.ItemDropRules.DropOneByOne.Parameters.*ItemDropsCount|How many chunks it splits into.
+Terraria.GameContent.ItemDropRules.DropOneByOne.Parameters.*StackPerChunkBase|The stack of each chunk.
+Terraria.GameContent.ItemDropRules.DropOneByOne.Parameters.Bonus*|Extra stack per chunk for each player.
+Terraria.UI.UIElement.On*|Event that fires on this input or moment.
+Terraria.GameContent.UI.Elements.*.DrawSelf|Draws this element.
+Terraria.GameContent.UI.Elements.*.SetText|Changes the text and the element's size to fit it.
+Terraria.GameContent.UI.Elements.*.SetImage|Changes the image.
+Terraria.GameContent.UI.Elements.*.Recalculate|Works out its size and position again.
+Terraria.GameContent.UI.Elements.*.Color|The tint of the image or text.
+Terraria.GameContent.UI.Elements.*.TextColor|The text's color.
+Terraria.GameContent.UI.Elements.*.Text|The current text.
+Terraria.GameContent.UI.Elements.*.BorderColor|The border's color.
+Terraria.GameContent.UI.Elements.*.BackgroundColor|The fill color.
+Terraria.GameContent.UI.Elements.*.SetFrame|Picks the part of the image that shows.
+Terraria.GameContent.UI.Elements.*.ViewPosition|How far it has scrolled.
+Terraria.GameContent.UI.Elements.*.Update|Runs each tick.
+Terraria.GameContent.UI.Elements.*.RecalculateChildren|Places its children again.
+Terraria.GameContent.UI.Elements.*.ScrollWheel|Scrolls by this amount.
+Terraria.GameContent.UI.Elements.*.MouseOver|Plays the hover effect.
+Terraria.GameContent.UI.Elements.*.MouseOut|Ends the hover effect.
+Terraria.GameContent.UI.Elements.*.LeftMouseDown|Runs when the left button goes down.
+Terraria.GameContent.UI.Elements.*.LeftMouseUp|Runs when the left button goes up.
+
+# Names and helpers shared by many classes
+Terraria.GameContent.Profiles.StackedNPCProfile.RollVariation|Picks a variant from the stacked profiles.
+Terraria.GameContent.Profiles.StackedNPCProfile.GetNameForVariant|The name of the profile in use.
+Terraria.GameContent.Profiles.StackedNPCProfile.GetTextureNPCShouldUse|The texture of the profile in use.
+Terraria.GameContent.Profiles.StackedNPCProfile.GetHeadTextureIndex|The head of the profile in use.
+Terraria.ModLoader.ModEmoteBubble.CreateTemplateEntity|Creates the bubble the instance works on.
+Terraria.ModLoader.NPCInteractionDatabase.DedicatedButton.Condition|Whether the button shows.
+Terraria.ModLoader.NPCInteractionDatabase.DedicatedButton.GetText|The button's text.
+Terraria.ModLoader.NPCInteractionDatabase.DedicatedButton.Interact|Runs when it is tapped.
+Terraria.GameContent.NPCInteractions.Actions.OpenShop.Condition|Whether the button shows.
+Terraria.GameContent.NPCInteractions.Actions.OpenShop.GetText|The shop button's text.
+Terraria.GameContent.NPCInteractions.Actions.OpenShop.Interact|Opens the shop.
+Terraria.GameContent.NPCInteractions.Actions.VanillaOption.Condition|Whether the game shows this button for the NPC.
+Terraria.GameContent.NPCInteractions.Actions.VanillaOption.GetText|The text the game gives the button.
+Terraria.GameContent.NPCInteractions.Actions.VanillaOption.Interact|Runs what the game does for the button.
+Terraria.ModLoader.NPCShop.AllEntries|Every line.
+Terraria.ModLoader.NPCShop.FinishSetup|Sorts the lines after all mods have added theirs.
+Terraria.ID.ProjectileID.Sets.FallingBlockTileItem|The tile and item a falling block becomes.
+Terraria.ID.ProjectileID.Sets.Explosive|Is an explosive.
+Terraria.ID.ProjectileID.Sets.FallingBlockTileItemInfo.TileType|The tile it lands as.
+Terraria.ID.ProjectileID.Sets.FallingBlockTileItemInfo.ItemType|The item it drops when it cannot land.
+Terraria.ModLoader.HairLoader.GetHair|The `ModHair` of a number, or null.
+Terraria.ModLoader.HairLoader.UpdateUnlocks|Fills the styles the stylist offers.
+Terraria.ModLoader.ModPlayer.CreateTemplateEntity|Creates the player the template instance works on.
+Terraria.ModLoader.ModPlayer.NewInstance|Creates the instance of one player.
+Terraria.ModLoader.PlayerDrawLayerSlot.Name|The name of the slot.
+Terraria.ModLoader.PlayerDrawLayerSlot.GetDefaultPosition|Where it goes in the draw order.
+Terraria.ModLoader.PlayerDrawLayerSlot.Draw|Draws what the layer holds.
+Terraria.ModLoader.PlayerDrawLayerSlot.GetDefaultVisibility|Whether it draws in this frame.
+Terraria.DataStructures.PlayerDrawSet.DrawDataCache|The sprites to draw. Layers add to this list.
+Terraria.GameContent.PlayerEyeHelper.CurrentEyeState|What the eyes are doing.
+Terraria.GameContent.PlayerEyeHelper.CurrentEyeFrame|Which eye frame shows.
+Terraria.GameContent.PlayerEyeHelper.TimeInState|Ticks in the current state.
+Terraria.GameContent.UI.ResourceSets.PlayerStatsSnapshot.AmountOfLifeHearts|How many hearts show.
+Terraria.GameContent.UI.ResourceSets.PlayerStatsSnapshot.AmountOfManaStars|How many stars show.
+Terraria.ModLoader.ResourceOverlayDrawContext.texture|The texture to draw.
+Terraria.ModLoader.ResourceOverlayDrawContext.position|Where it goes.
+Terraria.ModLoader.ResourceOverlayDrawContext.color|Its color.
+Terraria.ModLoader.ResourceOverlayDrawContext.rotation|Its rotation.
+Terraria.ModLoader.ResourceOverlayDrawContext.scale|Its scale.
+Terraria.ModLoader.ResourceOverlayDrawContext.effects|Its flip.
+Terraria.ModLoader.ResourceOverlayDrawContext.SpriteBatch|The batch to draw on.
+Terraria.ModLoader.ResourceOverlayDrawContext.Draw|Draws with these values.
+Terraria.ModLoader.ResourceOverlayLoader.GetOverlay|The `ModResourceOverlay` of a number, or null.
+Terraria.ModLoader.Config.BackgroundColorAttribute.Color|The color.
+Terraria.ModLoader.BiomeLoader.Get|The `ModBiome` of a number, or null.
+Terraria.ModLoader.BiomeLoader.UpdateBiomes|Works out the player's mod biomes.
+Terraria.ID.ContentBoolTable.Add|Sets this ID to true.
+Terraria.GameContent.FlexibleTileWand.AddVariations|Adds an item the wand can place, with its styles.
+Terraria.ModLoader.ModBannerTile.SetStaticDefaults|Sets up the banner tile.
+Terraria.ModLoader.ModBannerTile.NearbyEffects|Applies the banner's bonus when the player is near.
+Terraria.ModLoader.ModBannerTile.SetDrawPositions|Moves the banner to hang from the block above.
+Terraria.ModLoader.ModBannerTile.PreDraw|Draws the banner's sway.
+Terraria.GameContent.Bestiary.ModBiomeBestiaryInfoElement.Element|The game's element behind this.
+Terraria.GameContent.Bestiary.ModBiomeBestiaryInfoElement.IsNull|Whether it is empty.
+Terraria.GameContent.Bestiary.ModBiomeBestiaryInfoElement.GetDisplayNameKey|The key of the biome's name.
+Terraria.ModLoader.ModCactus.SetStaticDefaults|Sets `GrowsOnTileId`.
+Terraria.ModLoader.ModTree.SetStaticDefaults|Sets `GrowsOnTileId`.
+Terraria.ModLoader.ModCloud.Name|The cloud's name.
+Terraria.ModLoader.ModGore.Name|The gore's name.
+Terraria.ModLoader.ModPylon.RightClick|Opens the map to choose a pylon.
+Terraria.ModLoader.ModPylon.HasSmartInteract|Pylons can be reached by smart interact.
+Terraria.ModLoader.ModPylon.DrawEffects|Registers the crystal that draws over the tile.
+Terraria.GameContent.PressurePlateHelper.IsPressed|Whether a pressure plate is being stepped on.
+Terraria.ModLoader.SceneEffectLoader.UpdateSceneEffect|Picks the scene that applies to the player.
+Terraria.ModLoader.SceneEffectLoader.UpdateMusic|Applies the scene's music, if it has priority.
+Terraria.ModLoader.SceneEffectLoader.SceneEffectInstance.anyActive|Whether any scene applies.
+Terraria.ModLoader.SceneEffectLoader.SceneEffectInstance.waterStyle|The winning water style.
+Terraria.ModLoader.SceneEffectLoader.SceneEffectInstance.undergroundBackground|The winning underground background.
+Terraria.ModLoader.SceneEffectLoader.SceneEffectInstance.surfaceBackground|The winning surface background.
+Terraria.ModLoader.SceneEffectLoader.SceneEffectInstance.music|The winning music.
+Terraria.ModLoader.SceneEffectLoader.SceneEffectInstance.mapBackground|The winning map background.
+Terraria.ModLoader.SceneEffectLoader.SceneEffectInstance.mapBackgroundSceneEffect|The scene that gave it.
+Terraria.ModLoader.SceneEffectLoader.SceneEffectInstance.biomeTorchItemType|The winning torch.
+Terraria.ModLoader.SceneEffectLoader.SceneEffectInstance.biomeCampfireItemType|The winning campfire.
+Terraria.ModLoader.SceneEffectLoader.SceneEffectInstance.tileColorStyle|The winning tile color.
+Terraria.ModLoader.SceneEffectLoader.SceneEffectInstance.PrioritizedPair.Default|No value yet.
+Terraria.ModLoader.SceneEffectLoader.SceneEffectInstance.PrioritizedPair.value|The value.
+Terraria.ModLoader.SceneEffectLoader.SceneEffectInstance.PrioritizedPair.priority|The priority it won with.
+Terraria.GameContent.TeleportPylonInfo.ModPylon|Its `ModPylon`, or null for a pylon of the game.
+Terraria.GameContent.Drawing.TileDrawing.IsVisible|Whether the tile shows, with coatings and Echo Sight taken into account.
+Terraria.ModLoader.TileLoader.GetCactusTexture|The texture of a mod cactus.
+Terraria.ModLoader.TileLoader.OpenDoorID|The open version of a door tile.
+Terraria.ModLoader.TileLoader.CloseDoorID|The closed version of a door tile.
+Terraria.ModLoader.TileLoader.IsClosedDoor|Whether this tile is a closed door.
+Terraria.ObjectData.TileObjectData.TopLeft|The top left tile of the object at a position.
+Terraria.ObjectData.TileObjectData.CoordinateHeights|The pixel height of each row.
+Terraria.ModLoader.WaterStylesLoader.LightColorMultiplier|Runs the style's light hook.
+ReLogic.Content.Asset.FromGame|Wraps an asset of the game. Only in Bunny Loader.
+ReLogic.Content.Asset.ToGame|The asset of the game behind this one. Only in Bunny Loader.
+ReLogic.Content.Asset.Name|The asset's path.
+ReLogic.Content.Asset.State|How far loading has gone.
+ReLogic.Content.Asset.IsLoaded|Whether `Value` is ready.
+ReLogic.Content.Asset.IsDisposed|Whether it was released.
+ReLogic.Content.Asset.Value|The loaded content.
+ReLogic.Content.Asset.Wait|Blocks until it has loaded.
+ReLogic.Content.AssetArray.Pointer|The address of the array in the game.
+ReLogic.Content.AssetArray.IsNull|Whether there is no array.
+ReLogic.Content.AssetArray.Length|How many it holds.
+ReLogic.Content.AssetArray.Resized|A new array of this length, with the same content.
+Terraria.ModLoader.AutoloadAttribute.Value|Whether the class is loaded at all.
+Terraria.ModLoader.AutoloadAttribute.Side|Which side loads it.
+Terraria.ModLoader.AutoloadAttribute.NeedsAutoloading|Whether this side should load it.
+Terraria.ModLoader.AutoloadAttribute.GetValue|The attribute of a class, or the default.
+Terraria.ModLoader.AutoloadEquip.equipTypes|The kinds of equipment to load.
+Terraria.ModLoader.IO.BinaryIO.ReadFlags|Reads up to 8 booleans packed in one byte.
+Terraria.ModLoader.IO.BinaryIO.Write|Writes up to 8 booleans packed in one byte.
+Terraria.ModLoader.IO.BinaryIO.SafeWrite|Writes through a method, with the length first, so a reader can skip it.
+Terraria.ModLoader.IO.BinaryIO.SafeRead|Reads what `SafeWrite` wrote and skips what the method left.
+Terraria.ModLoader.IO.BinaryIO.ReadBytes|Reads a fixed number of bytes from a stream.
+Terraria.ModLoader.IO.BinaryIO.ToMemoryStream|Wraps the bytes in a stream.
+Terraria.ModLoader.IO.BitReader.MaxBits|How many bits it holds.
+Terraria.ModLoader.IO.BitReader.BitsRead|How many it has read.
+Terraria.ModLoader.IO.BitReader.ReadBit|Reads one bit.
+Terraria.ModLoader.IO.BitWriter.WriteBit|Adds one bit.
+Terraria.ModLoader.IO.BitWriter.Flush|Writes the bits to a writer.
+Terraria.ModLoader.CommandCaller.CommandType|Where the command came from.
+Terraria.Lang.CreateDialogFilter|A filter for texts that start with this name and whose conditions hold.
+Terraria.Lang.RegisterModdedGlobalSubstitution|Adds a `{Key}` that every game text can use.
+Terraria.Lang.LocalizedDuration|A duration as text in the current language.
+Terraria.Localization.Language.GetTextValue|The text of a key, with its arguments filled in.
+Terraria.Localization.Language.SelectRandom|A random text among those that match.
+Terraria.Localization.LocalizedText.Format|The text with its arguments filled in.
+Terraria.ModLoader.Mod.Uid|The pack's unique ID.
+Terraria.ModLoader.Mod.Folder|The folder of the installed pack.
+Terraria.ModLoader.Mod.CreateRecipe|Starts a recipe owned by this mod.
+Terraria.ModLoader.ModContent.GetModHeadSlot|The head slot of a texture from `Mod.AddNPCHeadTexture`.
+Terraria.ModLoader.ModContent.GetModBossHeadSlot|The head slot of a texture from `Mod.AddBossHeadTexture`.
+Terraria.ModLoader.ModContent.GetModTile|The `ModTile` of a number, or null.
+Terraria.ModLoader.ModContent.GetModNPC|The `ModNPC` of a number, or null.
+Terraria.ModLoader.ModContent.GetModEmoteBubble|The `ModEmoteBubble` of a number, or null.
+Terraria.ModLoader.ModContent.GetModBuff|The `ModBuff` of a number, or null.
+Terraria.ModLoader.ModContent.GetModDust|The `ModDust` of a number, or null.
+Terraria.ModLoader.ModContent.GetModItem|The `ModItem` of a number, or null.
+Terraria.ModLoader.ModContent.RequestIfExists|Loads an asset if the file exists.
+Terraria.ModLoader.ModContent.SplitName|Splits `Mod/Rest` in two.
+Terraria.ModLoader.ModLoader.Mods|Every loaded mod.
+Terraria.ModLoader.ModSystem.WorldCanBePlayedRejectionMessage|The text shown when `CanWorldBePlayed` refuses the world.
+Terraria.ModLoader.ModSystem.InitTemplateInstance|Prepares the template instance.
+Terraria.ModLoader.ModType.PrettyPrintName|The name with spaces between its words.
+Terraria.ModLoader.ModType.Entity|The object this instance works on, such as the `Item` of a `ModItem`.
+Terraria.ModLoader.ModType.CreateTemplateEntity|Creates the object of the template instance.
+Terraria.Localization.NetworkText.FromKey|A text sent as a key, so each player reads it in their language.
+Terraria.Localization.NetworkText.FromFormattable|A text sent as is, with its arguments filled in.
+Terraria.Localization.NetworkText.Serialize|Writes it to a packet.
+Terraria.Localization.NetworkText.Deserialize|Reads it from a packet.
+Terraria.ModLoader.IO.TagCompound.Clear|Removes every entry.
+Terraria.ModLoader.IO.TagCompound.GetList|Reads a list. Empty when the key is missing.
+Terraria.ModLoader.IO.TagIO.ToFile|Writes a tag to a file.
+Terraria.ModLoader.IO.TagIO.FromFile|Reads a tag from a file.
+Terraria.ModLoader.IO.TagIO.ToStream|Writes a tag to a stream.
+Terraria.ModLoader.IO.TagIO.FromStream|Reads a tag from a stream.
+Terraria.ModLoader.IO.TagIO.Read|Reads a tag from a reader.
+Terraria.ModLoader.IO.TagSerializable.SerializeData|Writes the value to a tag.
+Terraria.GameContent.Achievements.AchievementsHelper.OnItemPickup|Fires when a player picks up an item.
+Terraria.GameContent.Achievements.AchievementsHelper.OnItemCraft|Fires when an item is crafted.
+Terraria.GameContent.Achievements.AchievementsHelper.OnTileDestroyed|Fires when a player breaks a tile.
+Terraria.GameContent.Achievements.AchievementsHelper.OnNPCKilled|Fires when a player kills an NPC.
+Terraria.GameContent.Achievements.AchievementsHelper.OnProgressionEvent|Fires on a progression event of the game.
+Terraria.ModLoader.Config.ColorHSLSliderAttribute.ShowSaturationAndLightness|Whether those two sliders show.
+Terraria.ID.Colors.PrefixBad|The color of a bad prefix.
+Terraria.ID.Colors.PrefixGood|The color of a good prefix.
+Terraria.ModLoader.Config.ConfigManager.ModConfigPath|The folder of the config files.
+Terraria.ModLoader.Config.ConfigManager.GetConfig|A config of a mod, by name.
+Terraria.UI.GameInterfaceLayer.Name|The layer's name, used to find it in the list.
+Terraria.UI.GameInterfaceLayer.ScaleType|Which scale the layer draws in.
+Terraria.UI.GameInterfaceLayer.Active|Whether it draws.
+Terraria.UI.GameInterfaceLayer.Draw|Sets the scale and draws. Returns `false` to stop the layers after it.
+Terraria.UI.GameInterfaceLayer.DrawSelf|Draws the layer's content.
+Terraria.UI.LegacyGameInterfaceLayer.DrawSelf|Calls the method given to the layer.
+Terraria.ModLoader.Config.HeaderAttribute.IsIdentifier|Whether `Header` is a key in the mod's config texts.
+Terraria.ModLoader.Config.HeaderAttribute.Header|The text or key of the header.
+Terraria.ModLoader.Config.IncrementAttribute.Increment|The step of the slider.
+Terraria.ModLoader.MenuLoader.CurrentMenu|The menu theme in use.
+Terraria.ModLoader.ModAchievement.TextureName|The texture's path.
+Terraria.ModLoader.ModAchievement.BeforeFirstVanillaAchievement|Before every achievement of the game.
+Terraria.ModLoader.ModAchievement.AfterLastVanillaAchievement|After every achievement of the game.
+Terraria.ModLoader.ModAchievement.BeforeFirstAdvisorAchievement|Before the first advisor achievement.
+Terraria.ModLoader.ModAchievement.AfterLastAdvisorAchievement|After the last advisor achievement.
+Terraria.ModLoader.ModAchievement.After.Achievement|The achievement it follows.
+Terraria.ModLoader.ModAchievement.Before.Achievement|The achievement it comes before.
+Terraria.ModLoader.Config.ModConfig.Mod|The mod.
+Terraria.ModLoader.Config.ModConfig.Name|The config's name.
+Terraria.ModLoader.Config.ModConfig.FullName|`Mod/Name`.
+Terraria.ModLoader.Config.ModConfig.Mode|Whether it belongs to the client or the server.
+Terraria.ModLoader.Config.ModConfig.Autoload|Whether this class is loaded.
+Terraria.ModLoader.ModKeybind.RetroCurrent|`Current`, but `false` during chat, an NPC chat or a sign.
+Terraria.ModLoader.ModMenu.IsSelected|Whether this theme is in use.
+Terraria.ModLoader.ModTouchButton.Mod|The mod that registered it.
+Terraria.ModLoader.ModTouchButton.Name|The button's name.
+Terraria.ModLoader.ModTouchButton.FullName|`Mod/Name`.
+Terraria.ModLoader.ModTouchButton.Icon|The icon's path, or null for the default.
+Terraria.ModLoader.ModTouchButton.Label|The button's name in the editor list.
+Terraria.ModLoader.ModTouchButton.Visible|Whether it shows now. Null always shows.
+Terraria.ModLoader.ModTouchButton.Enabled|Whether it reacts now. Null always reacts.
+Terraria.ModLoader.ModTouchButton.OnPress|Runs when it is tapped.
+Terraria.ModLoader.ModTouchButton.IsBound|Whether the player placed it on the screen.
+Terraria.ModLoader.ModTouchJoystick.Direction|Where the stick points now.
+Terraria.ModLoader.ModTouchJoystick.Aiming|Whether a finger is on it.
+Terraria.ModLoader.ModTouchJoystick.OnRelease|Runs when the finger lifts, with the last direction.
+Terraria.ModLoader.MusicLoader.IsMusicPlaying|Whether a music slot of a mod is playing.
+Terraria.ModLoader.Config.OptionStringsAttribute.OptionLabels|The choices.
+Terraria.ModLoader.Config.RangeAttribute.Min|The smallest value.
+Terraria.ModLoader.Config.RangeAttribute.Max|The largest value.
+Terraria.ModLoader.Config.SliderColorAttribute.Color|The slider's color.
+Terraria.Audio.SoundEngine.TryGetActiveSound|Finds a playing sound by its slot.
+Terraria.Audio.SoundEngine.PlaySound|Plays a sound. A position makes it fade with distance.
+Terraria.Audio.SoundStyle.WithVolumeScale|A copy with this volume.
+Terraria.Audio.SoundStyle.WithPitchOffset|A copy with this pitch.
+Terraria.ModLoader.TouchButtonLoader.Buttons|Every button of every mod.
+Terraria.ModLoader.TouchButtonLoader.RegisterButton|Creates a button in `Load`.
+Terraria.ModLoader.TouchButtonLoader.RegisterJoystick|Creates a joystick in `Load`.
+Terraria.ModLoader.TouchButtonLoader.ActionOf|The action number of the button in the game's touch system.
+Terraria.UI.UIEvent.Target|The element that received the event.
+Terraria.UI.UIMouseEvent.MousePosition|Where the pointer was.
+Terraria.UI.UIScrollWheelEvent.ScrollWheelValue|How far the wheel turned.
+Terraria.UI.UIState.NoGamepadSupport|Whether a gamepad cannot navigate it.
+Terraria.UI.UserInterface.ActiveInstance|The interface that is handling input or drawing now.
+Terraria.UI.UserInterface.MousePosition|The pointer's position in UI units.
+Terraria.UI.UserInterface.IsVisible|Whether it was drawn.
+Terraria.UI.UserInterface.CurrentState|The state on show, or null.
+Terraria.UI.UserInterface.ClearPointers|Forgets which elements the pointer touched.
+Terraria.UI.UserInterface.MouseCaptured|Whether a button is held on an element.
+Terraria.UI.UserInterface.ResetLasts|Forgets what was hovered and pressed.
+Terraria.UI.UserInterface.EscapeElements|The same as `ResetLasts`.
+Terraria.UI.UserInterface.Use|Makes it the active one and recalculates when needed.
+Terraria.UI.UserInterface.Update|Handles input and updates the state. Call it from `ModSystem.UpdateUI`.
+Terraria.UI.UserInterface.Draw|Draws the state. Call it from a layer in `ModifyInterfaceLayers`.
+Terraria.UI.UserInterface.SetState|Changes the state. Null closes it.
+Terraria.UI.UserInterface.GoBack|Returns to the state before this one.
+Terraria.UI.UserInterface.Recalculate|Lays out the state again.
+Terraria.UI.UserInterface.GetDimensions|The area it uses on screen.
+Terraria.UI.UserInterface.IsElementUnderMouse|Whether the pointer is over one of its elements.
+
+# Interop
+BunnyLoader.Interop.GameArray.Pointer|The array's address in the game.
+BunnyLoader.Interop.GameArray.New|Creates an array of the game with this element class.
+BunnyLoader.Interop.GameArray.Resized|A new array of this length, with the same content.
+BunnyLoader.Interop.GameArray.IsNull|Whether there is no array.
+BunnyLoader.Interop.GameArray.Length|How many it holds.
+BunnyLoader.Interop.GameArray.AsSpan|The content as a `Span`, without copying.
+BunnyLoader.Interop.GameArray.this[]|A reference to one element. Throws when out of range.
+BunnyLoader.Interop.GameArray2D.Pointer|The array's address in the game.
+BunnyLoader.Interop.GameArray2D.IsNull|Whether there is no array.
+BunnyLoader.Interop.GameArray2D.GetLength|The length of one dimension.
+BunnyLoader.Interop.GameClass.FullName|The class's full name in the game.
+BunnyLoader.Interop.GameClass.Handle|The class's address in the game.
+BunnyLoader.Interop.GameDictionary.IsNull|Whether there is no dictionary.
+BunnyLoader.Interop.GameDictionary.Set|Writes one entry.
+BunnyLoader.Interop.GameDictionary.IntEntries|Copies an `int` to `int` dictionary.
+BunnyLoader.Interop.GameHandle.Target|The object, kept safe from the game's garbage collector while the handle lives.
+BunnyLoader.Interop.GameHandle.Dispose|Lets the object go.
+BunnyLoader.Interop.GameList.IsNull|Whether there is no list.
+BunnyLoader.Interop.GameList.Get|Reads one element as `T`.
+BunnyLoader.Interop.GameList.Contains|Whether it holds this value.
+BunnyLoader.Interop.GameList.Add|Adds at the end.
+BunnyLoader.Interop.GameList.Insert|Adds at a position.
+BunnyLoader.Interop.GameList.IndexOf|The position of an object, or `-1`.
+BunnyLoader.Interop.GameList.RemoveAt|Removes one by position.
+Terraria.GameListExtensions|Helper for `List<int>` fields of the game, through `GameObject`.
+Terraria.GameListExtensions.Add|Adds an `int` to a game list.
+BunnyLoader.Interop.GameNullable.HasValue|Whether it has a value.
+BunnyLoader.Interop.GameNullable.Value|The value. Throws when it has none.
+BunnyLoader.Interop.GameNullable.GetValueOrDefault|The value, or this fallback.
+BunnyLoader.Interop.GameObject.Pointer|The object's address in the game.
+BunnyLoader.Interop.GameObject.IsNull|Whether there is no object.
+BunnyLoader.Interop.GameObject.ClassName|The object's class name.
+BunnyLoader.Interop.GameString.Pointer|The string's address in the game.
+BunnyLoader.Interop.GameString.IsNull|Whether there is no string.
+BunnyLoader.Interop.GameString.Length|How many characters it has.
+BunnyLoader.Interop.GameString.Read|A C# string from a string of the game.
+BunnyLoader.Interop.GameString.New|A string of the game from a C# string, as an address.
+BunnyLoader.Interop.GameString.From|A `GameString` from a C# string.
+BunnyLoader.Interop.IGameObject.Pointer|The object's address in the game.
+Microsoft.Xna.Framework.Vector2|A 2D vector of the game: position, velocity, scale. Generated proxy, with extras such as `Vector2.One`, `Length` and `Normalize`.
+Microsoft.Xna.Framework.Vector3|A 3D vector, also used for light and color values.
+Microsoft.Xna.Framework.Vector4|A 4D vector, used for shader values and colors.
+Microsoft.Xna.Framework.Vector2.LengthValue|The vector's length.
+
+# Small values
+Terraria.ModLoader.AddableFloat.Zero|Nothing to add.
+Terraria.ModLoader.AddableFloat.Value|The value.
+Terraria.ModLoader.MultipliableFloat.One|Nothing to multiply.
+Terraria.ModLoader.MultipliableFloat.Value|The value.
+Terraria.DataStructures.AnchorData.Empty|No anchor.
+Terraria.DataStructures.Point16.Zero|The point (0, 0).
+Terraria.DataStructures.Point16.NegativeOne|The point (-1, -1).
+Terraria.DataStructures.WingStats.Default|No wing flight.
+Terraria.ModLoader.Config.BuffDefinition.Type|The buff's number now, found by name.
+Terraria.ID.BuffID.Sets.BuffTextHandlers|The buffs whose time text comes from a handler.
+Terraria.ID.BuffID.Sets.IsATagBuff|Is a whip tag.
+Terraria.ID.BuffID.Sets.BuffTextHandlerTable.Add|Sets the handler of a buff.
+Terraria.ModLoader.BuilderToggle.TorchBiome|The toggle of biome torches.
+Terraria.ModLoader.BuilderToggle.After.Toggle|The toggle it follows.
+Terraria.ModLoader.BuilderToggle.Before.Toggle|The toggle it comes before.
+Terraria.UI.CalculatedStyle.X|The left edge.
+Terraria.UI.CalculatedStyle.Y|The top edge.
+Terraria.UI.CalculatedStyle.Width|The width.
+Terraria.UI.CalculatedStyle.Height|The height.
+Terraria.UI.CalculatedStyle.ToRectangle|As a `Rectangle`.
+Terraria.UI.CalculatedStyle.Position|The top left corner.
+Terraria.UI.CalculatedStyle.Center|The center.
+Terraria.UI.CalculatedStyle.Contains|Whether a point is inside.
+Terraria.Graphics.CameraModifiers.CameraModifierStack.Add|Adds a camera change.
+Terraria.GameContent.ItemDropRules.Chains.OnSuccess|Chains a rule that runs when this one drops.
+Terraria.GameContent.ItemDropRules.Chains.OnFailedRoll|Chains a rule that runs when this one loses its roll.
+Terraria.GameContent.ItemDropRules.Chains.OnFailedConditions|Chains a rule that runs when this one's conditions fail.
+Terraria.Collision.LaserScan|Measures how far a beam goes before it hits a tile.
+Terraria.Collision.CheckAABBvLineCollision|Whether a line crosses a rectangle.
+Terraria.ModLoader.CommandLoader.Matches|Whether a command of this kind can run from this caller.
+Terraria.ModLoader.CommandLoader.GetHelp|The commands and their help texts.
+Terraria.GameContent.ItemDropRules.CommonCode.DropItem|Spawns a dropped item and syncs it.
+Terraria.GameContent.ItemDropRules.CommonDrop.itemId|The item.
+Terraria.GameContent.ItemDropRules.CommonDrop.amountDroppedMinimum|The smallest stack.
+Terraria.GameContent.ItemDropRules.CommonDrop.amountDroppedMaximum|The largest stack.
+Terraria.GameContent.ItemDropRules.CommonDropWithRerolls.timesToRoll|How many tries it gets.
+Terraria.ID.ContentSamples.BestiaryCreditId|The ID the bestiary credits a kill to.
+Terraria.ID.ContentSamples.NpcBestiaryRarityStars|The stars of each NPC in the bestiary.
+Terraria.ID.ContentSamples.ProjectilesByType|A projectile of each type, with its defaults.
+Terraria.ID.ContentSamples.ItemsByType|An item of each type, with its defaults.
+Terraria.ModLoader.Config.CustomModConfigItemAttribute.Type|The element class that draws the option.
+Terraria.DataStructures.DrawDataList.Add|Adds a sprite.
+Terraria.DataStructures.DrawDataList.Insert|Adds a sprite at a position.
+Terraria.DataStructures.DrawDataList.RemoveAt|Removes a sprite by position.
+Terraria.DataStructures.DrawDataList.RemoveAll|Removes the sprites that match.
+Terraria.DataStructures.DrawDataList.FindIndex|The position of the first match.
+Terraria.DataStructures.DrawDataList.Clear|Removes every sprite.
+Terraria.GameContent.ItemDropRules.DropAttemptInfo.npc|The NPC that dropped, or null.
+Terraria.GameContent.ItemDropRules.DropAttemptInfo.item|The bag or crate that was opened.
+Terraria.GameContent.ItemDropRules.DropAttemptInfo.player|The player it is for.
+Terraria.GameContent.ItemDropRules.DropAttemptInfo.rng|The random source.
+Terraria.GameContent.ItemDropRules.DropAttemptInfo.IsInSimulation|Whether it only measures chances for the bestiary.
+Terraria.GameContent.ItemDropRules.DropAttemptInfo.IsExpertMode|Whether the world is Expert.
+Terraria.GameContent.ItemDropRules.DropAttemptInfo.IsMasterMode|Whether the world is Master.
+Terraria.GameContent.ItemDropRules.DropRateInfo.itemId|The item.
+Terraria.GameContent.ItemDropRules.DropRateInfo.stackMin|The smallest stack.
+Terraria.GameContent.ItemDropRules.DropRateInfo.stackMax|The largest stack.
+Terraria.GameContent.ItemDropRules.DropRateInfo.dropRate|The chance, from 0 to 1.
+Terraria.GameContent.ItemDropRules.DropRateInfo.conditions|The conditions shown beside it.
+Terraria.GameContent.ItemDropRules.DropRateInfo.AddCondition|Adds a condition.
+Terraria.GameContent.ItemDropRules.DropRateInfoChainFeed.parentDroprateChance|The chance of the rules before this one.
+Terraria.GameContent.ItemDropRules.DropRateInfoChainFeed.conditions|The conditions of the rules before this one.
+Terraria.GameContent.ItemDropRules.DropRateInfoChainFeed.AddCondition|Adds a condition.
+Terraria.GameContent.ItemDropRules.DropRateInfoChainFeed.With|A copy with this chance multiplied in.
+Terraria.Entity.GetSource_TownSpawn|The source of a town NPC's arrival.
+Terraria.Entity.GetSource_NaturalSpawn|The source of a natural spawn.
+Terraria.ModLoader.Config.EntityDefinition.Mod|The mod's name, or `Terraria`.
+Terraria.ModLoader.Config.EntityDefinition.Name|The content's name.
+Terraria.ModLoader.Config.EntityDefinition.Key|`Mod/Name`.
+Terraria.ModLoader.Config.EntityDefinition.Unloaded|Text shown when the mod is off.
+Terraria.ModLoader.Config.EntityDefinition.SerializeData|Writes the mod and name to a tag.
+Terraria.ModLoader.Config.EntityDefinition.ModType|The number of a mod's content by name.
+Terraria.DataStructures.EntitySource_TileUpdate.X|The tile's column.
+Terraria.DataStructures.EntitySource_TileUpdate.Y|The tile's row.
+Terraria.ModLoader.Config.ExpandAttribute.Expand|Whether the object starts open.
+Terraria.ModLoader.Config.ExpandAttribute.ExpandListElements|Whether each list element starts open.
+Terraria.GameContent.ItemDropRules.Extensions.ToDropCondition|Turns a `Condition` into a drop condition.
+Terraria.ModLoader.ExtraJump.Flipper|The extra jump of Flippers.
+Terraria.ModLoader.ExtraJump.BeforeMountJumps|Before the jumps of mounts.
+Terraria.ModLoader.ExtraJump.MountJumpPosition|Among the jumps of mounts.
+Terraria.ModLoader.ExtraJump.BeforeBottleJumps|Before the bottle jumps.
+Terraria.ModLoader.ExtraJump.AfterBottleJumps|After the bottle jumps.
+Terraria.ModLoader.ExtraJump.Position.Target|The jump it is placed against.
+Terraria.ModLoader.ExtraJumpLoader.OrderedJumps|Every jump, in the order they are spent.
+Terraria.ModLoader.ExtraJumpLoader.Get|A jump by number.
+Terraria.ModLoader.FlipperJump.CanStart|Whether it can start now.
+Terraria.GameContent.ItemDropRules.FromOptionsWithoutRepeatsDropRule.dropCount|How many different items it gives.
+Terraria.WorldBuilding.GenBase._random|The world generation's random source.
+Terraria.WorldBuilding.GenBase._tiles|The world's tiles.
+Terraria.WorldBuilding.GenPass.Pointer|The pass's address in the game.
+Terraria.WorldBuilding.GenPass.Name|The pass's name.
+Terraria.WorldBuilding.GenPass.Weight|Its share of the progress bar.
+Terraria.WorldBuilding.GenPass.Enabled|Whether it runs.
+Terraria.WorldBuilding.GenPass.Disable|Stops it from running.
+Terraria.WorldBuilding.GenPass.Enable|Lets it run.
+Terraria.WorldBuilding.GenPass.Apply|Runs it.
+Terraria.WorldBuilding.GenPass.ApplyPass|The pass's own work.
+Terraria.GameContent.Generation.PassLegacy.ApplyPass|Calls the method given to the pass.
+Terraria.ModLoader.GlobalLoot.Get|Every rule for all NPCs.
+Terraria.ModLoader.GlobalLoot.Add|Adds a rule for all NPCs.
+Terraria.ModLoader.GlobalLoot.RemoveWhere|Removes the rules that match.
+Terraria.ModLoader.ICustomAutoload.Autoload|Called instead of the normal loading.
+Terraria.ModLoader.IEntityWithGlobals.EntityGlobals|The global instances of this object.
+Terraria.ModLoader.ILoot.Get|The rules.
+Terraria.ModLoader.ILoot.Add|Adds a rule.
+Terraria.ModLoader.ILoot.RemoveWhere|Removes the rules that match.
+Terraria.Map.IMapLayer.Digtoise|The map layer of the Digtoise.
+Terraria.Map.IMapLayer.BossBag|The map layer of a boss bag on the ground.
+Terraria.Map.IMapLayer.Spawn|The map layer of the spawn point.
+Terraria.Map.IMapLayer.TeamBasedSpawn|The map layer of team spawns.
+Terraria.Map.IMapLayer.Pylons|The map layer of pylons.
+Terraria.Map.IMapLayer.Pings|The map layer of pings.
+Terraria.Map.IMapLayer.Visible|Whether it draws now.
+Terraria.Graphics.CameraModifiers.IModCameraModifier.UniqueIdentity|A name that keeps two of the same from stacking.
+Terraria.Graphics.CameraModifiers.IModCameraModifier.IsAScreenShake|Whether the screen shake option turns it off.
+Terraria.Graphics.CameraModifiers.IModCameraModifier.Finished|Whether it should be removed.
+Terraria.Graphics.CameraModifiers.IModCameraModifier.Update|Changes the camera in this frame.
+Terraria.Graphics.Renderers.IModParticle.ShouldBeRemovedFromRenderer|Whether it should be removed.
+Terraria.Graphics.Renderers.IModParticle.Update|Runs each tick.
+Terraria.Graphics.Renderers.IModParticle.Draw|Draws the particle.
+Terraria.GameContent.ItemDropRules.IProvideItemConditionDescription.GetConditionDescription|The text that describes the condition in the bestiary.
+Terraria.ModLoader.IPlant.PlantTileId|The tile of this kind of plant.
+Terraria.ModLoader.IPlant.VanillaCount|How many the game has.
+Terraria.ModLoader.IPlant.GrowsOnTileId|The tiles it grows on.
+Terraria.ModLoader.IPlant.GetTexture|Its texture.
+Terraria.ModLoader.IPlant.SetStaticDefaults|Sets it up.
+Terraria.ModLoader.IPlant.Load|Runs when the mod loads.
+Terraria.ModLoader.IPlant.Unload|Runs when the mod unloads.
+Terraria.ModLoader.ITree.CountsAsTreeType|The kind of tree it counts as.
+Terraria.ModLoader.ITree.TreeLeaf|The gore of its leaves.
+Terraria.ModLoader.ITree.Shake|What falls when it is shaken.
+Terraria.GameContent.Dyes.LegacyHairShaderData.UseLegacyMethod|The method that gives the hair color.
+Terraria.ModLoader.LegacyNameAttribute.Names|The old names that still map to this content in a save.
+Terraria.Audio.LegacySoundStyle.HasValue|Whether it has a value.
+Terraria.Audio.LegacySoundStyle.Value|The sound.
+Terraria.Main.OpenShop|Opens a shop by name.
+Terraria.Main.SceneMetrics|What surrounds the local player: biomes, tile counts and so on.
+Terraria.Main.NewText|Writes a line in the chat.
+Terraria.Main.EntitySpriteDraw|Draws a sprite in the world.
+Terraria.GameContent.ItemDropRules.OneFromRulesRule.options|The rules it picks from.
+Terraria.GameContent.ItemDropRules.NativeDropCondition.CanDrop|Runs the game's condition.
+Terraria.GameContent.ItemDropRules.NativeDropRule.ChainedRules|The rules chained to this one.
+Terraria.Graphics.Renderers.ParticleRenderer.Add|Adds a particle.
+Terraria.ModLoader.PosData.pos|The position as one number: `x * Main.maxTilesY + y`.
+Terraria.ModLoader.PosData.value|The value stored for the position.
+Terraria.ModLoader.PosData.X|The tile column.
+Terraria.ModLoader.PosData.Y|The tile row.
+Terraria.ModLoader.PosData.nullPosData|The empty value.
+Terraria.ModLoader.PosData.FindIndex|Finds the entry of a position.
+Terraria.ModLoader.PosData.OrderedSparseLookupBuilder.Add|Adds a value. Positions must come in order.
+Terraria.ModLoader.PosData.OrderedSparseLookupBuilder.Build|The finished array.
+Terraria.ModLoader.PosData.OrderedSparseLookupReader.Get|The value at a position. Positions must be read in order.
+Terraria.ID.SetFactory.CreateIntSet|A game array of `int` with this default and these entries.
+Terraria.ID.SetFactory.NamedSetKey.RegisterCustomSet|Creates or joins a named array that other mods share.
+Terraria.ID.SetFactory.NamedSetKey.RegisterFloatSet|Creates or joins a named `float` array.
+Terraria.ID.SetFactory.NamedSetKey.RegisterUshortSet|Creates or joins a named `ushort` array.
+Terraria.ID.SetFactory.NamedSetKey.RegisterIntSet|Creates or joins a named `int` array.
+Terraria.ID.SetFactory.NamedSetKey.RegisterBoolSet|Creates or joins a named `bool` array.
+Terraria.ModLoader.StatInheritanceData.Full|Inherits every stat.
+Terraria.ModLoader.StatInheritanceData.None|Inherits nothing.
+Terraria.ModLoader.StatInheritanceData.damageInheritance|How much damage it inherits.
+Terraria.ModLoader.StatInheritanceData.critChanceInheritance|How much critical chance it inherits.
+Terraria.ModLoader.StatInheritanceData.attackSpeedInheritance|How much attack speed it inherits.
+Terraria.ModLoader.StatInheritanceData.armorPenInheritance|How much armor penetration it inherits.
+Terraria.ModLoader.StatInheritanceData.knockbackInheritance|How much knockback it inherits.
+Terraria.UI.StyleDimension.Fill|The whole parent.
+Terraria.UI.StyleDimension.Empty|No size.
+Terraria.UI.StyleDimension.Pixels|The part in pixels.
+Terraria.UI.StyleDimension.Precent|The part as a fraction of the parent. The game's own spelling.
+Terraria.UI.StyleDimension.Percent|The part as a fraction of the parent.
+Terraria.UI.StyleDimension.Set|Sets both parts.
+Terraria.UI.StyleDimension.GetValue|The result for a parent of this size.
+Terraria.UI.StyleDimension.FromPixels|A size in pixels.
+Terraria.UI.StyleDimension.FromPercent|A size as a fraction of the parent.
+Terraria.UI.StyleDimension.FromPixelsAndPercent|A size with both parts.
+Terraria.ModLoader.SurfaceBackgroundStylesLoader.ModifyFarFades|Runs the style's far fade hook.
+Terraria.GameContent.TextureAssetArray.Length|How many it holds.
+Terraria.GameContent.TextureAssetArray.this[]|The texture of an ID. Loads it when it is not loaded yet.
+Terraria.ModLoader.Config.ToFromStringConverter.CanConvertTo|Whether it converts to this type.
+Terraria.ModLoader.Config.ToFromStringConverter.CanConvertFrom|Whether it converts from this type.
+Terraria.ModLoader.Config.ToFromStringConverter.ConvertFrom|Converts from text.
+Terraria.ModLoader.UndergroundBackgroundStylesLoader.FillTextureArray|Runs the style's texture hook.
+Terraria.Utils.CornerRectangle|A rectangle between two corners.
+Terraria.Utils.Swap|Swaps two values.
+Terraria.Utils.Clamp|Keeps a value between two limits.
+Terraria.UtilsExtensions.IndexInRange|Whether the index is valid.
+Terraria.UtilsExtensions.GetTrueIndexes|The positions that are `true`.
+Terraria.UtilsExtensions.NextBool|A random `true` or `false`. `NextBool(5)` is 1 in 5; `NextBool(2, 5)` is 2 in 5.
+Terraria.UtilsExtensions.ToWorldCoordinates|A tile position in pixels. By default the tile's center.
+Terraria.UtilsExtensions.Next|A random element of the list.
+Terraria.UtilsExtensions.NextFloat|A random `float`.
+Terraria.UtilsExtensions.NextFloatDirection|A random `float` from -1 to 1.
+Terraria.UtilsExtensions.NextVector2FromRectangle|A random point in a rectangle.
+Terraria.UtilsExtensions.ToDirectionInt|`1` for `true`, `-1` for `false`.
+Terraria.UtilsExtensions.IntersectsConeSlowMoreAccurate|Whether a rectangle touches a cone.
+Terraria.UtilsExtensions.ToRotation|The angle of the vector.
+Terraria.UtilsExtensions.Floor|The vector rounded down.
+Terraria.UtilsExtensions.TopLeft|The rectangle's top left corner.
+Terraria.UtilsExtensions.Size|The size as a `Vector2`.
+Terraria.UtilsExtensions.ToTileCoordinates|A position in pixels as a tile `Point`.
+Terraria.UtilsExtensions.ToTileCoordinates16|A position in pixels as a `Point16`.
+Terraria.UtilsExtensions.ToVector2|The point as a `Vector2`.
+Terraria.UtilsExtensions.AngleLerp|Moves an angle toward another by a fraction, the short way.
+Terraria.UtilsExtensions.Width|The texture's width. Waits for it to load.
+Terraria.UtilsExtensions.Height|The texture's height. Waits for it to load.
+Terraria.UtilsExtensions.Frame|One frame of a sprite sheet.
+Terraria.UtilsExtensions.Request|Loads an asset by path.
+Terraria.UtilsExtensions.RotatedBy|The vector turned by this angle.
+Terraria.UtilsExtensions.RotatedByRandom|The vector turned by a random angle up to this one.
+Terraria.UtilsExtensions.ToRotationVector2|A unit vector at this angle.
+Terraria.UtilsExtensions.NextVector2Unit|A random direction.
+Terraria.UtilsExtensions.NextVector2CircularEdge|A random point on the edge of an ellipse.
+Terraria.UtilsExtensions.NextVector2Square|A random point in a rectangle around zero.
+Terraria.UtilsExtensions.NextVector2Circular|A random point inside an ellipse.
+Terraria.UtilsExtensions.SafeNormalize|The unit vector, or the default when it has no length.
+Terraria.UtilsExtensions.MultiplyRGBA|Multiplies two colors.
+Terraria.UtilsExtensions.MoveTowards|The point moved toward a target, at most this far.
+Terraria.UtilsExtensions.DirectionTo|The unit vector toward a target.
+Terraria.UtilsExtensions.DirectionFrom|The unit vector away from a target.
+Terraria.UtilsExtensions.ClosestPointInRect|The point of the rectangle closest to this one.
+Terraria.UtilsExtensions.ToPoint|The vector as a `Point`.
+Terraria.UtilsExtensions.AngleTowards|Turns an angle toward another, at most this much.
+Terraria.UtilsExtensions.ToInt|`1` for `true`, `0` for `false`.
+Terraria.Utilities.WeightedRandom.elements|The choices and their weights.
+Terraria.Utilities.WeightedRandom.needsRefresh|Whether the total must be worked out again.
+Terraria.Utilities.WeightedRandom.Add|Adds a choice with its weight.
+Terraria.Utilities.WeightedRandom.Get|Picks a choice.
+Terraria.Utilities.WeightedRandom.Clear|Removes every choice.
+Terraria.ModLoader.WhipSettings.Segments|How many segments it has.
+Terraria.ModLoader.WhipSettings.RangeMultiplier|How far it reaches.
+Terraria.Wiring.HitSwitchAndSync|Flips a switch and syncs it.
+Terraria.IO.WorldFileData.TryGetHeaderData|Reads what a `ModSystem` saved in the world's header.
+
+# UI elements, members
+Terraria.GameContent.UI.EmoteBubble.ModEmoteBubble|Its `ModEmoteBubble`, or null.
+Terraria.ModLoader.GlobalWall.CanBeTeleportedTo|Whether teleports may land on this wall.
+Terraria.IO.GameConfiguration.Get|Reads a value of the world generation's settings.
+Terraria.ModLoader.GameTipData.TipText|The text of the tip.
+Terraria.ModLoader.WhipSettings.Segments|How many segments it has.
+Terraria.ModLoader.WhipSettings.RangeMultiplier|How far it reaches.
+Terraria.Projectile.WhipSettings.Segments|How many segments it has.
+Terraria.Projectile.WhipSettings.RangeMultiplier|How far it reaches.
+Terraria.UI.UIElement.Elements|The children, in the order they draw.
+Terraria.UI.UIElement.Top|Distance from the top of the parent.
+Terraria.UI.UIElement.Left|Distance from the left of the parent.
+Terraria.UI.UIElement.Width|The width.
+Terraria.UI.UIElement.Height|The height.
+Terraria.UI.UIElement.MaxWidth|The largest width.
+Terraria.UI.UIElement.MaxHeight|The largest height.
+Terraria.UI.UIElement.MinWidth|The smallest width.
+Terraria.UI.UIElement.MinHeight|The smallest height.
+Terraria.UI.UIElement.IgnoresMouseInteraction|Touches and clicks go through it to what lies behind.
+Terraria.UI.UIElement.PassThroughMouseInteraction|It gets the hover, and what lies behind gets the touch too.
+Terraria.UI.UIElement.OverflowHidden|Cuts children to its area.
+Terraria.UI.UIElement.PaddingTop|Inner space at the top.
+Terraria.UI.UIElement.PaddingLeft|Inner space at the left.
+Terraria.UI.UIElement.PaddingRight|Inner space at the right.
+Terraria.UI.UIElement.PaddingBottom|Inner space at the bottom.
+Terraria.UI.UIElement.MarginTop|Outer space at the top.
+Terraria.UI.UIElement.MarginLeft|Outer space at the left.
+Terraria.UI.UIElement.MarginRight|Outer space at the right.
+Terraria.UI.UIElement.MarginBottom|Outer space at the bottom.
+Terraria.UI.UIElement.HAlign|Horizontal place in the parent, from 0 to 1.
+Terraria.UI.UIElement.VAlign|Vertical place in the parent, from 0 to 1.
+Terraria.UI.UIElement.UseImmediateMode|Draws it with an immediate sprite batch, for shaders.
+Terraria.UI.UIElement.Parent|The parent, or null.
+Terraria.UI.UIElement.UniqueId|A number unique to this element.
+Terraria.UI.UIElement.Children|The children.
+Terraria.UI.UIElement.IsMouseHovering|Whether the pointer is over it.
+Terraria.UI.UIElement.ExecuteRecursively|Runs a method on it and on everything under it.
+Terraria.UI.UIElement.DrawSelf|Draws this element only. Override this for custom drawing.
+Terraria.UI.UIElement.DrawChildren|Draws the children.
+Terraria.UI.UIElement.Append|Adds a child.
+Terraria.UI.UIElement.RemoveChild|Removes a child.
+Terraria.UI.UIElement.RemoveAllChildren|Removes every child.
+Terraria.UI.UIElement.HasChild|Whether this is one of its children.
+Terraria.UI.UIElement.AddOrRemoveChild|Adds or removes a child according to the second argument.
+Terraria.UI.UIElement.Draw|Draws it and its children.
+Terraria.UI.UIElement.Update|Runs each tick, and on the children.
+Terraria.UI.UIElement.GetClippingRectangle|The area on screen children are cut to.
+Terraria.UI.UIElement.Recalculate|Works out its size and position, then those of its children. Call it after changing them.
+Terraria.UI.UIElement.GetElementAt|The deepest element at a point.
+Terraria.UI.UIElement.ContainsPoint|Whether a point is inside it.
+Terraria.UI.UIElement.GetViewCullingArea|The area used to skip children out of view.
+Terraria.UI.UIElement.SetPadding|Sets the four paddings.
+Terraria.UI.UIElement.RecalculateChildren|Works out the children only.
+Terraria.UI.UIElement.GetInnerDimensions|Its area without the padding.
+Terraria.UI.UIElement.GetDimensions|Its area.
+Terraria.UI.UIElement.GetOuterDimensions|Its area with the margin.
+Terraria.UI.UIElement.CopyStyle|Copies the position, size, padding and alignment of another element.
+Terraria.UI.UIElement.LeftMouseDown|Runs when the left button goes down on it.
+Terraria.UI.UIElement.LeftMouseUp|Runs when the left button goes up on it.
+Terraria.UI.UIElement.LeftClick|Runs on a left click.
+Terraria.UI.UIElement.LeftDoubleClick|Runs on a left double click.
+Terraria.UI.UIElement.RightMouseDown|Runs when the right button goes down on it.
+Terraria.UI.UIElement.RightMouseUp|Runs when the right button goes up on it.
+Terraria.UI.UIElement.RightClick|Runs on a right click.
+Terraria.UI.UIElement.RightDoubleClick|Runs on a right double click.
+Terraria.UI.UIElement.MouseOver|Runs when the pointer enters it.
+Terraria.UI.UIElement.MouseOut|Runs when the pointer leaves it.
+Terraria.UI.UIElement.ScrollWheel|Runs when the wheel turns over it.
+Terraria.UI.UIElement.Activate|Runs when its state becomes the current one.
+Terraria.UI.UIElement.Deactivate|Runs when its state stops being the current one.
+Terraria.UI.UIElement.Initialize|Runs once, before the first activation. Build the children here.
+Terraria.UI.UIElement.CompareTo|The order used to sort children.
+Terraria.GameContent.UI.Elements.UIImage.ImageScale|The image's scale.
+Terraria.GameContent.UI.Elements.UIImage.Rotation|The image's rotation.
+Terraria.GameContent.UI.Elements.UIImage.ScaleToFit|Stretches the image to the element's size.
+Terraria.GameContent.UI.Elements.UIImage.AllowResizingDimensions|`SetImage` also resizes the element.
+Terraria.GameContent.UI.Elements.UIImage.NormalizedOrigin|The image's origin, from 0 to 1.
+Terraria.GameContent.UI.Elements.UIImage.Frame|The part of the image that shows.
+Terraria.GameContent.UI.Elements.UIImage.RemoveFloatingPointsFromDrawPosition|Draws at whole pixels.
+Terraria.GameContent.UI.Elements.UIImage.UseTextureSizeForOrigin|Measures the origin on the image, not on the element.
+Terraria.GameContent.UI.Elements.UIImage.Texture|The image.
+Terraria.GameContent.UI.Elements.UIImageButton._visibilityActive|Opacity under the pointer.
+Terraria.GameContent.UI.Elements.UIImageButton._visibilityInactive|Opacity away from the pointer.
+Terraria.GameContent.UI.Elements.UIImageButton.SetHoverImage|An image drawn on top under the pointer.
+Terraria.GameContent.UI.Elements.UIImageButton.SetVisibility|Sets both opacities.
+Terraria.GameContent.UI.Elements.UIList._items|The rows.
+Terraria.GameContent.UI.Elements.UIList._scrollbar|The bar tied to it.
+Terraria.GameContent.UI.Elements.UIList.ListPadding|The space between rows.
+Terraria.GameContent.UI.Elements.UIList.ManualSortMethod|Replaces the sort.
+Terraria.GameContent.UI.Elements.UIList.IsDragging|Whether a finger is scrolling it.
+Terraria.GameContent.UI.Elements.UIList.GetTotalHeight|The height of all rows.
+Terraria.GameContent.UI.Elements.UIList.Goto|Scrolls to the row a method finds.
+Terraria.GameContent.UI.Elements.UIList.Add|Adds a row.
+Terraria.GameContent.UI.Elements.UIList.Clear|Removes every row.
+Terraria.GameContent.UI.Elements.UIList.SetScrollbar|Ties a bar to it.
+Terraria.GameContent.UI.Elements.UIList.UpdateOrder|Sorts the rows again.
+Terraria.GameContent.UI.Elements.UIList.SortMethod|The order of two rows.
+Terraria.GameContent.UI.Elements.UIScrollbar.AutoHide|Hides when everything fits.
+Terraria.GameContent.UI.Elements.UIScrollbar.CanScroll|Whether there is anything to scroll.
+Terraria.GameContent.UI.Elements.UIScrollbar.GoToBottom|Scrolls to the end.
+Terraria.GameContent.UI.Elements.UIScrollbar.SetView|Sets what fits on screen and the whole size.
+Terraria.GameContent.UI.Elements.UIScrollbar.GetValue|How far it has scrolled.
+Terraria.GameContent.UI.Elements.UIText.TextOriginX|Where the text sits inside the element, across.
+Terraria.GameContent.UI.Elements.UIText.TextOriginY|Where the text sits inside the element, down.
+Terraria.GameContent.UI.Elements.UIText.WrappedTextBottomPadding|Extra room under wrapped text.
+Terraria.GameContent.UI.Elements.UIText.IsWrapped|Breaks lines at the element's width.
+Terraria.GameContent.UI.Elements.UIText.DynamicallyScaleDownToWidth|Shrinks the text to fit the width.
+Terraria.GameContent.UI.Elements.UIText.ShadowColor|The outline's color.
+Terraria.GameContent.UI.Elements.UIText.OnInternalTextChange|Fires when the text changes.
+Terraria.GameContent.UI.Elements.UITextPanel._text|The text.
+Terraria.GameContent.UI.Elements.UITextPanel._textScale|The text's scale.
+Terraria.GameContent.UI.Elements.UITextPanel._isLarge|Whether it uses the large font.
+Terraria.GameContent.UI.Elements.UITextPanel._drawPanel|Whether the panel draws.
+Terraria.GameContent.UI.Elements.UITextPanel.TextHAlign|Horizontal place of the text, from 0 to 1.
+Terraria.GameContent.UI.Elements.UITextPanel.HideContents|Shows `*` for each character.
+Terraria.GameContent.UI.Elements.UITextPanel.IsLarge|Whether it uses the large font.
+Terraria.GameContent.UI.Elements.UITextPanel.DrawPanel|Whether the panel draws.
+Terraria.GameContent.UI.Elements.UITextPanel.TextScale|The text's scale.
+
+# Why a tModLoader class is not here
+Terraria.ModLoader.AccessorySlot*!|Extra accessory slots are not part of Bunny Loader.
+Terraria.ModLoader.ModAccessorySlot!|Extra accessory slots are not part of Bunny Loader.
+Terraria.ModLoader.Default.ModAccessorySlotPlayer!|Extra accessory slots are not part of Bunny Loader.
+Terraria.ModLoader.Default.UnloadedAccessorySlot!|Extra accessory slots are not part of Bunny Loader.
+Terraria.ModLoader.Active*Iterator*!|`Main.ActiveItems`, `ActiveNPCs`, `ActivePlayers` and `ActiveProjectiles` exist and return a plain `IEnumerable`.
+Terraria.ModLoader.Default.Unloaded*!|tModLoader keeps content of a removed mod as a placeholder. There are no placeholders here: such an item loads empty.
+Terraria.ModLoader.*BuilderToggle!|The game's own toggles are not classes here. `BuilderToggle.TorchBiome` is the one exposed, and mods add theirs with `BuilderToggle`.
+Terraria.ModLoader.BuilderToggleLoader!|Internal here. Mods subclass `BuilderToggle`.
+Terraria.ModLoader.*InfoDisplay!|The game's own displays are not classes here. Mods add theirs with `InfoDisplay`.
+Terraria.ModLoader.InfoDisplayLoader!|Internal here. Mods subclass `InfoDisplay`.
+Terraria.ModLoader.GlobalInfoDisplay!|Not implemented: mods cannot change the displays of other mods or of the game.
+Terraria.ModLoader.Assets.*!|File readers of tModLoader's asset system. Here assets go through `ModContent.Request` and Bunny Loader's own readers.
+Terraria.ModLoader.AsyncProvider*!|Internal to tModLoader's loading.
+Terraria.ModLoader.BuildInfo*!|Describes tModLoader's own build.
+Terraria.ModLoader.Framework*!|Describes tModLoader's own build.
+Terraria.ModLoader.CombinedHooks!|Internal here. It runs the `ModPlayer` and `GlobalItem` hooks of a use together, and those hooks exist.
+Terraria.ModLoader.Config.LabelAttribute!|Old in tModLoader too. Labels come from the localization files.
+Terraria.ModLoader.Config.TooltipAttribute!|Old in tModLoader too. Tooltips come from the localization files.
+Terraria.ModLoader.ContentInstance!|Internal to tModLoader. Use `ModContent.GetInstance<T>()`.
+Terraria.ModLoader.CloneByReference!|Not implemented.
+Terraria.ModLoader.DamageClass.Sets!|Not implemented.
+Terraria.ModLoader.Default.ModLoaderModItem!|Base of tModLoader's own items.
+Terraria.ModLoader.Default.StartBag!|tModLoader's bag of starting items. `ModPlayer.AddStartingItems` puts them straight in the inventory.
+Terraria.ModLoader.Default.PylonShopNPC!|tModLoader's rule for selling pylons in shops. Here the same rule is internal, and `NPCShopDatabase.NoPylons` lists the exceptions.
+Terraria.ModLoader.ExtendsFromModAttribute!|Weak references to other mods are not part of Bunny Loader.
+Terraria.ModLoader.*JIT*!|tModLoader compiles mods at load time with the JIT. Here a mod's DLL runs on Mono with no such filters.
+Terraria.ModLoader.MemberJitAttribute!|tModLoader compiles mods at load time with the JIT. Here a mod's DLL runs on Mono with no such filters.
+Terraria.ModLoader.GlobalBlockType!|`GlobalTile` and `GlobalWall` derive directly from `ModType` here.
+Terraria.ModLoader.GlobalList!|Internal to tModLoader. Here the lists of globals live in `Terraria.ModLoader.Core`.
+Terraria.ModLoader.GlobalRecipe!|Not implemented. Change recipes with `ModSystem.PostAddRecipes`.
+Terraria.ModLoader.IAutoload*!|Internal to tModLoader's loading. `ILoadable` and `ICustomAutoload` are the ones that exist.
+Terraria.ModLoader.*.AutoloadImpl!|Internal to tModLoader's loading.
+Terraria.ModLoader.IEntityWithInstances!|Internal to tModLoader. Instances live in `Terraria.ModLoader.Core`.
+Terraria.ModLoader.IIndexed!|Internal to tModLoader.
+Terraria.ModLoader.ILoader!|Internal to tModLoader's loading.
+Terraria.ModLoader.Loader!|Internal to tModLoader's loading.
+Terraria.ModLoader.LoaderManager!|Internal to tModLoader's loading.
+Terraria.ModLoader.ILPatchFailureException!|IL editing cannot exist here: the game is compiled to machine code. Use the `On_X` hooks.
+Terraria.ModLoader.MonoModHooks!|IL editing cannot exist here: the game is compiled to machine code. Use the `On_X` hooks.
+Terraria.ModLoader.IO.*Serializer!|Not implemented. `TagCompound` takes numbers, `bool`, strings, lists, enums, `Item` and `TagSerializable`. A `Vector2` or `Color` must be saved as its own fields.
+Terraria.ModLoader.IO.ImageIO!|tModLoader's `.rawimg` format. Mods here ship PNG.
+Terraria.ModLoader.IO.TagPrinter!|Debug helper of tModLoader.
+Terraria.ModLoader.IO.TileIO.*!|tModLoader's save of tiles. Here tiles and walls go to Bunny Loader's own `.bl` files.
+Terraria.ModLoader.IO.UploadFile!|Part of tModLoader's mod browser.
+Terraria.ModLoader.IPylonTileEntity!|Mod pylons use `TEModdedPylon` directly.
+Terraria.ModLoader.InitializationItemCreationContext!|Not implemented.
+Terraria.ModLoader.LocalizationLoader*!|Internal here. Localization files load by themselves.
+Terraria.ModLoader.Logging*!|tModLoader's log. Use `Mod.Logger`.
+Terraria.ModLoader.MapLegend!|Not implemented. Use `ModTile.AddMapEntry`.
+Terraria.ModLoader.ModContent.TrackCurrentlyLoadingMod!|Internal to tModLoader's loading.
+Terraria.ModLoader.ModNet!|Internal here. Use `Mod.GetPacket` and `Mod.HandlePacket`.
+Terraria.ModLoader.ModPalmTree!|Not implemented. `ModTree` and `ModCactus` exist.
+Terraria.ModLoader.ModResourceDisplaySet!|Not implemented. `ModResourceOverlay` exists.
+Terraria.ModLoader.ResourceDisplaySetLoader!|Not implemented. `ModResourceOverlay` exists.
+Terraria.ModLoader.ModSideExtensions!|Internal to tModLoader.
+Terraria.ModLoader.RefReadOnlyArray!|Internal to tModLoader.
+Terraria.ModLoader.TopoSort*!|Internal to tModLoader.
+Terraria.ModLoader.TravelingMerchantShop*!|Not implemented as a shop class. The game's merchant still works, and `GlobalNPC.SetupTravelShop` runs.
+Terraria.ModLoader.GameTipID|Numbers of the game's tips. Only two have a name here. tModLoader names all of them.
+
+# Why a tModLoader member is not here
+Terraria.ModLoader.InfoDisplay.Watches!|The game's displays are not exposed as objects here.
+Terraria.ModLoader.InfoDisplay.WeatherRadio!|The game's displays are not exposed as objects here.
+Terraria.ModLoader.InfoDisplay.Sextant!|The game's displays are not exposed as objects here.
+Terraria.ModLoader.InfoDisplay.FishFinder!|The game's displays are not exposed as objects here.
+Terraria.ModLoader.InfoDisplay.MetalDetector!|The game's displays are not exposed as objects here.
+Terraria.ModLoader.InfoDisplay.LifeformAnalyzer!|The game's displays are not exposed as objects here.
+Terraria.ModLoader.InfoDisplay.Radar!|The game's displays are not exposed as objects here.
+Terraria.ModLoader.InfoDisplay.TallyCounter!|The game's displays are not exposed as objects here.
+Terraria.ModLoader.InfoDisplay.DPSMeter!|The game's displays are not exposed as objects here.
+Terraria.ModLoader.InfoDisplay.Stopwatch!|The game's displays are not exposed as objects here.
+Terraria.ModLoader.InfoDisplay.Compass!|The game's displays are not exposed as objects here.
+Terraria.ModLoader.InfoDisplay.DepthMeter!|The game's displays are not exposed as objects here.
+Terraria.ModLoader.BuilderToggle.RulerLine!|The game's toggles are not exposed here, except `TorchBiome`.
+Terraria.ModLoader.BuilderToggle.RulerGrid!|The game's toggles are not exposed here, except `TorchBiome`.
+Terraria.ModLoader.BuilderToggle.AutoActuate!|The game's toggles are not exposed here, except `TorchBiome`.
+Terraria.ModLoader.BuilderToggle.AutoPaint!|The game's toggles are not exposed here, except `TorchBiome`.
+Terraria.ModLoader.BuilderToggle.RedWireVisibility!|The game's toggles are not exposed here, except `TorchBiome`.
+Terraria.ModLoader.BuilderToggle.BlueWireVisibility!|The game's toggles are not exposed here, except `TorchBiome`.
+Terraria.ModLoader.BuilderToggle.GreenWireVisibility!|The game's toggles are not exposed here, except `TorchBiome`.
+Terraria.ModLoader.BuilderToggle.YellowWireVisibility!|The game's toggles are not exposed here, except `TorchBiome`.
+Terraria.ModLoader.BuilderToggle.HideAllWires!|The game's toggles are not exposed here, except `TorchBiome`.
+Terraria.ModLoader.BuilderToggle.ActuatorsVisibility!|The game's toggles are not exposed here, except `TorchBiome`.
+Terraria.ModLoader.BuilderToggle.BlockSwap!|The game's toggles are not exposed here, except `TorchBiome`.
+Terraria.ModLoader.Config.ConfigManager.*!|Part of tModLoader's config screen. The screen here is Bunny Loader's own.
+Terraria.ModLoader.Config.DefaultDictionaryKeyValueAttribute.SetValue!|Internal to the attribute.
+Terraria.ModLoader.Config.DefaultListValueAttribute.SetValue!|Internal to the attribute.
+Terraria.ID.HairID.Search!|Not implemented.
+Terraria.ID.HairID.Sets.Factory!|Not implemented.
+Terraria.ID.NetmodeID.Search!|Not implemented.
+Terraria.ModLoader.DamageClass.Search!|Not implemented.
+Terraria.ModLoader.MenuLoader.ActivateOldVanillaMenu!|Internal to tModLoader's menu.
+Terraria.ModLoader.MenuLoader.ActivateBiggerAndBoulderMenu!|Internal to tModLoader's menu.
+Terraria.ModLoader.ModMenu.UserInterface!|Not implemented. The menu theme draws through `PreDrawLogo` and `PostDrawLogo`.
+Terraria.ModLoader.ModMenu.IsNew!|Marks a new theme in tModLoader's selector. The selector here is different.
+Terraria.Audio.SoundStyle.GetSoundEffect!|Internal to the game's sound code.
+Terraria.Audio.SoundStyle.GetRandomPitch!|Internal to the game's sound code.
+Terraria.Audio.SoundStyle.WithVolumePerceived!|Not implemented. Use `WithVolumeScale`.
+Terraria.GameContent.UI.Elements.UIScrollbar.ViewSize!|Not implemented. Use `SetView`.
+Terraria.GameContent.UI.Elements.UIScrollbar.MaxViewSize!|Not implemented. Use `SetView`.
+Terraria.ModLoader.IO.ItemIO.SendModData!|Not implemented. `ItemIO.Send` writes the mod data too.
+Terraria.ModLoader.IO.ItemIO.ReceiveModData!|Not implemented. `ItemIO.Receive` reads the mod data too.
+Terraria.ModLoader.IO.ItemIO.ToBase64!|Not implemented.
+Terraria.ModLoader.IO.ItemIO.FromBase64!|Not implemented.
+Terraria.ModLoader.PrefixLoader.Roll!|Internal here.
+Terraria.ModLoader.PrefixLoader.IsWeaponSubCategory!|Internal here.
+Terraria.Recipe.Ordering!|Internal here.
+Terraria.RecipeGroup.AssignKeysToVanillaGroups!|Internal here.
+Terraria.DataStructures.PlayerDrawSet.headOnlyRender!|Not implemented.
+Terraria.DataStructures.PlayerDrawSet.isBottomOverriden!|Not implemented.
+Terraria.ModLoader.PlayerLoader.SetStartInventory!|Internal here. Use `ModPlayer.AddStartingItems`.
+Terraria.ModLoader.PlayerLoader.GetStartingItems!|Internal here. Use `ModPlayer.AddStartingItems`.
+Terraria.ModLoader.PlayerLoader.GetModdedCraftingMaterials!|Internal here.
+Terraria.ModLoader.BossBarLoader.VanillaBossBarTexture!|Not implemented.
+Terraria.GameContent.UI.EmoteBubble.EntityGlobals!|Not implemented.
+Terraria.ModLoader.NPCHeadLoader.NPCHeadCount!|Internal here.
+Terraria.ModLoader.NPCLoader.SavesAndLoads!|Internal here.
+Terraria.ModLoader.NPCShopDatabase.GetShopNameFromVanillaIndex!|Internal here.
+Terraria.ModLoader.NPCShopDatabase.Initialize!|Internal here.
+Terraria.ModLoader.NPCShopDatabase.GetPylonEntries!|Internal here.
+Terraria.GameContent.Profiles.DefaultNPCProfile.currentHeadSlot!|Internal to the class.
+Terraria.GameContent.Profiles.DefaultNPCProfile.defaultTexture!|Internal to the class.
+Terraria.GameContent.Profiles.DefaultNPCProfile.partyTexture!|Internal to the class.
+Terraria.ModLoader.GlobalType.GetGlobal!|Internal here. Use `GetGlobalItem`, `GetGlobalNPC` and the like.
+Terraria.ModLoader.GlobalType.TryGetGlobal!|Internal here. Use `TryGetGlobalItem`, `TryGetGlobalNPC` and the like.
+Terraria.ModLoader.GlobalType.Instance!|Internal here. Use `GetGlobalItem`, `GetGlobalNPC` and the like.
+Terraria.ModLoader.IEntityWithGlobals.Type!|Not needed here.
+Terraria.Map.IMapLayer.Hide!|Not implemented.
+Terraria.ModLoader.LegacyNameAttribute.GetLegacyNamesOfType!|Internal here.
+Terraria.ID.SetFactory.ResizeArrays!|Internal here.
+Terraria.ID.SetFactory.Clear!|Internal here.
+Terraria.ID.SetFactory.CreateBoolListSet!|Not implemented.
+Terraria.ModLoader.SurfaceBackgroundStylesLoader.DrawFarTexture!|Internal here.
+Terraria.ModLoader.SurfaceBackgroundStylesLoader.DrawMiddleTexture!|Internal here.
+Terraria.ModLoader.SurfaceBackgroundStylesLoader.DrawCloseBackground!|Internal here.
+Terraria.ModLoader.ProjectileLoader.ProjectileAI!|Internal here. Override `ModProjectile.AI` or `GlobalProjectile.AI`.
+Terraria.ModLoader.ProjectileLoader.DrawOffset!|Internal here.
+Terraria.ModLoader.IO.BinaryIO.ReadBitsByte!|Not implemented. Use `ReadFlags`.
+Terraria.ModLoader.IO.BinaryIO.ReadByteSpan!|Not implemented. Use `ReadBytes`.
+Terraria.ModLoader.Mod.TranslationForMods!|Translation mods are not part of Bunny Loader.
+Terraria.ModLoader.Mod.RootContentSource!|Internal to tModLoader's asset system.
+Terraria.ModLoader.Mod.NetID!|Internal here.
+Terraria.ModLoader.Mod.ModSourceBestiaryInfoElement!|Internal here.
+Terraria.ModLoader.Mod.PreJITFilter!|tModLoader compiles mods at load time with the JIT. Not used here.
+Terraria.ModLoader.Mod.AddConfig!|Configs are found by themselves. Use `ModContent.GetInstance<T>()`.
+Terraria.ModLoader.Mod.GetConfig!|Not implemented. Use `ModContent.GetInstance<T>()` or `ConfigManager.GetConfig`.
+Terraria.ModLoader.Mod.HasAsset!|Not implemented. Use `ModContent.HasAsset`.
+Terraria.ModLoader.Mod.RequestAssetIfExists!|Not implemented. Use `ModContent.RequestIfExists`.
+Terraria.ModLoader.Mod.CreateDefaultContentSource!|Internal to tModLoader's asset system.
+Terraria.ModLoader.Mod.TryAutoload!|Internal here.
+Terraria.ModLoader.ModContent.GetModProjectile!|Not implemented. Use `ProjectileLoader.GetProjectile`.
+Terraria.ModLoader.ModContent.GetEquipTexture!|Not implemented. Use `EquipLoader.GetEquipTexture`.
+Terraria.ModLoader.ModContent.GetModMount!|Not implemented. Use `MountLoader.GetMount`.
+Terraria.ModLoader.ModContent.GetModWall!|Not implemented. Use `WallLoader.GetWall`.
+Terraria.ModLoader.ModContent.GetModBackgroundSlot!|Not implemented. Use `BackgroundTextureLoader.GetBackgroundSlot`.
+Terraria.ModLoader.ModContent.OpenRead!|Not implemented.
+Terraria.ModLoader.ModLoader.*!|tModLoader's own launcher and settings. Not part of Bunny Loader.
+Terraria.ModLoader.TileLoader.*!|Internal here.
+Terraria.ModLoader.WallLoader.*!|Internal here.
+Terraria.ModLoader.PlantLoader.*!|Internal here.
+Terraria.ModLoader.BiomeLoader.*!|Internal here.
+Terraria.ModLoader.ExtraJumpLoader.*!|Internal here.
+Terraria.ModLoader.WaterStylesLoader.*!|Internal here.
+Terraria.ModLoader.SceneEffectLoader.*!|Internal here.
+Terraria.ModLoader.EmoteBubbleLoader.PreDrawInEmoteMenu!|Not implemented.
+Terraria.ModLoader.EmoteBubbleLoader.PostDrawInEmoteMenu!|Not implemented.
+Terraria.ModLoader.TagIO.*!|Not implemented.
+Terraria.ModLoader.IO.TagIO.*!|Not implemented.
+Terraria.ModLoader.IO.TagCompound.*!|Not implemented.
+Terraria.Animation.AnimationCount!|Internal to the game's class.
+Terraria.Animation.AnimationFrameDatas!|Internal to the game's class.
+Terraria.Animation.Unload!|Internal to the game's class.
+Terraria.ModLoader.ModBossBar.Draw!|Not implemented. Use `PreDraw` and `PostDraw`.
+Terraria.Gore.drawOffset!|Not implemented.
+Terraria.GameContent.Bestiary.ModBiomeBestiaryInfoElement.GetBackgroundImage!|Internal here.
+Terraria.GameContent.Bestiary.ModBiomeBestiaryInfoElement.GetBackgroundColor!|Internal here.
+Terraria.ModLoader.ModMapLayer.After.Layer!|Not implemented.
+Terraria.ModLoader.ModMapLayer.Before.Layer!|Not implemented.
+Terraria.ModLoader.ModTileEntity.NumVanilla!|Internal here.
+Terraria.ObjectData.TileObjectData.FixNewTile!|Internal here.
+Microsoft.Xna.Framework.Vector2.LengthValue|The vector's length. Only in Bunny Loader.
+Terraria.ModLoader.TouchButtonLoader.Count|How many buttons the mods have registered.
+Terraria.ModLoader.*Iterator.Enumerator!|`Main.ActiveItems`, `ActiveNPCs`, `ActivePlayers` and `ActiveProjectiles` exist and return a plain `IEnumerable`.
+Terraria.WhipSettings.Segments|How many segments it has.
+Terraria.WhipSettings.RangeMultiplier|How far it reaches.
+Terraria.ModLoader.BuildInfo.**!|Describes tModLoader's own build.
+Terraria.ModLoader.LocalizationLoader.**!|Internal here. Localization files load by themselves.
+Terraria.ModLoader.Logging.**!|tModLoader's log. Use `Mod.Logger`.
+Terraria.ModLoader.TopoSort.**!|Internal to tModLoader.
+Terraria.ModLoader.TravelingMerchantShop.**!|Not implemented as a shop class. The game's merchant still works, and `GlobalNPC.SetupTravelShop` runs.
