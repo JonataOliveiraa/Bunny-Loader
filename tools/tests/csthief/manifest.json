@@ -1,0 +1,17 @@
+{
+  "uid": "5c0e7a1d-3b94-4f62-9d18-7a2f6e41c8b3",
+  "id": "CsThief",
+  "name": "Test: zombie thief",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Checks that the Example Mod zombie thief steals a stack only once.",
+  "description": "Compile with tools/tests/build-cs.sh csthief.",
+  "updated": "2026-11-07",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

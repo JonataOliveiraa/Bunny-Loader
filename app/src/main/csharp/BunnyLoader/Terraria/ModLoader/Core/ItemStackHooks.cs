@@ -101,13 +101,17 @@ internal static class ItemStackHooks
     {
         Snapshot from = scope.Items[source.Pointer];
         Snapshot to = scope.Items[destination.Pointer];
+
         if (source.type != from.Type || destination.type != from.Type) return;
+
         int sourceFinal = source.stack, destinationFinal = destination.stack;
         int sourceBefore = from.Remaining, destinationBefore = split ? 0 : to.Remaining;
         source.stack = sourceBefore;
         destination.stack = destinationBefore;
+        
         if (split) { destination.favorited = false; ItemLoader.NotifySplit(destination, source, count); }
         else ItemLoader.OnStack(destination, source, count);
+        
         int sourceAdjustment = source.stack - sourceBefore, destinationAdjustment = destination.stack - destinationBefore;
         source.stack = sourceFinal + sourceAdjustment;
         destination.stack = destinationFinal + destinationAdjustment;
