@@ -20,6 +20,10 @@ val csharpEnabled = (project.findProperty("bl.csharp") as String?)?.toBoolean() 
 // O app de medicao dos hooks C# (ver BENCH_TESTS).
 val benchBuild = (project.findProperty("bl.bench") as String?)?.toBoolean() ?: false
 val betaBuild = (project.findProperty("bl.beta") as String?)?.toBoolean() ?: false
+val playBuild = (project.findProperty("bl.play") as String?)?.toBoolean() ?: false
+val baseAssets = layout.buildDirectory.dir(if (playBuild) "generated/blAssetsPlay" else "generated/blAssets")
+val movableAssets: Provider<Directory> =
+    if (playBuild) layout.dir(provider { rootProject.file("play_assets/src/main/assets") }) else baseAssets
 
 val hasGameFont = file("src/main/res/font/bunny.ttf").isFile
 val fontDir = file(if (hasGameFont) "src/main/res/font" else "src/fontFallback/res/font")
@@ -32,7 +36,9 @@ val fontDir = file(if (hasGameFont) "src/main/res/font" else "src/fontFallback/r
 // delas, o build para em vez de soltar um APK que não instala.
 val releaseKeys: Map<String, String>? = run {
     val props = Properties()
-    val file = rootProject.file("keystore.properties")
+    val file = rootProject.file(if (playBuild) "keystore-play.properties" else "keystore.properties")
+    if (playBuild && !file.isFile) throw GradleException(
+        "upload key missing: run tools/play/init-upload-key.sh")
     if (file.isFile) file.inputStream().use { props.load(it) }
     val keys = mapOf(
         "storeFile" to "BL_RELEASE_STORE_FILE",
@@ -78,7 +84,7 @@ android {
     defaultConfig {
         applicationId = "com.bunnyloader"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = if (playBuild) 36 else 34
         versionCode = commitCount
         versionName = "0.5.2-beta"
 
@@ -151,9 +157,6 @@ android {
     // Engine". Provado com bundletool: o pack instalou como
     // split_terraria1456_assets.apk e a Unity não achou nada.
     //
-    // Como a distribuição é APK pelo GitHub, o teto da Play não se aplica e o
-    // caminho do bundle não tem para que existir.
-    //
     // -Pbl.uiOnly=true deixa os assets de fora (ver `packaging`): é o modo de
     // iterar em tela, onde o jogo nem sobe.
     if ((project.findProperty("bl.uiOnly") as String?)?.toBoolean() != true) {
@@ -163,7 +166,8 @@ android {
     // Os mods de samples/ em BUNDLED_SAMPLES viram o catálogo embutido do launcher. Uma cópia, não
     // uma segunda fonte: samples/ continua sendo a verdade, e o que o app lista
     // é exatamente o que o motor carrega.
-    sourceSets["main"].assets.srcDir(layout.buildDirectory.dir("generated/blAssets"))
+    sourceSets["main"].assets.srcDir(baseAssets)
+    if (playBuild) assetPacks += ":play_assets"
     // A libmonosgen e as libs nativas da BCL, tiradas do pacote do NuGet (ver
     // fetchMonoRuntime, lá embaixo).
     if (csharpEnabled) sourceSets["main"].jniLibs.srcDir(layout.buildDirectory.dir("generated/monoJniLibs"))
@@ -267,7 +271,7 @@ val syncSampleMods by tasks.registering(Sync::class) {
             include(BENCH_TESTS.flatMap { listOf("$it/manifest.json", "$it/content/**") })
         }
     }
-    into(layout.buildDirectory.dir("generated/blAssets/mods"))
+    into(movableAssets.map { it.dir("mods") })
 }
 
 /**
@@ -279,7 +283,7 @@ val syncSampleMods by tasks.registering(Sync::class) {
  */
 val syncSprites by tasks.registering(Sync::class) {
     from(rootProject.file("_sprites")) { exclude("README.md") }
-    into(layout.buildDirectory.dir("generated/blAssets/sprites"))
+    into(movableAssets.map { it.dir("sprites") })
 }
 /**
  * res/font/bunny.ttf -> assets/fonte/, para o menu de cheats.
@@ -290,7 +294,7 @@ val syncSprites by tasks.registering(Sync::class) {
  */
 val syncFonte by tasks.registering(Sync::class) {
     from(fontDir)
-    into(layout.buildDirectory.dir("generated/blAssets/fonte"))
+    into(baseAssets.map { it.dir("fonte") })
 }
 /**
  * LICENSE.md e THIRD_PARTY_NOTICES.md -> assets/legal/, para a tela de licenças
@@ -299,7 +303,7 @@ val syncFonte by tasks.registering(Sync::class) {
  */
 val syncLegal by tasks.registering(Sync::class) {
     from(rootProject.file("LICENSE.md"), rootProject.file("THIRD_PARTY_NOTICES.md"))
-    into(layout.buildDirectory.dir("generated/blAssets/legal"))
+    into(baseAssets.map { it.dir("legal") })
 }
 // --- Runtime .NET dos mods C# ---
 //
@@ -455,7 +459,7 @@ val syncDotnetAssets by tasks.registering(Sync::class) {
     }
     from(writeDotnetReferences)
     includeEmptyDirs = false
-    into(layout.buildDirectory.dir("generated/blAssets/dotnet"))
+    into(movableAssets.map { it.dir("dotnet") })
 }
 
 tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }
@@ -466,6 +470,12 @@ tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }
 if (csharpEnabled) {
     tasks.matching { it.name.startsWith("merge") && it.name.endsWith("JniLibFolders") }
         .configureEach { dependsOn(syncMonoJniLibs) }
+}
+if (playBuild) {
+    project(":play_assets").tasks.configureEach {
+        dependsOn(syncSampleMods, syncSprites)
+        if (csharpEnabled) dependsOn(syncDotnetAssets)
+    }
 }
 
 dependencies {

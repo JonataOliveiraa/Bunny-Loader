@@ -21,6 +21,8 @@ build/
 # Chave e senhas do APK de release (ver keystore.properties.example).
 *.jks
 keystore.properties
+keystore-play.properties
+play_assets/src/main/assets/
 
 # --- Bunny Loader ---
 # Dumps do jogo: gerados localmente, NUNCA versionados.

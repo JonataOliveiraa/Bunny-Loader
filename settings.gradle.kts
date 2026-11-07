@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 rootProject.name = "BunnyLoader"
 include(":app")
 include(":catalog")
+include(":play_assets")

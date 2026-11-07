@@ -27,6 +27,36 @@ tools/dumpgrep.sh Projectile Terraria           # inspect a class
 There will be no `.bmod` packer: the package is assembled by hand by the
 author, with the documentation as a reference.
 
+## Play Store bundle
+
+`tools/play/` builds and checks the `.aab` for Google Play. Each script takes
+the channel, `beta` (default) or `stable`.
+
+| Script | What it does |
+|---|---|
+| [`init-upload-key.sh`](play/init-upload-key.sh) | Creates the upload key once: `bunny-upload.keystore` and `keystore-play.properties`, both out of Git. Back them up outside the PC. |
+| [`build-aab.sh`](play/build-aab.sh) | Runs `:app:bundleRelease -Pbl.play=true`, writes `out/bunny-loader-beta.aab` (+ `.sha256`) and runs the checks. |
+| [`check-aab.sh`](play/check-aab.sh) | Checks what Play enforces: `bundletool validate`, target SDK, not debuggable, no debug certificate, 16 KB pages, base module download size. Also checks that Unity's files are stored in the base APK. |
+| [`install-aab.sh`](play/install-aab.sh) | Installs the bundle on a connected device as Play would (splits and asset pack), signed with the official key, so it updates the installed app and keeps its data. |
+
+```bash
+tools/play/build-aab.sh
+tools/play/install-aab.sh
+```
+
+What `-Pbl.play=true` changes, compared with the normal APK:
+
+- **Key:** Play refuses a debug certificate, and the official key is one
+  (`CN=Android Debug`), so the bundle is signed with the upload key.
+- **Target SDK:** 36, which Play requires. The normal APK stays on 34.
+- **Asset pack:** `dotnet/`, `mods/` and `sprites/` go to the install-time pack
+  `play_assets`, because the base module has a 200 MB limit. The app reads them
+  through `AssetManager`, which sees the pack. Unity's `bin/Data` has to stay in
+  the base APK.
+
+A bundle build is not debuggable, so `run-as` and the scripts that rely on it
+do not work on an app installed from it.
+
 ## Downloading and extracting tModLoader mods
 
 Double-click [`mods/baixar-tmod.bat`](mods/baixar-tmod.bat), paste a Workshop
