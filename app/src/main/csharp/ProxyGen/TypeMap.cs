@@ -264,6 +264,8 @@ sealed class TypeMap
                     FromRaw = e => $"{RT}.GameString.Read((nint)({e}))",
                 };
             case "System.Object": return Ref($"{RT}.GameObject", sig);
+            case "System.TimeSpan": return new TypeUse { Cs = "global::System.TimeSpan", Sig = sig, Abi = AbiClass.Composite, Size = 8, Align = 8, CheckSize = true };
+            case "System.Guid": return new TypeUse { Cs = "global::System.Guid", Sig = sig, Abi = AbiClass.Composite, Size = 16, Align = 4, CheckSize = true };
         }
         if (t.IsPointer) return Prim("nint", AbiClass.Int, 8);
         if (!t.IsArray && !t.IsGenericType && !IsGame(t))

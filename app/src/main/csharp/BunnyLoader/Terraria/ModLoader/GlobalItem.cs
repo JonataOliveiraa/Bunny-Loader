@@ -185,6 +185,8 @@ public abstract class GlobalItem : GlobalType<Item, GlobalItem>
 
     public virtual bool ApplyPotionDelay(Item item, Player player, int potionDelay) => true;
 
+    public virtual void Update(WorldItem item, ref float gravity, ref float maxFallSpeed) { }
+
     public virtual void PostUpdate(WorldItem item) { }
 
     public virtual void ExtractinatorUse(int extractType, int extractinatorBlockType, ref int resultType, ref int resultStack) { }

@@ -97,7 +97,7 @@ public static unsafe class EquipLoader
         string? direct = mod.ResolveFile(name);
         if (direct != null && File.Exists(direct)) return direct;
         int slash = name.IndexOf('/');
-        if (slash > 0 && name[..slash] == mod.Name)
+        if (slash > 0)
         {
             string? inner = mod.ResolveFile(name[(slash + 1)..]);
             if (inner != null && File.Exists(inner)) return inner;

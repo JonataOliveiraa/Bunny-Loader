@@ -41,6 +41,8 @@ public readonly partial struct Recipe
 
     public bool DecraftDisabled => notDecraftable;
 
+    public (Recipe target, bool after) Ordering => (Data.OrderTarget, Data.OrderAfter);
+
     public static Recipe Create(int result, int amount = 1)
     {
         Mod mod = RecipeLoader.Setup("A Recipe can only be created inside recipe related methods");
@@ -56,9 +58,10 @@ public readonly partial struct Recipe
         int slot = 0;
         while (slot < items.Length && items[slot].type > 0) slot++;
         if (slot >= items.Length) throw new RecipeException($"A recipe takes at most {items.Length} ingredients; item {itemID} does not fit.");
-        Item item = items[slot];
+        Item item = Item.New();
         item.SetDefaults(itemID, default);
         item.stack = stack;
+        items[slot] = item;
         return this;
     }
 
@@ -175,6 +178,41 @@ public readonly partial struct Recipe
         RecipeLoader.WantConsume();
         return this;
     }
+
+    Recipe SetOrdering(Recipe recipe, bool after)
+    {
+        if (!RecipeLoader.setupRecipes) throw new RecipeException("You can only move recipes during setup");
+        if (RecipeLoader.IndexOf(recipe) < 0) throw new RecipeException("The selected recipe is not registered.");
+        RecipeLoader.Extra data = Data;
+        if (!data.OrderTarget.IsNull) throw new RecipeException("This recipe already has an ordering.");
+        data.OrderTarget = recipe;
+        data.OrderAfter = after;
+        RecipeLoader.WantOrder();
+        Recipe target = recipe;
+        do
+        {
+            if (target == this) throw new Exception("Recipe ordering loop!");
+            target = RecipeLoader.OrderTargetOf(target);
+        }
+        while (!target.IsNull);
+        return this;
+    }
+
+    public Recipe SortBeforeFirstRecipesOf(int itemId)
+    {
+        Recipe target = RecipeLoader.FirstRecipeFor(itemId);
+        return target.IsNull ? this : SortBefore(target);
+    }
+
+    public Recipe SortBefore(Recipe recipe) => SetOrdering(recipe, false);
+
+    public Recipe SortAfterFirstRecipesOf(int itemId)
+    {
+        Recipe target = RecipeLoader.FirstRecipeFor(itemId);
+        return target.IsNull ? this : SortAfter(target);
+    }
+
+    public Recipe SortAfter(Recipe recipe) => SetOrdering(recipe, true);
 
     public Recipe Clone()
     {

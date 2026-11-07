@@ -7,7 +7,7 @@ namespace Terraria.Audio;
 
 public readonly partial struct SoundStyle
 {
-    static readonly Dictionary<int, GameHandle> sounds = new();
+    static readonly Dictionary<(int Type, int Style), GameHandle> sounds = new();
 
     readonly int[]? variants;
     readonly float volume;
@@ -55,12 +55,12 @@ public readonly partial struct SoundStyle
 
     internal LegacySoundStyle Legacy => Pointer != 0 ? new(Pointer) : SoundHooks.Marker(this);
 
-    internal SoundStyle(int type) : this()
+    internal SoundStyle(int type, int style = 1) : this()
     {
         lock (sounds)
         {
-            if (!sounds.TryGetValue(type, out GameHandle? sound))
-                sounds[type] = sound = new GameHandle(LegacySoundStyle.New(type, 1).Pointer);
+            if (!sounds.TryGetValue((type, style), out GameHandle? sound))
+                sounds[(type, style)] = sound = new GameHandle(LegacySoundStyle.New(type, style).Pointer);
             Pointer = sound.Target;
         }
     }

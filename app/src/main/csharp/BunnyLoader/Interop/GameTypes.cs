@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -102,13 +103,7 @@ public readonly unsafe struct GameArray<T> : IGameObject, System.Collections.Gen
 
     public static implicit operator T[](GameArray<T> array) => array.IsNull ? Array.Empty<T>() : array.AsSpan().ToArray();
 
-    public static implicit operator GameArray<T>(T[] values)
-    {
-        string name = typeof(T) == typeof(int) ? "Int32" : typeof(T) == typeof(ushort) ? "UInt16" : typeof(T) == typeof(short) ? "Int16" : typeof(T) == typeof(bool) ? "Boolean" : typeof(T) == typeof(byte) ? "Byte" : typeof(T) == typeof(float) ? "Single" : throw new NotSupportedException(typeof(T).Name);
-        GameArray<T> array = New(new GameClass("System", name), values.Length);
-        values.AsSpan().CopyTo(array.AsSpan());
-        return array;
-    }
+    public static implicit operator GameArray<T>(T[] values) => GameArrayBuilder.Create<T>(values);
 
     public Span<T>.Enumerator GetEnumerator() => AsSpan().GetEnumerator();
 
@@ -138,7 +133,7 @@ public static class GameArrayBuilder
         TypeCode.Single => new GameClass("System", "Single"),
         TypeCode.Double => new GameClass("System", "Double"),
         TypeCode.Char => new GameClass("System", "Char"),
-        _ => type.IsValueType && type.Namespace != null ? new GameClass(type.Namespace, type.Name) : throw new NotSupportedException($"a collection expression can only make a game array of numbers, bools or game structs, not {type.Name}"),
+        _ => type.GetField("Class", BindingFlags.Public | BindingFlags.Static)?.GetValue(null) is GameClass cls ? cls : type.IsValueType && type.Namespace != null ? new GameClass(type.Namespace, type.Name) : throw new NotSupportedException($"a collection expression can only make a game array of numbers, bools or game structs, not {type.Name}"),
     };
 }
 

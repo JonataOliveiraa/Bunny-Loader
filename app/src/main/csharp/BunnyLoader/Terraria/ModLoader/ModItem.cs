@@ -215,6 +215,8 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
 
     public virtual bool ApplyPotionDelay(Player player, int potionDelay) => true;
 
+    public virtual void Update(WorldItem item, ref float gravity, ref float maxFallSpeed) { }
+
     public virtual void PostUpdate(WorldItem item) { }
 
     public virtual void ExtractinatorUse(int extractinatorBlockType, ref int resultType, ref int resultStack)

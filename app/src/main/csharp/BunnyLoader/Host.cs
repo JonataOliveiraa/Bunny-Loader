@@ -26,7 +26,7 @@ internal static unsafe class Host
 
     internal static Mod? FindMod(string name)
     {
-        lock (Created) return Created.Find(m => m.Name == name);
+        lock (Created) return Created.Find(m => m.Name == name) ?? Created.Find(m => string.Equals(m.Name, name, StringComparison.OrdinalIgnoreCase));
     }
 
     internal static Mod[] Mods
@@ -96,6 +96,7 @@ internal static unsafe class Host
             foreach (Mod mod in mods) mod.loading = true;
             try
             {
+                PrepareLoadThread();
                 mods[0].Autoload(assembly);
                 foreach (Mod mod in mods) mod.Load();
                 foreach (Mod mod in mods) SystemLoader.OnModLoad(mod);
@@ -120,6 +121,17 @@ internal static unsafe class Host
         {
             Hooks.HookGate.Loading = false;
         }
+    }
+
+    static StaticRef gameStateSlot;
+
+    static void PrepareLoadThread()
+    {
+        if (Terraria.Main.rand.IsNull) Terraria.Main.rand = Terraria.Utilities.UnifiedRandom.New();
+        LocalUser user = LocalUser.Active;
+        if (user.IsNull || user.GameState.IsNull) return;
+        if (!GameInterop.ReadStatic<LocalUserGameState>(ref gameStateSlot, LocalUserGameState.Class, "Instance").IsNull) return;
+        GameInterop.WriteStatic(ref gameStateSlot, LocalUserGameState.Class, "Instance", user.GameState, true);
     }
 
     [UnmanagedCallersOnly]

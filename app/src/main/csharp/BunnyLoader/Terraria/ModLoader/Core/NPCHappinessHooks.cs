@@ -1,6 +1,8 @@
 using System;
+using BunnyLoader.Interop;
 using Terraria.GameContent;
 using Terraria.GameContent.Personalities;
+using Terraria.Localization;
 
 namespace Terraria.ModLoader.Core;
 
@@ -8,8 +10,22 @@ internal static class NPCHappinessHooks
 {
     internal static void Want(Type type, Type baseType)
     {
+        if (baseType == typeof(ModNPC))
+            ItemHooks.Once("TownNPCMood", () => On_ShopHelper.AddHappinessReportText += AddHappinessReportText);
         if (ItemHooks.Overrides(type, baseType, nameof(ModNPC.ModifyNPCHappiness)))
             ItemHooks.Once("NPCHappiness", () => On_AllPersonalitiesModifier.ModifyShopPrice += ModifyShopPrice);
+    }
+
+    static void AddHappinessReportText(On_ShopHelper.orig_AddHappinessReportText orig, ShopHelper self, string? textKeyInCategory, GameObject substitutes)
+    {
+        NPC npc = self._currentNPCBeingTalkedTo;
+        if (npc.IsNull || NPCLoader.GetNPC(npc.type) is not ModNPC modNPC)
+        {
+            orig(self, textKeyInCategory, substitutes);
+            return;
+        }
+        string text = Language.GetTextValueWith(modNPC.GetLocalizationKey("TownNPCMood") + "." + textKeyInCategory, substitutes) ?? "";
+        self._currentHappiness = self._currentHappiness + text + " ";
     }
 
     static void ModifyShopPrice(On_AllPersonalitiesModifier.orig_ModifyShopPrice orig, AllPersonalitiesModifier self, HelperInfo info, ShopHelper shopHelperInstance)

@@ -5,7 +5,7 @@ namespace Terraria.ModLoader.Core;
 
 internal static class ItemWorldHooks
 {
-    static bool globalUpdate, globalExtract;
+    static bool globalUpdate, globalExtract, globalMove;
 
     public static void Install(Func<string, bool> has, bool global)
     {
@@ -15,6 +15,11 @@ internal static class ItemWorldHooks
             ItemHooks.Once("ItemExtractinator", () => On_Player.ExtractinatorUse += ExtractinatorUse);
         }
         ItemSpawnHooks.Install(has);
+        if (has(nameof(ModItem.Update)))
+        {
+            if (global) globalMove = true;
+            ItemHooks.Once("ItemUpdate", () => On_WorldItem.MoveInWorld += MoveInWorld);
+        }
         if (!has(nameof(ModItem.PostUpdate))) return;
         if (global) globalUpdate = true;
         ItemHooks.Once("ItemPostUpdate", () => On_WorldItem.UpdateItem += UpdateItem);
@@ -39,6 +44,29 @@ internal static class ItemWorldHooks
             }
         }
         if (resultType > 0) self.DropItemFromExtractinator(resultType, resultStack);
+    }
+
+    static void MoveInWorld(On_WorldItem.orig_MoveInWorld orig, WorldItem self, float gravity, float maxFallSpeed, ref Microsoft.Xna.Framework.Vector2 wetVelocity)
+    {
+        Item item = self.inner;
+        if (!item.IsNull)
+        {
+            if (ItemHooks.ModItemOf(item) is ModItem m)
+            {
+                try { m.Update(self, ref gravity, ref maxFallSpeed); }
+                catch (Exception e) { ItemHooks.Report($"{m.FullName}.Update", e); }
+            }
+            if (globalMove)
+            {
+                foreach (GlobalItem? g in ItemHooks.GlobalsOf(item))
+                {
+                    if (g == null) continue;
+                    try { g.Update(self, ref gravity, ref maxFallSpeed); }
+                    catch (Exception e) { ItemHooks.Report($"{g.FullName}.Update", e); }
+                }
+            }
+        }
+        orig(self, gravity, maxFallSpeed, ref wetVelocity);
     }
 
     static void UpdateItem(On_WorldItem.orig_UpdateItem orig, WorldItem self, int i)

@@ -305,16 +305,6 @@ internal static unsafe class WallHooks
         finally { exploding--; }
     }
 
-    static bool CanExplode(int i, int j, int type)
-    {
-        if (WallLoader.GetWall(type)?.CanExplode(i, j) == false)
-            return false;
-        foreach (GlobalWall global in WallLoader.Globals)
-            if (!global.CanExplode(i, j, type))
-                return false;
-        return true;
-    }
-
     static readonly List<(int X, int Y)> hiddenWalls = new();
 
     static void DrawWalls(GameContent.Drawing.On_WallDrawing.orig_DrawWalls orig, GameContent.Drawing.WallDrawing self)
@@ -391,7 +381,7 @@ internal static unsafe class WallHooks
     static void Kill(On_WorldGen.orig_KillWall orig, int i, int j, bool fail)
     {
         int wallType = Main.tile[i, j].wall;
-        if (exploding > 0 && wallType != 0 && !CanExplode(i, j, wallType))
+        if (exploding > 0 && wallType != 0 && !WallLoader.CanExplode(i, j, wallType))
             return;
         ModWall? wall = WallLoader.GetWall(wallType);
         if (wall == null && (wallType == 0 || WallLoader.Globals.Count == 0))

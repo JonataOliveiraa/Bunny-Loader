@@ -209,15 +209,7 @@ internal static partial class TileHooks
 
     static bool Explode(On_Projectile.orig_CanExplodeTile orig, Projectile projectile, int i, int j, bool ores)
     {
-        if (!orig(projectile, i, j, ores))
-            return false;
-        int type = Main.tile[i, j].type;
-        if (TileLoader.GetTile(type)?.CanExplode(i, j) == false)
-            return false;
-        foreach (GlobalTile g in TileLoader.Hooks.CanExplode)
-            if (!g.CanExplode(i, j, type))
-                return false;
-        return true;
+        return orig(projectile, i, j, ores) && TileLoader.CanExplode(i, j);
     }
 
     static bool CanKill(On_WorldGen.orig_CanKillTile_int_int_outbool orig, int i, int j, out bool damaged)

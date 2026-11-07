@@ -25,6 +25,14 @@ public static unsafe partial class WallLoader
 
     public static ModWall? GetWall(int type) => (uint)type < (uint)walls.Length ? walls[type] : null;
 
+    public static bool CanExplode(int i, int j, int type)
+    {
+        foreach (GlobalWall global in Globals)
+            if (!global.CanExplode(i, j, type))
+                return false;
+        return GetWall(type)?.CanExplode(i, j) ?? true;
+    }
+
     internal static void Register(ModWall wall)
     {
         byte* mod = Host.Utf8(wall.Mod.Uid), name = Host.Utf8(wall.Name), texture = Host.Utf8(ItemLoader.ResolveTexture(wall, wall.Texture));

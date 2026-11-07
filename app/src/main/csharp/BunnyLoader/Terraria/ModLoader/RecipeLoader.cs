@@ -22,6 +22,8 @@ public static class RecipeLoader
         public bool Disabled;
         public int Index = -1;
         public GameHandle? Pin;
+        public Recipe OrderTarget;
+        public bool OrderAfter;
     }
 
     static readonly object Gate = new();
@@ -36,7 +38,7 @@ public static class RecipeLoader
 
     static readonly HashSet<nint> GroupsToSort = new();
 
-    static bool vanillaGroups, filtering, beyond;
+    static bool vanillaGroups, filtering, beyond, ordering;
 
     static int added;
 
@@ -143,7 +145,8 @@ public static class RecipeLoader
 
     static void Finish()
     {
-        if (added == 0 && GroupsToSort.Count == 0) return;
+        if (added == 0 && GroupsToSort.Count == 0 && !ordering) return;
+        if (ordering) Step("recipe order", OrderRecipes);
         foreach (nint pointer in GroupsToSort) Step("recipe groups", () => new RecipeGroup(pointer).SortDecraftingEntries());
         Step("recipes", Recipe.CreateRequiredItemQuickLookups);
         Step("recipes", Recipe.UpdateMaterialFieldForAllRecipes);
@@ -152,6 +155,74 @@ public static class RecipeLoader
         Step("recipes", ShimmerTransforms.UpdateRecipeSets);
         Step("recipes", ContentSamples.FixItemsAfterRecipesAreAdded);
         Log.Info($"recipes: {added} from C# mods (total {Recipe.numRecipes})");
+    }
+
+    internal static void WantOrder() => ordering = true;
+
+    internal static int IndexOf(Recipe recipe)
+    {
+        if (recipe.IsNull) return -1;
+        Extra? extra = Peek(recipe);
+        if (extra != null && extra.Index >= 0) return extra.Index;
+        var recipes = Main.recipe;
+        for (int i = 0, count = Recipe.numRecipes; i < count && i < recipes.Length; i++)
+        {
+            if (recipes[i] == recipe) return i;
+        }
+        return -1;
+    }
+
+    internal static Recipe FirstRecipeFor(int itemId)
+    {
+        var recipes = Main.recipe;
+        for (int i = 0, count = Recipe.numRecipes; i < count && i < recipes.Length; i++)
+        {
+            Recipe recipe = recipes[i];
+            if (!recipe.IsNull && recipe.createItem.type == itemId) return recipe;
+        }
+        return default;
+    }
+
+    internal static Recipe OrderTargetOf(Recipe recipe) => Peek(recipe)?.OrderTarget ?? default;
+
+    static void OrderRecipes()
+    {
+        var recipes = Main.recipe;
+        int count = Math.Min(Recipe.numRecipes, recipes.Length);
+        var sortBefore = new Dictionary<nint, List<Recipe>>();
+        var sortAfter = new Dictionary<nint, List<Recipe>>();
+        var baseOrder = new List<Recipe>(count);
+        for (int k = 0; k < count; k++)
+        {
+            Recipe r = recipes[k];
+            Extra? extra = Peek(r);
+            if (extra == null || extra.OrderTarget.IsNull)
+            {
+                baseOrder.Add(r);
+                continue;
+            }
+            var lists = extra.OrderAfter ? sortAfter : sortBefore;
+            if (!lists.TryGetValue(extra.OrderTarget.Pointer, out List<Recipe>? list)) lists[extra.OrderTarget.Pointer] = list = new List<Recipe>();
+            list.Add(r);
+        }
+        if (sortBefore.Count == 0 && sortAfter.Count == 0) return;
+        var sorted = new List<Recipe>(count);
+        void Sort(Recipe r)
+        {
+            if (sortBefore.TryGetValue(r.Pointer, out List<Recipe>? before))
+                foreach (Recipe c in before) Sort(c);
+            sorted.Add(r);
+            if (sortAfter.TryGetValue(r.Pointer, out List<Recipe>? after))
+                foreach (Recipe c in after) Sort(c);
+        }
+        foreach (Recipe r in baseOrder) Sort(r);
+        if (sorted.Count != count) throw new InvalidOperationException($"recipe ordering lost recipes ({sorted.Count} of {count}): a recipe is sorted next to one that is not registered");
+        for (int k = 0; k < count; k++)
+        {
+            recipes[k] = sorted[k];
+            Extra? extra = Peek(sorted[k]);
+            if (extra != null && extra.Index >= 0) extra.Index = k;
+        }
     }
 
     static void Step(string what, Action step)

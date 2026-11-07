@@ -1,0 +1,17 @@
+{
+  "uid": "8dacb215-d719-409d-b7ec-62f115ea0af2",
+  "id": "CsApiGaps",
+  "name": "Test: API gaps",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Checks the API members and loader fixes asked for by the C# ports.",
+  "description": "Compile with tools/tests/build-cs.sh csapigaps.",
+  "updated": "2026-11-07",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

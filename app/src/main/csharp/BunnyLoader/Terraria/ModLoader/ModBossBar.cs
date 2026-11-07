@@ -44,4 +44,13 @@ public abstract class ModBossBar : ModTexturedType
         life = System.Math.Clamp(npc.life, 0, npc.lifeMax);
         return true;
     }
+
+    public static implicit operator ModBossBar(NeverValidProgressBar bar) => NeverValidBossBar.Instance;
+}
+
+internal sealed class NeverValidBossBar : ModBossBar
+{
+    internal static readonly NeverValidBossBar Instance = new();
+
+    public override bool? ModifyInfo(ref BigProgressBarInfo info, ref float life, ref float lifeMax, ref float shield, ref float shieldMax) => false;
 }

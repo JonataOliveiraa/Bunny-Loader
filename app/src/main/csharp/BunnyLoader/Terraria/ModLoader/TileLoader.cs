@@ -400,6 +400,17 @@ public static unsafe partial class TileLoader
     public static string DefaultContainerName(int type, int frameX, int frameY) =>
         GetTile(type) is ModTile tile && tile.DefaultContainerName(frameX, frameY) is { IsNull: false } name ? name.Value ?? string.Empty : string.Empty;
 
+    public static bool CanExplode(int i, int j)
+    {
+        int type = Main.tile[i, j].type;
+        if (GetTile(type)?.CanExplode(i, j) == false)
+            return false;
+        foreach (GlobalTile g in Hooks.CanExplode)
+            if (!g.CanExplode(i, j, type))
+                return false;
+        return true;
+    }
+
     public static bool IsLockedChest(int i, int j, int type) => GetTile(type)?.IsLockedChest(i, j) ?? false;
 
     public static bool UnlockChest(int i, int j, int type, ref short frameXAdjustment, ref int dustType, ref bool manual) =>
