@@ -81,20 +81,6 @@ class Prefs(context: Context) {
         get() = p.getStringSet(SOURCE_TREES, emptySet())?.toSet() ?: emptySet()
         set(value) = p.edit().putStringSet(SOURCE_TREES, value.toSet()).apply()
 
-    /** O nome do perfil, no topo da aba Config. Vazio: "Jogador". */
-    var profileName: String
-        get() = p.getString(PROFILE_NAME, "") ?: ""
-        set(v) = p.edit().putString(PROFILE_NAME, v).apply()
-
-    /**
-     * Os efeitos do tema: chuva, neve, folhas e bolhas no fundo, e os cartões
-     * que balançam, brilham ou soltam bolhas. Desligado, o cenário fica parado
-     * como antes (só o céu e as camadas).
-     */
-    var themeEffects: Boolean
-        get() = p.getBoolean(THEME_EFFECTS, true)
-        set(v) = p.edit().putBoolean(THEME_EFFECTS, v).apply()
-
     /**
      * O app já foi aberto (e o idioma, confirmado) antes. A chave é a do antigo
      * aviso do Terraria, gravada na primeira abertura: quem atualiza não vê de
@@ -108,34 +94,13 @@ class Prefs(context: Context) {
     val quickWorldFile: String
         get() = quickWorld.takeIf { quickStart && it != TITLE_ONLY } ?: ""
 
-    /**
-     * O cenário do fundo: o nome de um [Biome], ou vazio para trocar a cada vez
-     * que o launcher abre (o próximo da lista, guardado em [LAST_SCENERY]).
-     */
-    var scenery: String
-        get() = p.getString(SCENERY, "") ?: ""
-        set(v) = p.edit().putString(SCENERY, v).apply()
-
     /** A ordem do Explorar: o nome de um [ExploreSort]. */
     var exploreSort: String
         get() = p.getString(EXPLORE_SORT, "") ?: ""
         set(v) = p.edit().putString(EXPLORE_SORT, v).apply()
 
-    /** O cenário que vale agora. No automático, avança um e grava. */
-    fun resolveScenery(choice: String): Biome {
-        Biome.entries.firstOrNull { it.name == choice }?.let { return it }
-        // No automático, a semana do Halloween é dele (20/10 a 2/11).
-        if (isHalloweenSeason(java.util.Calendar.getInstance())) return Biome.HALLOWEEN
-        if (isChristmasSeason(java.util.Calendar.getInstance())) return Biome.CHRISTMAS
-        val next = (p.getInt(LAST_SCENERY, -1) + 1).mod(Biome.entries.size)
-        p.edit().putInt(LAST_SCENERY, next).apply()
-        return Biome.entries[next]
-    }
-
     companion object {
         const val NAME = "settings"
-        const val SCENERY = "scenery"
-        const val LAST_SCENERY = "lastScenery"
         const val EXPLORE_SORT = "exploreSort"
         const val ENABLE_ON_INSTALL = "enableOnInstall"
         const val ERROR_PANEL = "errorPanel"
@@ -149,22 +114,7 @@ class Prefs(context: Context) {
         const val DEV_RESTART = "devRestart"
         const val SOURCE_TREES = "sourceTrees"
         const val GAME_CHECK_DONE = "gameCheckDone"
-        const val PROFILE_NAME = "profileName"
-        const val THEME_EFFECTS = "themeEffects"
         /** Nenhum arquivo de mundo tem este nome (o jogo grava `*.wld`). */
         const val TITLE_ONLY = "-"
     }
 }
-
-internal fun isHalloweenSeason(now: java.util.Calendar): Boolean {
-    val day = now.get(java.util.Calendar.DAY_OF_MONTH)
-    return when (now.get(java.util.Calendar.MONTH)) {
-        java.util.Calendar.OCTOBER -> day >= 20
-        java.util.Calendar.NOVEMBER -> day <= 2
-        else -> false
-    }
-}
-
-internal fun isChristmasSeason(now: java.util.Calendar): Boolean =
-    now.get(java.util.Calendar.MONTH) == java.util.Calendar.DECEMBER &&
-        now.get(java.util.Calendar.DAY_OF_MONTH) >= 15

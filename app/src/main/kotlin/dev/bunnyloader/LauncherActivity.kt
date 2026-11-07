@@ -5,9 +5,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
@@ -47,12 +48,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.imageResource
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
@@ -80,15 +77,9 @@ import dev.bunnyloader.ui.PixelText
 import dev.bunnyloader.ui.mix
 import dev.bunnyloader.ui.Shell
 import dev.bunnyloader.ui.Ts
-import dev.bunnyloader.ui.Biome
 import dev.bunnyloader.ui.Prefs
-import dev.bunnyloader.ui.Scenery
-import dev.bunnyloader.ui.CardFx
 import dev.bunnyloader.ui.LocalRemoteFiles
 import dev.bunnyloader.ui.LocalRemoteMedia
-import dev.bunnyloader.ui.LocalThemeFx
-import dev.bunnyloader.ui.ThemeFx
-import dev.bunnyloader.ui.cardFx
 
 /**
  * Launcher do Bunny Loader.
@@ -109,7 +100,7 @@ class LauncherActivity : ComponentActivity() {
         window.setBackgroundDrawableResource(R.color.splash_background)
         setContent {
             var splash by rememberSaveable { mutableStateOf(true) }
-            Box(Modifier.fillMaxSize()) {
+            Box(Modifier.fillMaxSize().safeDrawingPadding()) {
                 LauncherScreen(model.shell, showDialogs = !splash)
                 if (splash) AppSplash({ !model.shell.refreshingPackages }) { splash = false }
             }
@@ -145,7 +136,7 @@ private enum class Tab(val icon: Int, val label: String) {
 private fun LauncherScreen(shell: Shell, showDialogs: Boolean) {
     val ctx = LocalContext.current
     val prefs = remember { Prefs(ctx) }
-    // Saveable: o seletor de arquivos (foto do perfil, mundos) pode fazer o
+    // Saveable: o seletor de arquivos (mundos) pode fazer o
     // sistema recriar a Activity, e a resposta dele só chega à aba que pediu
     // se ela for a mesma na volta.
     var tab by rememberSaveable { mutableStateOf(Tab.INICIO) }
@@ -153,45 +144,8 @@ private fun LauncherScreen(shell: Shell, showDialogs: Boolean) {
     var askLanguage by remember { mutableStateOf(!prefs.launchedBefore) }
     var openMod by rememberSaveable { mutableStateOf<String?>(null) }
     val tabState = rememberSaveableStateHolder()
-    var sceneryChoice by remember { mutableStateOf(prefs.scenery) }
-    // Saveable: girar a tela recria a Activity, e no automático isso trocaria
-    // o cenário no meio do uso.
-    val biome = Biome.entries[rememberSaveable(sceneryChoice) {
-        prefs.resolveScenery(sceneryChoice).ordinal
-    }]
-    // A paleta antes de qualquer tela ler uma cor: o primeiro quadro já sai no tom do tema.
-    remember(biome) { dev.bunnyloader.ui.Bl.palette = biome.palette }
-    var themeEffects by remember { mutableStateOf(prefs.themeEffects) }
-    // Início sem nada por cima: só o cenário (ver InicioTab).
-    var immersive by remember { mutableStateOf(false) }
-    androidx.compose.runtime.LaunchedEffect(tab, openMod) {
-        if (tab != Tab.INICIO || openMod != null) immersive = false
-    }
 
     BackHandler(enabled = openMod != null) { openMod = null }
-    BackHandler(enabled = immersive) { immersive = false }
-
-    // Um relógio para cenário e cartões, limitado a 30 fps (20 sem efeitos).
-    // As leituras ficam no desenho: a animação não recompõe a navegação.
-    val fxTime = remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
-    val fxLifecycle = androidx.compose.ui.platform.LocalLifecycleOwner.current.lifecycle
-    androidx.compose.runtime.LaunchedEffect(themeEffects, fxLifecycle) {
-        val origin = android.os.SystemClock.uptimeMillis()
-        fxLifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
-            var previous = 0L
-            while (true) {
-                androidx.compose.runtime.withFrameMillis { frame ->
-                    if (frame - previous >= if (themeEffects) 32L else 49L) {
-                        fxTime.floatValue = (android.os.SystemClock.uptimeMillis() - origin) / 1000f
-                        previous = frame
-                    }
-                }
-            }
-        }
-    }
-    val fx = remember(biome, themeEffects) {
-        ThemeFx(if (themeEffects) biome.cardFx() else CardFx.NONE, fxTime)
-    }
 
     // Voltou do jogo ou do gerenciador de arquivos: relê bunny_packs, que pode
     // ter pacote novo ou editado à mão.
@@ -209,27 +163,15 @@ private fun LauncherScreen(shell: Shell, showDialogs: Boolean) {
         onDispose { lifecycle.removeObserver(observer) }
     }
 
-    // A câmera do cenário dá um passo por aba (e meio ao abrir um mod): é o
-    // que faz as camadas deslizarem cada uma no seu ritmo.
-    val pan by animateFloatAsState(
-        tab.ordinal * 240f + (if (openMod != null) 120f else 0f),
-        tween(1400, easing = FastOutSlowInEasing), label = "camera",
-    )
-
-    val hide by animateFloatAsState(if (immersive) 1f else 0f, tween(450, easing = FastOutSlowInEasing),
-        label = "immersive")
-
     // Guardada: `shell::requestRemoteFiles` é um objeto novo a cada recomposição,
     // e um valor novo num staticCompositionLocal recompõe a tela inteira.
     val requestFiles = remember(shell) { shell::requestRemoteFiles }
     val mediaEntry = remember(shell) { shell::mediaEntry }
     androidx.compose.runtime.CompositionLocalProvider(
-        LocalThemeFx provides fx,
         LocalRemoteFiles provides requestFiles,
         LocalRemoteMedia provides mediaEntry,
     ) {
-    Box(Modifier.fillMaxSize()) {
-        Scenery(biome, { pan }, { fxTime.floatValue }, Modifier.fillMaxSize(), effects = themeEffects)
+    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Bl.BackdropTop, Bl.BackdropBottom)))) {
         // A ficha aberta pode trazer o fundo do mod (theme.background).
         openMod?.let { shell.entry(it) }?.let { entry ->
             androidx.compose.runtime.key(entry.uid) { ModBackdrop(entry, shell.catalog, Modifier.fillMaxSize()) }
@@ -238,13 +180,7 @@ private fun LauncherScreen(shell: Shell, showDialogs: Boolean) {
             // Teto de largura: o layout foi pensado para um celular em pé. Solto num
             // tablet ou no emulador deitado, uma linha de mod com 1600px vira uma
             // faixa vazia com um ícone perdido na esquerda.
-            Box(
-                Modifier.weight(1f).fillMaxWidth().graphicsLayer {
-                    translationY = -size.height * hide
-                    alpha = 1f - hide
-                },
-                contentAlignment = Alignment.TopCenter,
-            ) {
+            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
                 Box(Modifier.widthIn(max = 560.dp).fillMaxSize()) {
                     val detail = openMod?.let { shell.entry(it) }
                     if (detail != null) {
@@ -252,39 +188,25 @@ private fun LauncherScreen(shell: Shell, showDialogs: Boolean) {
                     } else {
                         tabState.SaveableStateProvider(tab.name) {
                             when (tab) {
-                                Tab.INICIO -> InicioTab(shell, onHide = { immersive = true }) { openMod = it }
+                                Tab.INICIO -> InicioTab(shell) { openMod = it }
                                 Tab.EXPLORAR -> ExplorarTab(shell) { openMod = it }
                                 Tab.PACOTES -> PacotesTab(shell) { openMod = it }
-                                Tab.CONFIG -> ConfigTab(
-                                    shell, sceneryChoice,
-                                    onScenery = {
-                                        sceneryChoice = it
-                                        prefs.scenery = it
-                                    },
-                                    themeEffects = themeEffects,
-                                    onThemeEffects = {
-                                        themeEffects = it
-                                        prefs.themeEffects = it
-                                    },
-                                )
+                                Tab.CONFIG -> ConfigTab(shell)
                             }
                         }
                     }
                 }
             }
-            Box(Modifier.graphicsLayer { translationY = size.height * hide }) {
-                NavBar(
-                    current = tab,
-                    onSelect = { tab = it; openMod = null },
-                    onStart = {
-                        val status = Eligibility.check(ctx)
-                        if (status == Eligibility.Status.OK) ctx.startActivity(dev.bunnyloader.compile.CompileActivity.gameIntent(ctx))
-                        else blocked = status
-                    },
-                )
-            }
+            NavBar(
+                current = tab,
+                onSelect = { tab = it; openMod = null },
+                onStart = {
+                    val status = Eligibility.check(ctx)
+                    if (status == Eligibility.Status.OK) ctx.startActivity(dev.bunnyloader.compile.CompileActivity.gameIntent(ctx))
+                    else blocked = status
+                },
+            )
         }
-        if (immersive) ImmersiveOverlay { immersive = false }
         if (showDialogs) ModUpdatesDialog(shell)
         blocked?.let { GameBlockedDialog(it) { blocked = null } }
         if (showDialogs && askLanguage) LanguageConfirmDialog {
@@ -295,51 +217,12 @@ private fun LauncherScreen(shell: Shell, showDialogs: Boolean) {
     }
 }
 
-/**
- * Por cima de tudo enquanto o Início está escondido: pega o arraste para baixo
- * (que traz a interface de volta) e mostra a dica por alguns segundos.
- */
-@Composable
-private fun ImmersiveOverlay(onRestore: () -> Unit) {
-    val threshold = with(androidx.compose.ui.platform.LocalDensity.current) { 64.dp.toPx() }
-    var hint by remember { mutableStateOf(true) }
-    androidx.compose.runtime.LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(2500)
-        hint = false
-    }
-    val hintAlpha by animateFloatAsState(if (hint) 1f else 0f, tween(600), label = "hint")
-    Box(
-        Modifier.fillMaxSize().pointerInput(Unit) {
-            var pulled = 0f
-            detectVerticalDragGestures(
-                onDragStart = { pulled = 0f },
-                onVerticalDrag = { change, amount ->
-                    change.consume()
-                    pulled += amount
-                    if (pulled > threshold) onRestore()
-                },
-            )
-        },
-    ) {
-        PixelText(
-            tr("SwipeDownToReturn"),
-            size = Ts.Small, color = Bl.TextDim,
-            modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding()
-                .padding(bottom = 24.dp).graphicsLayer { alpha = hintAlpha },
-        )
-    }
-}
-
 // ------------------------------- rodapé -------------------------------
 
 /**
- * A barra de baixo, montada como a barra de itens do Terraria: cada aba é um
- * slot do inventário (o canto em degrau do Inventory_Back), a aba atual é o
- * slot dourado do item selecionado e sobe um pouco. O botão de jogar é um
- * disco em pixel de arte erguido no meio.
- *
- * A cor da barra e dos slots vem do tema (Bl.GamePanel, Bl.Select); só o
- * dourado da seleção é fixo, como no jogo.
+ * A barra de baixo: cada aba é um slot com canto em degrau, a aba atual é o slot
+ * dourado e sobe um pouco. O botão de jogar é um disco em pixel de arte erguido
+ * no meio.
  */
 @Composable
 private fun NavBar(current: Tab, onSelect: (Tab) -> Unit, onStart: () -> Unit) {
@@ -377,7 +260,7 @@ private fun NavBar(current: Tab, onSelect: (Tab) -> Unit, onStart: () -> Unit) {
 
 /**
  * O disco de jogar, desenhado pixel a pixel (43 de lado, 2 dp cada): contorno,
- * aro com luz em cima e sombra embaixo, miolo na cor de título do tema e um
+ * aro com luz em cima e sombra embaixo, miolo na cor de título e um
  * brilho curto no alto. No toque, o contorno fica amarelo e o miolo clareia.
  */
 @Composable

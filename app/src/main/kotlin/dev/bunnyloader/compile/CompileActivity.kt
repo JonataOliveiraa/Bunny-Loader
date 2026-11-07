@@ -125,7 +125,7 @@ class CompileActivity : ComponentActivity() {
     private fun Screen() {
         Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                AndroidView({ RestartActivity.Sunflower(it) }, Modifier.size(83.dp, 86.dp))
+                AndroidView({ RestartActivity.LoadingStrip(it) }, Modifier.size(84.dp))
                 PixelText(tr("CompilingMod", current), size = Ts.Body)
             }
         }

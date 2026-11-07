@@ -81,18 +81,18 @@ final class DevTools {
 
     // ============================== botoes do Mod Menu ==============================
 
-    /** O quadro 9 da tira do girassol: a flor aberta, o icone do "Reiniciar" parado. */
-    private static final int BLOOM_FRAME = 9, FRAME_W = 52, FRAME_H = 54;
-    private static Bitmap sBloom;
+    /** O quadro do meio da tira de carregamento: o icone do "Reiniciar" parado. */
+    private static Bitmap sRestartIcon;
 
-    static Bitmap bloom(Activity a) {
-        if (sBloom == null) {
+    static Bitmap restartIcon(Activity a) {
+        if (sRestartIcon == null) {
             Bitmap strip = sprite(a, "spr_loading");
-            if (strip != null && strip.getHeight() >= (BLOOM_FRAME + 1) * FRAME_H) {
-                sBloom = Bitmap.createBitmap(strip, 0, BLOOM_FRAME * FRAME_H, FRAME_W, FRAME_H);
+            if (strip != null) {
+                int size = strip.getWidth();
+                sRestartIcon = Bitmap.createBitmap(strip, 0, size * (strip.getHeight() / size / 2), size, size);
             }
         }
-        return sBloom;
+        return sRestartIcon;
     }
 
     /**
@@ -125,7 +125,7 @@ final class DevTools {
             FrameLayout restart = new FrameLayout(act);
             restart.setBackground(CheatBridge.actionBackground(act, false));
             restart.setContentDescription(tr("Restart"));
-            restart.addView(icon(act, bloom(act), 20), new FrameLayout.LayoutParams(
+            restart.addView(icon(act, restartIcon(act), 20), new FrameLayout.LayoutParams(
                 px(act, 20), px(act, 20), Gravity.CENTER));
             restart.setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) { confirmRestart(act); }
@@ -194,7 +194,7 @@ final class DevTools {
 
         LinearLayout head = new LinearLayout(act);
         head.setGravity(Gravity.CENTER_VERTICAL);
-        head.addView(icon(act, bloom(act), 30));
+        head.addView(icon(act, restartIcon(act), 30));
         TextView title = text(act, tr("RestartGame"), 16, INK);
         title.setPadding(px(act, 8), 0, 0, 0);
         head.addView(title);
@@ -250,11 +250,11 @@ final class DevTools {
         sRestartDialog = null;
     }
 
-    /** Troca o cartao pelo girassol girando e espera o nativo dizer que pode fechar. */
+    /** Troca o cartao pela animacao de carregamento e espera o nativo dizer que pode fechar. */
     private static void startRestart(final Activity act, LinearLayout card, boolean save) {
         card.removeAllViews();
         card.setGravity(Gravity.CENTER_HORIZONTAL);
-        card.addView(new CheatBridge.Sunflower(act));
+        card.addView(new CheatBridge.LoadingStrip(act));
         final TextView status = text(act, save ? tr("SavingPlayerAndWorld") : tr("Restarting"), 12, INK);
         status.setGravity(Gravity.CENTER);
         status.setPadding(0, px(act, 8), 0, 0);
@@ -478,7 +478,7 @@ final class DevTools {
                 @Override public void run() { clearOutput(); }
             }));
             if (CheatBridge.sRestartOn) {
-                head.addView(iconButton(a, icon(a, bloom(a), 20), tr("Restart"), new Runnable() {
+                head.addView(iconButton(a, icon(a, restartIcon(a), 20), tr("Restart"), new Runnable() {
                     @Override public void run() { saveDraft(); hideKeyboard(); confirmRestart(act); }
                 }));
             }

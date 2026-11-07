@@ -28,37 +28,6 @@ POWER_FRAMES = {
     "ic_poder_spawn": 4,      # taxa de inimigos
 }
 
-# UI/TexturePackButtons: 2x2 setas de 32x32 (cima, baixo / esquerda, direita).
-ARROW = 32
-ARROWS = {
-    "ic_seta_esq": (0, 1),
-    "ic_seta_dir": (1, 1),
-}
-
-
-# Fundo do launcher (ui/Scenery.kt): camadas de cenario, nuvens, sol, lua e
-# estrela, copiadas inteiras. O nome diz o papel; o numero e o do jogo.
-SCENERY = {
-    "bg_mountains": "Background_7.png",
-    "bg_hills": "Background_8.png",
-    "bg_forest": "Background_92.png",
-    "bg_ocean": "Background_209.png",
-    "bg_lake": "Background_252.png",
-    "bg_snow_mountains": "Background_99.png",
-    "bg_snow": "Background_298.png",
-    "bg_cloud_0": "Cloud_0.png",
-    "bg_cloud_1": "Cloud_1.png",
-    "bg_cloud_2": "Cloud_2.png",
-    "bg_cloud_3": "Cloud_3.png",
-    "bg_cloud_13": "Cloud_13.png",
-    "bg_cloud_21": "Cloud_21.png",
-    "bg_cloud_23": "Cloud_23.png",
-    "bg_sun": "Sun.png",
-    "bg_moon": "Moon_0.png",
-    "bg_star": "Star_0.png",
-}
-
-
 def crop_tight(img):
     """Corta a transparencia em volta: o respiro do atlas nao e do icone."""
     box = img.getbbox()
@@ -76,19 +45,10 @@ def main():
         frame = powers.crop((i * POWER_FRAME, 0, (i + 1) * POWER_FRAME, POWER_FRAME))
         crop_tight(frame).save(os.path.join(DRAWABLE, name + ".png"), optimize=True)
 
-    arrows = Image.open(os.path.join(ui, "TexturePackButtons.png")).convert("RGBA")
-    for name, (cx, cy) in ARROWS.items():
-        cell = arrows.crop((cx * ARROW, cy * ARROW, (cx + 1) * ARROW, (cy + 1) * ARROW))
-        crop_tight(cell).save(os.path.join(DRAWABLE, name + ".png"), optimize=True)
-
     # Dificuldade do mundo (UI/WorldCreation): o cartao troca de icone com ela.
     for mode in ("Normal", "Expert", "Master", "Creative"):
         icon = Image.open(os.path.join(ui, "WorldCreation", "IconDifficulty%s.png" % mode)).convert("RGBA")
         crop_tight(icon).save(os.path.join(DRAWABLE, "ic_dif_%s.png" % mode.lower()), optimize=True)
-
-    for name, file in SCENERY.items():
-        Image.open(os.path.join(images, file)).convert("RGBA").save(
-            os.path.join(DRAWABLE, name + ".png"), optimize=True)
 
     # O "?" do item de mod ausente: o cadeado do Bestiario, embutido no nativo.
     locked = Image.open(os.path.join(ui, "Bestiary", "Icon_Locked.png")).convert("RGBA")
@@ -100,7 +60,7 @@ def main():
     out = os.path.join(ROOT, "app", "src", "main", "cpp", "content", "items", "UnloadedIcon.h")
     with open(out, "w", newline="\n") as f:
         f.write(header)
-    print(f"{len(POWER_FRAMES) + len(ARROWS) + 4 + len(SCENERY)} drawables, icone ausente {locked.size} -> {out}")
+    print(f"{len(POWER_FRAMES) + 4} drawables, icone ausente {locked.size} -> {out}")
 
 
 if __name__ == "__main__":

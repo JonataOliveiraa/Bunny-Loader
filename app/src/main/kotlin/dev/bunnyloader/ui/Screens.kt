@@ -89,50 +89,11 @@ internal val EdgePad = 14.dp
  * (offline na primeira abertura), fica a lista por nome, sem posição.
  */
 @Composable
-fun InicioTab(shell: Shell, onHide: () -> Unit = {}, onOpen: (String) -> Unit) {
+fun InicioTab(shell: Shell, onOpen: (String) -> Unit) {
     val scroll = rememberScrollState()
     LaunchedEffect(Unit) { shell.refreshRemote() }
-    // Arrastar para cima quando a tela não tem mais o que rolar (o caso comum:
-    // o Início cabe na tela, e já está no topo) esconde a interface e deixa só
-    // o cenário. Conta só o arraste com a rolagem no fim, e zera a cada gesto.
-    // A conexão é uma só (rememberUpdatedState): recriá-la a cada recomposição
-    // zerava a conta no meio do arraste.
-    val threshold = with(androidx.compose.ui.platform.LocalDensity.current) { 90.dp.toPx() }
-    val hide by androidx.compose.runtime.rememberUpdatedState(onHide)
-    val hideOnPull = remember(scroll, threshold) {
-        object : androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
-            var pulled = 0f
-            override fun onPreScroll(
-                available: androidx.compose.ui.geometry.Offset,
-                source: androidx.compose.ui.input.nestedscroll.NestedScrollSource,
-            ): androidx.compose.ui.geometry.Offset {
-                // Puxar para cima (y negativo) com a rolagem já no fim: conta.
-                // Qualquer movimento para baixo zera.
-                if (available.y < 0f && !scroll.canScrollForward) {
-                    pulled -= available.y
-                    if (pulled > threshold) { pulled = 0f; hide() }
-                } else if (available.y > 0f) {
-                    pulled = 0f
-                }
-                return androidx.compose.ui.geometry.Offset.Zero
-            }
-
-            override suspend fun onPreFling(available: androidx.compose.ui.unit.Velocity): androidx.compose.ui.unit.Velocity {
-                pulled = 0f
-                return androidx.compose.ui.unit.Velocity.Zero
-            }
-        }
-    }
-    // Sem o efeito de esticar da borda: ele comia o arraste no fim da rolagem
-    // antes de a conexão acima ver (available.y chegava 0).
-    @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
-    androidx.compose.runtime.CompositionLocalProvider(
-        androidx.compose.foundation.LocalOverscrollConfiguration provides null,
-    ) {
     StorePullToRefresh(shell, Modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize()
-            .nestedScroll(hideOnPull)
-            .verticalScroll(scroll)) {
+        Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
             // O título vai de ponta a ponta, FORA do padding da coluna.
             //
             // O `aspectRatio` é o que faz a coisa funcionar, e a falta dele era
@@ -191,7 +152,6 @@ fun InicioTab(shell: Shell, onHide: () -> Unit = {}, onOpen: (String) -> Unit) {
             }
         }
         PixelScrollbar(scroll, Modifier.fillMaxSize())
-    }
     }
 }
 
@@ -465,7 +425,7 @@ private fun NewModsTitle() {
  */
 @Composable
 private fun NewBadge(modifier: Modifier = Modifier) {
-    val fx = LocalThemeFx.current
+    val paused = LocalAnimationsPaused.current
     val bob = androidx.compose.animation.core.rememberInfiniteTransition(label = "selo novo")
     val lift by bob.animateFloat(0f, 1f,
         androidx.compose.animation.core.infiniteRepeatable(
@@ -479,7 +439,7 @@ private fun NewBadge(modifier: Modifier = Modifier) {
         filterQuality = FilterQuality.None,
         modifier = modifier.size(42.dp, 20.dp).graphicsLayer {
             // Um pixel da arte (2 dp) por vez: nada de meio pixel borrado.
-            translationY = if (fx.paused()) 0f else -kotlin.math.round(lift) * step
+            translationY = if (paused()) 0f else -kotlin.math.round(lift) * step
         },
     )
 }
@@ -761,21 +721,19 @@ private fun SortButton(sort: ExploreSort, onSort: (ExploreSort) -> Unit) {
     }
 }
 
-/** O interruptor OFF/ON do próprio Terraria, dois quadros de 43x20. */
+/** O interruptor: dois quadros empilhados, desligado em cima e ligado embaixo. */
 @Composable
 fun SwitchSprite(on: Boolean, onToggle: () -> Unit) {
+    val sheet = ImageBitmap.imageResource(R.drawable.ic_switch)
     Box(Modifier.pixelClickable(onToggle).padding(4.dp)) {
-        SpriteFrame(R.drawable.ic_switch, 43, 20, if (on) 1 else 0, 52.dp)
+        SpriteFrame(R.drawable.ic_switch, sheet.width, sheet.height / 2, if (on) 1 else 0, 52.dp)
     }
 }
 
 // =========================== Configurações ===========================
 
 @Composable
-fun ConfigTab(
-    shell: Shell, scenery: String, onScenery: (String) -> Unit,
-    themeEffects: Boolean, onThemeEffects: (Boolean) -> Unit,
-) {
+fun ConfigTab(shell: Shell) {
     val ctx = LocalContext.current
     val clipboard = LocalClipboardManager.current
     val scroll = rememberScrollState()
@@ -796,8 +754,6 @@ fun ConfigTab(
 
     Box {
         Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal = EdgePad)) {
-            ProfileHeader(prefs, Modifier.padding(top = 14.dp))
-
             SectionTitle(tr("Community"))
             DiscordCard()
 
@@ -813,13 +769,6 @@ fun ConfigTab(
 
             SectionTitle(tr("Appearance"))
             LanguagePicker()
-            SceneryPicker(scenery, onScenery)
-            Setting(
-                tr("ThemeEffects"),
-                tr("ThemeEffectsDescription"),
-                themeEffects,
-                onThemeEffects,
-            )
 
             SectionTitle(tr("Mods"))
             Setting(
@@ -929,30 +878,6 @@ private fun LanguagePicker() {
                 label = tr("Language"),
                 onPrev = { UiLocalization.select(context, options[(index - 1).mod(options.size)]) },
                 onNext = { UiLocalization.select(context, options[(index + 1).mod(options.size)]) },
-                modifier = Modifier.padding(top = 10.dp),
-            )
-        }
-    }
-}
-
-/**
- * O cenário do fundo. Um seletor de setas em vez de lista suspensa: são cinco
- * opções, e a seta é o seletor que o próprio Terraria usa nos menus dele.
- */
-@Composable
-private fun SceneryPicker(choice: String, onChoice: (String) -> Unit) {
-    val options = listOf("") + Biome.entries.map { it.name }
-    val i = options.indexOf(choice).coerceAtLeast(0)
-    val label = Biome.entries.firstOrNull { it.name == choice }?.label?.let { tr(it) } ?: tr("Automatic")
-    PixelCard(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
-        Column(Modifier.padding(12.dp).fillMaxWidth()) {
-            PixelText(tr("Scene"), size = Ts.Item)
-            PixelText(tr("SceneDescription"),
-                size = Ts.Small, color = Bl.TextFaint)
-            PixelSelect(
-                label,
-                onPrev = { onChoice(options[(i - 1).mod(options.size)]) },
-                onNext = { onChoice(options[(i + 1).mod(options.size)]) },
                 modifier = Modifier.padding(top = 10.dp),
             )
         }

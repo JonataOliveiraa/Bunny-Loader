@@ -67,8 +67,8 @@ fun PictureFrames(
     filter: FilterQuality = FilterQuality.None,
 ) {
     var frame by remember(picture) { mutableIntStateOf(0) }
-    val fx = LocalThemeFx.current
-    val paused by remember(fx) { derivedStateOf { fx.paused() } }
+    val isPaused = LocalAnimationsPaused.current
+    val paused by remember(isPaused) { derivedStateOf { isPaused() } }
     if (picture.frames.size > 1) {
         val lifecycle = LocalLifecycleOwner.current.lifecycle
         LaunchedEffect(picture, lifecycle, paused) {

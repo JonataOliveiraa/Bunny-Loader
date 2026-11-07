@@ -34,6 +34,7 @@
         android:appCategory="game"
         tools:targetApi="26"
         android:allowBackup="true"
+        android:enableOnBackInvokedCallback="false"
         android:label="${appLabel}"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"

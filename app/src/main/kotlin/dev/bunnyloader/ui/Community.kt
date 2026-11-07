@@ -34,12 +34,12 @@ const val DISCORD_URL = "https://discord.gg/uPFkuJXMJz"
  * botão; o "Entrar" à direita só diz o que o toque faz.
  *
  * O ícone (26x18, desenhado em 2x: pixel da arte inteiro na tela) sobe e
- * desce devagar, só na camada, e para quando os efeitos do tema param.
+ * desce devagar, só na camada.
  */
 @Composable
 fun DiscordCard(modifier: Modifier = Modifier) {
     val uriHandler = LocalUriHandler.current
-    val fx = LocalThemeFx.current
+    val paused = LocalAnimationsPaused.current
     val bob = rememberInfiniteTransition(label = "discord")
     val lift by bob.animateFloat(0f, 1f,
         infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "discord sobe")
@@ -58,7 +58,7 @@ fun DiscordCard(modifier: Modifier = Modifier) {
                     contentDescription = "Discord",
                     filterQuality = FilterQuality.None,
                     modifier = Modifier.size(52.dp, 36.dp).graphicsLayer {
-                        translationY = if (fx.paused()) 0f else -kotlin.math.round(lift * 2f) * step
+                        translationY = if (paused()) 0f else -kotlin.math.round(lift * 2f) * step
                     },
                 )
             }

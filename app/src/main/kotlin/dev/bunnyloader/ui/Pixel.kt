@@ -353,15 +353,8 @@ fun PixelCard(
     onClick: (() -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
-    // O efeito do tema (ThemeFx): o balanço vem por fora de tudo; chuva,
-    // bolhas e neve, por cima do conteúdo e recortadas pelo canto.
-    val fx = LocalThemeFx.current
-    val seed = androidx.compose.runtime.currentCompositeKeyHash
-    val base = modifier.cardSway(fx, seed).pixelPanel(fill = fill, corner = PixelCorner.LARGE)
-    Box(if (onClick != null) base.pixelClickable(PixelCorner.LARGE, onClick) else base) {
-        content()
-        CardFxOverlay(fx, seed)
-    }
+    val base = modifier.pixelPanel(fill = fill, corner = PixelCorner.LARGE)
+    Box(if (onClick != null) base.pixelClickable(PixelCorner.LARGE, onClick) else base, content = content)
 }
 
 /**
