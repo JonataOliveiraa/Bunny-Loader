@@ -1,6 +1,7 @@
 #include "script/dotnet/NativeApi.h"
 #include "script/dotnet/DotnetCall.h"
 #include "script/dotnet/HookProfile.h"
+#include "script/dotnet/HookGate.h"
 #include "boot/Boot.h"
 #include "boot/QuickStart.h"
 #include "content/buffs/BuffIconLook.h"
@@ -224,6 +225,7 @@ struct NativeApi {
     void* (*paramClass)(void* method, int32_t parameter);
     void (*setBuffTexts)(int32_t type, const char* displayName, const char* description);
     int32_t (*installTileTextureHook)(int32_t firstType, int32_t secondType, void* (*callback)(int32_t, int32_t, int32_t));
+    void** (*installGatedHook)(void* method, void* replacement, int32_t arg, int32_t pointerOffset, int32_t fieldOffset, int32_t fieldSize);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -1156,6 +1158,9 @@ const NativeApi kNativeApi{
     nativeSetBuffTexts,
     [](int32_t firstType, int32_t secondType, void* (*callback)(int32_t, int32_t, int32_t)) -> int32_t {
         return runtime::installTileTextureHook(firstType, secondType, callback) ? 1 : 0;
+    },
+    [](void* method, void* replacement, int32_t arg, int32_t pointerOffset, int32_t fieldOffset, int32_t fieldSize) -> void** {
+        return gate::installHook(static_cast<const MethodInfo*>(method), replacement, arg, pointerOffset, fieldOffset, fieldSize);
     },
 };
 

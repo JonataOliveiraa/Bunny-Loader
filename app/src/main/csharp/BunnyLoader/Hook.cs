@@ -30,6 +30,15 @@ public sealed unsafe class Hook
         return Install(method.Info, replacement);
     }
 
+    internal static Hook InstallGated(GameClass gameClass, string signature, IntPtr replacement, int arg, int pointerOffset, int fieldOffset, int fieldSize)
+    {
+        MethodRef method = default;
+        GameInterop.Method(ref method, gameClass, signature, LayoutUnchecked(signature));
+        IntPtr* slot = Host.Native()->InstallGatedHook(method.Info, replacement, arg, pointerOffset, fieldOffset, fieldSize);
+        if (slot == null) throw new InvalidOperationException("hook install failed");
+        return new Hook(slot);
+    }
+
     static int[] LayoutUnchecked(string signature)
     {
         int open = signature.IndexOf('('), close = signature.LastIndexOf(')');

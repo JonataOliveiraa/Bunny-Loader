@@ -108,6 +108,12 @@ internal static unsafe class ModNet
                 EmoteBubbleHooks.Receive(reader, from);
                 return;
             }
+            if (kind == AccessorySlotNet.KindAccessorySlots)
+            {
+                name = "accessory slots";
+                AccessorySlotNet.Receive(reader, from);
+                return;
+            }
             if (kind == InvasionLoader.KindInvasion)
             {
                 name = "invasion";

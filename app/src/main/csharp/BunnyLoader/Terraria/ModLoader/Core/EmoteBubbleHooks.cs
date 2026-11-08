@@ -18,6 +18,7 @@ internal static unsafe class EmoteBubbleHooks
     static readonly List<(int Id, IntPtr Bubble, int Frame, int Counter)> saved = new();
     static ModEmoteBubble? menuEmote;
     static int menuIcon;
+    static (int Columns, int Rows)? gridShape;
 
     static readonly int[] MenuCategories = { EmoteID.Category.General, EmoteID.Category.RockPaperScissors, EmoteID.Category.Items,
         EmoteID.Category.BiomesAndEvents, EmoteID.Category.Town, EmoteID.Category.Critters, EmoteID.Category.Bosses };
@@ -198,8 +199,24 @@ internal static unsafe class EmoteBubbleHooks
                 }
                 if (unlocked) list.Add(emote.Type);
             }
+            FitMenuGrid(list.Count);
         }
         catch (Exception e) { ItemHooks.Report("emote menu", e); }
+    }
+
+    static void FitMenuGrid(int count)
+    {
+        DraggableItemGrid_Layout grid = Emotes_Layout.Instance.EmotesGrid;
+        if (grid.IsNull) return;
+        if (gridShape == null)
+        {
+            if (!grid.Horizontal || grid.ItemLineCount <= 0) return;
+            gridShape = (grid.ItemLineCount, grid.ItemCount / grid.ItemLineCount);
+        }
+        var (columns, rows) = gridShape.Value;
+        bool scrolls = count > columns * rows;
+        grid.Horizontal = !scrolls;
+        grid.ItemLineCount = scrolls ? rows : columns;
     }
 
     static void EmoteDraw(On_GUIEmotesWindow.orig_EmoteDraw orig, GUIEmotesWindow self, ItemGrid_Layout gridLayout, int index, Vector2 position, float scale)
@@ -237,6 +254,7 @@ internal static unsafe class EmoteBubbleHooks
             ModNet.Send(packet, packet.Length, -1, -1);
         }
         else EmoteBubble.MakePlayerEmote(Main.LocalPlayer, id);
+        self.SetDisplayingEmotes(false);
     }
 
     internal static void Receive(System.IO.BinaryReader reader, int from)

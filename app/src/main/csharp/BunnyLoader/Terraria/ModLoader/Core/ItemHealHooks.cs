@@ -36,8 +36,8 @@ internal static unsafe class ItemHealHooks
         }
         if (has(nameof(ModItem.GetHealLife)))
         {
-            ItemHooks.Once("TryChoosingItem", () => tryChoosing = ItemHooks.Raw("void QuickHeal_GetItemToUse_TryChoosingItem(int lifeDifference, ref Item bestItem, ref int bestDifference, Item nextItem)",
-                (IntPtr)(delegate* unmanaged<int, IntPtr*, int*, IntPtr, IntPtr, void>)&TryChoosingItem));
+            ItemHooks.Once("TryChoosingItem", () => tryChoosing = ItemHooks.Gated(Player.Class, "void QuickHeal_GetItemToUse_TryChoosingItem(int lifeDifference, ref Item bestItem, ref int bestDifference, Item nextItem)",
+                (IntPtr)(delegate* unmanaged<int, IntPtr*, int*, IntPtr, IntPtr, void>)&TryChoosingItem, 3, -1, ItemHooks.FieldOffset(Item.Class, "healLife"), 4));
             ItemHooks.Once("GetItemToUse", () => getItemToUse = ItemHooks.Raw("Item QuickHeal_GetItemToUse()",
                 (IntPtr)(delegate* unmanaged<IntPtr, IntPtr, IntPtr>)&GetItemToUse));
         }

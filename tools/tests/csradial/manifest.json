@@ -1,0 +1,17 @@
+{
+  "uid": "948627c5-eba4-436f-83d6-03fc25f4b840",
+  "id": "CsRadial",
+  "name": "Test: mod buttons in a radial group",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Checks that picking a mod button in a radial group of the touch controls runs it.",
+  "description": "Compile with tools/tests/build-cs.sh csradial. Run with tools/tests/run-taps.sh csradial.",
+  "updated": "2026-11-07",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

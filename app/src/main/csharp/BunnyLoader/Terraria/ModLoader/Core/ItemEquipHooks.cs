@@ -233,6 +233,11 @@ internal static unsafe class ItemEquipHooks
 
     internal static bool CanEquipAccessory(Item item, int slot, bool modded)
     {
+        if (AccessorySlotHooks.ScopeSlot is int scopeSlot)
+        {
+            slot = scopeSlot;
+            modded = true;
+        }
         try
         {
             Player player = Main.LocalPlayer;

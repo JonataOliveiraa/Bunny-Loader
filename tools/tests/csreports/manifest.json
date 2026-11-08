@@ -1,0 +1,17 @@
+{
+  "uid": "18a79846-ab5a-4341-a94b-882c57f41d09",
+  "id": "CsReports",
+  "name": "Test: Example Mod reports",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Checks item tags in NPC chat, input placeholders, the town pet button and CanStack on the Example Mod.",
+  "description": "Compile with tools/tests/build-cs.sh csreports. Run with SAMPLE=1 tools/tests/run-taps.sh csreports.",
+  "updated": "2026-11-07",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

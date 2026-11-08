@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime;
 using System.Runtime.InteropServices;
 using System;
+using System.Threading;
 using BunnyLoader.Interop;
 using BunnyLoader;
 using ReLogic.Content;
@@ -19,11 +20,23 @@ public static class ModContent
 
     static readonly Dictionary<string, List<IModType>> ByName = new(StringComparer.Ordinal);
 
+    static int instancesVersion;
+
+    static class InstanceCache<T> where T : class
+    {
+        internal static T? Value;
+        internal static int Version = -1;
+    }
+
     public static T GetInstance<T>() where T : class
     {
+        if (Volatile.Read(ref InstanceCache<T>.Version) == Volatile.Read(ref instancesVersion)) return InstanceCache<T>.Value!;
         lock (Instances)
         {
-            return Instances.TryGetValue(typeof(T), out object? instance) ? (T)instance : null!;
+            T? found = Instances.TryGetValue(typeof(T), out object? instance) ? (T)instance : null;
+            InstanceCache<T>.Value = found;
+            Volatile.Write(ref InstanceCache<T>.Version, instancesVersion);
+            return found!;
         }
     }
 
@@ -170,6 +183,7 @@ public static class ModContent
         lock (Instances)
         {
             Instances[instance.GetType()] = instance;
+            Volatile.Write(ref instancesVersion, instancesVersion + 1);
             if (instance is IModType content)
             {
                 if (!ByName.TryGetValue(content.FullName, out List<IModType>? list)) ByName[content.FullName] = list = new List<IModType>();
@@ -420,6 +434,8 @@ public static class ModContent
         try { Core.TownNPCFlagHooks.WantActsLike(); }
         catch (Exception e) { Log.Error($"town NPC flags: setup failed: {e}"); }
         CustomContentSetup.ContentReady();
+        try { LocalizationLoader.ResolvePlaceholders(); }
+        catch (Exception e) { Log.Error($"localization: placeholders could not be resolved: {e}"); }
         foreach (Mod mod in mods)
         {
             Run(mod, "PostSetupContent", mod.PostSetupContent);
@@ -449,6 +465,12 @@ public static class ModContent
         yield return 0;
         try { NPCProfileHooks.ContentReady(); }
         catch (Exception e) { Log.Error($"town NPC profiles: they could not be set up: {e}"); }
+        yield return 0;
+        try { ItemTouchCategories.ContentReady(); }
+        catch (Exception e) { Log.Error($"item hooks: the touch categories could not be set: {e}"); }
+        yield return 0;
+        try { ItemWorldHooks.ContentReady(); }
+        catch (Exception e) { Log.Error($"item hooks: PostUpdate is not hooked: {e}"); }
         yield return 0;
         try { ItemOpenHooks.ContentReady(); }
         catch (Exception e) { Log.Error($"item hooks: the right click items could not be listed: {e}"); }

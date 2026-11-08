@@ -350,6 +350,10 @@ Terraria.ModLoader.ModTile.HasSmartInteract~|The phone's smart cursor reaches mo
 Terraria.ModLoader.ModNPC.PickEmote~|`otherAnchor` can be null: check `otherAnchor.IsNull` before reading it.
 Terraria.ModLoader.GlobalNPC.PickEmote~|`otherAnchor` can be null: check `otherAnchor.IsNull` before reading it.
 Terraria.ModLoader.Mod.AddNPCHeadTexture~|Returns the real slot at once, also from `Load`.
+Terraria.ModLoader.ModItem.AltFunctionUse~|In a touch profile with an aim stick, Interact switches the alternative mode and the aim stick fires it, as with the Portal Gun.
+Terraria.ModLoader.GlobalItem.AltFunctionUse~|In a touch profile with an aim stick, Interact switches the alternative mode and the aim stick fires it, as with the Portal Gun.
+Terraria.ModLoader.InfoDisplay.Texture~|Also the icon of the display's toggle in the inventory's accessory tab, scaled up to the size of the game's toggle icons, with the eye that shows or hides it.
+Terraria.ModLoader.InfoDisplay.HoverTexture~|Touch has no hover, so this outline is not drawn; tapping a toggle shows `DisplayName` instead.
 Terraria.ModLoader.ModProjectile.GlowTexture~|Drawn after the sprite. Spears and other projectiles with their own drawing in the game get it too.
 Terraria.ModLoader.ModHair.RandomizedCharacterCreationGender~|Applied after the game's random character button.
 Terraria.ID.ProjectileID.Sets.IsInteractable~|A tap on the projectile reaches `Main.mouseRight` during its `PreDraw` and `PostDraw`, as tModLoader's code expects.
@@ -464,6 +468,8 @@ Terraria.ModLoader.ItemLoot.Add|Adds a rule.
 Terraria.ModLoader.ItemLoot.RemoveWhere|Removes the rules that match.
 Terraria.ModLoader.ModItem.IsQuestFish|Whether this fish can be an Angler quest.
 Terraria.ModLoader.ModItem.SummonPrefix|Whether this item takes summon prefixes.
+Terraria.ModLoader.ModItem.AltFunctionIcon|Icon of the Interact touch button while this item is held and its alternative use can be switched there. `alternative` says which mode is on. Return null for the game's swap icon.
+Terraria.ModLoader.GlobalItem.AltFunctionIcon|Icon of the Interact touch button while this item is held and its alternative use can be switched there. `alternative` says which mode is on. Return null to keep the icon of the item or of an earlier global.
 Terraria.ModLoader.ModPrefix.Type|The prefix's number.
 Terraria.ModLoader.ModRarity.Type|The rarity's number, for `Item.rare`.
 Terraria.ModLoader.RarityLoader.GetRarity|The `ModRarity` of a number, or null.

@@ -1,11 +1,15 @@
 using System;
+using System.Runtime.InteropServices;
+using BunnyLoader;
+using BunnyLoader.Interop;
 using Terraria.GameContent;
 
 namespace Terraria.ModLoader.Core;
 
-internal static class ItemWorldHooks
+internal static unsafe class ItemWorldHooks
 {
-    static bool globalUpdate, globalExtract, globalMove;
+    static bool globalUpdate, globalExtract, globalMove, wantPostUpdate;
+    static Hook? updateItem;
 
     public static void Install(Func<string, bool> has, bool global)
     {
@@ -22,7 +26,15 @@ internal static class ItemWorldHooks
         }
         if (!has(nameof(ModItem.PostUpdate))) return;
         if (global) globalUpdate = true;
-        ItemHooks.Once("ItemPostUpdate", () => On_WorldItem.UpdateItem += UpdateItem);
+        wantPostUpdate = true;
+    }
+
+    internal static void ContentReady()
+    {
+        if (!wantPostUpdate) return;
+        ItemHooks.Once("ItemPostUpdate", () => updateItem = ItemHooks.Gated(WorldItem.Class, "void UpdateItem(int i)",
+            (IntPtr)(delegate* unmanaged<IntPtr, int, IntPtr, void>)&UpdateItem, 0,
+            ItemHooks.FieldOffset(WorldItem.Class, "inner"), ItemHooks.FieldOffset(Item.Class, "type"), 4));
     }
 
     static void ExtractinatorUse(On_Player.orig_ExtractinatorUse orig, Player self, int extractType, int extractinatorBlockType)
@@ -69,12 +81,24 @@ internal static class ItemWorldHooks
         orig(self, gravity, maxFallSpeed, ref wetVelocity);
     }
 
-    static void UpdateItem(On_WorldItem.orig_UpdateItem orig, WorldItem self, int i)
+    [UnmanagedCallersOnly]
+    static void UpdateItem(IntPtr pointer, int i, IntPtr method)
     {
-        orig(self, i);
-        if (!self.active) return;
+        Hook? hook = updateItem;
+        if (hook == null) return;
+        var call = GameCall.Returning(RetKind.Int);
+        call.Arg(pointer);
+        call.Arg(i);
+        call.Arg(method);
+        ItemHooks.Original(ref call, hook, "WorldItem.UpdateItem");
+        try { PostUpdate(new WorldItem(pointer)); }
+        catch (Exception e) { ItemHooks.Report("ModItem.PostUpdate", e); }
+    }
+
+    static void PostUpdate(WorldItem self)
+    {
         Item item = self.inner;
-        if (item.IsNull) return;
+        if (item.IsNull || item.type == 0) return;
         if (ItemHooks.ModItemOf(item) is ModItem m)
         {
             try { m.PostUpdate(self); }

@@ -149,8 +149,8 @@ public static class RecipeLoader
         if (ordering) Step("recipe order", OrderRecipes);
         foreach (nint pointer in GroupsToSort) Step("recipe groups", () => new RecipeGroup(pointer).SortDecraftingEntries());
         Step("recipes", Recipe.CreateRequiredItemQuickLookups);
+        Step("recipes", UpdateWhichItemsAreMaterials);
         Step("recipes", Recipe.UpdateMaterialFieldForAllRecipes);
-        Step("recipes", Recipe.UpdateWhichItemsAreMaterials);
         Step("recipes", Recipe.UpdateWhichItemsAreCrafted);
         Step("recipes", ShimmerTransforms.UpdateRecipeSets);
         Step("recipes", ContentSamples.FixItemsAfterRecipesAreAdded);
@@ -441,7 +441,7 @@ public static class RecipeLoader
 
     static void FindGuideBeyondMax(GUICraftGuidePopup popup)
     {
-        Item item = Main.guideItem;
+        Item item = GUIInstance.Active.GUICraftGuide.guideItem;
         if (item.IsNull || item.type < 1 || item.stack < 1) return;
         var recipes = Main.recipe;
         int total = Math.Min(Recipe.numRecipes, recipes.Length);
@@ -478,6 +478,37 @@ public static class RecipeLoader
             kept++;
         }
         popup.numAvailableGuideRecipes = kept;
+    }
+
+    static void UpdateWhichItemsAreMaterials()
+    {
+        var materials = ItemID.Sets.IsAMaterial;
+        var recipes = Main.recipe;
+        var groups = new Dictionary<int, RecipeGroup>();
+        for (int i = 0, count = Math.Min(Recipe.numRecipes, recipes.Length); i < count; i++)
+        {
+            var lookup = recipes[i].requiredItemQuickLookup;
+            for (int j = 0; j < lookup.Length; j++)
+            {
+                Recipe.RequiredItemEntry entry = lookup[j];
+                if (entry.itemIdOrRecipeGroup == 0) break;
+                if (entry.IsRecipeGroup)
+                {
+                    RecipeGroup group = entry.RecipeGroup;
+                    if (!group.IsNull) groups[group.RegisteredId] = group;
+                }
+                else if ((uint)entry.itemIdOrRecipeGroup < (uint)materials.Length) materials[entry.itemIdOrRecipeGroup] = true;
+            }
+        }
+        foreach (RecipeGroup group in groups.Values)
+        {
+            var items = new GameList(group.Items);
+            for (int k = 0; k < items.Count; k++)
+            {
+                int type = items.Get<int>(k);
+                if ((uint)type < (uint)materials.Length) materials[type] = true;
+            }
+        }
     }
 
     static bool UsesItem(Recipe recipe, int type)

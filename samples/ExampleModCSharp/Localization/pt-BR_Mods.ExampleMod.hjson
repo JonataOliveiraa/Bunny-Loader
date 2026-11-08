@@ -997,6 +997,11 @@ ExampleKeybindPlayer: {
 	LearningExampleDoubleTap: LearningExampleKeybind tocado duas vezes em um quarto de segundo
 }
 
+ExampleModWingSlot: {
+	Wings: Asas
+	WingsDye: Tintura das asas
+}
+
 Keybinds: {
 	RandomBuff.DisplayName: Buff Aleatório
 	LearningExample.DisplayName: Exemplo de Aprendizado
@@ -1034,9 +1039,9 @@ Achievements.AdvancedExampleAchievement.FriendlyName: "Conquista Avançada de Ex
 Achievements.AdvancedExampleAchievement.Description: "Esta conquista tem condições demais, mas é ótima para aprender recursos avançados de ModAchievement. Faça de tudo com o Sapo de Lava."
 Currencies.ExampleCustomCurrency: "itens de exemplo"
 ExampleFishingPlayer.Wrong: "Something's wrong..."
-InfoDisplays.ExampleInfoDisplay.DisplayName: "Minion Count"
-InfoDisplays.ExampleInfoDisplay.CurrentMinions: "{0} minions"
-InfoDisplays.ExampleInfoDisplay.NoMinions: "No minions"
+InfoDisplays.ExampleInfoDisplay.DisplayName: "Quantidade de lacaios"
+InfoDisplays.ExampleInfoDisplay.CurrentMinions: "{0} lacaios"
+InfoDisplays.ExampleInfoDisplay.NoMinions: "Nenhum lacaio"
 WeaponWithGrowingDamage.Level: "Nível: {0}"
 WeaponWithGrowingDamage.Experience: "Experiência: {0} ({1} para o próximo nível)"
 ExampleProjectileModifications.HitMessage: "Este NPC foi atingido por um projétil modificado {0} vezes."

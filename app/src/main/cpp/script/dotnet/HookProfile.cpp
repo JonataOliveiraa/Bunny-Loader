@@ -220,6 +220,21 @@ void** installHook(const MethodInfo* method, void* replacement) {
     return new void*(origThunk(slot));
 }
 
+void* wrapHook(const MethodInfo* method, void* replacement, void** real, void*** callerSlot) {
+    *callerSlot = real;
+    if (!enabled()) return replacement;
+    int slot;
+    {
+        std::lock_guard<std::mutex> guard(g_mutex);
+        slot = reserve(methodName(method));
+    }
+    if (slot < 0) return replacement;
+    g_target[slot] = replacement;
+    g_real[slot] = real;
+    *callerSlot = new void*(origThunk(slot));
+    return enterThunk(slot);
+}
+
 void* wrapCallback(void* callback, const char* name) {
     std::lock_guard<std::mutex> guard(g_mutex);
     auto found = g_wrapped.find(callback);

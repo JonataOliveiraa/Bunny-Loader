@@ -1,0 +1,17 @@
+{
+  "uid": "19e2b39d-b637-4090-8cc2-2eaa21ba4c7a",
+  "id": "CsAltFire",
+  "name": "Test: alternative fire on touch",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Checks that a mod item with AltFunctionUse joins the game's alternative fire mode on touch.",
+  "description": "Compile with tools/tests/build-cs.sh csaltfire. Run with tools/tests/run-taps.sh csaltfire.",
+  "updated": "2026-11-07",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

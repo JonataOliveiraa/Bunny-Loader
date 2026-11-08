@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using ReLogic.Content;
 using Terraria.DataStructures;
 using Terraria.Localization;
 using Terraria.ModLoader.IO;
@@ -94,6 +95,8 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
     public virtual void HoldItemFrame(Player player) { }
 
     public virtual bool AltFunctionUse(Player player) => false;
+
+    public virtual Asset<Texture2D>? AltFunctionIcon(Player player, bool alternative) => null;
 
     public virtual void HoldItem(Player player) { }
 

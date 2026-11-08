@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using ReLogic.Content;
 using Terraria.DataStructures;
 using Terraria.Utilities;
 
@@ -74,6 +75,8 @@ public abstract class GlobalItem : GlobalType<Item, GlobalItem>
     public virtual void HoldItemFrame(Item item, Player player) { }
 
     public virtual bool AltFunctionUse(Item item, Player player) => false;
+
+    public virtual Asset<Texture2D>? AltFunctionIcon(Item item, Player player, bool alternative) => null;
 
     public virtual void HoldItem(Item item, Player player) { }
 

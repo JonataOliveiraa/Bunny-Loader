@@ -22,7 +22,7 @@ internal static unsafe class ProjectileHooks
 
     static readonly HashSet<string> GlobalHooks = new();
     static readonly Dictionary<Type, HashSet<string>> ModHooks = new();
-    static Movement? moving;
+    static Movement? moving, spare;
     static int spawning;
     static (IntPtr Projectile, Color Light)? drawLight;
 
@@ -70,7 +70,7 @@ internal static unsafe class ProjectileHooks
 
     internal static bool Wants(Projectile projectile, string method)
     {
-        if (ProjectileLoader.InstanceOf(projectile) is ModProjectile m && ModHooks.TryGetValue(m.GetType(), out var names) && names.Contains(method)) return true;
+        if (ProjectileLoader.TemplateOf(projectile) is ModProjectile m && ModHooks.TryGetValue(m.GetType(), out var names) && names.Contains(method)) return true;
         return GlobalHooks.Contains(method) && ProjectileLoader.Globals.Slots(projectile) != null;
     }
 
@@ -160,7 +160,7 @@ internal static unsafe class ProjectileHooks
             return;
         }
         float startX = self.position.X, startY = self.position.Y;
-        var move = new Movement { Projectile = self, Velocity = new Vector2(self.velocity.X, self.velocity.Y), Outer = moving, HasCollision = collision };
+        Movement move = Rent(self, collision);
         bool manual = self.decidesManualFallThrough, should = self.shouldFallThrough;
         if (style) ApplyCollideStyle(self, move);
         moving = move;
@@ -179,7 +179,25 @@ internal static unsafe class ProjectileHooks
                 self.shouldFallThrough = should;
                 if (move.Bypass) self.tileCollide = true;
             }
+            move.Projectile = default;
+            move.Outer = spare;
+            spare = move;
         }
+    }
+
+    static Movement Rent(Projectile self, bool collision)
+    {
+        Movement? move = spare;
+        if (move == null) move = new Movement();
+        else spare = move.Outer;
+        move.Projectile = self;
+        move.Velocity = new Vector2(self.velocity.X, self.velocity.Y);
+        move.Anchor = default;
+        move.Width = move.Height = 0;
+        move.Reported = move.PendingKill = move.Kept = move.HasStyle = move.Bypass = false;
+        move.HasCollision = collision;
+        move.Outer = moving;
+        return move;
     }
 
     static void ApplyCollideStyle(Projectile self, Movement move)
@@ -343,12 +361,29 @@ internal static unsafe class ProjectileHooks
     {
         if (!ProjectileID.Sets.IsInteractable[projectile.Type])
             return;
-        ItemHooks.Once("ProjectileInteractable", () => On_Projectile.IsInteractable += IsInteractable);
+        ItemHooks.Once("ProjectileInteractable", () =>
+        {
+            On_Projectile.IsInteractable += IsInteractable;
+            On_Player.PushTouchCursorState += PushTouchCursorState;
+        });
         ItemHooks.Once("ProjectileDraw", () => On_Main.DrawProjDirect += DrawProjDirect);
     }
 
     static bool IsInteractable(On_Projectile.orig_IsInteractable orig, Projectile self) =>
         self.type >= ProjectileID.Count ? ProjectileID.Sets.IsInteractable[self.type] : orig(self);
+
+    static void PushTouchCursorState(On_Player.orig_PushTouchCursorState orig, Player self)
+    {
+        orig(self);
+        if (!Main.SmartInteractShowingGenuine) return;
+        int index = Main.SmartInteractProj;
+        var projectiles = Main.projectile;
+        if ((uint)index >= (uint)projectiles.Length) return;
+        Projectile proj = projectiles[index];
+        if (proj.IsNull || !proj.active || proj.type < ProjectileID.Count || !ProjectileID.Sets.IsInteractable[proj.type]) return;
+        self.cursorItemIconEnabled = true;
+        self.cursorItemIconID = ProjectileID.Sets.InteractableProjectileItemIcons[proj.type];
+    }
 
     static void DrawGlow(Projectile proj)
     {

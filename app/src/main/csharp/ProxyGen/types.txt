@@ -48,6 +48,7 @@ ControlAnchor
 GUIBossBar
 GUIBuffs
 GUIClothesWindow
+GUICraftGuide
 GUICraftGuidePopup
 GUIHearts
 GUIHousingMenu
@@ -84,6 +85,8 @@ GUIReforge
 GUIReforgePopup
 GUIPulldownSetting
 ItemGrid_Layout
+DraggableItemGrid_Layout
+Emotes_Layout
 VirtualControlsProfile_Layout
 VirtualControlsBinding_Layout
 VirtualControlsHardwareConfiguration_Layout
@@ -97,10 +100,12 @@ KeyboardInput
 KeyboardMappings_Layout
 LayoutCalculator
 Microsoft.Xna.Framework.Graphics.SpriteBatch
+Microsoft.Xna.Framework.Input.Mouse
 MultiplayerHost_Layout
 MaxPlayersSlider_Layout
 NPCDialogue_Layout
 QuickActionButton_Layout
+VirtualInputController_Layout
 SettingsOverlay_Layout
 SettingsPauseMenu_Layout
 Terraria.Achievements.Achievement
@@ -496,6 +501,15 @@ Terraria.ChestItem
 Terraria.GameContent.PlayerEyeHelper
 GUIBuilderAccToggles
 GUIAccessoryInfo
+GUIAccessoryInfoToggles
+AccessoryInfo_Layout
+Equipment_Layout
+GUIEquipment
+GUIEquipmentLoadout
+GUIScrollControl
+GUIItemGrid
+GUIDraggableItemGrid
+GUIMouseItem
 Terraria.Graphics.Shaders.GameShaders
 Terraria.DataStructures.SettingsForCharacterPreview
 !Terraria.ID.BuffID+Sets.BuffTextHandlers

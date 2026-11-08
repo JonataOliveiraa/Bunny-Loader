@@ -40,7 +40,14 @@ internal static class ItemTimingHooks
         if (has(nameof(ModItem.AltFunctionUse)))
         {
             if (global) globalAlt = true;
-            ItemHooks.Once("AltFunctionUse", () => On_Player.ItemCheck_ManageRightClickFeatures += ManageRightClickFeatures);
+            ItemHooks.Once("AltFunctionUse", () =>
+            {
+                On_Player.ItemCheck_ManageRightClickFeatures += ManageRightClickFeatures;
+                On_Player.CanAlternativeFire += CanAlternativeFire;
+                On_VirtualControllerInputState.get_ToggleAlternativeFireMode += ToggleAlternativeFireMode;
+                On_VirtualControllerInputState.get_SwapAlternativeFiteModeActive += SwapAlternativeFireModeActive;
+                AltFunctionTouchHooks.Install();
+            });
         }
     }
 
@@ -189,6 +196,49 @@ internal static class ItemTimingHooks
         return false;
     }
 
+    internal static Item AlternativeItem(Player player)
+    {
+        if (player.IsNull) return default;
+        try
+        {
+            int slot = player.selectedItem;
+            Item held = slot >= 0 && slot < 58 ? player.inventory[slot] : default;
+            return !held.IsNull && held.stack > 0 && ItemCombatHooks.Wanted(globalAlt, held) && AltFunctionUse(held, player) ? held : default;
+        }
+        catch (Exception e)
+        {
+            ItemHooks.Report("AltFunctionUse", e);
+            return default;
+        }
+    }
+
+    static bool HoldsAlternativeItem(Player player) => !AlternativeItem(player).IsNull;
+
+    static bool CanAlternativeFire(On_Player.orig_CanAlternativeFire orig, Player self, bool checkIfHasMapping) =>
+        orig(self, checkIfHasMapping) || HoldsAlternativeItem(self);
+
+    static bool SwapAlternativeFireModeActive(On_VirtualControllerInputState.orig_get_SwapAlternativeFiteModeActive orig, VirtualControllerInputState self) =>
+        orig(self) || !self.hasToggleFireInteract && self.hasTouchRightStick && HoldsAlternativeItem(Main.LocalPlayer);
+
+    static bool ToggleAlternativeFireMode(On_VirtualControllerInputState.orig_get_ToggleAlternativeFireMode orig, VirtualControllerInputState self)
+    {
+        if (orig(self)) return true;
+        if (self.hasToggleFireInteract || !self.hasTouchRightStick || !HoldsAlternativeItem(Main.LocalPlayer)) return false;
+        return self.TouchToggleFireInteract switch
+        {
+            VirtualControllerInputState.CursorInputMode.Global => self.globalToggleAlternativeFireModeInternal,
+            VirtualControllerInputState.CursorInputMode.AlwaysOn => true,
+            VirtualControllerInputState.CursorInputMode.Disabled => false,
+            _ => self.toggleAlternativeFireModeInternal,
+        };
+    }
+
+    static bool AlternativeFireMode()
+    {
+        GUIInstance gui = GUIInstance.Active;
+        return !gui.IsNull && !gui.VirtualControllerInputState.IsNull && gui.VirtualControllerInputState.ToggleAlternativeFireMode;
+    }
+
     static void ManageRightClickFeatures(On_Player.orig_ItemCheck_ManageRightClickFeatures orig, Player self)
     {
         Item held = default;
@@ -201,8 +251,9 @@ internal static class ItemTimingHooks
             {
                 var repeated = ItemID.Sets.ItemsThatAllowRepeatedRightClick;
                 bool repeat = !repeated.IsNull && (uint)held.type < (uint)repeated.Length && repeated[held.type];
-                check = self.controlUseTile && Main.myPlayer == self.whoAmI && !self.tileInteractionHappened && self.releaseUseItem &&
-                    !self.controlUseItem && !self.mouseInterface && !Main.LocalPlayerHasPendingInventoryActions() && (repeat || Main.mouseRightRelease);
+                bool alternative = self.UsingAlternativeFire && self.controlUseItem && AlternativeFireMode();
+                check = (self.controlUseTile || alternative) && Main.myPlayer == self.whoAmI && !self.tileInteractionHappened && self.releaseUseItem &&
+                    (alternative || !self.controlUseItem) && !self.mouseInterface && !Main.LocalPlayerHasPendingInventoryActions() && (repeat || alternative || Main.mouseRightRelease);
             }
         }
         catch (Exception e) { ItemHooks.Report("AltFunctionUse", e); }

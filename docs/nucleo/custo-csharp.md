@@ -150,6 +150,66 @@ the `TEModdedPylon` entities first and scans only when one is inside that
 region: on MuMu, with ExampleModCSharp, 150-180 µs per frame before and
 21-24 µs after (`csperf` now reports it as a focus hook).
 
+## Per-frame pass (2026-11-07)
+
+Measured on MuMu `127.0.0.1:16384` with `csperfmod` and ExampleModCSharp, old
+and new `BunnyLoader.dll` alternating on the same APK (two rounds each,
+averages). Without mods nothing changed: only the test's own hooks enter C#.
+
+| | Idle, before | Idle, after | 60 projectiles + 15 NPCs, before | after |
+|-|--:|--:|--:|--:|
+| Frame | 18.3 ms | 17.3 ms | 26.1 ms | 21.2 ms |
+| C# self time | 6.62 ms | 4.92 ms | 12.69 ms | 8.56 ms |
+| C# entries per frame | 1425 | 521 | 2594 | 1270 |
+| Managed allocation | 12.3 KB/frame | 11.0 KB/frame | 20.7 KB/frame | 11.8 KB/frame |
+
+What changed, most expensive first:
+
+1. `Main.DrawItem` entered C# for all 400 item slots every frame (the game
+   calls it for every slot and returns early for inactive ones): 0.71 ms/frame.
+   The world drawing stage now takes its item from a hook on
+   `Main.DrawItem_GetBasics`, which only runs for items that are drawn.
+2. `WorldItem.UpdateItem` (`PostUpdate`) and
+   `Player.QuickHeal_GetItemToUse_TryChoosingItem` (`GetHealLife`) entered C#
+   for every slot: 434-624 and 58 entries per frame, 0.45-0.70 and 0.13 ms.
+   They are now gated natively (`script/dotnet/HookGate.S`,
+   `NativeApi.InstallGatedHook`): the link reads a field of an argument and goes
+   straight to the next link when it is zero (`WorldItem.inner.type`,
+   `Item.healLife`). The gated `UpdateItem` link is installed at
+   `ContentReady`, after the mods' `Load`, so an `On_WorldItem.UpdateItem`
+   added during load still runs outside it. `On_` hooks of mods are never
+   gated. After: 0 and 2 entries per frame.
+3. `EntityInstances.Get` (every `ModItem`, `ModProjectile`, `ModNPC`,
+   `ModPlayer` and global lookup) checked the weak handle in native code on
+   every call, a C# to native transition each time. It now checks once per
+   game GC cycle, using the game's `System.GC.GetCollectionCount`
+   (`GC_get_gc_no`, a plain read, called without the GC transition). Per call:
+   `Projectile.AI` 13.7 → 8.6 µs, `HandleMovement` 5.6 → 3.3, `Damage`
+   5.0 → 2.9, `UpdatePosition` 3.4 → 2.2, `CutTiles`/`CanCutTiles` 3.1 → 1.9,
+   `DrawProjDirect` 4.7 → 2.4, `GetAlpha` 2.5 → 1.7, `DrawNPCExtras` 46 → 31,
+   `ResourceDraw` 7.9 → 5.5.
+4. `HandleMovement` allocated a `Movement` per projectile per update and
+   `RefreshInfoAccs` a dictionary and one queue per item type per update: both
+   are reused now. That is most of the 8.9 KB/frame less with projectiles.
+5. `Asset<T>.FromGame` (every `TextureAssets.X[i]` of a game asset array) read
+   the asset name through native field lookups and a new string before looking
+   in its cache: it looks in the cache first. The ExampleMod map layer that
+   draws one icon went from about 34 to 20 µs.
+6. Smaller ones: `ModContent.GetInstance<T>` (and so `ItemType<T>`,
+   `GetGlobalItem<T>`...) reads a static generic cache instead of a lock and a
+   dictionary; `Main.ActiveItems` and the `PostUpdate` check read
+   `inner.type` (what `WorldItem.get_active` does) instead of calling the
+   getter per slot; `ProjectileHooks.Wants` and `ProjectileLoader.HasHooks` use
+   the template instead of binding an instance; no closure per call in
+   `BuffHooks.Over` and `PlayerLoader.All`; the interface layer list is reused.
+
+Still open: `MapIconOverlay.Draw` (about 0.36 ms, almost all of it the game's
+own map layers drawn from C# around the mod layers),
+`DrawPlayer_UseNormalLayers` (about 0.27 ms, the vanilla layers called one by
+one), `Dust.update` (the mod's own `Lighting.AddLight` per dust), and the
+remaining per-slot entries that a field check cannot decide
+(`RefreshInfoAccsFromItemType`, 64-75 per frame).
+
 ## Time to the title screen (2026-11-04)
 
 Measured on MuMu `127.0.0.1:16384`, from the tap on Play to `startup: title on

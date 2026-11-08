@@ -47,3 +47,12 @@ public readonly unsafe partial struct InventorySplitStack_Layout
 
     public bool RightPageController => PageControllerLayout.RightPageController(ref rightPage, Class, Pointer);
 }
+
+public readonly unsafe partial struct Equipment_Layout
+{
+    static MethodRef instance, rightPage;
+
+    public static Equipment_Layout Instance => new(PageControllerLayout.Instance(ref instance, Class, "Equipment_Layout"));
+
+    public bool RightPageController => PageControllerLayout.RightPageController(ref rightPage, Class, Pointer);
+}

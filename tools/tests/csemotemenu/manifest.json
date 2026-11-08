@@ -1,0 +1,17 @@
+{
+  "uid": "2713006f-0de0-45d1-8342-cc76ceed6feb",
+  "id": "CsEmoteMenu",
+  "name": "Test: mod emotes in the emote window",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Checks that a mod emote can be picked from the game's emote window with a real tap.",
+  "description": "Compile with tools/tests/build-cs.sh csemotemenu.",
+  "updated": "2026-11-07",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

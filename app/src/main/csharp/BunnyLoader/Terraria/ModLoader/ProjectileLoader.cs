@@ -46,6 +46,13 @@ public static unsafe class ProjectileLoader
         return current != null && current.Type == template.Type ? current : Bind(template, projectile);
     }
 
+    internal static ModProjectile? TemplateOf(Projectile projectile)
+    {
+        if (projectile.IsNull) return null;
+        if (borrowed.Pointer == projectile.Pointer) return borrowed.Instance;
+        return GetProjectile(projectile.type);
+    }
+
     internal static IntPtr Borrow(Projectile projectile, ModProjectile? instance, out ModProjectile? outer)
     {
         IntPtr pointer = borrowed.Pointer;
@@ -166,7 +173,7 @@ public static unsafe class ProjectileLoader
 
     internal static GlobalProjectile?[] GlobalsOf(Projectile projectile) => Globals.Slots(projectile) ?? Array.Empty<GlobalProjectile?>();
 
-    internal static bool HasHooks(Projectile projectile) => InstanceOf(projectile) != null || Globals.Slots(projectile) != null;
+    internal static bool HasHooks(Projectile projectile) => TemplateOf(projectile) != null || Globals.Slots(projectile) != null;
 
     static void Report(ModType owner, string method, Exception e) => ItemHooks.Report($"{owner.FullName}.{method}", e);
 

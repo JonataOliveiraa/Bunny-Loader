@@ -9,6 +9,8 @@ bool enabled();
 
 void** installHook(const MethodInfo* method, void* replacement);
 
+void* wrapHook(const MethodInfo* method, void* replacement, void** real, void*** callerSlot);
+
 void* wrapCallback(void* callback, const char* name);
 
 template <class F>

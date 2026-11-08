@@ -43,6 +43,58 @@ internal static unsafe class LocalizationLoader
         foreach ((string key, List<(string Culture, string Text)> texts) in all) Native(key, Pack(texts), replace: true);
     }
 
+    static readonly Regex InputTrigger = new(@"{InputTrigger_([^}]+)}", RegexOptions.CultureInvariant);
+
+    static readonly Dictionary<string, string> InputGlyphs = new()
+    {
+        ["InteractWithTile"] = "<interact>",
+        ["InteractWithTileUI"] = "<right>",
+        ["ToggleOrOpen"] = "<right>",
+        ["QuickEquip"] = "<right>",
+        ["UseOrAttack"] = "<fire>",
+        ["Grapple"] = "<grapple>",
+        ["Mount"] = "<mount>",
+        ["Healing"] = "<heal>",
+        ["ManaHealing"] = "<mana>",
+        ["QuickBuff"] = "<buff>",
+    };
+
+    internal static void ResolvePlaceholders()
+    {
+        lock (ByMod)
+        {
+            foreach (var all in ByMod.Values)
+            {
+                foreach ((string key, List<(string Culture, string Text)> texts) in all)
+                {
+                    bool changed = false;
+                    for (int i = 0; i < texts.Count; i++)
+                    {
+                        (string culture, string text) = texts[i];
+                        string resolved = text;
+                        if (resolved.Contains("{InputTrigger_")) resolved = ResolveInputTriggers(all, culture, resolved);
+                        if (resolved.Contains("[i")) resolved = Config.ConfigManager.ResolveItemTags(resolved);
+                        if (resolved == text) continue;
+                        texts[i] = (culture, resolved);
+                        changed = true;
+                    }
+                    if (changed) Native(key, Pack(texts), replace: true);
+                }
+            }
+        }
+    }
+
+    static string ResolveInputTriggers(Dictionary<string, List<(string Culture, string Text)>> all, string culture, string text) =>
+        InputTrigger.Replace(text, match =>
+        {
+            string name = match.Groups[1].Value;
+            if (InputGlyphs.TryGetValue(name, out string? glyph)) return glyph;
+            ModKeybind? keybind = TouchButtonLoader.Buttons.FirstOrDefault(button => button.FullName == name);
+            if (keybind == null) return match.Value;
+            string label = Lookup(all, $"Mods.{keybind.Mod.Name}.Keybinds.{keybind.Name}.DisplayName", culture, new HashSet<string>()) ?? keybind.Name;
+            return $"[c/FFF014:{label}]";
+        });
+
     public static List<(string Culture, string Text)> Texts(Mod mod, string key)
     {
         lock (ByMod)

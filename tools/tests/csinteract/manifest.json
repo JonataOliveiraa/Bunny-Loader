@@ -1,0 +1,17 @@
+{
+  "uid": "968978dd-7740-4324-a225-6bfecf523e8c",
+  "id": "CsInteract",
+  "name": "Test: interactable mod projectile",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Checks that a real tap on the Example Mod interactable projectile interacts with it.",
+  "description": "Compile with tools/tests/build-cs.sh csinteract. Run with SAMPLE=1 tools/tests/run-taps.sh csinteract.",
+  "updated": "2026-11-07",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

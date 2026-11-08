@@ -34,7 +34,7 @@ internal static unsafe class ItemDrawHooks
 
     const int World = 0, Inventory = 1;
 
-    static Hook? drawItem, drawIcon, getAlpha;
+    static Hook? drawIcon, getAlpha;
 
     static bool globalWorld, globalInventory, globalAlpha;
 
@@ -42,7 +42,7 @@ internal static unsafe class ItemDrawHooks
 
     static IntPtr worldItem;
     static int worldIndex;
-    static bool worldDrawn;
+    static bool worldDrawn, inWorldCallback;
     static WorldArgs worldArgs;
 
     static bool inventoryDrawn;
@@ -61,8 +61,7 @@ internal static unsafe class ItemDrawHooks
                     Log.Error("item hooks: the world item drawing stages are not hooked (PreDrawInWorld/PostDrawInWorld)");
                     return;
                 }
-                drawItem = ItemHooks.Raw("Terraria", "Main", "void DrawItem(WorldItem item, int whoami)",
-                    (IntPtr)(delegate* unmanaged<IntPtr, IntPtr, int, IntPtr, void>)&DrawItem);
+                On_Main.DrawItem_GetBasics += GetBasics;
             });
         }
         if (has(nameof(ModItem.PreDrawInInventory)) || has(nameof(ModItem.PostDrawInInventory)))
@@ -91,49 +90,32 @@ internal static unsafe class ItemDrawHooks
 
     static bool Wanted(bool global, Item item) => !item.IsNull && (global || ItemLoader.Get(item.type) != null);
 
-    [UnmanagedCallersOnly]
-    static void DrawItem(IntPtr self, IntPtr world, int whoami, IntPtr method)
+    static void GetBasics(On_Main.orig_DrawItem_GetBasics orig, Main self, Item item, int slot, out Texture2D texture, out Rectangle frame, out Rectangle glowmaskFrame)
     {
-        Hook? hook = drawItem;
-        if (hook == null) return;
-        IntPtr outerItem = worldItem;
-        int outerIndex = worldIndex;
-        bool outerDrawn = worldDrawn;
-        WorldArgs outerArgs = worldArgs;
-        byte outerActive = *worldActive;
-        bool wanted = false;
-        try { wanted = world != IntPtr.Zero && Wanted(globalWorld, new WorldItem(world).inner); }
-        catch (Exception e) { ItemHooks.Report("PreDrawInWorld", e); }
-        if (wanted)
-        {
-            worldItem = world;
-            worldIndex = whoami;
-            worldDrawn = false;
-            *worldActive = 1;
-        }
+        orig(self, item, slot, out texture, out frame, out glowmaskFrame);
+        if (inWorldCallback) return;
+        IntPtr world = IntPtr.Zero;
         try
         {
-            var call = GameCall.Returning(RetKind.Int);
-            call.Arg(self);
-            call.Arg(world);
-            call.Arg(whoami);
-            call.Arg(method);
-            ItemHooks.Original(ref call, hook, "Main.DrawItem");
+            var items = Main.item;
+            if ((uint)slot < (uint)items.Length)
+            {
+                WorldItem candidate = items[slot];
+                if (!candidate.IsNull && candidate.inner.Pointer == item.Pointer && Wanted(globalWorld, item)) world = candidate.Pointer;
+            }
         }
-        finally
-        {
-            worldItem = outerItem;
-            worldIndex = outerIndex;
-            worldDrawn = outerDrawn;
-            worldArgs = outerArgs;
-            *worldActive = outerActive;
-        }
+        catch (Exception e) { ItemHooks.Report("PreDrawInWorld", e); }
+        worldItem = world;
+        worldIndex = slot;
+        worldDrawn = false;
+        *worldActive = world != IntPtr.Zero ? (byte)1 : (byte)0;
     }
 
     [UnmanagedCallersOnly]
     static int WorldPre(void* raw)
     {
         if (worldItem == IntPtr.Zero) return 1;
+        inWorldCallback = true;
         try
         {
             var args = (WorldArgs*)raw;
@@ -164,12 +146,14 @@ internal static unsafe class ItemDrawHooks
             ItemHooks.Report("PreDrawInWorld", e);
             return 1;
         }
+        finally { inWorldCallback = false; }
     }
 
     [UnmanagedCallersOnly]
     static void WorldPost()
     {
         if (worldItem == IntPtr.Zero || !worldDrawn) return;
+        inWorldCallback = true;
         try
         {
             WorldItem world = new WorldItem(worldItem);
@@ -189,6 +173,12 @@ internal static unsafe class ItemDrawHooks
             }
         }
         catch (Exception e) { ItemHooks.Report("PostDrawInWorld", e); }
+        finally
+        {
+            inWorldCallback = false;
+            worldItem = IntPtr.Zero;
+            *worldActive = 0;
+        }
     }
 
     [UnmanagedCallersOnly]

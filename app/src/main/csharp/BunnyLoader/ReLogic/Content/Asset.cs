@@ -69,7 +69,13 @@ public sealed unsafe class Asset<T> where T : struct, IGameObject
         }
     }
 
-    public static Asset<T> FromGame(IntPtr gameAsset) => gameAsset == IntPtr.Zero ? null! : ForGameAsset(gameAsset, NameOf(gameAsset));
+    public static Asset<T> FromGame(IntPtr gameAsset)
+    {
+        if (gameAsset == IntPtr.Zero) return null!;
+        lock (ByGameAsset)
+            if (ByGameAsset.TryGetValue(gameAsset, out Asset<T>? known)) return known;
+        return ForGameAsset(gameAsset, NameOf(gameAsset));
+    }
 
     public static IntPtr ToGame(Asset<T>? asset)
     {

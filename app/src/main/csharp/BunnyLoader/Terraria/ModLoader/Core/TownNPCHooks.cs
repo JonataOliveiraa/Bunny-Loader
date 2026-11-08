@@ -130,7 +130,7 @@ internal static class TownNPCHooks
     {
         string chat = orig(npc) ?? "";
         NPCLoader.GetChat(npc, ref chat);
-        return chat;
+        return chat.Contains("[i") ? Config.ConfigManager.ResolveItemTags(chat) : chat;
     }
 
     static NPCInteractionList List(NPC npc)
@@ -158,6 +158,7 @@ internal static class TownNPCHooks
             }
         }
         list.Append(NPCInteractionDatabase.CloseButton);
+        if (own != null && NPCID.Sets.IsTownPet[npc.type]) list.Append(NPCInteractionDatabase.PetButton);
         list.Append(NPCInteractionDatabase.HappinessButton);
         list.Append(NPCInteractionDatabase.HousingButton);
         NPCLoader.RegisterChatButtons(npc, list);
@@ -182,17 +183,20 @@ internal static class TownNPCHooks
     {
         foreach (NPCInteractionList.Entry entry in list.Entries)
         {
-            if (entry.NPCInteraction is NPCInteractions.Actions.VanillaOption ? !entry.Enabled : entry.Enabled && entry.NPCInteraction is not NPCInteractionDatabase.DedicatedButton) return true;
+            if (entry.NPCInteraction is NPCInteractions.Actions.VanillaOption ? !entry.Enabled : entry.Enabled && !Dedicated(entry.NPCInteraction)) return true;
         }
         return false;
     }
+
+    static bool Dedicated(NPCInteraction interaction) =>
+        interaction is NPCInteractionDatabase.DedicatedButton && interaction != NPCInteractionDatabase.PetButton;
 
     static List<NPCInteraction> Shown(NPC npc)
     {
         var shown = new List<NPCInteraction>();
         foreach (NPCInteractionList.Entry entry in List(npc).Entries)
         {
-            if (!entry.Enabled || entry.NPCInteraction is NPCInteractionDatabase.DedicatedButton) continue;
+            if (!entry.Enabled || Dedicated(entry.NPCInteraction)) continue;
             try
             {
                 if (entry.NPCInteraction.Condition() && !string.IsNullOrEmpty(entry.NPCInteraction.GetText())) shown.Add(entry.NPCInteraction);

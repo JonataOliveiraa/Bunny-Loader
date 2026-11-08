@@ -131,6 +131,25 @@ internal static unsafe class ItemHooks
         }
     }
 
+    internal static Hook? Gated(GameClass type, string signature, IntPtr replacement, int arg, int pointerOffset, int fieldOffset, int fieldSize)
+    {
+        try
+        {
+            return Hook.InstallGated(type, signature, replacement, arg, pointerOffset, fieldOffset, fieldSize);
+        }
+        catch (Exception e)
+        {
+            Log.Error($"item hooks: {type.FullName}.{signature} is not hooked: {e.Message}");
+            return null;
+        }
+    }
+
+    internal static int FieldOffset(GameClass type, string field)
+    {
+        int slot = -1;
+        return GameInterop.Offset(ref slot, type, field);
+    }
+
     internal static void Report(string who, Exception e)
     {
         bool first;

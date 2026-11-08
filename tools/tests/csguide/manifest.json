@@ -1,0 +1,17 @@
+{
+  "uid": "e1a1ba6e-d733-4efa-b01e-ffce449ee4ed",
+  "id": "CsGuide",
+  "name": "Test: Guide and chat buttons",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Checks vanilla chat buttons next to a mod shop NPC and mod recipes in the Guide.",
+  "description": "Compile with tools/tests/build-cs.sh csguide. Run with tools/tests/run-taps.sh csguide.",
+  "updated": "2026-11-07",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

@@ -356,6 +356,8 @@ public static unsafe partial class ItemLoader
         NativeApi* api = Host.Native();
         api->PrepareItem(self.Pointer, type);
         self.maxStack = 1;
+        var materials = ItemID.Sets.IsAMaterial;
+        self.material = (uint)type < (uint)materials.Length && materials[type];
         EquipLoader.Install();
         EquipLoader.Apply(self, type);
         ModItem instance = Bind(template, self);

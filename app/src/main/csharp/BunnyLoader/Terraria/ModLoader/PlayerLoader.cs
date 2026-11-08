@@ -158,8 +158,16 @@ public static class PlayerLoader
 
     internal static bool All(Player player, string method, Func<ModPlayer, bool> call)
     {
+        ModPlayer[] hooked = Hooked(method);
+        if (hooked.Length == 0) return true;
+        ModPlayer[] instances = Of(player);
         bool result = true;
-        Each(player, method, m => result &= call(m));
+        foreach (ModPlayer template in hooked)
+        {
+            ModPlayer m = instances[template.Index];
+            try { result &= call(m); }
+            catch (Exception e) { ItemHooks.Report($"{m.FullName}.{method}", e); }
+        }
         return result;
     }
 

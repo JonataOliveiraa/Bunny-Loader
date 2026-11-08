@@ -206,7 +206,7 @@ internal static unsafe class BuffHooks
     }
 
     static bool Over(object instance, Type baseType, string name) =>
-        Overridden.GetOrAdd((instance.GetType(), name), key => ItemHooks.Overrides(key.Item1, baseType, key.Item2));
+        Overridden.GetOrAdd((instance.GetType(), name), static (key, b) => ItemHooks.Overrides(key.Item1, b, key.Item2), baseType);
 
     static ModBuff? Own(int type, string name) => BuffLoader.GetBuff(type) is ModBuff m && Over(m, typeof(ModBuff), name) ? m : null;
 

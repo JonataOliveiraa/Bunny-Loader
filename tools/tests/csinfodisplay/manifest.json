@@ -1,0 +1,17 @@
+{
+  "uid": "62af822f-4d49-47da-adb2-a1750372693e",
+  "id": "CsInfoDisplay",
+  "name": "Test: mod info displays",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Checks that the Example Mod info display joins the game's info list and its toggles.",
+  "description": "Compile with tools/tests/build-cs.sh csinfodisplay. Run with SAMPLE=1 tools/tests/run-taps.sh csinfodisplay.",
+  "updated": "2026-11-07",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

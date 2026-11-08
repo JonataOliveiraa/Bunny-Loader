@@ -1,0 +1,17 @@
+{
+  "uid": "e5b91080-3504-47b0-9ddb-f97cf003d26b",
+  "id": "CsAccSlot",
+  "name": "Test: mod accessory slots",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Checks ModAccessorySlot effects, saves, loadouts and the equipment panel.",
+  "description": "Compile with tools/tests/build-cs.sh csaccslot. Run with BL_PKG=com.bunnyloader.beta SAMPLE=1 DLL=1 tools/tests/run-taps.sh csaccslot.",
+  "updated": "2026-11-07",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

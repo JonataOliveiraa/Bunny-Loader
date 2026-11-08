@@ -998,6 +998,11 @@ ExampleKeybindPlayer: {
 	LearningExampleDoubleTap: LearningExampleKeybind double tapped within a quarter of a second
 }
 
+ExampleModWingSlot: {
+	Wings: Wings
+	WingsDye: Wings Dye
+}
+
 Keybinds: {
 	RandomBuff.DisplayName: Random Buff
 	LearningExample.DisplayName: Learning Example
