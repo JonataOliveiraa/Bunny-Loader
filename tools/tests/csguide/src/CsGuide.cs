@@ -5,6 +5,7 @@ using log4net;
 using Microsoft.Xna.Framework;
 using Terraria;
 using Terraria.ID;
+using Terraria.Localization;
 using Terraria.ModLoader;
 
 namespace CsGuide;
@@ -17,6 +18,7 @@ public sealed class CsGuideMod : Mod
     static ILog Log => ModContent.GetInstance<CsGuideMod>().Logger;
 
     static Rectangle option1, option2;
+    static string label1 = "", label2 = "";
 
     public override void Load()
     {
@@ -30,6 +32,9 @@ public sealed class CsGuideMod : Mod
         orig(self, ref text, ref texture, ref text2, ref texture2, ref cost, ref happiness);
         option1 = GUITransactionButton.GetRegion(NPCDialogue_Layout.Instance.Option1);
         option2 = GUITransactionButton.GetRegion(NPCDialogue_Layout.Instance.Option2);
+        string? first = text, second = text2;
+        label1 = first ?? "";
+        label2 = second ?? "";
     }
 
     static void Report(string name, bool ok, string detail = "")
@@ -200,7 +205,8 @@ public sealed class CsGuideMod : Mod
                 step = 7;
                 break;
             case 7 when frame == waited + 40:
-                Tap(option2);
+                Log.Info($"csguide guide buttons: {label1} | {label2}");
+                Tap(label1 == Language.GetTextValue("LegacyInterface.25") ? option1 : option2);
                 step = 8;
                 break;
             case 8:
