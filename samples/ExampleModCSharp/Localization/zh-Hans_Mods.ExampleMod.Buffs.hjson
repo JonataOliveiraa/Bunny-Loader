@@ -1,0 +1,40 @@
+AbsorbTeamDamageBuff:
+{
+    DisplayName: 吸收队伍伤害增益
+    Description: "受到伤害的 {0}% 会转移给另一名玩家"
+}
+AnimatedBuff:
+{
+    DisplayName: 动画增益
+    Description: 带动画，并使所有伤害提高 {0}%。
+}
+ExampleCrowdControlledDebuff:
+{
+    DisplayName: 示例控制减益
+    Description: 你无法移动手臂和腿
+}
+ExampleDodgeBuff:
+{
+    DisplayName: 示例闪避增益
+    Description: 你会闪避下一次攻击
+}
+ExampleGravityDebuff:
+{
+    DisplayName: 示例重力减益
+    Description: 重力乱套了。
+}
+ExampleJavelinDebuff:
+{
+    DisplayName: 示例标枪减益
+    Description: 正在失去生命
+}
+ExampleWeaponImbue:
+{
+    DisplayName: 示例武器灌注
+    Description: "{$Items.ExampleFlask.Tooltip}"
+}
+ExampleWhipAdvancedPlayerBuff:
+{
+    DisplayName: 示例挥鞭！
+    Description: 鞭子速度提高
+}

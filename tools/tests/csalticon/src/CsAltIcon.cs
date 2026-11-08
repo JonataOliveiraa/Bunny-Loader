@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using ReLogic.Content;
 using Terraria;
+using Terraria.GameContent;
 using Terraria.ID;
 using Terraria.ModLoader;
 using Control = QuickActionButton_Layout.QuickActionControl;
@@ -35,6 +36,13 @@ public class CustomIconWand : IconWand
     public static Asset<Texture2D> Alternative => ModContent.Request<Texture2D>($"Terraria/Images/Item_{ItemID.LifeCrystal}");
 
     public override Asset<Texture2D> AltFunctionIcon(Player player, bool alternative) => alternative ? Alternative : Normal;
+}
+
+public class SwapIconWand : IconWand
+{
+    public static Asset<Texture2D> Swap => ModContent.Request<Texture2D>("Terraria/Images/UI/ExtraIcons/ItemSwap1");
+
+    public override Asset<Texture2D> AltFunctionIcon(Player player, bool alternative) => Swap;
 }
 
 public sealed class CsAltIconMod : Mod
@@ -179,6 +187,7 @@ public sealed class CsAltIconMod : Mod
                     new("default", plain, false),
                     new("custom off", custom, false),
                     new("custom on", custom, true),
+                    new("swap icon", ModContent.ItemType<SwapIconWand>(), false),
                     new("vanilla near npc", staff, false, Near: Near.Npc),
                     new("mod near npc", plain, false, Near: Near.Npc),
                     new("vanilla tap", staff, false, Tap: true),
@@ -254,8 +263,16 @@ public sealed class CsAltIconMod : Mod
                 Report("the game draws its swap icon on Interact for its own alternative item", swapDrawn && swapId.EndsWith("ItemSwap1"), seen);
                 return;
             case "default":
-                Report("a mod item with AltFunctionUse gets the game's swap icon on Interact", swapDrawn && swapId.EndsWith("ItemSwap1"), seen);
+                Report("a mod item with AltFunctionUse shows its own icon on Interact", swapDrawn && swapTexture == TextureAssets.Item[ModContent.ItemType<IconWand>()].Value.Pointer, seen);
                 return;
+            case "swap icon":
+            {
+                Texture2D game = VirtualInputController_Layout.Instance.ItemSwap.IconTexture.Texture;
+                Texture2D asked = SwapIconWand.Swap.Value;
+                Report("AltFunctionIcon can ask for the game's swap arrows", swapDrawn && swapTexture == asked.Pointer && asked.Width == game.Width && asked.Height == game.Height,
+                    $"{seen} asked={asked.Width}x{asked.Height} game={game.Width}x{game.Height} same={asked.Pointer == game.Pointer}");
+                return;
+            }
             case "custom off":
                 Report("AltFunctionIcon replaces the icon in the normal mode", swapDrawn && swapTexture == CustomIconWand.Normal.Value.Pointer, seen);
                 return;

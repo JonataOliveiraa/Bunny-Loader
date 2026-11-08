@@ -1,0 +1,14 @@
+ExampleBuilderToggleDimmedLight:
+{
+    OnText: 示例开启
+    OffText: 示例关闭
+}
+ExampleBuilderToggle:
+{
+    CurrentColor: 颜色：{0}
+    Color_0: 红色
+    Color_1: 蓝色
+    Color_2: 绿色
+    Color_3: 黄色
+}
+FreeBaitBuilderToggle.NameText: 免费鱼饵：{0}

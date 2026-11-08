@@ -1,0 +1,92 @@
+ActiveSoundShowcaseProjectile:
+{
+    DisplayName: Снаряд витрины активного звука
+}
+ExampleAdvancedFlailProjectile:
+{
+    DisplayName: Пример продвинутого цепа
+}
+ExampleArrowProjectile:
+{
+    DisplayName: Снаряд примера стрелы
+}
+ExampleCloneProjectile:
+{
+    DisplayName: Мяумур V2
+}
+ExampleCustomSwingProjectile:
+{
+    DisplayName: Снаряд примера особого взмаха
+}
+ExampleExplosive:
+{
+    DisplayName: Пример взрывчатки
+}
+ExampleGravityDebuffBullet:
+{
+    DisplayName: Пример пули гравитационного дебаффа
+}
+ExampleHeldProjectileWeaponProjectile:
+{
+    DisplayName: Снаряд примера оружия с удерживаемым снарядом
+}
+ExampleHomingProjectile:
+{
+    DisplayName: Пример самонаводящегося снаряда
+}
+ExampleInteractableProjectile:
+{
+    DisplayName: Пример интерактивного снаряда
+}
+ExampleJavelinProjectile:
+{
+    DisplayName: Снаряд примера метательного копья
+}
+ExampleJoustingLanceProjectile:
+{
+    DisplayName: Пример рыцарского копья
+}
+ExamplePaperAirplaneProjectile:
+{
+    DisplayName: Снаряд примера бумажного самолётика
+}
+ExamplePiercingProjectile:
+{
+    DisplayName: Пример пробивающего снаряда
+}
+ExampleWhipProjectileAdvanced:
+{
+    DisplayName: Снаряд примера продвинутого кнута
+}
+ExampleGrenadeProjectile:
+{
+    DisplayName: Снаряд примера гранаты
+}
+ExampleProximityMineProjectile:
+{
+    DisplayName: Снаряд примера мины
+}
+ExampleRocketProjectile:
+{
+    DisplayName: Снаряд примера ракеты
+}
+ExampleSnowmanRocketProjectile:
+{
+    DisplayName: Снаряд примера ракеты-снеговика
+}
+ExampleSolutionProjectile:
+{
+    DisplayName: Пример спрея
+}
+ExampleHellSolutionProjectile:
+{
+    DisplayName: Снаряд примера адского раствора
+}
+ExampleSandBallFallingProjectile:
+{
+    DisplayName: Пример песчаного шара
+}
+ExampleSandBallGunProjectile:
+{
+    DisplayName: "{$Mods.ExampleMod.Projectiles.ExampleSandBallFallingProjectile.DisplayName}"
+}

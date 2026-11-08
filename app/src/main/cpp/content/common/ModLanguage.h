@@ -6,6 +6,7 @@
 namespace bl::runtime {
 
 Il2CppObject* modLanguageText(const std::string& key, const content::CultureNames* names, bool replace);
+Il2CppObject* trackedLanguageText(const std::string& key, const content::CultureNames& names, const std::string& fallback);
 void tickModLanguage();
 
 }

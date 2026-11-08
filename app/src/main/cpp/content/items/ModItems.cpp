@@ -6,6 +6,7 @@
 #include "hook/HookManager.h"
 #include "hook/CodePatch.h"
 #include "content/common/ContentAssets.h"
+#include "content/common/ModLanguage.h"
 #include "content/common/GameRefs.h"
 #include "content/common/TypeTables.h"
 #include "content/items/ModItemSorting.h"
@@ -224,8 +225,7 @@ void applyTooltip(int type, const Entry& reg) {
     const Refs& r = refs();
     if (reg.def.tooltips.empty() || !r.tooltipCache || !r.tooltipFromKey) return;
     const std::string key = "BunnyLoader.ItemTooltip." + reg.def.mod + "." + reg.def.name;
-    const std::string text = content::textForCulture(reg.def.tooltips, "");
-    if (!content::makeLocalizedText(key, text)) return;
+    if (!trackedLanguageText(key, reg.def.tooltips, "")) return;
     auto& a = il2cpp::api();
     int16_t id = static_cast<int16_t>(type);
     void* args[2] = {&id, a.string_new(key.c_str())};
@@ -236,8 +236,7 @@ void applyTooltip(int type, const Entry& reg) {
 }
 
 void applyName(int type, const Entry& reg) {
-    const std::string name = content::textForCulture(reg.def.names, reg.def.name);
-    if (Il2CppObject* text = content::makeLocalizedText("ItemName." + reg.def.name, name)) {
+    if (Il2CppObject* text = trackedLanguageText("ItemName." + reg.def.name, reg.def.names, reg.def.name)) {
         content::setTableElement(refs().nameCache, type, text);
     }
 }

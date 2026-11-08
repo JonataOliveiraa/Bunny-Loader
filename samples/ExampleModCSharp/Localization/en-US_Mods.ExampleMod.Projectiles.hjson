@@ -74,3 +74,19 @@ ExampleSnowmanRocketProjectile:
 {
     DisplayName: Example Snowman Rocket Projectile
 }
+ExampleSolutionProjectile:
+{
+    DisplayName: Example Spray
+}
+ExampleHellSolutionProjectile:
+{
+    DisplayName: Example Hell Solution Projectile
+}
+ExampleSandBallFallingProjectile:
+{
+    DisplayName: Example Sand Ball
+}
+ExampleSandBallGunProjectile:
+{
+    DisplayName: "{$Mods.ExampleMod.Projectiles.ExampleSandBallFallingProjectile.DisplayName}"
+}

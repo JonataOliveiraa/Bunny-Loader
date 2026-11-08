@@ -1,0 +1,40 @@
+AbsorbTeamDamageBuff:
+{
+    DisplayName: Эффект поглощения урона команды
+    Description: "{0}% получаемого урона перенаправляется другому игроку"
+}
+AnimatedBuff:
+{
+    DisplayName: Анимированный эффект
+    Description: Анимируется и увеличивает весь урон на {0}%.
+}
+ExampleCrowdControlledDebuff:
+{
+    DisplayName: Пример дебаффа обездвиживания
+    Description: Вы не можете двигать руками и ногами
+}
+ExampleDodgeBuff:
+{
+    DisplayName: Пример эффекта уклонения
+    Description: Вы уклонитесь от следующей атаки
+}
+ExampleGravityDebuff:
+{
+    DisplayName: Пример гравитационного дебаффа
+    Description: Гравитация сошла с ума.
+}
+ExampleJavelinDebuff:
+{
+    DisplayName: Пример дебаффа метательного копья
+    Description: Теряет здоровье
+}
+ExampleWeaponImbue:
+{
+    DisplayName: Пример зачарования оружия
+    Description: "{$Items.ExampleFlask.Tooltip}"
+}
+ExampleWhipAdvancedPlayerBuff:
+{
+    DisplayName: Пример хлёсткости!
+    Description: Скорость кнута увеличена
+}

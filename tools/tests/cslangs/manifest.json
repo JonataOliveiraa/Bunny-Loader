@@ -1,0 +1,17 @@
+{
+  "uid": "7a3d9e15-0c6b-4f28-8e41-b52c9d6a1f07",
+  "id": "CsLangs",
+  "name": "Test: Example Mod languages",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Switches the game to Portuguese, Russian, Chinese and English and checks Example Mod item, buff and projectile names in each.",
+  "description": "Compile with tools/tests/build-cs.sh cslangs. Run with SAMPLE=1 tools/tests/run-cs.sh cslangs.",
+  "updated": "2026-11-08",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

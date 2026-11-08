@@ -1,0 +1,17 @@
+{
+  "uid": "c41e7b20-5d93-4f8a-b6a2-0e9d17f3c5a8",
+  "id": "CsGlyph",
+  "name": "Test: touch glyphs in tooltips",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Draws the phone's Interact glyph for a mod item with a right-click use and for vanilla items, and checks which icon the game draws.",
+  "description": "Compile with tools/tests/build-cs.sh csglyph. Run with SAMPLE=1 tools/tests/run-taps.sh csglyph.",
+  "updated": "2026-11-08",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

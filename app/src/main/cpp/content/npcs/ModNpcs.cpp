@@ -7,6 +7,7 @@
 #include "il2cpp/Signature.h"
 #include "hook/CodePatch.h"
 #include "content/common/ContentAssets.h"
+#include "content/common/ModLanguage.h"
 #include "content/common/GameRefs.h"
 #include "content/npcs/ModTownNpcs.h"
 #include "content/npcs/ModBossHeads.h"
@@ -155,8 +156,7 @@ bool invoke(const MethodInfo* m, void* self, void** args, const char* what) {
 }
 
 void applyName(int type, const Entry& e) {
-    const std::string text = content::textForCulture(e.def.names, e.def.name);
-    if (Il2CppObject* t = content::makeLocalizedText("NPCName." + e.def.name, text)) {
+    if (Il2CppObject* t = trackedLanguageText("NPCName." + e.def.name, e.def.names, e.def.name)) {
         content::setTableElement(refs().names, type, t);
     }
 }

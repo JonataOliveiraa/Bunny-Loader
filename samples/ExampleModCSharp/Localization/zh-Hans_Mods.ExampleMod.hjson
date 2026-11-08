@@ -1,0 +1,1323 @@
+MessageInfo: {
+	UnstablePylonIsOff: 不稳定晶塔已关闭。
+	NearbyUnstablePylonIsOff: 附近的不稳定晶塔已关闭。
+}
+
+Invasions: {
+	PaladinCrusade: {
+		DisplayName: 圣骑士十字军
+		Start: 圣骑士十字军开始进攻了！
+		Fail: 圣骑士们在黎明时撤退了。
+		Complete: 圣骑士十字军被击退了！
+	}
+
+	GraveLegion: {
+		DisplayName: 墓穴军团
+	}
+}
+
+Items: {
+	ExampleSandBlock: {
+		DisplayName: 示例沙块
+		Tooltip: 这是一块模组沙块
+	}
+
+	ExampleSandRod: {
+		DisplayName: 示例沙杖
+		Tooltip: 用魔法移动沙子
+	}
+
+	ExampleSolution: {
+		DisplayName: 示例溶液
+		Tooltip:
+			'''
+			由环境改造枪使用
+			传播示例
+			'''
+	}
+
+	ExampleHellSolution: {
+		DisplayName: 示例地狱溶液
+		Tooltip:
+			'''
+			由环境改造枪使用
+			传播地狱
+			'''
+	}
+
+	ExampleDye: {
+		DisplayName: 示例染料
+		Tooltip: ""
+	}
+
+	ExampleHairDye: {
+		DisplayName: 示例染发剂
+		Tooltip: ""
+	}
+
+	ExamplePressurePlate: {
+		DisplayName: 示例称重压力板
+		Tooltip: "{$ItemTooltip.WeightedPressurePlateCyan}"
+	}
+
+	ExamplePylonItemAdvanced: {
+		DisplayName: 不稳定晶塔
+		Tooltip: 会随机开关，但无需城镇 NPC、在任何环境中都能传送过去！
+	}
+
+	HallowedFossilTileItem: {
+		DisplayName: 神圣化石物块物品
+		Tooltip: ""
+	}
+
+	CorruptFossilTileItem: {
+		DisplayName: 腐化化石物块物品
+		Tooltip: ""
+	}
+
+	CrimsonFossilTileItem: {
+		DisplayName: 猩红化石物块物品
+		Tooltip: ""
+	}
+
+	HallowedFossilWallItem: {
+		DisplayName: 神圣化石墙物品
+		Tooltip: ""
+	}
+
+	CorruptFossilWallItem: {
+		DisplayName: 腐化化石墙物品
+		Tooltip: ""
+	}
+
+	CrimsonFossilWallItem: {
+		DisplayName: 猩红化石墙物品
+		Tooltip: ""
+	}
+
+	ConsecratedAxe: {
+		DisplayName: 圣化之斧
+		Tooltip:
+			'''
+			召唤圣骑士十字军
+			只能在夜间使用
+			'''
+	}
+
+	GraveBell: {
+		DisplayName: 墓穴之钟
+		Tooltip:
+			'''
+			召唤墓穴军团
+			三波亡灵
+			'''
+	}
+
+	ActiveSoundShowcase: {
+		DisplayName: 主动音效展示
+		Tooltip: ""
+	}
+
+	ExampleMultiUseItem: {
+		DisplayName: 示例多次使用物品
+		Tooltip: 可以使用 {0} 次
+	}
+
+	PlanteraItem: {
+		DisplayName: 世纪之花
+		Tooltip: 丛林之怒
+	}
+
+	ExampleBasicFish: {
+		DisplayName: 示例普通鱼
+		Tooltip: ""
+	}
+
+	ExampleDataItem: {
+		DisplayName: 烫手山芋
+		Tooltip: 计时结束时，会发生神奇的事情……
+		Countdown: 你还剩 {0} 秒！
+	}
+
+	ExamplePaperAirplane: {
+		DisplayName: 示例纸飞机
+		Tooltip: 这是一架模组纸飞机。
+	}
+
+	ExampleCanStackItem: {
+		DisplayName: 示例 CanStack 物品：礼物袋
+		Tooltip: "{$CommonItemTooltip.RightClickToOpen}"
+		CraftedPlayerNameCannotOpen: 这个袋子是你制作的，你打不开！
+		CraftedPlayerNameOther: 这是来自 {0} 的袋子，打开它领取礼物！
+		CraftedPlayerNameEmpty: 这个袋子不是制作出来的，它什么也不会做
+	}
+
+	ExampleStackableDurabilityItem: {
+		DisplayName: 示例可堆叠耐久物品
+		Tooltip: ""
+		Durability: 耐久度：{0}%
+	}
+
+	ExampleFlask: {
+		DisplayName: 示例药剂瓶
+		Tooltip: 近战和鞭子攻击会降低敌人的防御
+	}
+
+	CustomItemDrawingShowcase: {
+		DisplayName: 自定义物品绘制展示
+		Tooltip: 在物品栏中点击“打开”可切换绘制模式示例
+		RightClick: 切换到 drawMode #{0}：{1}
+		DrawMode_0: 绘制覆盖层/发光遮罩
+		DrawMode_1: 缩放绘制，产生类似魂类物品的脉动效果
+		DrawMode_2: 在物品后方绘制贴图
+		DrawMode_3: 绘制类似宝藏袋的高亮边框
+		DrawMode_4: 让物品左右摇摆
+	}
+
+	HoldStyleShowcase: {
+		DisplayName: 手持样式展示
+		Tooltip:
+			'''
+			此物品展示每一种 HoldStyle。
+			{InputTrigger_InteractWithTile} 切换 HoldStyles。
+			'''
+		Switching: 切换到 ItemHoldStyleID #{0}
+		ThisIs: 这是 ItemHoldStyleID #{0}
+	}
+
+	UseStyleShowcase: {
+		DisplayName: 使用样式展示
+		Tooltip:
+			'''
+			此物品展示每一种 UseStyle。
+			{InputTrigger_InteractWithTile} 切换 UseStyles。
+			'''
+		Switching: 切换到 ItemUseStyleID #{0}
+		ThisIs: 这是 ItemUseStyleID #{0}
+	}
+
+	ShimmerShowcaseConditions: {
+		DisplayName: 微光展示：条件
+		Tooltip: ""
+	}
+
+	ShimmerShowcaseCustomShimmerResult: {
+		DisplayName: 微光展示：自定义微光结果
+		Tooltip: ""
+	}
+
+	ExampleCustomAISlimeNPCBanner: {
+		DisplayName: "{$Mods.ExampleMod.NPCs.ExampleCustomAISlimeNPC.DisplayName}旗"
+		Tooltip: "{$CommonItemTooltip.BannerBonus}{$Mods.ExampleMod.NPCs.ExampleCustomAISlimeNPC.DisplayName}"
+	}
+
+	ExampleBullet: {
+		DisplayName: 示例子弹
+		Tooltip: 这是一种模组子弹。
+	}
+
+	ExampleFishingRod: {
+		DisplayName: 示例钓竿
+		Tooltip:
+			'''
+			一次抛出多条鱼线。可以在熔岩中钓鱼。
+			鱼线永远不会断。
+			'''
+	}
+
+	ExampleHookItem: {
+		DisplayName: 示例钩爪
+		Tooltip: 可以钩住树木
+	}
+
+	ExampleQuestFish: {
+		DisplayName: 倒立鱼
+		Tooltip: 倒立站着时在任何地方都能钓到
+		Description: 我听说有一种倒着游的鱼。据说你得自己倒立才能找到它。挂在我的天花板上一定很好看。快去钓吧！
+		CatchLocation: 倒立站着时在任何地方都能钓到。
+	}
+
+	ExampleItem: {
+		DisplayName: 示例物品
+		Tooltip: 物品描述
+	}
+
+	ExampleMeleeWeapon: {
+		DisplayName: 剑
+		Tooltip: ""
+	}
+
+	ExampleHelmet: {
+		DisplayName: 示例头盔
+		Tooltip: 这是一顶模组头盔。
+		SetBonus: 造成的伤害提高 {0}%
+	}
+
+	ExampleBreastplate: {
+		DisplayName: 示例胸甲
+		Tooltip:
+			'''
+			这是一件模组胸甲。
+			对“着火了！”免疫
+			最大魔力值增加 20
+			仆从数量上限增加 1
+			'''
+	}
+
+	ExampleLeggings: {
+		DisplayName: 示例护腿
+		Tooltip:
+			'''
+			这是一条模组护腿。
+			移动速度提高 5%
+			'''
+	}
+
+	ExampleRobe: {
+		DisplayName: 示例长袍
+		Tooltip: ""
+	}
+
+	ExampleLifeFruit: {
+		DisplayName: 示例生命果
+		Tooltip:
+			'''
+			永久增加 {0} 点最大生命值
+			最多可使用 {1} 个
+			'''
+	}
+
+	ExampleManaCrystal: {
+		DisplayName: 示例魔力水晶
+		Tooltip:
+			'''
+			永久增加 {0} 点最大魔力值
+			最多可使用 {1} 个
+			'''
+	}
+
+	ExampleImmunityAccessory: {
+		DisplayName: 示例免疫饰品
+		Tooltip: 这是一条模组十字项链，能让无敌时间延长 1 秒。
+	}
+
+	ExampleCratePotion: {
+		DisplayName: 示例宝匣药水
+		Tooltip:
+			'''
+			提高钓到宝匣的几率
+			可与宝匣药水叠加
+			'''
+	}
+
+	ExampleBuffPotion: {
+		DisplayName: 示例增益药水
+		Tooltip: 提供少量防御增益。
+	}
+
+	ExampleExtraJumpAccessory: {
+		DisplayName: 示例额外跳跃饰品
+		Tooltip: 让使用者在空中额外跳跃一次
+	}
+
+	ExampleWings: {
+		DisplayName: 示例翅膀
+		Tooltip: 这是一对模组翅膀。
+	}
+
+	ExampleShield: {
+		DisplayName: 示例盾牌
+		Tooltip: 这是一面模组盾牌。
+	}
+
+	ExampleCustomDamageWeapon: {
+		DisplayName: 示例自定义伤害武器
+		Tooltip: ""
+	}
+
+	ExampleModifiedProjectilesItem: {
+		DisplayName: 示例修改射弹物品
+		Tooltip: ""
+	}
+
+	ExampleWall: {
+		DisplayName: 示例墙
+		Tooltip: 这是一面模组墙。
+	}
+
+	ExampleWallAdvanced: {
+		DisplayName: 示例高级墙
+		Tooltip: 这是一面高级模组墙。
+	}
+
+	ExamplePylonItem: {
+		DisplayName: 示例晶塔
+		Tooltip:
+			'''
+			必须位于示例地表或地下环境中才能使用。
+			不需要城镇 NPC！
+			'''
+	}
+
+	ExampleBed: {
+		DisplayName: 示例床
+		Tooltip: 这是一张模组床。
+	}
+
+	ExampleChair: {
+		DisplayName: 示例椅子
+		Tooltip: 这是一把模组椅子。
+	}
+
+	ExampleSignItem: {
+		DisplayName: 示例标牌
+		Tooltip: ""
+	}
+
+	BasicTileEntityItem: {
+		DisplayName: 基础物块实体物品
+		Tooltip: 收集雨水。装满后与其互动可获得一桶水。
+	}
+
+	ExampleChest: {
+		DisplayName: 示例箱子
+		Tooltip: 这是一个模组箱子。
+	}
+
+	ExampleChestKey: {
+		DisplayName: 示例箱子钥匙
+		Tooltip: ""
+	}
+
+	ExampleDresser: {
+		DisplayName: 示例梳妆台
+		Tooltip: 这是一个模组梳妆台。
+	}
+
+	ExampleGun: {
+		DisplayName: 示例手枪
+		Tooltip: 这是一把模组手枪。
+	}
+
+	ExampleShotgun: {
+		DisplayName: 示例霰弹枪
+		Tooltip: 这是一把模组霰弹枪。
+	}
+
+	ExampleMinigun: {
+		DisplayName: 示例迷你鲨
+		Tooltip: 这是一把模组机枪。
+	}
+
+	ExampleSword: {
+		DisplayName: 示例剑
+		Tooltip: 这是一把模组剑。
+	}
+
+	ExampleDualUseWeapon: {
+		DisplayName: 示例双用武器
+		Tooltip: 这把武器在 {InputTrigger_InteractWithTile} 时会做些特别的事。
+	}
+
+	ExampleMagicWeapon: {
+		DisplayName: 示例魔法武器
+		Tooltip: 这是一把示例魔法武器
+	}
+
+	ExampleRiftStaff: {
+		DisplayName: 示例裂隙法杖
+		Tooltip:
+			'''
+			打开一道扭曲周围世界的裂隙
+			屏幕效果示例：自带 .frag 着色器
+			'''
+	}
+
+	ExampleLastPrism: {
+		DisplayName: 示例终极棱镜
+		Tooltip:
+			'''
+			十道光束汇聚成一道
+			命中处的屏幕会泛起涟漪
+			'''
+	}
+
+	ExampleStatBonusAccessory: {
+		DisplayName: 示例属性加成饰品
+		Tooltip:
+			'''
+			伤害提高 25%，与其他伤害加成相加
+			乘算伤害倍率提高 12%；与其他伤害加成相乘
+			所有武器的基础伤害增加 4
+			所有武器的最终伤害增加 5
+			近战暴击率提高 10%
+			远程射击速度提高 15%
+			魔法盔甲穿透 5 点
+			示例击退提高 100%
+			'''
+	}
+
+	ExampleShortsword: {
+		DisplayName: 示例短剑
+		Tooltip: ""
+	}
+
+	ExampleSpear: {
+		DisplayName: 示例长矛
+		Tooltip: 这是一把模组长矛
+	}
+
+	ExampleFlail: {
+		DisplayName: 示例链锤
+		Tooltip: 这是一把行为普通的模组链锤。
+	}
+
+	ExampleYoyo: {
+		DisplayName: 示例悠悠球
+		Tooltip: 这是一个行为普通的模组悠悠球。它不会获得负面前缀。
+	}
+
+	ExampleWhip: {
+		DisplayName: 示例鞭子
+		Tooltip:
+			'''
+			{$CommonItemTooltip.SummonTagDamage}
+			{$CommonItemTooltip.Whips}
+			'''
+	}
+
+	ExampleSwingingEnergySword: {
+		DisplayName: 示例能量挥剑
+		Tooltip: ""
+	}
+
+	ExamplePickaxe: {
+		DisplayName: 示例镐
+		Tooltip: 这是一把模组镐。
+	}
+
+	ExampleHamaxe: {
+		DisplayName: 示例锤斧
+		Tooltip: 这是一把模组锤斧。
+	}
+
+	ExampleDrill: {
+		DisplayName: 示例钻头
+		Tooltip: ""
+	}
+
+	ExampleRocketLauncher: {
+		DisplayName: 示例火箭发射器
+		Tooltip: ""
+	}
+
+	ExampleMultiplePrefixCategoryWeapon: {
+		DisplayName: 示例多前缀类别武器
+		Tooltip: 可以获得并保留近战和魔法两类前缀
+	}
+
+	ExampleGolfBall: {
+		DisplayName: 示例高尔夫球
+		Tooltip: ""
+	}
+
+	ExampleAdvancedAnimatedProjectileItem: {
+		DisplayName: 示例高级动画射弹物品
+		Tooltip: ""
+	}
+
+	ExampleSimpleMinionItem: {
+		DisplayName: 示例仆从物品
+		Tooltip: 召唤一个示例仆从为你作战
+	}
+
+	ExampleSentryItem: {
+		DisplayName: 示例哨兵物品
+		Tooltip: 召唤一个示例哨兵为你作战
+	}
+
+	ExamplePetItem: {
+		DisplayName: "{$Common.PaperAirplane}"
+		Tooltip:
+			'''
+			召唤一架{$Mods.ExampleMod.Common.PaperAirplane}，漫无目的地跟在你身后
+			第二行！
+			'''
+	}
+
+	ExampleLightPetItem: {
+		DisplayName: 烦人的光
+		Tooltip: 召唤一团烦人的光
+	}
+
+	ExampleMinecart: {
+		DisplayName: 示例矿车
+		Tooltip: ""
+	}
+
+	ExampleBoots: {
+		DisplayName: 示例靴子
+		Tooltip:
+			'''
+			可以飞行、超快速奔跑，在沙地上跑得更快，在冰面上更灵活
+			移动速度提高 {0}%
+			可以在水、蜂蜜、熔岩和微光上行走
+			对火焰物块免疫，并获得 {1} 秒熔岩免疫
+			减少接触熔岩受到的伤害
+			防止摔落伤害
+			在身后留下火焰轨迹
+			'''
+	}
+
+	ExampleResourceAccessory: {
+		DisplayName: 示例资源饰品
+		Tooltip:
+			'''
+			大幅提高示例资源的恢复速度
+			示例资源上限增加 {0}
+			扩大示例资源拾取物的拾取范围
+			'''
+	}
+
+	ExampleCustomResourceWeapon: {
+		DisplayName: 示例自定义资源武器
+		Tooltip: ""
+		UsesXExampleResource: 消耗 {0} 点示例资源
+	}
+
+	ExampleResourcePickup: {
+		DisplayName: 示例资源拾取物
+		Tooltip: ""
+	}
+
+	ExampleCostume: {
+		DisplayName: 示例护符
+		Tooltip:
+			'''
+			在城镇 NPC 附近把持有者变成方块人
+			方块人在水中会颜色反转
+			'''
+	}
+
+	ExampleBeard: {
+		DisplayName: 示例胡子
+		Tooltip: 这是一把颜色与头发相同的模组胡子。
+	}
+
+	ExampleCustomDrawWings: {
+		DisplayName: 示例自定义绘制翅膀
+		Tooltip: ""
+	}
+
+	WaspNest: {
+		DisplayName: 胡蜂巢
+		Tooltip:
+			'''
+			{$ItemTooltip.HiveBackpack}
+			受到伤害时释放蜜蜂
+			'''
+	}
+
+	ExampleSoul: {
+		DisplayName: 示例之魂
+		Tooltip: "“示例生物的精华”"
+	}
+
+	ExampleBar: {
+		DisplayName: 示例锭
+		Tooltip: ""
+	}
+
+	ExampleTooltipsItem: {
+		DisplayName: 示例提示物品
+		Tooltip:
+			'''
+			你今天感觉怎么样？
+			[c/FF0000:颜色][c/00FF00:很][c/0000FF:有趣，]物品也一样：[i:5236][i:5230][i:1508]
+			'''
+		RemoveMe: 这条提示不会在游戏中显示
+		Face: 我感觉很好！
+	}
+
+	ExampleTorch: {
+		DisplayName: 示例火把
+		Tooltip: 这是一支模组火把。
+	}
+
+	ExampleWaterTorch: {
+		DisplayName: 示例水火把
+		Tooltip: "{$ItemTooltip.IchorTorch}"
+	}
+
+	ExampleLamp.DisplayName: 示例灯
+
+	ExampleCampfire: {
+		DisplayName: 示例篝火
+		Tooltip: "{$ItemTooltip.Campfire}"
+	}
+
+	ExampleChandelier: {
+		DisplayName: 示例吊灯
+		Tooltip: ""
+	}
+
+	ExampleClock: {
+		DisplayName: 示例时钟
+		Tooltip: 这是一座模组时钟。
+	}
+
+	ExampleDoor: {
+		DisplayName: 示例门
+		Tooltip: 这是一扇模组门。
+	}
+
+	ExamplePlatform: {
+		DisplayName: 示例平台
+		Tooltip: 这是一块模组平台。
+	}
+
+	ExampleSink: {
+		DisplayName: 示例水槽
+		Tooltip:
+			'''
+			可作为水、熔岩和蜂蜜来源
+			“可惜（还）没有示例液体”
+			'''
+	}
+
+	ExampleTable: {
+		DisplayName: 示例桌子
+		Tooltip: 这是一张模组桌子。
+	}
+
+	ExampleToilet: {
+		DisplayName: 示例马桶
+		Tooltip: 这是一个模组马桶。
+	}
+
+	ExampleWideBanner: {
+		DisplayName: 示例宽旗帜
+		Tooltip: 这面旗帜比其他旗帜都宽！
+	}
+
+	ExampleCutTile: {
+		DisplayName: 易碎巨石陷阱
+		Tooltip: ""
+	}
+
+	ExampleGem: {
+		DisplayName: 示例宝石
+		Tooltip: ""
+	}
+
+	ExampleGemsparkBlock: {
+		DisplayName: 示例晶莹宝石块
+		Tooltip: ""
+	}
+
+	ExampleHerbSeeds: {
+		DisplayName: 示例草药种子
+		Tooltip: ""
+	}
+
+	ExampleLivingFire: {
+		DisplayName: 示例活火块
+		Tooltip: ""
+	}
+
+	ExampleSlopedTile: {
+		DisplayName: 示例斜坡物块
+		Tooltip: '''
+			可以做成斜坡但不是实心的示例物块
+			玩家朝指定方向穿过时会触发
+			'''
+	}
+
+	ExampleStatue: {
+		DisplayName: 示例雕像
+		Tooltip: 示例素之力在这条无生命的鱼体内流动
+	}
+
+	ExampleTrap: {
+		DisplayName: 示例陷阱
+		Tooltip: ""
+	}
+
+	ExampleFishingCrate: {
+		DisplayName: 示例钓鱼宝匣
+		Tooltip: "{$CommonItemTooltip.RightClickToOpen}"
+	}
+
+	ExampleAnimatedTileItem: {
+		DisplayName: 瓶中红萤火虫
+		Tooltip: ""
+	}
+
+	ExampleAnimatedGlowmaskTileItem: {
+		DisplayName: 示例动画发光遮罩物块物品
+		Tooltip: ""
+	}
+
+	ExampleTransparentShapedTileItem: {
+		DisplayName: 火焰网
+		Tooltip: "“碰一下就会燃烧！！”"
+	}
+
+	TileObjectDataShowcaseStyle0: {
+		DisplayName: TileObjectData 展示 样式 0 - 金
+		Tooltip: 放置在金矿物块之间
+	}
+
+	TileObjectDataShowcaseStyle1: {
+		DisplayName: TileObjectData 展示 样式 1 - 银
+		Tooltip: 放置在银矿物块之间
+	}
+
+	TileObjectDataShowcaseStyle2: {
+		DisplayName: TileObjectData 展示 样式 2 - 铜
+		Tooltip: 放置在铜矿物块之间
+	}
+
+	TileObjectDataShowcaseStyle3: {
+		DisplayName: TileObjectData 展示 样式 3 - ExampleBlock
+		Tooltip: 放置在 ExampleBlock 物块之间
+	}
+}
+
+Conditions: {
+	LowHealth: 低生命值时
+	InExampleBiome: 在示例环境中
+}
+
+DamageClasses: {
+	ExampleDamageClass: {
+		DisplayName: 示例伤害
+	}
+}
+
+Buffs: {
+	ExampleDefenseDebuff: {
+		DisplayName: 示例防御减益
+		Description: 防御降低 25%
+	}
+
+	ExampleCrateBuff: {
+		DisplayName: 示例宝匣
+		Description: 更容易钓到宝匣
+	}
+
+	ExampleDefenseBuff: {
+		DisplayName: 防御增益
+		Description: 防御增加 {0}
+	}
+
+	ExampleLifeRegenDebuff: {
+		DisplayName: 火焰减益
+		Description: 正在失去生命
+	}
+
+	ExampleSimpleMinionBuff: {
+		DisplayName: 示例仆从
+		Description: 示例仆从会为你作战
+	}
+
+	ExamplePetBuff: {
+		DisplayName: "{$Mods.ExampleMod.Common.PaperAirplane}"
+		Description: '''“让这只宠物成为你的榜样！”'''
+	}
+
+	ExampleLightPetBuff: {
+		DisplayName: 烦人的光
+		Description: 啊，好——烦——人
+	}
+
+	Blocky: {
+		DisplayName: 方块人
+		Description: 跳跃能力提高
+	}
+}
+
+ExampleGlobalBuff: {
+	RemainingTime: "[ExampleGlobalBuff] 剩余时间：{0}"
+	CannotCancel: 静止时无法取消这个增益！
+}
+
+GelGlobalItem: {
+	SpecialShiftClick: 在物品栏中按住 Shift 点击此物品，可获得随机颜色和稀有度！
+}
+
+Projectiles: {
+	ExampleBobber.DisplayName: 示例浮标
+	ExampleBullet.DisplayName: 示例子弹
+	ExampleInstancedProjectile.DisplayName: 示例实例射弹
+	ExampleHookProjectile.DisplayName: 示例钩爪
+	ExampleHookProjectile.DisplayName: 示例钩爪
+	ExampleLastPrismHoldout.DisplayName: 示例终极棱镜
+	ExampleLastPrismBeam.DisplayName: 示例终极棱镜光束
+	ExampleRiftProjectile.DisplayName: 裂隙
+	ExampleShortswordProjectile.DisplayName: 示例短剑
+	ExampleSpearProjectile.DisplayName: 长矛
+	ExampleFlailProjectile.DisplayName: 示例链锤
+	ExampleYoyoProjectile.DisplayName: 示例悠悠球射弹
+	ExampleWhipProjectile.DisplayName: 示例鞭子射弹
+	ExampleSwingingEnergySwordProjectile.DisplayName: 示例能量挥剑射弹
+	ExampleDrillProjectile.DisplayName: 示例钻头射弹
+	ExampleGolfBallProjectile.DisplayName: 示例高尔夫球
+	ExampleAdvancedAnimatedProjectile.DisplayName: 示例高级动画射弹
+	ExampleSimpleMinion.DisplayName: 示例仆从
+	ExampleSentry.DisplayName: 示例哨兵
+	ExampleSentryShot.DisplayName: 示例哨兵射击
+	ExamplePetProjectile.DisplayName: "{$Mods.ExampleMod.Common.PaperAirplane}"
+	ExampleLightPetProjectile.DisplayName: 烦人的光
+}
+
+NPCs: {
+	ExamplePerson: {
+		DisplayName: 示例人
+		Interactions.DayOnlyShopButton: 仅白天营业的商店
+	}
+	PartyZombie.DisplayName: 派对僵尸
+	ExampleCustomAISlimeNPC: {
+		DisplayName: 飘飘史莱姆
+		GotStomped: 你被踩扁了
+	}
+}
+
+DropConditions: {
+	Example: 白天
+}
+
+Bestiary: {
+	ExamplePerson_1: 示例人来自一个神秘的灰阶方块世界，来帮助你了解 tModLoader 的一切。
+	ExamplePerson_2: 由方块搭成，手臂如钢铁。日夜不停地举铁。
+	PartyZombie: 不知为何，这种僵尸特别喜欢到处撒彩纸。除此之外，它和普通僵尸一样。
+}
+
+Dialogue.ExamplePerson: {
+	StandardDialogue1: "有时我觉得自己和这里的其他人都不一样。"
+	StandardDialogue2: "你最喜欢什么颜色？我最喜欢白色和黑色。"
+	StandardDialogue3: "什么？我没有手臂和腿？哦，别傻了！"
+	TalkALot: "我跟你聊累了。我得走了。"
+}
+
+Biomes: {
+	ExampleSurfaceBiome: {
+		DisplayName: 示例地表
+		TownNPCDialogueName: 示例地表环境
+	}
+
+	ExampleUndergroundBiome: {
+		DisplayName: 示例地下
+		TownNPCDialogueName: 示例地下环境
+	}
+}
+
+Tiles: {
+	ExampleAnimatedTile.MapEntry: 瓶中红萤火虫
+	ExampleFishingCrate.MapEntry: 宝匣
+	ExampleHerb.MapEntry: 示例草药
+	ExampleExposedGem.MapEntry: 示例宝石
+	ExampleSign: {
+		DefaultSignText: 和我互动吧！
+		MapEntry: 示例标牌
+	}
+
+	BasicTileEntityTile: {
+		MapEntry: 基础物块实体物块
+		StatusText: 已装满：{0}%
+	}
+
+	ExampleChest: {
+		MapEntry0: 示例箱子
+		MapEntry1: 上锁的示例箱子
+		Locked: 这个箱子在白天固执地不肯打开。晚上再试试吧。
+	}
+
+	ExampleDresser.MapEntry: 示例梳妆台
+	ExampleOre.MapEntry: 示例矿石
+	ExampleWorkbench.MapEntry: 示例工作台
+	ExamplePylonTile.MapEntry: "{$Mods.ExampleMod.Items.ExamplePylonItem.DisplayName}"
+}
+
+Walls: {
+	ExampleWall.MapEntry: 示例墙
+	ExampleWallAdvanced.MapEntry: 示例高级墙
+	ExampleWallUnsafe.MapEntry: 示例墙
+}
+
+Commands: {
+	ExampleCoinsCommand: {
+		Description: 显示每分钟钱币界面
+	}
+
+	ExampleItemCommand: {
+		Usage:
+			'''
+			/item <类型|名称> [数量]
+			类型 — 物品的 ItemID。
+			名称 — 当前语言下的物品名称。
+			物品名称中的空格请用下划线代替。
+			'''
+		Description: 按名称或类型 ID 生成物品
+		Error_0: 至少需要一个参数。
+		Error_1: 未知物品 — 必须是有效名称，或 0 < 类型 < {0}
+		Error_2: 数量必须是整数，但收到的是：{0}
+	}
+
+	ExampleTimeCommand: {
+		Usage:
+			'''
+			/addTime numTicks
+			numTicks — 正数或负数的刻数（1 秒 = 60 刻）。
+			'''
+		Description: 增加 numTicks，让世界时间快进或倒退
+		Error_0: 至少需要一个参数。
+		Error_1: "{0} 不是有效的整数值。"
+	}
+
+	ModifyServerConfigValueCommand: {
+		Usage:
+			'''
+			/setSomeNumber value
+			value — 要赋给 ModConfigShowcaseAcceptClientChanges.SomeNumber 的数字
+			'''
+		Description: 设置 ModConfigShowcaseAcceptClientChanges.SomeNumber。展示命令如何修改 ModConfig 的值并保存配置。
+		Error_0: 至少需要一个参数。
+		Error_1: "{0} 不是有效的整数值。"
+	}
+}
+
+Achievements: {
+	PartyZombieKilled: {
+		FriendlyName: 派对破坏者
+		Description: 击败一只派对僵尸。
+	}
+
+	ManyGiantWormsKilled: {
+		FriendlyName: 蠕虫猎人
+		Description: 击败 5 只巨型蠕虫。
+	}
+}
+
+ExampleKeybindPlayer: {
+	RandomBuff: 刚刚按下了 ExampleMod 的 ModKeybind。玩家获得了 {0} 增益。
+	LearningExampleHeld: LearningExampleKeybind 按住了半秒
+	LearningExampleDoubleTap: LearningExampleKeybind 在四分之一秒内被双击
+}
+
+ExampleModWingSlot: {
+	Wings: 翅膀
+	WingsDye: 翅膀染料
+}
+
+Keybinds: {
+	RandomBuff.DisplayName: 随机增益
+	LearningExample.DisplayName: 学习示例
+}
+
+UI: {
+	ExampleCoinsUIState.Reset: 重置每分钟钱币计数器
+	ExampleResource: 示例资源：{0} / {1}
+}
+
+Common: {
+	PaperAirplane: 纸飞机
+}
+
+Prefixes: {
+	PowerTooltip: "{0:+0;-#} 力量"
+
+	ExamplePrefix: {
+		DisplayName: 示例前缀
+		AdditionalTooltip: 更多力量
+	}
+
+	ExampleDerivedPrefix: {
+		DisplayName: 示例派生前缀
+		AdditionalTooltip: 更多更多力量
+	}
+
+	ExampleAccessoryPrefix.DisplayName: 示例饰品前缀
+}
+Achievements.MinionBossKilled.Description: "击败仆从首领——一只被一圈朋友保护的巨眼。"
+Achievements.MinionBossKilled.FriendlyName: "仆从首领已被击败"
+Achievements.ManyExampleWormsKilled.Description: "好吧……我们懂了，现在请别再杀这些可怜的蠕虫了。"
+Achievements.ManyExampleWormsKilled.FriendlyName: "击杀了许多示例蠕虫"
+Achievements.AdvancedExampleAchievement.FriendlyName: "高级示例成就"
+Achievements.AdvancedExampleAchievement.Description: "这个成就的条件多得离谱，但很适合学习 ModAchievement 的高级功能。用熔岩蛙做尽一切可能的事。"
+Currencies.ExampleCustomCurrency: "示例物品"
+ExampleFishingPlayer.Wrong: "有点不对劲……"
+InfoDisplays.ExampleInfoDisplay.DisplayName: "仆从数量"
+InfoDisplays.ExampleInfoDisplay.CurrentMinions: "{0} 个仆从"
+InfoDisplays.ExampleInfoDisplay.NoMinions: "没有仆从"
+WeaponWithGrowingDamage.Level: "等级：{0}"
+WeaponWithGrowingDamage.Experience: "经验：{0}（距下一级还需 {1}）"
+ExampleProjectileModifications.HitMessage: "这个 NPC 已被修改过的射弹击中 {0} 次。"
+NPCs.ExampleBoneMerchant.DisplayName: "示例骨头商人"
+NPCs.ExampleDrawBehindNPC.DisplayName: "示例在 NPC 后方绘制"
+NPCs.ExamplePerson.TownNPCMood.Content: "我现在感觉还不错。"
+NPCs.ExamplePerson.TownNPCMood.NoHome: "我非常想要一栋房子，那些五颜六色的怪物让我害怕。"
+NPCs.ExamplePerson.TownNPCMood.FarFromHome: "能请你带我回家吗？"
+NPCs.ExamplePerson.TownNPCMood.LoveSpace: "我喜欢这里有这么多空间来写 tModLoader 模组！"
+NPCs.ExamplePerson.TownNPCMood.DislikeCrowded: "周围人太多了，我很难专心做模组。"
+NPCs.ExamplePerson.TownNPCMood.HateCrowded: "周围这么多人，我没法测试我的模组！"
+NPCs.ExamplePerson.TownNPCMood.LoveBiome: "我爱{BiomeName}。"
+NPCs.ExamplePerson.TownNPCMood.LikeBiome: "{BiomeName}是测试模组的好地方。"
+NPCs.ExamplePerson.TownNPCMood.DislikeBiome: "{BiomeName}实在太冷了，我快冻僵了！"
+NPCs.ExamplePerson.TownNPCMood.HateBiome: "在{BiomeName}被怪物袭击的时候，很难做模组。"
+NPCs.ExamplePerson.TownNPCMood.LoveNPC: "你觉得{NPCName}注意到我了吗？"
+NPCs.ExamplePerson.TownNPCMood.LikeNPC: "我尊重{NPCName}，我们同为向导和教育者！"
+NPCs.ExamplePerson.TownNPCMood.DislikeNPC: "{NPCName}没什么帮助。"
+NPCs.ExamplePerson.TownNPCMood.HateNPC: "我讨厌{NPCName}和他的炸药弄出的噪音！我只想要安静。"
+NPCs.ExamplePerson.TownNPCMood.LikeNPC_Princess: "{NPCName}是公主？太酷了！"
+NPCs.ExamplePerson.TownNPCMood.Princess_LovesNPC: "{NPCName}真是方方正正。我就喜欢这一点！"
+NPCs.ExamplePerson.TownNPCMood.LikeNPC_BestiaryGirl: "{NPCName}研究动物的方式，就像我研究模组一样。"
+NPCs.ExamplePerson.TownNPCMood.DislikeNPC_Merchant: "{NPCName}一直念叨“付费模组”……真希望我能让他明白那是个多糟糕的主意。"
+NPCs.ExamplePerson.TownNPCMood.DislikeBiome_Desert: "{BiomeName}实在太热了，我快烧起来了！"
+NPCs.ExamplePerson.TownNPCMood.LoveBiome_ExampleMod/ExampleSurfaceBiome: "{BiomeName}让我感觉像在家一样！"
+NPCs.ExamplePerson.TownNPCMood.Guide_LovesNPC: "我喜欢像{NPCName}这样的教育者同行。"
+NPCs.ExamplePerson.TownNPCMood.BestiaryGirl_LikesNPC: "我喜欢{NPCName}做的研究。"
+NPCs.ExamplePerson.TownNPCMood.Transformed.BestiaryGirl_LikesNPC: "{NPCName}研究 好！"
+NPCs.ExamplePerson.Interactions.AwesomeifyButton: "变得超棒"
+NPCs.ExamplePerson.Interactions.AwesomeifyResponse: "超棒！"
+NPCs.ExamplePerson.Interactions.UpgradeItemButton: "升级{$ItemName.HiveBackpack}"
+NPCs.ExamplePerson.Interactions.UpgradeItemResponse: "我把你的{$ItemName.HiveBackpack}升级成了{$Mods.ExampleMod.Items.WaspNest.DisplayName}"
+NPCs.ExamplePerson.HousingText.HousingRequirements: "（{NPCName}要把一处地方当作家，那里需要有示例门、示例椅子或示例床、示例工作台和光源。另外，请确保房屋的墙壁由示例墙和示例块组成。）"
+NPCs.ExamplePerson.Census.SpawnCondition: "物品栏中有{$Items.ExampleItem.DisplayName} [i:ExampleMod/ExampleItem] 或{$Items.ExampleBlock.DisplayName} [i:ExampleMod/ExampleBlock]"
+NPCs.ExamplePerson.DeathMessage: "{0}离开了……"
+NPCs.ExamplePerson.DeathMessageAlt: "{0}消失得无影无踪……"
+NPCs.ExampleTravelingMerchant.DisplayName: "示例旅商"
+NPCs.ExampleWormBody.DisplayName: "示例蠕虫"
+NPCs.ExampleWormHead.DisplayName: "示例蠕虫"
+NPCs.ExampleWormTail.DisplayName: "示例蠕虫"
+NPCs.ExampleZombieThief.DisplayName: "示例僵尸小偷"
+NPCs.MinionBossBody.DisplayName: "仆从首领"
+NPCs.MinionBossBody.BossChecklistIntegration.SpawnInfo: "使用 [i:ExampleMod/MinionBossSummonItem]"
+NPCs.MinionBossBody.BossFightName: "仆从首领和他的仆从们"
+NPCs.MinionBossMinion.DisplayName: "仆从首领的仆从"
+NPCs.ExampleCritterNPC.DisplayName: "熔岩蛙"
+NPCs.ExampleTownPet.DisplayName: "示例城镇宠物"
+NPCs.ExampleTownPet.TownNPCMood.NoHome: "*示例城镇宠物的叫声*？"
+NPCs.ExampleTownPet.Census.SpawnCondition: "使用 [i:ExampleMod/ExampleTownPetLicense] 示例城镇宠物许可证。图鉴完成度达到 50% 后可从动物学家处购买。"
+NPCs.ExampleTownPet.Names.Green.Green: "绿色"
+NPCs.ExampleTownPet.Names.Green.Jade: "翡翠"
+NPCs.ExampleTownPet.Names.Green.Lime: "青柠"
+NPCs.ExampleTownPet.Names.Green.Mint: "薄荷"
+NPCs.ExampleTownPet.Names.Green.Olive: "橄榄"
+NPCs.ExampleTownPet.Names.Green.Pine: "松针"
+Items.ExampleStaff.DisplayName: "示例法杖"
+Items.ExampleStaff.Tooltip: "这是一把模组魔法法杖"
+Items.ExampleSpecificAmmoGun.DisplayName: "示例步枪"
+Items.ExampleInfoAccessory.DisplayName: "示例信息饰品"
+Items.ExampleInfoAccessory.Tooltip: "显示你召唤了多少个仆从"
+Items.ExamplePotionDelayAccessory.DisplayName: "示例药水延迟饰品"
+Items.ExampleCustomAmmo.DisplayName: "示例自定义弹药"
+Items.ExampleCustomAmmo.Tooltip: "穿墙追踪敌人"
+Items.ExampleHood.DisplayName: "示例兜帽"
+Items.ExampleHood.Tooltip: "这是一顶模组兜帽。"
+Items.ExampleTallHelmet.DisplayName: "示例高头盔"
+Items.ExampleTallHelmet.Tooltip: "这是一顶高高的模组头盔。"
+Items.MinionBossMask.DisplayName: "仆从首领面具"
+Items.ExampleFoodItem.DisplayName: "示例派"
+Items.ExampleHealingPotion.DisplayName: "示例治疗药水"
+Items.ExampleHealingPotion.Tooltip: "药水冷却时间减少 {0} 秒"
+Items.ExampleHealingPotion.RestoreLifeText: "{0}（快速治疗时为 {1}）"
+Items.MinionBossBag.DisplayName: "宝藏袋（{$Mods.ExampleMod.NPCs.MinionBossBody.DisplayName}）"
+Items.MinionBossBag.Tooltip: "{$CommonItemTooltip.RightClickToOpen}"
+Items.MinionBossSummonItem.DisplayName: "仆从首领召唤物品"
+Items.MinionBossSummonItem.Tooltip: "召唤仆从首领"
+Items.ExampleInstancedItem.DisplayName: "示例实例物品"
+Items.ExampleInstancedItem.EM: "示例{0}"
+Items.ExampleMountItem.DisplayName: "ExampleMount 车钥匙"
+Items.ExampleMountItem.Tooltip: "召唤一个模组坐骑。"
+Items.ExampleOnBuyItem.DisplayName: "不稳定爆炸装置"
+Items.ExampleOnBuyItem.Tooltip: "每次从商店购买时有 50% 的几率杀死玩家"
+Items.ExampleOnBuyItem.DeathMessage: "{0}试图搞定一个非常不稳定的爆炸装置，结果失败了。"
+Items.ExampleBlock.DisplayName: "示例块"
+Items.ExampleBlock.Tooltip: "这是一个模组物块。"
+Items.ExampleMusicBox.DisplayName: "八音盒（大理石画廊）"
+Items.ExampleOre.DisplayName: "示例矿石"
+Items.ExampleWorkbench.DisplayName: "示例工作台"
+Items.ExampleWorkbench.Tooltip: "这是一个模组工作台。"
+Items.MinionBossRelic.DisplayName: "仆从首领圣物"
+Items.MinionBossTrophy.DisplayName: "仆从首领纪念章"
+Items.ExampleBugNet.DisplayName: "示例虫网"
+Items.ExampleMagicMirror.DisplayName: "示例魔镜"
+Items.ExampleAdvancedFlail.DisplayName: "示例高级链锤"
+Items.ExampleAdvancedFlail.Tooltip: "这是一把拥有自定义行为的模组链锤。"
+Items.ExampleCloneWeapon.DisplayName: "彩虹猫之刃 V2"
+Items.ExampleCloneWeapon.Tooltip: "类似{$ItemName.Meowmere} [i:Meowmere]"
+Items.ExampleCustomAmmoGun.DisplayName: "示例自定义弹药枪"
+Items.ExampleCustomAmmoGun.Tooltip: "使用 ExampleCustomAmmo 作为弹药，发射 HomingProjectiles"
+Items.ExampleJoustingLance.DisplayName: "示例骑枪"
+Items.ExampleShootingSword.DisplayName: "示例射击剑"
+Items.ExampleShootingSword.Tooltip: "这是一把发射类似星怒射弹的模组剑。"
+Items.ExampleWhipAdvanced.DisplayName: "示例高级鞭子"
+Items.MinionBossPetItem.DisplayName: "仆从首领宠物"
+Items.MinionBossPetItem.Tooltip: "召唤一个迷你仆从首领跟随你"
+Items.ExamplePiercingProjectileItem.DisplayName: "示例穿透射弹物品"
+Items.ExampleCustomSwingSword.DisplayName: "示例自定义挥舞剑"
+Items.HitModifiersShowcase.DisplayName: "命中修饰展示"
+Items.HitModifiersShowcase.Switching: "切换到模式 #{0}：{1}"
+Items.HitModifiersShowcase.CurrentMode: "模式 #{0}：{1}"
+Items.HitModifiersShowcase.Mode_0: "普通伤害"
+Items.HitModifiersShowcase.Mode_1: "已关闭伤害浮动"
+Items.HitModifiersShowcase.Mode_2: "额外 {0}% 击退"
+Items.HitModifiersShowcase.Mode_3: "额外 {0}% 暴击伤害"
+Items.HitModifiersShowcase.Mode_4: "额外 {0} 点盔甲穿透。请对高防御敌人测试"
+Items.HitModifiersShowcase.Mode_5: "额外 {0}% 盔甲穿透。无视敌人 {0}% 的防御"
+Items.HitModifiersShowcase.Mode_6: "施加 ExampleDefenseDebuff，使防御降低 {0}%"
+Items.HitModifiersShowcase.Mode_7: "命中时给予玩家 ExampleDodgeBuff，以闪避下一次攻击"
+Items.AbsorbTeamDamageAccessory.DisplayName: "吸收队伍伤害饰品"
+Items.AbsorbTeamDamageAccessory.Tooltip: "生命值高于 {1}% 时，吸收队友受到的 {0}% 伤害"
+Items.ExampleExplosive.DisplayName: "示例炸药"
+Items.ExampleExplosive.Tooltip: "{$ItemTooltip.Dynamite}"
+Items.ExampleJavelin.DisplayName: "示例标枪"
+Items.ExampleGravityDebuffBullet.DisplayName: "示例重力减益子弹"
+Items.ExampleMultiExtraJumpAccessory.DisplayName: "示例多次额外跳跃饰品"
+Items.ExampleCritterItem.DisplayName: "熔岩蛙"
+Items.ExampleCritterItem.Tooltip: "辣乎乎的小家伙"
+Items.ExampleCritterCageItem.DisplayName: "熔岩蛙笼"
+Items.ExampleCritterCageItem.Tooltip: "伤心的辣乎乎小家伙"
+Items.ExampleRocket.DisplayName: "示例火箭"
+Items.ExampleRocket.Tooltip: "{$ItemTooltip.RocketI}"
+Items.ExampleArrow.DisplayName: "示例箭"
+Items.ExampleTownPetLicense.DisplayName: "示例城镇宠物许可证"
+Items.ExampleTownPetLicense.LicenseExampleTownPetUse: "许可证被传送去了示例城镇宠物快递服务……"
+Items.ExampleWormHeadBanner.DisplayName: "{$NPCs.ExampleWormHead.DisplayName}旗"
+Items.ExampleWormHeadBanner.Tooltip: "{$CommonItemTooltip.BannerBonus}{$NPCs.ExampleWormHead.DisplayName}"
+Items.CameraModifierShowcase.DisplayName: "镜头修改器展示"
+Items.RubyEarrings.DisplayName: "红玉耳环"
+Items.SapphireEarrings.DisplayName: "蓝玉耳环"
+Items.ExampleInteractableProjectileItem.DisplayName: "示例可互动射弹物品"
+Items.ExampleCustomUseStyleWeapon.DisplayName: "示例自定义 UseStyle 武器"
+Items.ExampleHeldProjectileWeapon.DisplayName: "示例手持射弹武器"
+Items.SimpleAccessory.DisplayName: "简单饰品"
+Items.SimpleAccessory.Tooltip: "仆从和哨兵的攻击造成霜冻"
+Items.ExampleGolfClub.DisplayName: "示例高尔夫球杆（发球杆）"
+Items.ExampleGolfClub.Tooltip: "{$CommonItemTooltip.GolfDriver}"
+Items.ExampleSpecialGlideWings.DisplayName: "示例特殊滑翔翅膀"
+Projectiles.MinionBossPetProjectile.DisplayName: "仆从首领宠物"
+Projectiles.ExampleAdvancedFlailProjectile.DisplayName: "示例高级链锤"
+Projectiles.ExampleCloneProjectile.DisplayName: "彩虹猫之刃 V2"
+Projectiles.ExampleHomingProjectile.DisplayName: "示例追踪射弹"
+Projectiles.ExampleJoustingLanceProjectile.DisplayName: "示例骑枪"
+Projectiles.ExamplePaperAirplaneProjectile.DisplayName: "示例纸飞机射弹"
+Projectiles.ExamplePiercingProjectile.DisplayName: "示例穿透射弹"
+Projectiles.ExampleWhipProjectileAdvanced.DisplayName: "示例高级鞭子射弹"
+Projectiles.MinionBossEye.DisplayName: "仆从首领之眼"
+Projectiles.SparklingBall.DisplayName: "闪光球"
+Projectiles.ExampleCustomSwingProjectile.DisplayName: "示例自定义挥舞射弹"
+Projectiles.ExampleExplosive.DisplayName: "示例炸药"
+Projectiles.ExampleJavelinProjectile.DisplayName: "示例标枪射弹"
+Projectiles.ActiveSoundShowcaseProjectile.DisplayName: "主动音效展示射弹"
+Projectiles.ExampleGravityDebuffBullet.DisplayName: "示例重力减益子弹"
+Projectiles.ExampleGrenadeProjectile.DisplayName: "示例手榴弹射弹"
+Projectiles.ExampleProximityMineProjectile.DisplayName: "示例感应雷射弹"
+Projectiles.ExampleRocketProjectile.DisplayName: "示例火箭射弹"
+Projectiles.ExampleSnowmanRocketProjectile.DisplayName: "示例雪人火箭射弹"
+Projectiles.ExampleArrowProjectile.DisplayName: "示例箭射弹"
+Projectiles.ExampleInteractableProjectile.DisplayName: "示例可互动射弹"
+Projectiles.ExampleHeldProjectileWeaponProjectile.DisplayName: "示例手持射弹武器射弹"
+Buffs.AnimatedBuff.DisplayName: "动画增益"
+Buffs.AnimatedBuff.Description: "带动画，并使所有伤害提高 {0}%。"
+Buffs.ExampleMountBuff.DisplayName: "ExampleMount"
+Buffs.ExampleMountBuff.Description: "真皮座椅，4 个杯架"
+Buffs.MinionBossPetBuff.DisplayName: "仆从首领宠物"
+Buffs.MinionBossPetBuff.Description: "一个迷你仆从首领正在跟随你"
+Buffs.ExampleDodgeBuff.DisplayName: "示例闪避增益"
+Buffs.ExampleDodgeBuff.Description: "你会闪避下一次攻击"
+Buffs.ExampleGravityDebuff.DisplayName: "示例重力减益"
+Buffs.ExampleGravityDebuff.Description: "重力乱套了。"
+Buffs.AbsorbTeamDamageBuff.DisplayName: "吸收队伍伤害增益"
+Buffs.AbsorbTeamDamageBuff.Description: "受到伤害的 {0}% 会转移给另一名玩家"
+Buffs.ExampleJavelinDebuff.DisplayName: "示例标枪减益"
+Buffs.ExampleJavelinDebuff.Description: "正在失去生命"
+Buffs.ExampleWeaponImbue.DisplayName: "示例武器灌注"
+Buffs.ExampleWeaponImbue.Description: "{$Items.ExampleFlask.Tooltip}"
+Buffs.ExampleWhipAdvancedPlayerBuff.DisplayName: "示例挥鞭！"
+Buffs.ExampleWhipAdvancedPlayerBuff.Description: "鞭子速度提高"
+Buffs.ExampleCrowdControlledDebuff.DisplayName: "示例控制减益"
+Buffs.ExampleCrowdControlledDebuff.Description: "你无法移动手臂和腿"
+Bestiary.ImportantFlavorText: "重要的风味文字！"
+Bestiary.ExampleBoneMerchant_1: "示例骨头商人来自一个神秘的灰阶方块世界，会向你展示如何用 tModLoader 制作一个神秘的地下商人。"
+Bestiary.ExampleBoneMerchant_2: "由骨块搭成，手臂如钢铁。日夜不停地扔骨头。"
+Bestiary.ExampleTownPet: "一只方块城镇宠物，让城镇更加可爱。"
+Bestiary.MinionBossBody: "示例仆从首领，出现时会生成仆从，用召唤物品召唤。展示首领仆从的处理、多人模式的注意事项和自定义首领血条。"
+Bestiary.ExampleCritterNPC: "最可爱、最乖的辣乎乎宝宝。谁也不许欺负他！"
+Bestiary.ExampleZombieThief: "这种僵尸非常喜欢示例物品。一找到就会偷走。"
+Bestiary.MinionBossMinion: "一个牺牲自己来保护首领免受伤害的仆从。如果仆从全部死亡，首领就会受到伤害。"
+Bestiary.ExampleWormHead: "看起来像一只掉进了水蓝色油漆里的挖掘怪。好吧。"
+Dialogue.ExamplePerson.PartyGirlDialogue: "你能让{PartyGirl}别再用彩色装饰我的房子了吗？"
+Dialogue.ExamplePerson.StandardDialogue4: "嘿，如果你找到 [i:HiveBackpack]，我可以帮你升级。"
+Dialogue.ExamplePerson.ConditionalDialogue1: "{?ExampleMod/DownedMinionBoss}{?GolemDefeated}哇，你击败了{$NPCs.MinionBossBody.DisplayName}和{$NPCName.Golem}？太厉害了！"
+Dialogue.ExamplePerson.ConditionalDialogue2: "{?!Day}{?!NPCFirstName_ExampleMod/ExampleTownPet}晚上好可怕。要是有只宠物陪着我，我会安心得多。"
+Dialogue.ExamplePerson.CommonDialogue: "这条消息的权重是 5，出现频率是普通的 5 倍。"
+Dialogue.ExamplePerson.RareDialogue: "这条消息的权重是 0.1，出现频率只有普通的十分之一。"
+Dialogue.ExampleBoneMerchant.StandardDialogue1: "在地下这里真让人放松。"
+Dialogue.ExampleBoneMerchant.StandardDialogue2: "你问我在下面做什么？我也不知道，别管我！"
+Dialogue.ExampleBoneMerchant.StandardDialogue3: "嗯？我有什么货？我也不知道！不如你问问？"
+Dialogue.ExampleTravelingMerchant.PartyGirlDialogue: "你能让{PartyGirl}别再用彩色装饰我表亲的房子了吗？"
+Dialogue.ExampleTravelingMerchant.StandardDialogue1: "有时我的表亲觉得自己和这里的其他人都不一样。"
+Dialogue.ExampleTravelingMerchant.StandardDialogue2: "你最喜欢什么颜色？我表亲最喜欢白色和黑色。"
+Dialogue.ExampleTravelingMerchant.StandardDialogue3: "我是个旅行商人，卖些东西。"
+Dialogue.ExampleTravelingMerchant.ConditionalDialogue1: "那边那个是我的表亲{NPCFirstName_ExampleMod/ExamplePerson}吗？"
+Dialogue.ExampleTravelingMerchant.HiveBackpackDialogue: "嘿，如果你找到 [i:HiveBackpack]，我的表亲可以帮你升级。"
+Dialogue.ExampleTownPet.StandardDialogue: "*示例城镇宠物的叫声*"
+GameTips.ExampleTip0: "哇！示例提示！"
+GameTips.ExampleTip1: "这条提示由 Example Mod 添加！"
+GameTips.ExampleTip2: "这又是一条由 Example Mod 添加的提示！"
+GameTips.ExampleTip3: "按 {InputTrigger_ExampleMod/RandomBuff} 可以获得随机增益！"
+GameTips.DisabledExampleTip: "这条提示会被 Example Mod 添加，然后再被禁用。"
+Conditions.PlayerHasLifeforceBuff: "当玩家拥有生命力增益时"
+Conditions.NotSellingExampleItem: "当不出售示例物品时"
+Conditions.DownedMinionBoss: "击败{$NPCs.MinionBossBody.DisplayName}后"
+DropConditions.ExampleSoul: "困难模式下在示例地下环境掉落"
+DropConditions.JourneyMode: "旅行模式下掉落"
+WorldGen.ExampleOrePassMessage: "示例模组矿石"
+WorldGen.BlessedWithExampleOreMessage: "你的世界被示例矿石祝福了！"
+BuilderToggles.ExampleBuilderToggleDimmedLight.OnText: "示例开启"
+BuilderToggles.ExampleBuilderToggleDimmedLight.OffText: "示例关闭"
+BuilderToggles.ExampleBuilderToggle.CurrentColor: "颜色：{0}"
+BuilderToggles.ExampleBuilderToggle.Color_0: "红色"
+BuilderToggles.ExampleBuilderToggle.Color_1: "蓝色"
+BuilderToggles.ExampleBuilderToggle.Color_2: "绿色"
+BuilderToggles.ExampleBuilderToggle.Color_3: "黄色"
+BuilderToggles.FreeBaitBuilderToggle.NameText: "免费鱼饵：{0}"
+Emotes.ExampleBiomeEmote.Command: "exbiome"
+Emotes.ExampleBoneMerchantEmote.Command: "exbonemerchant"
+Emotes.ExampleItemEmote.Command: "exitem"
+Emotes.ExamplePersonEmote.Command: "experson"
+Emotes.ExamplePickaxeEmote.Command: "expickaxe"
+Emotes.ExampleTravellingMerchantEmote.Command: "extravelingmerchant"
+Emotes.MinionBossEmote.Command: "exminionboss"
+Commands.Common.NoParameters: "至少需要一个参数。"
+Commands.Common.NotInteger: "{0} 不是有效的整数值。"
+Commands.ExampleSummonCommand.Description: "按 NPCID 生成 NPC"
+Commands.ExampleSummonCommand.Error_0: "{$Mods.ExampleMod.Commands.Common.NoParameters}"
+Commands.ExampleSummonCommand.Error_1: "{$Mods.ExampleMod.Commands.Common.NotInteger}"
+Commands.ExampleSummonCommand.Error_2: "{0} 不是有效的 X 坐标（必须是整数）。"
+Commands.ExampleSummonCommand.Error_3: "{0} 不是有效的 Y 坐标（必须是整数）。"
+Commands.ExampleSummonCommand.Error_4: "{0} 不是有效的数字（必须是整数）。"
+VariationShowcase.LooksNiceMessage: "好漂亮的{0}"
+VariationShowcase.LooksNiceMessage$Male: "好帅气的{0}"
+VariationShowcase.LooksNiceMessage$Female: "好美丽的{0}"
+VariationShowcase.CollectiveNounMessage: "一群{0}。"
+VariationShowcase.CollectiveNounMessage$Flock: "一群{0}在高空飞翔。"
+VariationShowcase.CollectiveNounMessage$School: "一群{0}优雅地游动。"
+VariationShowcase.CollectiveNounMessage$Herd: "一群{0}四处游荡。"
+VariationShowcase.NounA: "{^0:蜥蜴}"
+VariationShowcase.NounB: "{^0:猫}"
+VariationShowcase.NounB$Gender: "Female"
+VariationShowcase.NounB$Collective: "Herd"
+VariationShowcase.NounC: "{^0:狗}"
+VariationShowcase.NounC$Gender: "Male"
+VariationShowcase.NounD: "{^0:鸟}"
+VariationShowcase.NounD$Collective: "Flock"
+VariationShowcase.NounE: "鱼"
+VariationShowcase.NounE$Collective: "School"
+Keybinds.ExampleTouchButton.DisplayName: "示例触控按钮"
+Keybinds.ExampleHoldButton.DisplayName: "示例长按按钮"
+Keybinds.ExampleAimJoystick.DisplayName: "示例瞄准摇杆"
+ExampleTouchButtonPlayer.Touch: "点击了示例触控按钮。"
+ExampleTouchButtonPlayer.Hold: "示例长按按钮在充能 {0}% 时松开。"

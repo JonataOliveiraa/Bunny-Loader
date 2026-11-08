@@ -9,9 +9,11 @@ namespace CsDualUse;
 
 public sealed class CsDualUseMod : Mod
 {
-    const float StickX = 869f, StickY = 485f;
+    const float StickX = 869f, StickY = 485f, InteractX = 69f, InteractY = 420f;
     static int frame, pass, fail, step, waited, taps, slot, tries;
-    static bool bees, thrust, swing, altUse, used;
+    static bool bees, thrust, swing, altUse, used, visualThrust, visualSwing;
+    static int firstVisual, animFrames;
+    static bool tapMode;
     static Item kept;
     static VirtualControlsProfile_Layout profile;
 
@@ -53,10 +55,17 @@ public sealed class CsDualUseMod : Mod
 
     static void Watch(Player self)
     {
-        if (step is not (2 or 4)) return;
+        if (step is not (2 or 4 or 6)) return;
         if (self.itemAnimation > 0)
         {
             used = true;
+            Item visual = self.lastVisualizedSelectedItem;
+            int shown = visual.IsNull ? -1 : visual.useStyle;
+            if (animFrames++ < 6)
+                Log.Info($"csdualuse   frame {animFrames} step={step} anim={self.itemAnimation}/{self.itemAnimationMax} time={self.itemTime}/{self.itemTimeMax} shown={shown} held={self.HeldItem.useStyle} alt={self.altFunctionUse}");
+            if (firstVisual == 0) firstVisual = shown;
+            visualThrust |= shown == ItemUseStyleID.Thrust;
+            visualSwing |= shown == ItemUseStyleID.Swing;
             int style = self.HeldItem.useStyle;
             thrust |= style == ItemUseStyleID.Thrust;
             swing |= style == ItemUseStyleID.Swing;
@@ -67,7 +76,9 @@ public sealed class CsDualUseMod : Mod
 
     static void Reset()
     {
-        bees = thrust = swing = altUse = used = false;
+        bees = thrust = swing = altUse = used = visualThrust = visualSwing = false;
+        firstVisual = 0;
+        animFrames = 0;
         tries = 0;
         foreach (Projectile p in Main.projectile.AsSpan().ToArray())
             if (!p.IsNull && p.active && p.type == ProjectileID.Bee) p.Kill();
@@ -75,9 +86,12 @@ public sealed class CsDualUseMod : Mod
 
     static void Fire()
     {
-        Log.Info($"csdualuse DRAG {++taps} {StickX} {StickY} {StickX + 54} {StickY}");
+        if (tapMode) Log.Info($"csdualuse FHOLD {++taps} 0.62 0.45");
+        else Log.Info($"csdualuse DRAG {++taps} {StickX} {StickY} {StickX + 54} {StickY}");
         waited = frame;
     }
+
+    static bool Mode() => GUIInstance.Active.VirtualControllerInputState.ToggleAlternativeFireMode;
 
     static void Step(Player self)
     {
@@ -110,6 +124,7 @@ public sealed class CsDualUseMod : Mod
                 break;
             case 2 when frame == waited + 420:
                 Report("the alternative use thrusts and shoots bees", altUse && thrust && bees, $"alt={altUse} thrust={thrust} swing={swing} bees={bees}");
+                Report("the alternative use is drawn as a thrust", visualThrust && !visualSwing, $"first={firstVisual} shownThrust={visualThrust} shownSwing={visualSwing}");
                 SetMode(false);
                 Reset();
                 waited = frame;
@@ -122,7 +137,35 @@ public sealed class CsDualUseMod : Mod
                 break;
             case 4 when frame == waited + 420:
                 Report("the normal use swings without bees", !altUse && swing && !thrust && !bees, $"alt={altUse} thrust={thrust} swing={swing} bees={bees}");
-                Finish(self);
+                Report($"{(tapMode ? "with taps, " : "")}right after the alternative use, the first normal swing is drawn as a swing", visualSwing && !visualThrust && firstVisual == ItemUseStyleID.Swing, $"first={firstVisual} shownThrust={visualThrust} shownSwing={visualSwing}");
+                if (tapMode)
+                {
+                    Finish(self);
+                    break;
+                }
+                tapMode = true;
+                SetMode(false);
+                Log.Info($"csdualuse TAP {++taps} {InteractX} {InteractY}");
+                waited = frame;
+                step = 5;
+                break;
+            case 5 when Mode() || frame == waited + 600:
+                Report("tapping Interact turns the alternative mode on", Mode(), $"frames={frame - waited}");
+                Reset();
+                Fire();
+                step = 6;
+                break;
+            case 6 when frame == waited + 300:
+                Report("with taps, the alternative use thrusts and shoots bees", altUse && thrust && bees, $"alt={altUse} thrust={thrust} swing={swing} bees={bees} first={firstVisual}");
+                Log.Info($"csdualuse TAP {++taps} {InteractX} {InteractY}");
+                waited = frame;
+                step = 7;
+                break;
+            case 7 when !Mode() || frame == waited + 600:
+                Report("tapping Interact turns the alternative mode off", !Mode(), $"frames={frame - waited}");
+                Reset();
+                Fire();
+                step = 4;
                 break;
         }
     }

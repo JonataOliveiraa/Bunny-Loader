@@ -5,6 +5,7 @@
 #include "il2cpp/Resolver.h"
 #include "hook/CodePatch.h"
 #include "content/common/ContentAssets.h"
+#include "content/common/ModLanguage.h"
 #include "content/common/GameRefs.h"
 #include "content/common/TypeTables.h"
 
@@ -95,12 +96,10 @@ Il2CppArray* readStatic(FieldInfo* f) {
 }
 
 void applyTexts(int type, const Entry& e) {
-    const std::string name = content::textForCulture(e.def.names, e.def.name);
-    if (Il2CppObject* t = content::makeLocalizedText("BuffName." + e.def.name, name)) {
+    if (Il2CppObject* t = trackedLanguageText("BuffName." + e.def.name, e.def.names, e.def.name)) {
         content::setTableElement(refs().names, type, t);
     }
-    const std::string desc = content::textForCulture(e.def.descriptions, "");
-    if (Il2CppObject* t = content::makeLocalizedText("BuffDescription." + e.def.name, desc)) {
+    if (Il2CppObject* t = trackedLanguageText("BuffDescription." + e.def.name, e.def.descriptions, "")) {
         content::setTableElement(refs().descriptions, type, t);
     }
 }

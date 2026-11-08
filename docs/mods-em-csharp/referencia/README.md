@@ -137,7 +137,7 @@ The `tModLoader` column looks at signatures only. A member can be `same` and sti
 act differently on the phone, and an `only here` member can be a wrapper around
 something the PC game has under another shape, such as `GameList` for a `List<T>`.
 
-**589 classes, 4980 members:** 4100 the same as tModLoader or the PC game, 146 with a different signature, 400 only here, 334 not here. tModLoader's loaders have 298 more methods that only run hooks: each page counts them under its loader.
+**599 classes, 5320 members:** 4311 the same as tModLoader or the PC game, 146 with a different signature, 535 only here, 328 not here. tModLoader's loaders have 297 more methods that only run hooks: each page counts them under its loader.
 
 ## [Items](itens.md)
 
@@ -251,6 +251,8 @@ something the PC game has under another shape, such as `GameList` for a `List<T>
 | [ItemLoader](itens.md#itemloader) | static class | yes | This serves as the central class from which item-related functions are carried out. |
 | [ItemLoot](itens.md#itemloot) | struct | yes | Provides access to `ItemDropDatabase`'s methods specific to this item type. |
 | [ItemRarityID](itens.md#itemrarityid) | static class | yes | Enumerates the values used with Item.rare |
+| [ItemSlot](itens.md#itemslot) | struct | yes |  |
+| [ItemSlot.Context](itens.md#itemslotcontext) | struct | yes |  |
 | [ItemUseStyleID](itens.md#itemusestyleid) | struct | yes | Values of `Item.useStyle`. |
 | [ModItem](itens.md#moditem) | abstract class | yes | This class serves as a place for you to place all your properties and hooks for each item. |
 | [ModPrefix](itens.md#modprefix) | abstract class | yes | Represents a modded prefix (or modifier). |
@@ -357,6 +359,8 @@ something the PC game has under another shape, such as `GameList` for a `List<T>
 | [Gender](jogadores.md#gender) | enum | yes | The gender a mod hair picks when the player randomizes. |
 | [GlobalBuff](jogadores.md#globalbuff) | abstract class | yes | This class allows you to modify the behavior of any buff in the game. |
 | [HairLoader](jogadores.md#hairloader) | static class | yes | Registers mod hairs. |
+| [ModAccessorySlot](jogadores.md#modaccessoryslot) | abstract class | yes | A ModAccessorySlot instance represents a net new accessory slot instance. |
+| [ModAccessorySlotPlayer](jogadores.md#modaccessoryslotplayer) | class | yes |  |
 | [ModBuff](jogadores.md#modbuff) | abstract class | yes | This class serves as a place for you to define a new buff and how that buff behaves. |
 | [ModHair](jogadores.md#modhair) | abstract class | yes | This class allows you to define custom hair styles for a player, controlling the associated gender and unlock conditions. |
 | [ModMount](jogadores.md#modmount) | abstract class | yes | This class serves as a place for you to place all your properties and hooks for each mount. |
@@ -554,6 +558,7 @@ something the PC game has under another shape, such as `GameList` for a `List<T>
 | [SliderAttribute](interface.md#sliderattribute) | class | yes | Affects whether this data will be presented as a slider or an input field. |
 | [SliderColorAttribute](interface.md#slidercolorattribute) | class | yes | Specifies a slider color for ModConfig elements that use a slider. |
 | [SoundEngine](interface.md#soundengine) | static class | yes | Plays sounds. |
+| [SoundID](interface.md#soundid) | struct | yes |  |
 | [SoundLimitBehavior](interface.md#soundlimitbehavior) | enum | yes | What happens when too many of a sound play together. |
 | [SoundStyle](interface.md#soundstyle) | struct | yes | This data type describes in detail how a sound should be played. |
 | [SoundUpdateCallback](interface.md#soundupdatecallback) | delegate | **no** | Runs each frame for a playing sound, to change it or stop it. |
@@ -600,12 +605,15 @@ something the PC game has under another shape, such as `GameList` for a `List<T>
 
 | Class | Kind | In tModLoader | What it is |
 |---|---|---|---|
+| [AccessorySlotLoader](outros.md#accessoryslotloader) | class | yes | This serves as a central place to store equipment slots and their corresponding textures. |
+| [AccessorySlotType](outros.md#accessoryslottype) | enum | yes |  |
 | [AddableFloat](outros.md#addablefloat) | struct | yes | A value that only adds, as in `StatModifier.Base`. |
 | [AnchorData](outros.md#anchordata) | struct | yes | How a tile object attaches to what is around it. |
 | [Animation](outros.md#animation) | struct | yes | What Bunny Loader adds to the game's tile animations. |
 | [BasiliskMountJump](outros.md#basiliskmountjump) | class | yes | One of the game's extra jumps, as an `ExtraJump` you can position against or read from `Player.GetJumpState`. |
 | [BigEndianReader](outros.md#bigendianreader) | class | yes | A `BinaryReader` that reads big-endian numbers, for NBT files. |
 | [BigEndianWriter](outros.md#bigendianwriter) | class | yes | A `BinaryWriter` that writes big-endian numbers, for NBT files. |
+| [BigProgressBarSystem](outros.md#bigprogressbarsystem) | struct | yes |  |
 | [BiomeConversionID](outros.md#biomeconversionid) | static class | yes | The game's conversion types, as `WorldGen.Convert` takes them. |
 | [BlizzardInABottleJump](outros.md#blizzardinabottlejump) | class | yes | One of the game's extra jumps, as an `ExtraJump` you can position against or read from `Player.GetJumpState`. |
 | [BlockType](outros.md#blocktype) | enum | yes | The shape of a tile: solid, half brick, slopes. |
@@ -703,6 +711,7 @@ something the PC game has under another shape, such as `GameList` for a `List<T>
 | [LegacyHairShaderData](outros.md#legacyhairshaderdata) | struct | yes | A hair dye made of a color method. |
 | [LegacyNameAttribute](outros.md#legacynameattribute) | class | yes | Allows for types to be registered with legacy/alias names for lookup via and similar methods. |
 | [LegacySoundStyle](outros.md#legacysoundstyle) | struct | yes | The game's sound by number. |
+| [LoaderManager](outros.md#loadermanager) | static class | yes |  |
 | [MagicDamageClass](outros.md#magicdamageclass) | class | yes | One of the game's damage classes. |
 | [MagicSummonHybridDamageClass](outros.md#magicsummonhybriddamageclass) | class | yes | One of the game's damage classes. |
 | [Main](outros.md#main) | struct | yes | What Bunny Loader adds to the game's main class. |
@@ -758,6 +767,7 @@ something the PC game has under another shape, such as `GameList` for a `List<T>
 | [TsunamiInABottleJump](outros.md#tsunamiinabottlejump) | class | yes | One of the game's extra jumps, as an `ExtraJump` you can position against or read from `Player.GetJumpState`. |
 | [UndergroundBackgroundStylesLoader](outros.md#undergroundbackgroundstylesloader) | static class | yes | This serves as the central class from which ModUndergroundBackgroundStyle functions are supported and carried out. |
 | [UnicornMountJump](outros.md#unicornmountjump) | class | yes | One of the game's extra jumps, as an `ExtraJump` you can position against or read from `Player.GetJumpState`. |
+| [UnloadedAccessorySlot](outros.md#unloadedaccessoryslot) | class | yes |  |
 | [Utils](outros.md#utils) | static class | yes | What Bunny Loader adds to the game's helpers. |
 | [UtilsExtensions](outros.md#utilsextensions) | static class | yes | The extension methods tModLoader has in `Utils`, written here as extensions of the mobile game's types. |
 | [VanillaDamageClass](outros.md#vanilladamageclass) | abstract class | yes | One of the game's damage classes. |
@@ -779,11 +789,10 @@ Public classes of tModLoader's mod API that Bunny Loader does not have. Names ar
 
 | Classes | Why |
 |---|---|
-| `AccessorySlotLoader`, `AccessorySlotType`, `Default.ModAccessorySlotPlayer`, `Default.UnloadedAccessorySlot`, `ModAccessorySlot` | Extra accessory slots are not part of Bunny Loader. |
 | `ActiveItemIterator`, `ActiveItemIterator.Enumerator`, `ActiveNPCIterator`, `ActiveNPCIterator.Enumerator`, `ActivePlayerIterator`, `ActivePlayerIterator.Enumerator`, `ActiveProjectileIterator`, `ActiveProjectileIterator.Enumerator` | `Main.ActiveItems`, `ActiveNPCs`, `ActivePlayers` and `ActiveProjectiles` exist and return a plain `IEnumerable`. |
 | `ActuatorsVisibilityBuilderToggle`, `AutoActuateBuilderToggle`, `AutoPaintBuilderToggle`, `BlockSwapBuilderToggle`, `BlueWireVisibilityBuilderToggle`, `GreenWireVisibilityBuilderToggle`, `HideAllWiresBuilderToggle`, `RedWireVisibilityBuilderToggle`, `RulerGridBuilderToggle`, `RulerLineBuilderToggle`, `TorchBiomeBuilderToggle`, `VanillaBuilderToggle`, `WireVisibilityBuilderToggle`, `YellowWireVisibilityBuilderToggle` | The game's own toggles are not classes here. `BuilderToggle.TorchBiome` is the one exposed, and mods add theirs with `BuilderToggle`. |
 | `Assets.AssemblyResourcesContentSource`, `Assets.FxcReader`, `Assets.MP3Reader`, `Assets.OggReader`, `Assets.RawImgReader`, `Assets.TModContentSource`, `Assets.WavReader` | File readers of tModLoader's asset system. Here assets go through `ModContent.Request` and Bunny Loader's own readers. |
-| `AsyncProvider`, `AsyncProviderState`, `AsyncProviderStateExtensions`, `ICustomAutoload.AutoloadImpl`, `ILoadable.AutoloadImpl`, `ILoader`, `Loader`, `LoaderManager`, `ModContent.TrackCurrentlyLoadingMod` | Internal to tModLoader's loading. |
+| `AsyncProvider`, `AsyncProviderState`, `AsyncProviderStateExtensions`, `ICustomAutoload.AutoloadImpl`, `ILoadable.AutoloadImpl`, `ILoader`, `Loader`, `ModContent.TrackCurrentlyLoadingMod` | Internal to tModLoader's loading. |
 | `BuildInfo`, `BuildInfo.BuildPurpose`, `Framework`, `FrameworkVersion` | Describes tModLoader's own build. |
 | `BuilderToggleLoader` | Internal here. Mods subclass `BuilderToggle`. |
 | `CloneByReference`, `DamageClass.Sets`, `InitializationItemCreationContext` | Not implemented. |

@@ -1,0 +1,223 @@
+ExampleBugNet:
+{
+    DisplayName: 示例虫网
+    Tooltip:
+        '''
+        用于捕捉小动物
+        有 {0}% 的几率成功捕捉熔岩小动物
+        拥有温暖药水增益时提高到 {1}%
+        有 {2}% 的几率使捕获的小动物翻倍
+        '''
+}
+ExampleGolfClub:
+{
+    DisplayName: 示例高尔夫球杆（发球杆）
+    Tooltip: "{$CommonItemTooltip.GolfDriver}"
+}
+ExampleInteractableProjectileItem:
+{
+    DisplayName: 示例可互动射弹物品
+    Tooltip: ""
+}
+ExampleMagicMirror:
+{
+    DisplayName: 示例魔镜
+    Tooltip: ""
+}
+ExampleAdvancedFlail:
+{
+    DisplayName: 示例高级链锤
+    Tooltip: 这是一把拥有自定义行为的模组链锤。
+}
+ExampleCloneWeapon:
+{
+    DisplayName: 彩虹猫之刃 V2
+    Tooltip: 类似{$ItemName.Meowmere} [i:Meowmere]
+}
+ExampleCustomAmmoGun:
+{
+    DisplayName: 示例自定义弹药枪
+    Tooltip: 使用 ExampleCustomAmmo 作为弹药，发射 HomingProjectiles
+}
+ExampleCustomSwingSword:
+{
+    DisplayName: 示例自定义挥舞剑
+    Tooltip:
+        '''
+        这是一把用射弹制作了自定义挥舞动画的剑
+        多次使用可切换攻击方式
+        '''
+}
+ExampleCustomUseStyleWeapon:
+{
+    DisplayName: 示例自定义 UseStyle 武器
+    Tooltip: ""
+}
+ExampleHeldProjectileWeapon:
+{
+    DisplayName: 示例手持射弹武器
+    Tooltip: ""
+}
+ExampleJavelin:
+{
+    DisplayName: 示例标枪
+    Tooltip: ""
+}
+ExampleJoustingLance:
+{
+    DisplayName: 示例骑枪
+    Tooltip:
+        '''
+        {$ItemTooltip.HallowJoustingLance}
+        这是一把模组骑枪。
+        '''
+}
+ExampleShootingSword:
+{
+    DisplayName: 示例射击剑
+    Tooltip: 这是一把发射类似星怒射弹的模组剑。
+}
+ExampleSpecificAmmoGun:
+{
+    DisplayName: 示例步枪
+    Tooltip:
+        '''
+        不接受诅咒弹作为弹药
+        快速连射三发
+        每发子弹消耗弹药的几率不同
+        第一发有 {0}% 的几率不消耗子弹
+        第二发有 {1}% 的几率不消耗子弹
+        最后一发有 {2}% 的几率不消耗子弹
+        消耗弹药的射击伤害提高 {3}%
+        '''
+}
+ExampleStaff:
+{
+    DisplayName: 示例法杖
+    Tooltip: 这是一把模组魔法法杖
+}
+ExampleWhipAdvanced:
+{
+    DisplayName: 示例高级鞭子
+    Tooltip:
+        '''
+        对下一次仆从或哨兵攻击额外造成 {0}% 召唤标记伤害
+        {$CommonItemTooltip.Whips}
+        按住可攻击更远
+        '''
+}
+HitModifiersShowcase:
+{
+    DisplayName: 命中修饰展示
+    Tooltip: ""
+    Switching: 切换到模式 #{0}：{1}
+    CurrentMode: 模式 #{0}：{1}
+    Mode_0: 普通伤害
+    Mode_1: 已关闭伤害浮动
+    Mode_2: "额外 {0}% 击退"
+    Mode_3: "额外 {0}% 暴击伤害"
+    Mode_4: "额外 {0} 点盔甲穿透。请对高防御敌人测试"
+    Mode_5: "额外 {0}% 盔甲穿透。无视敌人 {0}% 的防御"
+    Mode_6: 施加 ExampleDefenseDebuff，使防御降低 {0}%
+    Mode_7: 命中时给予玩家 ExampleDodgeBuff，以闪避下一次攻击
+}
+ExamplePiercingProjectileItem:
+{
+    DisplayName: 示例穿透射弹物品
+    Tooltip: ""
+}
+ExampleArrow:
+{
+    DisplayName: 示例箭
+    Tooltip: ""
+}
+ExampleCustomAmmo:
+{
+    DisplayName: 示例自定义弹药
+    Tooltip: 穿墙追踪敌人
+}
+ExampleGravityDebuffBullet:
+{
+    DisplayName: 示例重力减益子弹
+    Tooltip: ""
+}
+ExampleRocket:
+{
+    DisplayName: 示例火箭
+    Tooltip: "{$ItemTooltip.RocketI}"
+}
+ExampleInfoAccessory:
+{
+    DisplayName: 示例信息饰品
+    Tooltip: 显示你召唤了多少个仆从
+}
+ExamplePotionDelayAccessory:
+{
+    DisplayName: 示例药水延迟饰品
+    Tooltip:
+        '''
+        治疗药水的总冷却时间减少 {0} 秒
+        {$CommonItemTooltip.ReducesHealingPotionCooldownByPercent@1}
+        '''
+}
+ExampleHood:
+{
+    DisplayName: 示例兜帽
+    Tooltip: 这是一顶模组兜帽。
+    SetBonus:
+        '''
+        双击或按住 {1} 切换各种盔甲暗影效果
+        {$CommonItemTooltip.PercentReducedManaCost}
+        '''
+    SetBonusKeyUp: 上
+    SetBonusKeyDown: 下
+}
+ExampleTallHelmet:
+{
+    DisplayName: 示例高头盔
+    Tooltip: 这是一顶高高的模组头盔。
+}
+AbsorbTeamDamageAccessory:
+{
+    DisplayName: 吸收队伍伤害饰品
+    Tooltip: 生命值高于 {1}% 时，吸收队友受到的 {0}% 伤害
+}
+ExampleMultiExtraJumpAccessory:
+{
+    DisplayName: 示例多次额外跳跃饰品
+    Tooltip:
+        '''
+        让使用者在空中额外跳跃一次
+        此饰品还剩 <JUMPS> 次跳跃
+        '''
+}
+CameraModifierShowcase:
+{
+    DisplayName: 镜头修改器展示
+    Tooltip: ""
+}
+RubyEarrings:
+{
+    DisplayName: 红玉耳环
+    Tooltip: ""
+}
+SapphireEarrings:
+{
+    DisplayName: 蓝玉耳环
+    Tooltip: ""
+}
+SimpleAccessory:
+{
+    DisplayName: 简单饰品
+    Tooltip: 仆从和哨兵的攻击造成霜冻
+}
+ExampleSpecialGlideWings:
+{
+    DisplayName: 示例特殊滑翔翅膀
+    Tooltip: ""
+}
+ExampleExplosive:
+{
+    DisplayName: 示例炸药
+    Tooltip: "{$ItemTooltip.Dynamite}"
+}

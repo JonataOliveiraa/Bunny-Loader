@@ -13,6 +13,7 @@ namespace {
 using CloneFn = Il2CppObject* (*)(Il2CppObject*, const MethodInfo*);
 using ClientCloneFn = Il2CppObject* (*)(Il2CppObject*, Il2CppObject*, const MethodInfo*);
 using ItemCheckFn = void (*)(Il2CppObject*, const MethodInfo*);
+using HeldItemFn = Il2CppObject* (*)(Il2CppObject*, const MethodInfo*);
 
 struct Visual {
     Il2CppObject* item = nullptr;
@@ -23,7 +24,10 @@ struct Visual {
 ClientCloneFn g_origClientClone = nullptr;
 ItemCheckFn g_origItemCheck = nullptr;
 const MethodInfo* g_clone = nullptr;
+const MethodInfo* g_clientClone = nullptr;
+const MethodInfo* g_heldItem = nullptr;
 int32_t g_visualOffset = -1, g_typeOffset = -1, g_prefixOffset = -1;
+int32_t g_animationOffset = -1, g_useStyleOffset = -1, g_holdStyleOffset = -1;
 thread_local Il2CppObject* t_player = nullptr;
 std::unordered_map<Il2CppObject*, Visual> g_visuals;
 
@@ -32,10 +36,23 @@ T& at(Il2CppObject* object, int32_t offset) {
     return *reinterpret_cast<T*>(reinterpret_cast<uint8_t*>(object) + offset);
 }
 
+void refreshOnUseStart(Il2CppObject* self, int32_t before) {
+    const int32_t animation = at<int32_t>(self, g_animationOffset);
+    if (animation <= 0 || animation <= before) return;
+    Il2CppObject* held = reinterpret_cast<HeldItemFn>(il2cpp::methodPointer(g_heldItem))(self, g_heldItem);
+    Il2CppObject* visual = at<Il2CppObject*>(self, g_visualOffset);
+    if (!held || !visual || held == visual || at<int32_t>(held, g_typeOffset) != at<int32_t>(visual, g_typeOffset)) return;
+    if (at<int32_t>(held, g_useStyleOffset) == at<int32_t>(visual, g_useStyleOffset) &&
+        at<int32_t>(held, g_holdStyleOffset) == at<int32_t>(visual, g_holdStyleOffset)) return;
+    g_origClientClone(held, visual, g_clientClone);
+}
+
 void hkItemCheck(Il2CppObject* self, const MethodInfo* method) {
     Il2CppObject* outer = t_player;
     t_player = self;
+    const int32_t before = g_heldItem ? at<int32_t>(self, g_animationOffset) : 0;
     g_origItemCheck(self, method);
+    if (g_heldItem) refreshOnUseStart(self, before);
     t_player = outer;
 }
 
@@ -68,6 +85,13 @@ void installVisualItemClone() {
     g_prefixOffset = il2cpp::fieldOffset(item, "prefix");
     g_clone = il2cpp::findMethodBySignature(item, il2cpp::parseSignature("Item Clone()"));
     const MethodInfo* clientClone = il2cpp::findMethodBySignature(item, il2cpp::parseSignature("Item clientClone(Item cloneDestination)"));
+    g_clientClone = clientClone;
+    g_animationOffset = il2cpp::fieldOffset(player, "itemAnimation");
+    g_useStyleOffset = il2cpp::fieldOffset(item, "useStyle");
+    g_holdStyleOffset = il2cpp::fieldOffset(item, "holdStyle");
+    const MethodInfo* heldItem = il2cpp::findMethodBySignature(player, il2cpp::parseSignature("Item get_HeldItem()"));
+    if (heldItem && g_animationOffset >= 0 && g_useStyleOffset >= 0 && g_holdStyleOffset >= 0) g_heldItem = heldItem;
+    else BL_ERROR("visual item clone: the use start refresh is off (members not found)");
     const MethodInfo* itemCheck = il2cpp::findMethodBySignature(player, il2cpp::parseSignature("void ItemCheck()"));
     if (g_visualOffset < 0 || g_typeOffset < 0 || g_prefixOffset < 0 || !g_clone || !clientClone || !itemCheck) {
         BL_ERROR("visual item clone: members not found");

@@ -1,0 +1,6 @@
+ExampleInfoDisplay:
+{
+    DisplayName: 仆从数量
+    CurrentMinions: "{0} 个仆从"
+    NoMinions: 没有仆从
+}

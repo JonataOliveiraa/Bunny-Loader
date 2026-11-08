@@ -1,0 +1,223 @@
+ExampleBugNet:
+{
+    DisplayName: Пример сачка
+    Tooltip:
+        '''
+        Используется для ловли зверушек
+        С вероятностью {0}% ловит лавовых зверушек
+        С активным эффектом зелья тепла вероятность растёт до {1}%
+        С вероятностью {2}% удваивает пойманных зверушек
+        '''
+}
+ExampleGolfClub:
+{
+    DisplayName: Пример клюшки для гольфа (драйвер)
+    Tooltip: "{$CommonItemTooltip.GolfDriver}"
+}
+ExampleInteractableProjectileItem:
+{
+    DisplayName: Предмет примера интерактивного снаряда
+    Tooltip: ""
+}
+ExampleMagicMirror:
+{
+    DisplayName: Пример волшебного зеркала
+    Tooltip: ""
+}
+ExampleAdvancedFlail:
+{
+    DisplayName: Пример продвинутого цепа
+    Tooltip: Это цеп из мода с особым поведением.
+}
+ExampleCloneWeapon:
+{
+    DisplayName: Мяумур V2
+    Tooltip: Похож на {$ItemName.Meowmere} [i:Meowmere]
+}
+ExampleCustomAmmoGun:
+{
+    DisplayName: Пример ружья с особыми боеприпасами
+    Tooltip: Использует ExampleCustomAmmo как боеприпасы и стреляет HomingProjectiles
+}
+ExampleCustomSwingSword:
+{
+    DisplayName: Пример меча с особым взмахом
+    Tooltip:
+        '''
+        Это меч с особой анимацией взмаха, сделанной на снарядах
+        Используйте несколько раз, чтобы чередовать атаки
+        '''
+}
+ExampleCustomUseStyleWeapon:
+{
+    DisplayName: Пример оружия с особым UseStyle
+    Tooltip: ""
+}
+ExampleHeldProjectileWeapon:
+{
+    DisplayName: Пример оружия с удерживаемым снарядом
+    Tooltip: ""
+}
+ExampleJavelin:
+{
+    DisplayName: Пример метательного копья
+    Tooltip: ""
+}
+ExampleJoustingLance:
+{
+    DisplayName: Пример рыцарского копья
+    Tooltip:
+        '''
+        {$ItemTooltip.HallowJoustingLance}
+        Это рыцарское копьё из мода.
+        '''
+}
+ExampleShootingSword:
+{
+    DisplayName: Пример стреляющего меча
+    Tooltip: Это меч из мода, стреляющий снарядами как у Звёздного гнева.
+}
+ExampleSpecificAmmoGun:
+{
+    DisplayName: Пример винтовки
+    Tooltip:
+        '''
+        Не принимает проклятые пули как боеприпасы
+        Делает три быстрых выстрела подряд
+        Каждый выстрел тратит боеприпасы с разной вероятностью
+        Первый выстрел с вероятностью {0}% не тратит пули
+        Второй выстрел с вероятностью {1}% не тратит пули
+        Последний выстрел с вероятностью {2}% не тратит пули
+        Выстрелы, тратящие боеприпасы, наносят на {3}% больше урона
+        '''
+}
+ExampleStaff:
+{
+    DisplayName: Пример посоха
+    Tooltip: Это магический посох из мода
+}
+ExampleWhipAdvanced:
+{
+    DisplayName: Пример продвинутого кнута
+    Tooltip:
+        '''
+        {0}% дополнительного урона метки призыва следующему удару приспешника или турели
+        {$CommonItemTooltip.Whips}
+        Удерживайте, чтобы бить дальше
+        '''
+}
+HitModifiersShowcase:
+{
+    DisplayName: Витрина модификаторов удара
+    Tooltip: ""
+    Switching: Переключение на режим №{0}: {1}
+    CurrentMode: Режим №{0}: {1}
+    Mode_0: Обычный урон
+    Mode_1: Разброс урона отключён
+    Mode_2: "+{0}% к отбрасыванию"
+    Mode_3: "+{0}% к критическому урону"
+    Mode_4: "+{0} к пробиванию брони. Проверьте на враге с высокой защитой"
+    Mode_5: "+{0}% к пробиванию брони. Игнорирует {0}% защиты врага"
+    Mode_6: Накладывает ExampleDefenseDebuff, снижая защиту на {0}%
+    Mode_7: При попадании даёт игроку ExampleDodgeBuff, чтобы уклониться от следующего удара
+}
+ExamplePiercingProjectileItem:
+{
+    DisplayName: Предмет примера пробивающего снаряда
+    Tooltip: ""
+}
+ExampleArrow:
+{
+    DisplayName: Пример стрелы
+    Tooltip: ""
+}
+ExampleCustomAmmo:
+{
+    DisplayName: Пример особых боеприпасов
+    Tooltip: Преследует врагов сквозь стены
+}
+ExampleGravityDebuffBullet:
+{
+    DisplayName: Пример пули гравитационного дебаффа
+    Tooltip: ""
+}
+ExampleRocket:
+{
+    DisplayName: Пример ракеты
+    Tooltip: "{$ItemTooltip.RocketI}"
+}
+ExampleInfoAccessory:
+{
+    DisplayName: Пример информационного аксессуара
+    Tooltip: Показывает, сколько приспешников вы призвали
+}
+ExamplePotionDelayAccessory:
+{
+    DisplayName: Пример аксессуара задержки зелий
+    Tooltip:
+        '''
+        Сокращает общее время восстановления лечебных зелий на {0} с
+        {$CommonItemTooltip.ReducesHealingPotionCooldownByPercent@1}
+        '''
+}
+ExampleHood:
+{
+    DisplayName: Пример капюшона
+    Tooltip: Это капюшон из мода.
+    SetBonus:
+        '''
+        Нажмите дважды или удерживайте {1}, чтобы переключать эффекты теней брони
+        {$CommonItemTooltip.PercentReducedManaCost}
+        '''
+    SetBonusKeyUp: Вверх
+    SetBonusKeyDown: Вниз
+}
+ExampleTallHelmet:
+{
+    DisplayName: Пример высокого шлема
+    Tooltip: Это высокий шлем из мода.
+}
+AbsorbTeamDamageAccessory:
+{
+    DisplayName: Аксессуар поглощения урона команды
+    Tooltip: Поглощает {0}% урона, наносимого игрокам вашей команды, пока ваше здоровье выше {1}%
+}
+ExampleMultiExtraJumpAccessory:
+{
+    DisplayName: Пример аксессуара многоразового дополнительного прыжка
+    Tooltip:
+        '''
+        Позволяет совершить дополнительный прыжок в воздухе
+        У этого аксессуара осталось прыжков: <JUMPS>
+        '''
+}
+CameraModifierShowcase:
+{
+    DisplayName: Витрина модификаторов камеры
+    Tooltip: ""
+}
+RubyEarrings:
+{
+    DisplayName: Рубиновые серьги
+    Tooltip: ""
+}
+SapphireEarrings:
+{
+    DisplayName: Сапфировые серьги
+    Tooltip: ""
+}
+SimpleAccessory:
+{
+    DisplayName: Простой аксессуар
+    Tooltip: Атаки приспешников и турелей вызывают обморожение
+}
+ExampleSpecialGlideWings:
+{
+    DisplayName: Пример особых крыльев для планирования
+    Tooltip: ""
+}
+ExampleExplosive:
+{
+    DisplayName: Пример взрывчатки
+    Tooltip: "{$ItemTooltip.Dynamite}"
+}

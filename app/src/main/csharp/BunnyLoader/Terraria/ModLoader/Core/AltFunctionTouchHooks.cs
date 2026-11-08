@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using BunnyLoader;
 using BunnyLoader.Interop;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -9,9 +11,15 @@ using Control = QuickActionButton_Layout.QuickActionControl;
 
 namespace Terraria.ModLoader.Core;
 
-internal static class AltFunctionTouchHooks
+internal static unsafe class AltFunctionTouchHooks
 {
-    const int InteractPress = 13, SwapPress = 30;
+    const int InteractPress = 13, SwapPress = 30, InteractGlyph = 1;
+
+    static int assetValueOffset = -1;
+
+    const string GlyphSignature = "bool Draw(int touchControl, int itemId, bool justCheckingString, out Vector2 size, SpriteBatch spriteBatch, Vector2 position, Color color, float scale)";
+
+    static Hook? glyph;
 
     static Item empty;
     static GameHandle? emptyHandle;
@@ -21,6 +29,57 @@ internal static class AltFunctionTouchHooks
     {
         On_GUIQuickActionButton.Draw_QuickActionControl_QuickActionButton_Layout_bool_reffloat_bool_bool += Draw;
         On_GUIVirtualInputController.HandleTouchCursorDown += HandleTouchCursorDown;
+        try
+        {
+            glyph = Hook.Install(new GameClass("", "ControlsTouchTagHandler", "ControlsTouchSnippet"), GlyphSignature,
+                (IntPtr)(delegate* unmanaged<int, int, byte, Vector2*, IntPtr, Vector2, uint, float, IntPtr, byte>)&DrawGlyph);
+        }
+        catch (Exception e) { ItemHooks.Report("AltFunctionUse: touch glyph", e); }
+    }
+
+    [UnmanagedCallersOnly]
+    static byte DrawGlyph(int touchControl, int itemId, byte justCheckingString, Vector2* size, IntPtr spriteBatch, Vector2 position, uint color, float scale, IntPtr method)
+    {
+        var original = (delegate* unmanaged<int, int, byte, Vector2*, IntPtr, Vector2, uint, float, IntPtr, byte>)glyph!.Original;
+        Texture2D icon = default;
+        IntPtr* slot = null;
+        if (touchControl == InteractGlyph && justCheckingString == 0)
+        {
+            try
+            {
+                icon = GlyphIcon(itemId);
+                if (!icon.IsNull) slot = AssetValue(ID.ItemID.PortalGun);
+            }
+            catch (Exception e) { ItemHooks.Report("AltFunctionUse: touch glyph", e); }
+        }
+        if (slot == null || *slot == IntPtr.Zero) return original(touchControl, itemId, justCheckingString, size, spriteBatch, position, color, scale, method);
+        IntPtr saved = *slot;
+        *slot = icon.Pointer;
+        try { return original(touchControl, ID.ItemID.PortalGun, justCheckingString, size, spriteBatch, position, color, scale, method); }
+        finally { *slot = saved; }
+    }
+
+    static Texture2D GlyphIcon(int itemId)
+    {
+        if (!ID.ContentSamples.ItemsByType.TryGetValue(itemId, out Item item) || item.IsNull) return default;
+        Player player = Main.LocalPlayer;
+        if (!ItemTimingHooks.HasAlternativeUse(item, player)) return default;
+        VirtualControllerInputState input = SwapInput();
+        bool alternative = !input.IsNull && ItemTimingHooks.AlternativeItem(player).type == itemId && input.ToggleAlternativeFireMode;
+        return Icon(item, player, alternative);
+    }
+
+    static IntPtr* AssetValue(int itemType)
+    {
+        IntPtr asset = GameContent.TextureAssets.Item[itemType].GameAsset;
+        if (asset == IntPtr.Zero) return null;
+        if (assetValueOffset < 0)
+        {
+            byte* name = Host.Utf8("Value");
+            try { assetValueOffset = Host.Native()->FieldOffset(*(IntPtr*)asset, name); }
+            finally { Host.FreeUtf8(name); }
+        }
+        return assetValueOffset < 0 ? null : (IntPtr*)(asset + assetValueOffset);
     }
 
     static VirtualControllerInputState SwapInput()
@@ -134,6 +193,7 @@ internal static class AltFunctionTouchHooks
             }
             catch (Exception e) { ItemHooks.Report($"{g.FullName}.AltFunctionIcon", e); }
         }
+        if (icon.IsNull && !item.IsNull && item.type > 0) icon = GameContent.TextureAssets.Item[item.type].Value;
         return icon;
     }
 

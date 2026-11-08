@@ -1,0 +1,544 @@
+ExampleModConfig: {
+	DisplayName: 示例模组配置
+
+	ExampleWingsToggle: {
+		Label: 示例翅膀开关
+		Tooltip: 启用或禁用 ExampleWings 物品
+	}
+
+	WeaponWithGrowingDamageToggle: {
+		Label: 伤害成长武器开关
+		Tooltip: ""
+	}
+
+	WingSlotLoadoutSupportToggle: {
+		Label: ExampleModWingSlot 的配装支持
+		Tooltip: 关闭后，所有配装共用同一对翅膀！
+	}
+
+	Headers: {
+		Items: 物品
+		Other: 其他
+	}
+}
+
+ModConfigShowcaseRanges: {
+	DisplayName: "ModConfig 展示 B：范围"
+}
+
+ModConfigShowcaseMisc: {
+	DisplayName: "ModConfig 展示 E：杂项"
+
+	Headers: {
+		Colors: 颜色
+		EnumOptions: 枚举选项
+	}
+
+	hsl.Label: HSL 颜色
+}
+
+SampleEnum: {
+	Weird.Label: 怪异
+	Odd.Label: 奇特
+	Strange.Label: 古怪
+	Peculiar.Label: 非常特别
+}
+
+ModConfigShowcaseAcceptClientChanges: {
+	RejectChangesDaytime: OnlyChangeableDuringNight 不能在白天更改。
+	DisplayName: "ModConfig 展示 H：AcceptClientChanges"
+	OnlyChangeableDuringNight.Label: 仅能在夜间更改
+	SomeNumber.Label: 某个数字
+}
+
+Common: {
+	LocalizedLabel: 这个标签来自本地化文件：{$Mods.ExampleMod.Common.PaperAirplane}
+	LocalizedTooltip: 这条提示来自本地化文件。
+	LocalizedHeader: 标题有助于整理
+	LocalizedLabelDynamic: 动态本地化标签
+	InterpolatedLabel: 物品：[i:{0}]。数量：{1} {^1:处更改}。文本：{2}。本地化文本：{3}。
+	InterpolatedTooltip: "[c/{1}:Use to disable the] [c/{2}:{0}] [c/{1}:feature]"
+}
+
+ModConfigShowcaseAccessibility: {
+	DisplayName: ModConfig 展示 F：可访问性
+
+	Public: {
+		Label: 公开
+		Tooltip: ""
+	}
+
+	pair: {
+		Label: 对
+		Tooltip: ""
+	}
+
+	Getter: {
+		Label: Getter
+		Tooltip: ""
+	}
+
+	AutoProperty: {
+		Label: 自动属性
+		Tooltip: ""
+	}
+
+	Property: {
+		Label: 属性
+		Tooltip: ""
+	}
+
+	PresetA: {
+		Label: 预设 A
+		Tooltip: ""
+	}
+
+	PresetB: {
+		Label: 预设 B
+		Tooltip: ""
+	}
+
+	Data1: {
+		Label: 数据1
+		Tooltip: ""
+	}
+
+	Data2: {
+		Label: 数据2
+		Tooltip: ""
+	}
+
+	IgnoreWithLabelGetter: {
+		Label: 用标签 Getter 忽略
+		Tooltip: ""
+	}
+}
+
+ModConfigShowcaseDataTypes: {
+	DisplayName: ModConfig 展示 A：数据类型
+
+	SomeBool: {
+		Label: 某个布尔值
+		Tooltip: ""
+	}
+
+	SomeInt: {
+		Label: 某个整数
+		Tooltip: ""
+	}
+
+	SomeFloat: {
+		Label: 某个浮点数
+		Tooltip: ""
+	}
+
+	SomeString: {
+		Label: 某个字符串
+		Tooltip: ""
+	}
+
+	SomeEnum: {
+		Label: 某个枚举
+		Tooltip: ""
+	}
+
+	SomeByte: {
+		Label: 某个字节
+		Tooltip: ""
+	}
+
+	SomeUInt: {
+		Label: 某个无符号整数
+		Tooltip: ""
+	}
+
+	SomeLong: {
+		Label: 某个长整数
+		Tooltip: ""
+	}
+
+	SomeULong: {
+		Label: 某个无符号长整数
+		Tooltip: ""
+	}
+
+	SomeColor: {
+		Label: 某个颜色
+		Tooltip: ""
+	}
+
+	SomeVector2: {
+		Label: 某个 Vector2
+		Tooltip: ""
+	}
+
+	SomePoint: {
+		Label: 某个点
+		Tooltip: ""
+	}
+
+	SomeArray: {
+		Label: 某个数组
+		Tooltip: ""
+	}
+
+	SomeList: {
+		Label: 某个列表
+		Tooltip: ""
+	}
+
+	SomeDictionary: {
+		Label: 某个字典
+		Tooltip: ""
+	}
+
+	SomeSet: {
+		Label: 某个集合
+		Tooltip: ""
+	}
+
+	SomeClassA: {
+		Label: 某个类 A
+		Tooltip: ""
+	}
+
+	itemDefinitionExample: {
+		Label: ItemDefinition 示例
+		Tooltip: ""
+	}
+
+	npcDefinitionExample: {
+		Label: NPCDefinition 示例
+		Tooltip: ""
+	}
+
+	projectileDefinitionExample: {
+		Label: ProjectileDefinition 示例
+		Tooltip: ""
+	}
+
+	CustomKey: {
+		Label: 自定义按键
+		Tooltip: ""
+	}
+
+	prefixDefinitionDictionaryExample: {
+		Label: PrefixDefinition 字典示例
+		Tooltip: ""
+	}
+
+	buffDefinitionExample: {
+		Label: BuffDefinition 示例
+		Tooltip: ""
+	}
+
+	tileDefinitionExample: {
+		Label: TileDefinition 示例
+		Tooltip: ""
+	}
+
+	wallDefinitionExample: {
+		Label: WallDefinition 示例
+		Tooltip: ""
+	}
+}
+
+ModConfigShowcaseDefaultValues: {
+	DisplayName: ModConfig 展示 D：默认值
+
+	SimpleDefaultInt: {
+		Label: 简单默认整数
+		Tooltip: ""
+	}
+
+	SomeColor: {
+		Label: 某个颜色
+		Tooltip: ""
+	}
+
+	SomeVector2: {
+		Label: 某个 Vector2
+		Tooltip: ""
+	}
+
+	EnumExample2: {
+		Label: 枚举示例 2
+		Tooltip: ""
+	}
+
+	ArrayOfString: {
+		Label: 字符串数组
+		Tooltip: ""
+	}
+
+	FavoritePokemon: {
+		Label: 最喜欢的宝可梦
+		Tooltip: ""
+	}
+
+	ListOfInts: {
+		Label: 整数列表
+		Tooltip: ""
+	}
+
+	ListOfVector2: {
+		Label: Vector2 列表
+		Tooltip: ""
+	}
+
+	ListOfItemDefinition: {
+		Label: 物品定义列表
+		Tooltip: ""
+	}
+
+	DictionaryDefaults: {
+		Label: 默认字典
+		Tooltip: ""
+	}
+
+	DictionaryDefaults2: {
+		Label: 默认字典 2
+		Tooltip: ""
+	}
+
+	EnumExample1: {
+		Label: 枚举示例 1
+		Tooltip: ""
+	}
+}
+
+ModConfigShowcaseLabels: {
+	DisplayName: ModConfig 展示 C：标签
+
+	SomeFloat: {
+		Label: 这是一个浮点数
+		Tooltip: 悬停时会显示这段文字
+	}
+
+	LocalizedLabel.Label: 本地化标签
+
+	pairExample: {
+		Label: 对示例
+		Tooltip: ""
+	}
+
+	ListOfPair: {
+		Label: 对的列表
+		Tooltip: ""
+	}
+
+	TypicalHeader: {
+		Label: 普通标题
+		Tooltip: ""
+	}
+
+	LocalizedHeader: {
+		Label: 本地化标题
+		Tooltip: ""
+	}
+
+	CoolHeader: {
+		Label: 酷炫标题
+		Tooltip: ""
+	}
+
+	simpleDataExample2: {
+		Label: 覆盖颜色的 SimpleData
+		Tooltip: ""
+	}
+
+	LocalizedLabelDynamic.Tooltip: ""
+
+	Headers: {
+		HeaderIdentifier: 标题区
+		ChatTagExample: "[i:19][c/00FF00:Green Text][i:ExampleMod/ExampleItem]"
+	}
+
+	StringFormatting: {
+		Label: 百分比：{0:p2}，数字：{1:N0}，补位：{2,4:D4}，精度：{3:0.000}
+		Tooltip: ""
+	}
+}
+
+ModConfigShowcaseSubpages: {
+	DisplayName: ModConfig 展示 E：子页面
+
+	gradient: {
+		Label: 渐变
+		Tooltip: ""
+	}
+
+	subConfigExample: {
+		Label: 子配置示例 - 点我
+		Tooltip: ""
+	}
+
+	DictionaryofSubConfigExample: {
+		Label: 子配置示例字典
+		Tooltip: ""
+	}
+
+	SeparateListOfPairs: {
+		Label: 子页面对列表
+		Tooltip: ""
+	}
+
+	pair: {
+		Label: 特殊对
+		Tooltip: ""
+	}
+
+	Headers.SeparatePageExamples: 独立页面示例
+}
+
+Pair: {
+	Tooltip: Pair 是一个包含布尔值和整数的简单类
+
+	enabled: {
+		Label: 启用
+		Tooltip: ""
+	}
+
+	boost: {
+		Label: 加成
+		Tooltip: ""
+	}
+}
+
+SimpleData: {
+	Tooltip: ""
+
+	Headers: {
+		FirstHeader: 超棒
+		SecondHeader: 已启用
+	}
+
+	boost: {
+		Label: 加成
+		Tooltip: ""
+	}
+
+	percent: {
+		Label: 百分比
+		Tooltip: ""
+	}
+
+	enabled: {
+		Label: 启用
+		Tooltip: ""
+	}
+
+	FavoritePokemon: {
+		Label: 最喜欢的宝可梦
+		Tooltip: ""
+	}
+}
+
+Gradient: {
+	Tooltip: 表示从一种颜色到另一种颜色的渐变
+
+	start: {
+		Label: 起点
+		Tooltip: 渐变开始的颜色
+	}
+
+	end: {
+		Label: 终点
+		Tooltip: 渐变结束的颜色
+	}
+}
+
+ComplexData: {
+	Tooltip: ""
+
+	ListOfInts: {
+		Label: 整数列表
+		Tooltip: ""
+	}
+
+	nestedSimple: {
+		Label: 嵌套 Simple
+		Tooltip: ""
+	}
+
+	IncrementalFloat: {
+		Label: 递增浮点数
+		Tooltip: ""
+	}
+}
+
+SubConfigExample: {
+	Tooltip: ""
+
+	boost: {
+		Label: 加成
+		Tooltip: ""
+	}
+
+	percent: {
+		Label: 百分比
+		Tooltip: ""
+	}
+
+	enabled: {
+		Label: 启用
+		Tooltip: ""
+	}
+
+	SubA: {
+		Label: 子 A
+		Tooltip: ""
+	}
+
+	SubB: {
+		Label: 更深的子级
+		Tooltip: ""
+	}
+}
+
+SubSubConfigExample: {
+	Tooltip: ""
+
+	whoa: {
+		Label: 哇哦
+		Tooltip: ""
+	}
+}
+
+Corner: {
+	Tooltip: 锚点位置
+
+	TopLeft: {
+		Label: 左上
+		Tooltip: ""
+	}
+
+	TopRight: {
+		Label: 右上
+		Tooltip: ""
+	}
+
+	BottomLeft: {
+		Label: 左下
+		Tooltip: ""
+	}
+
+	BottomRight: {
+		Label: 右下
+		Tooltip: ""
+	}
+}
+
+ClassUsedAsKey: {
+	Tooltip: ""
+
+	SomeBool: {
+		Label: 某个布尔值
+		Tooltip: ""
+	}
+
+	SomeNumber: {
+		Label: 某个数字
+		Tooltip: ""
+	}
+}

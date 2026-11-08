@@ -64,6 +64,13 @@ Il2CppObject* modLanguageText(const std::string& key, const content::CultureName
     return object;
 }
 
+Il2CppObject* trackedLanguageText(const std::string& key, const content::CultureNames& names, const std::string& fallback) {
+    const content::CultureNames texts = names.empty() ? content::CultureNames{{"", fallback}} : names;
+    Il2CppObject* object = modLanguageText(key, &texts, true);
+    if (object) content::addLanguageKey(key, object);
+    return object;
+}
+
 void tickModLanguage() {
     const bool pending = g_pending.exchange(false, std::memory_order_acq_rel);
     if (!pending && ++g_frame % 15 != 0) return;
@@ -82,6 +89,7 @@ void tickModLanguage() {
             break;
         }
     }
+    bool applied = false;
     for (auto& [key, text] : g_texts) {
         Il2CppObject* object = a.gchandle_get_target(text.handle);
         if (!object) continue;
@@ -89,8 +97,12 @@ void tickModLanguage() {
             content::addLanguageKey(key, object);
             text.inGame = true;
         }
-        if (reapply || text.dirty) apply(key, text, object);
+        if (reapply || text.dirty) {
+            apply(key, text, object);
+            applied = true;
+        }
     }
+    if (applied) content::invalidateItemTooltips();
 }
 
 }

@@ -1,0 +1,544 @@
+ExampleModConfig: {
+	DisplayName: Конфигурация Example Mod
+
+	ExampleWingsToggle: {
+		Label: Переключатель примера крыльев
+		Tooltip: Включает или отключает предмет ExampleWings
+	}
+
+	WeaponWithGrowingDamageToggle: {
+		Label: Переключатель оружия с растущим уроном
+		Tooltip: ""
+	}
+
+	WingSlotLoadoutSupportToggle: {
+		Label: Поддержка комплектов для ExampleModWingSlot
+		Tooltip: Отключите, чтобы все комплекты использовали одни и те же крылья!
+	}
+
+	Headers: {
+		Items: Предметы
+		Other: Прочее
+	}
+}
+
+ModConfigShowcaseRanges: {
+	DisplayName: "Витрина ModConfig B: диапазоны"
+}
+
+ModConfigShowcaseMisc: {
+	DisplayName: "Витрина ModConfig E: разное"
+
+	Headers: {
+		Colors: Цвета
+		EnumOptions: Варианты перечисления
+	}
+
+	hsl.Label: Цвет HSL
+}
+
+SampleEnum: {
+	Weird.Label: Странный
+	Odd.Label: Необычный
+	Strange.Label: Чудной
+	Peculiar.Label: Очень своеобразный
+}
+
+ModConfigShowcaseAcceptClientChanges: {
+	RejectChangesDaytime: OnlyChangeableDuringNight нельзя изменить днём.
+	DisplayName: "Витрина ModConfig H: AcceptClientChanges"
+	OnlyChangeableDuringNight.Label: Можно изменить только ночью
+	SomeNumber.Label: Какое-то число
+}
+
+Common: {
+	LocalizedLabel: Эта подпись взята из файлов локализации: {$Mods.ExampleMod.Common.PaperAirplane}
+	LocalizedTooltip: Эта подсказка взята из файлов локализации.
+	LocalizedHeader: Заголовки помогают навести порядок
+	LocalizedLabelDynamic: Динамическая локализованная подпись
+	InterpolatedLabel: Предмет: [i:{0}]. Число: {1} {^1:изменение;изменения;изменений}. Текст: {2}. Локализованный текст: {3}.
+	InterpolatedTooltip: "[c/{1}:Use to disable the] [c/{2}:{0}] [c/{1}:feature]"
+}
+
+ModConfigShowcaseAccessibility: {
+	DisplayName: Витрина ModConfig F: доступность
+
+	Public: {
+		Label: Публичное
+		Tooltip: ""
+	}
+
+	pair: {
+		Label: пара
+		Tooltip: ""
+	}
+
+	Getter: {
+		Label: Геттер
+		Tooltip: ""
+	}
+
+	AutoProperty: {
+		Label: Автосвойство
+		Tooltip: ""
+	}
+
+	Property: {
+		Label: Свойство
+		Tooltip: ""
+	}
+
+	PresetA: {
+		Label: Пресет A
+		Tooltip: ""
+	}
+
+	PresetB: {
+		Label: Пресет B
+		Tooltip: ""
+	}
+
+	Data1: {
+		Label: Данные1
+		Tooltip: ""
+	}
+
+	Data2: {
+		Label: Данные2
+		Tooltip: ""
+	}
+
+	IgnoreWithLabelGetter: {
+		Label: Игнорировать с геттером подписи
+		Tooltip: ""
+	}
+}
+
+ModConfigShowcaseDataTypes: {
+	DisplayName: Витрина ModConfig A: типы данных
+
+	SomeBool: {
+		Label: Какое-то логическое значение
+		Tooltip: ""
+	}
+
+	SomeInt: {
+		Label: Какое-то целое число
+		Tooltip: ""
+	}
+
+	SomeFloat: {
+		Label: Какое-то дробное число
+		Tooltip: ""
+	}
+
+	SomeString: {
+		Label: Какая-то строка
+		Tooltip: ""
+	}
+
+	SomeEnum: {
+		Label: Какое-то перечисление
+		Tooltip: ""
+	}
+
+	SomeByte: {
+		Label: Какой-то байт
+		Tooltip: ""
+	}
+
+	SomeUInt: {
+		Label: Какое-то беззнаковое целое
+		Tooltip: ""
+	}
+
+	SomeLong: {
+		Label: Какое-то длинное целое
+		Tooltip: ""
+	}
+
+	SomeULong: {
+		Label: Какое-то беззнаковое длинное целое
+		Tooltip: ""
+	}
+
+	SomeColor: {
+		Label: Какой-то цвет
+		Tooltip: ""
+	}
+
+	SomeVector2: {
+		Label: Какой-то Vector2
+		Tooltip: ""
+	}
+
+	SomePoint: {
+		Label: Какая-то точка
+		Tooltip: ""
+	}
+
+	SomeArray: {
+		Label: Какой-то массив
+		Tooltip: ""
+	}
+
+	SomeList: {
+		Label: Какой-то список
+		Tooltip: ""
+	}
+
+	SomeDictionary: {
+		Label: Какой-то словарь
+		Tooltip: ""
+	}
+
+	SomeSet: {
+		Label: Какое-то множество
+		Tooltip: ""
+	}
+
+	SomeClassA: {
+		Label: Какой-то класс A
+		Tooltip: ""
+	}
+
+	itemDefinitionExample: {
+		Label: Пример ItemDefinition
+		Tooltip: ""
+	}
+
+	npcDefinitionExample: {
+		Label: Пример NPCDefinition
+		Tooltip: ""
+	}
+
+	projectileDefinitionExample: {
+		Label: Пример ProjectileDefinition
+		Tooltip: ""
+	}
+
+	CustomKey: {
+		Label: Своя клавиша
+		Tooltip: ""
+	}
+
+	prefixDefinitionDictionaryExample: {
+		Label: Пример словаря PrefixDefinition
+		Tooltip: ""
+	}
+
+	buffDefinitionExample: {
+		Label: Пример BuffDefinition
+		Tooltip: ""
+	}
+
+	tileDefinitionExample: {
+		Label: Пример TileDefinition
+		Tooltip: ""
+	}
+
+	wallDefinitionExample: {
+		Label: Пример WallDefinition
+		Tooltip: ""
+	}
+}
+
+ModConfigShowcaseDefaultValues: {
+	DisplayName: Витрина ModConfig D: значения по умолчанию
+
+	SimpleDefaultInt: {
+		Label: Простое целое по умолчанию
+		Tooltip: ""
+	}
+
+	SomeColor: {
+		Label: Какой-то цвет
+		Tooltip: ""
+	}
+
+	SomeVector2: {
+		Label: Какой-то Vector2
+		Tooltip: ""
+	}
+
+	EnumExample2: {
+		Label: Пример перечисления 2
+		Tooltip: ""
+	}
+
+	ArrayOfString: {
+		Label: Массив строк
+		Tooltip: ""
+	}
+
+	FavoritePokemon: {
+		Label: Любимый покемон
+		Tooltip: ""
+	}
+
+	ListOfInts: {
+		Label: Список целых чисел
+		Tooltip: ""
+	}
+
+	ListOfVector2: {
+		Label: Список Vector2
+		Tooltip: ""
+	}
+
+	ListOfItemDefinition: {
+		Label: Список определений предметов
+		Tooltip: ""
+	}
+
+	DictionaryDefaults: {
+		Label: Словарь по умолчанию
+		Tooltip: ""
+	}
+
+	DictionaryDefaults2: {
+		Label: Словарь по умолчанию 2
+		Tooltip: ""
+	}
+
+	EnumExample1: {
+		Label: Пример перечисления 1
+		Tooltip: ""
+	}
+}
+
+ModConfigShowcaseLabels: {
+	DisplayName: Витрина ModConfig C: подписи
+
+	SomeFloat: {
+		Label: Это дробное число
+		Tooltip: Этот текст появится при наведении
+	}
+
+	LocalizedLabel.Label: Локализованная подпись
+
+	pairExample: {
+		Label: Пример пары
+		Tooltip: ""
+	}
+
+	ListOfPair: {
+		Label: Список пар
+		Tooltip: ""
+	}
+
+	TypicalHeader: {
+		Label: Обычный заголовок
+		Tooltip: ""
+	}
+
+	LocalizedHeader: {
+		Label: Локализованный заголовок
+		Tooltip: ""
+	}
+
+	CoolHeader: {
+		Label: Крутой заголовок
+		Tooltip: ""
+	}
+
+	simpleDataExample2: {
+		Label: SimpleData с переопределённым цветом
+		Tooltip: ""
+	}
+
+	LocalizedLabelDynamic.Tooltip: ""
+
+	Headers: {
+		HeaderIdentifier: Раздел заголовков
+		ChatTagExample: "[i:19][c/00FF00:Green Text][i:ExampleMod/ExampleItem]"
+	}
+
+	StringFormatting: {
+		Label: Процент: {0:p2}, число: {1:N0}, отступ: {2,4:D4}, точность: {3:0.000}
+		Tooltip: ""
+	}
+}
+
+ModConfigShowcaseSubpages: {
+	DisplayName: Витрина ModConfig E: подстраницы
+
+	gradient: {
+		Label: градиент
+		Tooltip: ""
+	}
+
+	subConfigExample: {
+		Label: Пример вложенной конфигурации — нажмите на меня
+		Tooltip: ""
+	}
+
+	DictionaryofSubConfigExample: {
+		Label: Словарь примеров вложенной конфигурации
+		Tooltip: ""
+	}
+
+	SeparateListOfPairs: {
+		Label: Список пар на подстранице
+		Tooltip: ""
+	}
+
+	pair: {
+		Label: Особая пара
+		Tooltip: ""
+	}
+
+	Headers.SeparatePageExamples: Примеры отдельных страниц
+}
+
+Pair: {
+	Tooltip: Pair — простой класс с логическим и целым значением
+
+	enabled: {
+		Label: включено
+		Tooltip: ""
+	}
+
+	boost: {
+		Label: усиление
+		Tooltip: ""
+	}
+}
+
+SimpleData: {
+	Tooltip: ""
+
+	Headers: {
+		FirstHeader: Потрясающе
+		SecondHeader: Включено
+	}
+
+	boost: {
+		Label: усиление
+		Tooltip: ""
+	}
+
+	percent: {
+		Label: процент
+		Tooltip: ""
+	}
+
+	enabled: {
+		Label: включено
+		Tooltip: ""
+	}
+
+	FavoritePokemon: {
+		Label: Любимый покемон
+		Tooltip: ""
+	}
+}
+
+Gradient: {
+	Tooltip: Представляет переход от одного цвета к другому
+
+	start: {
+		Label: начало
+		Tooltip: Цвет, с которого начинается градиент
+	}
+
+	end: {
+		Label: конец
+		Tooltip: Цвет, которым заканчивается градиент
+	}
+}
+
+ComplexData: {
+	Tooltip: ""
+
+	ListOfInts: {
+		Label: Список целых чисел
+		Tooltip: ""
+	}
+
+	nestedSimple: {
+		Label: вложенный Simple
+		Tooltip: ""
+	}
+
+	IncrementalFloat: {
+		Label: Пошаговое дробное число
+		Tooltip: ""
+	}
+}
+
+SubConfigExample: {
+	Tooltip: ""
+
+	boost: {
+		Label: усиление
+		Tooltip: ""
+	}
+
+	percent: {
+		Label: процент
+		Tooltip: ""
+	}
+
+	enabled: {
+		Label: включено
+		Tooltip: ""
+	}
+
+	SubA: {
+		Label: Под A
+		Tooltip: ""
+	}
+
+	SubB: {
+		Label: Ещё более под
+		Tooltip: ""
+	}
+}
+
+SubSubConfigExample: {
+	Tooltip: ""
+
+	whoa: {
+		Label: ого
+		Tooltip: ""
+	}
+}
+
+Corner: {
+	Tooltip: Положение привязки
+
+	TopLeft: {
+		Label: Вверху слева
+		Tooltip: ""
+	}
+
+	TopRight: {
+		Label: Вверху справа
+		Tooltip: ""
+	}
+
+	BottomLeft: {
+		Label: Внизу слева
+		Tooltip: ""
+	}
+
+	BottomRight: {
+		Label: Внизу справа
+		Tooltip: ""
+	}
+}
+
+ClassUsedAsKey: {
+	Tooltip: ""
+
+	SomeBool: {
+		Label: Какое-то логическое значение
+		Tooltip: ""
+	}
+
+	SomeNumber: {
+		Label: Какое-то число
+		Tooltip: ""
+	}
+}

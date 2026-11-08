@@ -4,6 +4,43 @@
 
 Helpers and additions that do not belong to one topic.
 
+## AccessorySlotLoader
+
+`class Terraria.ModLoader.AccessorySlotLoader`
+
+This serves as a central place to store equipment slots and their corresponding textures. You will use this to obtain the IDs for your equipment textures.
+
+| Member | Kind | tModLoader | What it does |
+|---|---|---|---|
+| `int MaxVanillaSlotCount` | const | same | How many exist, with the game's and every mod's. |
+| `int TotalCount` | property | **only here** | How many exist, with the game's and every mod's. |
+| `ModAccessorySlot Get(int id, Player player)` | method | same |  |
+| `ModAccessorySlot Get(int id)` | method | same |  |
+| `AccessorySlotType ContextToEnum(int context)` | method | same |  |
+| `bool ModdedIsItemSlotUnlockedAndUsable(int index, Player player)` | method | same | Checks if the ModAccessorySlot at the given index is enabled. Does not account for the functional or vanity slots individually being disabled due to conflicts arising from shared accessory slots. |
+| `bool ModdedIsSpecificItemSlotUnlockedAndUsable(int index, Player player, bool vanity)` | method | same | Like `ModdedIsItemSlotUnlockedAndUsable`, except this also checks if the functional or vanity slot specifically is disabled due to conflicts arising from switching loadouts while using shared accessory slots. |
+| `void CustomUpdateEquips(int index, Player player)` | method | same |  |
+| `bool ModdedCanSlotBeShown(int index)` | method | same |  |
+| `bool IsHidden(int index)` | method | same | Override to control whether or not drawing will be skipped during the given frame. NOTE: Nothing will be drawn, nor will subsequent drawing hooks be called on this slot for the frame while true |
+| `bool CanAcceptItem(int index, Item checkItem, int context)` | method | same | Override to set conditions on what can be placed in the slot. Default is to return false only when item property FitsAccessoryVanity says can't go in to a vanity slot. Return false to prevent the item going in slot. Return true for dyes, if you want dyes. Example: only wings can go in slot. Receives data: `checkItem` :: the item that is attempting to enter the slot |
+| `bool CanPlayerAcceptItem(Player player, int index, Item checkItem, int context)` | method | same |  |
+| `void OnHover(int index, int context)` | method | same |  |
+| `bool ModSlotCheck(Item checkItem, int slot, int context)` | method | same | Checks if the provided item can go in to the provided slot. Includes checking if the item already exists in either of Player.Armor or ModSlotPlayer.exAccessorySlot Invokes directly ItemSlot.AccCheck & ModSlot.CanAcceptItem Note that this doesn't check for conflicts of shared slots with the items of other loadouts, that check is done in `DetectConflictsWithSharedSlots` to prevent a confusing user experience. The accessory slot acts like a disabled slot while in conflict, allowing the player to choose how to fix the issue. |
+| `bool IsAccessoryInConflict(Player player, Item checkItem, int slot, int context)` | method | same | Similar to `ModSlotCheck` except it ignores the item in `slot` since that item is being passed in as `checkItem`. |
+| `void ModifyDefaultSwapSlot(Item item, ref int accSlotToSwapTo)` | method | same | After checking for empty slots in ItemSlot.AccessorySwap, this allows for changing what the target slot will be if the accessory isn't already equipped. DOES NOT affect vanilla behavior of swapping items like for like where existing in a slot |
+| `bool PreferredGolfBall(ref int projType)` | method | same | Mirrors Player.GetPreferredGolfBallToUse. Provides the golf ball projectile from an accessory slot. |
+| `int DrawVerticalAlignment` | static property | **not here** | The variable known as num20 used to align all equipment slot drawing in Main. Represents the y position where equipment slots start to be drawn from. |
+| `Vector2 DefenseIconPosition` | static property | **not here** | The variable that determines where the DefenseIcon will be drawn, after considering all slot information. |
+| `void DrawAccSlots(int num20)` | method | **not here** |  |
+| `string[] scrollStackLang` | static field | **not here** |  |
+| `bool Draw(int skip, bool modded, int slot, Color color)` | method | **not here** | Draws Vanilla and Modded Accessory Slots |
+
+## AccessorySlotType
+
+`enum Terraria.ModLoader.AccessorySlotType`
+
+Values: `FunctionalSlot`, `VanitySlot`, `DyeSlot`
+
 ## AddableFloat
 
 `struct Terraria.ModLoader.AddableFloat`
@@ -84,6 +121,15 @@ A `BinaryWriter` that writes big-endian numbers, for NBT files.
 | `void Write(ulong value)` | override | same | Writes a value with its most significant byte first. |
 | `void Write(float value)` | override | same | Writes a value with its most significant byte first. |
 | `void Write(double value)` | override | same | Writes a value with its most significant byte first. |
+
+## BigProgressBarSystem
+
+`struct Terraria.GameContent.UI.BigProgressBar.BigProgressBarSystem`
+
+| Member | Kind | tModLoader | What it does |
+|---|---|---|---|
+| `NeverValidProgressBar NeverValid` | property | same |  |
+| `bool TryGetSpecialVanillaBossBar(int netID, out IBigProgressBar bossBar)` | method | **not here** | Gets the special IBigProgressBar associated with this vanilla NPCs netID (usually the type). Reminder: If no special bar exists or NPC.BossBar is not assigned, any NPC with a boss head index will automatically display a common boss bar shared among all simple bosses. |
 
 ## BiomeConversionID
 
@@ -1264,9 +1310,13 @@ Represents an informational display toggle typically provided by informational a
 
 | Member | Kind | tModLoader | What it does |
 |---|---|---|---|
-| `string LocalizationCategory` | hook | same | The folder of this content in the localization files. |
-| `string HoverTexture` | hook | same | The outline texture drawn when the icon is hovered and toggleable. By default a circular outline texture is used. Override this method and return `Texture + "_Hover"` or any other texture path to specify a custom outline texture for use with icons that are not circular. |
 | `Color InactiveInfoTextColor` | static property | same | The color when no valuable information is displayed. |
+| `Color GoldInfoTextColor` | static property | same | The golden color variant of the displays text. Used by the Lifeform Analyzer. |
+| `Color GoldInfoTextShadowColor` | static property | same | The golden color variant of the displays text shadow. Used by the Lifeform Analyzer. |
+| `string VanillaHoverTexture` | static property | same | The path to the texture vanilla info displays use when hovering over an info display. |
+| `string LocalizationCategory` | hook | same | The folder of this content in the localization files. |
+| `string HoverTexture` | hook | same | The outline texture drawn when the icon is hovered and toggleable. By default a circular outline texture is used. Override this method and return `Texture + "_Hover"` or any other texture path to specify a custom outline texture for use with icons that are not circular. **Phone:** Touch has no hover, so this outline is not drawn; tapping a toggle shows `DisplayName` instead. |
+| `LocalizedText DisplayName` | hook | same | This is the name that will show up when hovering over this info display. |
 | `bool Active()` | hook | same | This dictates whether or not this info display should be active. This is usually determined by player-specific values, typically set in `UpdateInventory`. |
 | `string DisplayValue(ref Color displayColor, ref Color displayShadowColor)` | hook | same | This is the value that will show up when viewing this display in normal play, right next to the icon. Set `displayColor` to `InactiveInfoTextColor` if your display value is "zero"/shows no valuable information. |
 | `InfoDisplay Watches` | static property | **not here** | The game's displays are not exposed as objects here. |
@@ -1281,11 +1331,7 @@ Represents an informational display toggle typically provided by informational a
 | `InfoDisplay Stopwatch` | static property | **not here** | The game's displays are not exposed as objects here. |
 | `InfoDisplay Compass` | static property | **not here** | The game's displays are not exposed as objects here. |
 | `InfoDisplay DepthMeter` | static property | **not here** | The game's displays are not exposed as objects here. |
-| `Color GoldInfoTextColor` | static property | **not here** | The golden color variant of the displays text. Used by the Lifeform Analyzer. |
-| `Color GoldInfoTextShadowColor` | static property | **not here** | The golden color variant of the displays text shadow. Used by the Lifeform Analyzer. |
-| `string VanillaHoverTexture` | static property | **not here** | The path to the texture vanilla info displays use when hovering over an info display. |
 | `int Type` | property | **not here** | This is the internal ID of this InfoDisplay. Also serves as the index for `hideInfo`. |
-| `LocalizedText DisplayName` | hook | **not here** | This is the name that will show up when hovering over this info display. |
 
 ## LeadingConditionRule
 
@@ -1332,6 +1378,14 @@ The game's sound by number.
 | `bool HasValue` | property | **only here** | Whether it has a value. |
 | `LegacySoundStyle Value` | property | **only here** | The sound. |
 
+## LoaderManager
+
+`static class Terraria.ModLoader.LoaderManager`
+
+| Member | Kind | tModLoader | What it does |
+|---|---|---|---|
+| `T Get<T>()` | static method | same |  |
+
 ## MagicDamageClass
 
 `class Terraria.ModLoader.MagicDamageClass` : `VanillaDamageClass`
@@ -1362,6 +1416,7 @@ What Bunny Loader adds to the game's main class.
 
 | Member | Kind | tModLoader | What it does |
 |---|---|---|---|
+| `Player CurrentPlayer` | static property | same | A replacement for `LocalPlayer` which respects whichever player is currently running hooks on the main thread. This works in the player select screen, and in multiplayer (when other players are updating). `CurrentPlayerOverride` can be used to temporarily override CurrentPlayer. |
 | `IEnumerable<WorldItem> ActiveItems` | static property | differs | Use to iterate over active world items. Game logic is usually only interested in `active` elements, this iterator facilitates that usage and allows for simpler and more readable code. Typically used in a foreach statement: foreach (var item in Main.ActiveItems) { // Code } This is equivalent to the less convenient approach: for (int i = 0; i < Main.maxItems; i++) { var item = Main.item[i]; if (!item.active) continue; // Code } Note that if the index of the WorldItem in the `item` array is needed, `whoAmI` can be used. tML: `ActiveItemIterator ActiveItems` |
 | `IEnumerable<Player> ActivePlayers` | static property | differs | Use to iterate over active players. Game logic is usually only interested in `active` elements, this iterator facilitates that usage and allows for simpler and more readable code. Typically used in a foreach statement: foreach (var player in Main.ActivePlayers) { // Code } This is equivalent to the less convenient approach: for (int i = 0; i < Main.maxPlayers; i++) { var player = Main.player[i]; if (!player.active) continue; // Code } Note that if the index of the Player in the `player` array is needed, `whoAmI` can be used. tML: `ActivePlayerIterator ActivePlayers` |
 | `void OpenShop(string shopName)` | method | differs | Opens a shop by name. tML: `void OpenShop(int shopIndex)` |
@@ -2004,6 +2059,15 @@ One of the game's extra jumps, as an `ExtraJump` you can position against or rea
 | Member | Kind | tModLoader | What it does |
 |---|---|---|---|
 | `float GetDurationMultiplier(Player player)` | override | same | Vanilla's jumps use the following values: Basilisk mount: 0.75 Blizzard in a Bottle: 1.5 Cloud in a Bottle: 0.75 Fart in a Jar: 2 Goat mount: 2 Sandstorm in a Bottle: 3 Santank mount: 2 Tsunami in a Bottle: 1.25 Unicorn mount: 2 |
+
+## UnloadedAccessorySlot
+
+`class Terraria.ModLoader.Default.UnloadedAccessorySlot` : `ModAccessorySlot`
+
+| Member | Kind | tModLoader | What it does |
+|---|---|---|---|
+| `string Name` | override | same | The internal name of this. |
+| `bool IsEnabled()` | override | same | Override to set conditions on when the slot is valid for stat/vanity calculations and player usage. Example: the demonHeart is consumed and in Expert mode in Vanilla. |
 
 ## Utils
 

@@ -196,6 +196,8 @@ internal static class ItemTimingHooks
         return false;
     }
 
+    internal static bool HasAlternativeUse(Item item, Player player) => ItemCombatHooks.Wanted(globalAlt, item) && AltFunctionUse(item, player);
+
     internal static Item AlternativeItem(Player player)
     {
         if (player.IsNull) return default;
@@ -203,7 +205,7 @@ internal static class ItemTimingHooks
         {
             int slot = player.selectedItem;
             Item held = slot >= 0 && slot < 58 ? player.inventory[slot] : default;
-            return !held.IsNull && held.stack > 0 && ItemCombatHooks.Wanted(globalAlt, held) && AltFunctionUse(held, player) ? held : default;
+            return !held.IsNull && held.stack > 0 && HasAlternativeUse(held, player) ? held : default;
         }
         catch (Exception e)
         {

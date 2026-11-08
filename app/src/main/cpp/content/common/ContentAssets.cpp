@@ -513,6 +513,16 @@ bool setLocalizedTextValue(Il2CppObject* text, const std::string& value) {
     return invoke(setValue, text, args, "LocalizedText.SetValue");
 }
 
+void invalidateItemTooltips() {
+    auto& a = il2cpp::api();
+    static const MethodInfo* invalidate = nullptr;
+    if (!invalidate) {
+        Il2CppClass* tooltip = il2cpp::findClass({"Terraria.UI", "ItemTooltip", {}});
+        invalidate = tooltip ? a.class_get_method_from_name(tooltip, "InvalidateTooltips", 0) : nullptr;
+    }
+    if (invalidate) invoke(invalidate, nullptr, nullptr, "ItemTooltip.InvalidateTooltips");
+}
+
 std::string localizedTextValue(Il2CppObject* text) {
     auto& a = il2cpp::api();
     const Refs& r = refs();

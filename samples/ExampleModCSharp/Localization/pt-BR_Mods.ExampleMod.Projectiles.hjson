@@ -74,3 +74,19 @@ ExampleSnowmanRocketProjectile:
 {
     DisplayName: Projétil de foguete de boneco de neve de exemplo
 }
+ExampleSolutionProjectile:
+{
+    DisplayName: Spray de Exemplo
+}
+ExampleHellSolutionProjectile:
+{
+    DisplayName: Projétil da Solução Infernal de Exemplo
+}
+ExampleSandBallFallingProjectile:
+{
+    DisplayName: Bola de Areia de Exemplo
+}
+ExampleSandBallGunProjectile:
+{
+    DisplayName: "{$Mods.ExampleMod.Projectiles.ExampleSandBallFallingProjectile.DisplayName}"
+}

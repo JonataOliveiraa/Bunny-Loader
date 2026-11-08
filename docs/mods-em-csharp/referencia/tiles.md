@@ -1028,6 +1028,7 @@ This serves as the central class from which tile-related functions are supported
 | `ModTile GetTile(int type)` | static method | same | Gets the ModTile instance with the given type. If no ModTile with the given type exists, returns null. |
 | `void ModifySmartInteractCoords(int type, ref int width, ref int height, ref int frameWidth, ref int frameHeight, ref int extraY)` | static method | same | Allows you to modify the smart interact parameters for the tile. Parameters already preset by deriving from TileObjectData defined for the tile. Example usage: Beds/Dressers which have separate interactions based on where to click. |
 | `string DefaultContainerName(int type, int frameX, int frameY)` | static method | same | Returns the default name for a modded chest or dresser with the provided FrameX and FrameY values. |
+| `bool CanExplode(int i, int j)` | static method | same | Whether or not the tile/wall at the given coordinates can be killed by an explosion (ie. bombs). Returns true by default; return false to stop an explosion from destroying it. |
 | `bool IsLockedChest(int i, int j, int type)` | static method | same | Return true if this Tile corresponds to a chest that is locked. Prevents Quick Stacking items into the chest. |
 | `bool UnlockChest(int i, int j, int type, ref short frameXAdjustment, ref int dustType, ref bool manual)` | static method | same | Allows customization of how a chest unlock is accomplished. By default, frameXAdjustment will be -36, shifting the frameX over to the left by 1 chest style. If your chests are in a different order, adjust frameXAdjustment accordingly. This hook is called on the client, and if successful will be called on the server and other clients as the action is synced. Make sure that the logic is consistent and not dependent on local player data. |
 | `bool LockChest(int i, int j, int type, ref short frameXAdjustment, ref bool manual)` | static method | same | Allows customization of how locking a chest is accomplished. By default, frameXAdjustment will be 36, shifting the frameX over to the right by 1 chest style. If your chests are in a different order, adjust frameXAdjustment accordingly. This hook is called on the client, and if successful will be called on the server and other clients as the action is synced. Make sure that the logic is consistent and not dependent on local player data. |
@@ -1063,7 +1064,7 @@ This serves as the central class from which tile-related functions are supported
 | `void RecountTiles(SceneMetrics metrics)` | static method | **not here** | Internal here. |
 | `bool GlobalShakeTree(int x, int y, TreeTypes treeType)` | static method | **not here** | Internal here. |
 
-tModLoader's `TileLoader` also has 42 public methods that only run the hooks of the same name. Here those runners are internal. Override the hook in your class instead.
+tModLoader's `TileLoader` also has 41 public methods that only run the hooks of the same name. Here those runners are internal. Override the hook in your class instead.
 
 ## TileObjectData
 
@@ -1117,9 +1118,10 @@ This serves as the central class from which wall-related functions are supported
 | `bool Convert(int i, int j, int conversionType)` | static method | same | Allows you to change what happens when this tile/wall is converted into another biome. If you need to override or add a new conversion to a vanilla tile, use `RegisterConversion` and `RegisterConversion`. Purification powder uses a separate conversionType, as it doesn't convert hallowed tiles back to purity tiles. Be sure to check for `PurificationPowder` as well as `Purity` when handling corruption/crimson tiles. You can use `ConvertTile` or `ConvertWall` to automatically handle tile framing and multiplayer syncing. |
 | `int WallCount` | static property | same | How many exist, with the game's and every mod's. |
 | `ModWall GetWall(int type)` | static method | same | Gets the ModWall instance with the given type. If no ModWall with the given type exists, returns null. |
+| `bool CanExplode(int i, int j, int type)` | static method | same | Whether or not the tile/wall at the given coordinates can be killed by an explosion (ie. bombs). Returns true by default; return false to stop an explosion from destroying it. |
 | `void AnimateWalls()` | static method | **not here** | Internal here. |
 
-tModLoader's `WallLoader` also has 15 public methods that only run the hooks of the same name. Here those runners are internal. Override the hook in your class instead.
+tModLoader's `WallLoader` also has 14 public methods that only run the hooks of the same name. Here those runners are internal. Override the hook in your class instead.
 
 ## WaterFallStylesLoader
 

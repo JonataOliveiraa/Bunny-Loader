@@ -1,0 +1,92 @@
+ActiveSoundShowcaseProjectile:
+{
+    DisplayName: 主动音效展示射弹
+}
+ExampleAdvancedFlailProjectile:
+{
+    DisplayName: 示例高级链锤
+}
+ExampleArrowProjectile:
+{
+    DisplayName: 示例箭射弹
+}
+ExampleCloneProjectile:
+{
+    DisplayName: 彩虹猫之刃 V2
+}
+ExampleCustomSwingProjectile:
+{
+    DisplayName: 示例自定义挥舞射弹
+}
+ExampleExplosive:
+{
+    DisplayName: 示例炸药
+}
+ExampleGravityDebuffBullet:
+{
+    DisplayName: 示例重力减益子弹
+}
+ExampleHeldProjectileWeaponProjectile:
+{
+    DisplayName: 示例手持射弹武器射弹
+}
+ExampleHomingProjectile:
+{
+    DisplayName: 示例追踪射弹
+}
+ExampleInteractableProjectile:
+{
+    DisplayName: 示例可互动射弹
+}
+ExampleJavelinProjectile:
+{
+    DisplayName: 示例标枪射弹
+}
+ExampleJoustingLanceProjectile:
+{
+    DisplayName: 示例骑枪
+}
+ExamplePaperAirplaneProjectile:
+{
+    DisplayName: 示例纸飞机射弹
+}
+ExamplePiercingProjectile:
+{
+    DisplayName: 示例穿透射弹
+}
+ExampleWhipProjectileAdvanced:
+{
+    DisplayName: 示例高级鞭子射弹
+}
+ExampleGrenadeProjectile:
+{
+    DisplayName: 示例手榴弹射弹
+}
+ExampleProximityMineProjectile:
+{
+    DisplayName: 示例感应雷射弹
+}
+ExampleRocketProjectile:
+{
+    DisplayName: 示例火箭射弹
+}
+ExampleSnowmanRocketProjectile:
+{
+    DisplayName: 示例雪人火箭射弹
+}
+ExampleSolutionProjectile:
+{
+    DisplayName: 示例喷雾
+}
+ExampleHellSolutionProjectile:
+{
+    DisplayName: 示例地狱溶液射弹
+}
+ExampleSandBallFallingProjectile:
+{
+    DisplayName: 示例沙球
+}
+ExampleSandBallGunProjectile:
+{
+    DisplayName: "{$Mods.ExampleMod.Projectiles.ExampleSandBallFallingProjectile.DisplayName}"
+}

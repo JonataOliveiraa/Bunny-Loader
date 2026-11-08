@@ -83,6 +83,57 @@ Registers mod hairs.
 | `ModHair GetHair(int type)` | static method | same | The `ModHair` of a number, or null. |
 | `void UpdateUnlocks(HairstyleUnlocksHelper unlocksHelper, bool inCharacterCreation)` | static method | same | Fills the styles the stylist offers. |
 
+## ModAccessorySlot
+
+`abstract class Terraria.ModLoader.ModAccessorySlot` : `ModType`
+
+A ModAccessorySlot instance represents a net new accessory slot instance. You can store fields in the ModAccessorySlot class.
+
+| Member | Kind | tModLoader | What it does |
+|---|---|---|---|
+| `int Type` | property | same |  |
+| `Player Player` | static property | same | The player that this ModAccessorySlot is currently accessing, equivalent to `CurrentPlayer`. ModAccessorySlot are singletons, the behavior of properties like `FunctionalItem` depends on the current player. Main.CurrentPlayer documentation: |
+| `ModAccessorySlotPlayer ModSlotPlayer` | property | same |  |
+| `Vector2 CustomLocation` | hook | same |  |
+| `string DyeBackgroundTexture` | hook | same |  |
+| `string VanityBackgroundTexture` | hook | same |  |
+| `string FunctionalBackgroundTexture` | hook | same |  |
+| `string DyeTexture` | hook | same |  |
+| `string VanityTexture` | hook | same |  |
+| `string FunctionalTexture` | hook | same |  |
+| `bool DrawFunctionalSlot` | hook | same |  |
+| `bool DrawVanitySlot` | hook | same |  |
+| `bool DrawDyeSlot` | hook | same |  |
+| `bool HasEquipmentLoadoutSupport` | hook | same | Gets or sets a value indicating whether this slot supports equipment loadouts. If `false`, the slot's item is shared between all loadouts. Defaults to `true`. Changing this value requires a reload. This value is not allowed to be different between multiplayer clients or issues will occur. Changing the value from `true` to `false` will cause the extra items to be spawned on the player when they enter the world. Changing the value from `false` to `true` will result in the currently selected loadout holding the items. Slots that don't support loadouts will appear with the default green background texture, as if they were an accessory in loadout #1 or from before loadout support was added to the game. |
+| `Item FunctionalItem` | property | same | The functional item of this equipment slot. This property always accesses the equipment of the current player, see `Player` for more info. |
+| `Item VanityItem` | property | same | The vanity item of this equipment slot. This property always accesses the equipment of the current player, see `Player` for more info. |
+| `Item DyeItem` | property | same | The dye item of this equipment slot. This property always accesses the equipment of the current player, see `Player` for more info. |
+| `bool HideVisuals` | property | same | Indicates if the corresponding `FunctionalItem` is set to be hidden or not. This property always accesses the equipment of the current player, see `Player` for more info. |
+| `bool IsEmpty` | property | same |  |
+| `bool PreDraw(AccessorySlotType context, Item item, Vector2 position, bool isHovered)` | hook | same | Allows drawing prior to vanilla ItemSlot.Draw code. Return false to NOT call ItemSlot.Draw |
+| `void PostDraw(AccessorySlotType context, Item item, Vector2 position, bool isHovered)` | hook | same |  |
+| `void ApplyEquipEffects()` | hook | same | Override to replace the vanilla effect behavior of the slot with your own. By default calls: Player.VanillaUpdateEquips(FunctionalItem), Player.ApplyEquipFunctional(FunctionalItem, ShowVisuals), Player.ApplyEquipVanity(VanityItem) |
+| `bool CanAcceptItem(Item checkItem, AccessorySlotType context)` | hook | same | Override to set conditions on what can be placed in the slot. Default is to return false only when item property FitsAccessoryVanity says can't go in to a vanity slot. Return false to prevent the item going in slot. Return true for dyes, if you want dyes. Example: only wings can go in slot. Receives data: `checkItem` :: the item that is attempting to enter the slot |
+| `bool ModifyDefaultSwapSlot(Item item, int accSlotToSwapTo)` | hook | same | After checking for empty slots in ItemSlot.AccessorySwap, this allows for changing what the default target slot (accSlotToSwapTo) will be. DOES NOT affect vanilla behavior of swapping items like for like where existing in a slot Return true to set this slot as the default targeted slot. |
+| `bool IsHidden()` | hook | same | Override to control whether or not drawing will be skipped during the given frame. NOTE: Nothing will be drawn, nor will subsequent drawing hooks be called on this slot for the frame while true |
+| `bool IsEnabled()` | hook | same | Override to set conditions on when the slot is valid for stat/vanity calculations and player usage. Example: the demonHeart is consumed and in Expert mode in Vanilla. |
+| `bool IsVisibleWhenNotEnabled()` | hook | same | Override to change the condition on when the slot is visible, but otherwise non-functional for stat/vanity calculations. Defaults to check 'property' IsEmpty |
+| `void OnMouseHover(AccessorySlotType context)` | hook | same | Allows you to do stuff while the player is hovering over this slot. |
+| `void BackgroundDrawColor(AccessorySlotType context, ref Color color)` | hook | same | Allows customizing the background texture draw color. For `HasEquipmentLoadoutSupport` slots without a custom texture, the color will already have been adjusted for the current loadout (ItemSlot.GetColorByLoadout), otherwise the color will be `inventoryBack`, which will oscillate all values between 180 and 240. |
+
+## ModAccessorySlotPlayer
+
+`class Terraria.ModLoader.Default.ModAccessorySlotPlayer`
+
+| Member | Kind | tModLoader | What it does |
+|---|---|---|---|
+| `Player Player` | property | **only here** | The Player instance that this ModPlayer instance is attached to. |
+| `int SlotCount` | property | same | Total modded slots to show, including UnloadedAccessorySlot at the end. On the local instance of a ModAccessorySlotPlayer, this might have extra entries not present on remote clients. |
+| `int LoadedSlotCount` | property | same | Total loaded modded slots. This does not include UnloadedAccessorySlot entries. This value is used for network syncing since this will be consistent between clients. |
+| `Item GetSharedLoadoutItem(int context, int slot, out int sharedFromLoadout)` | method | same |  |
+| `void UpdateDyes(bool socialSlots)` | method | same | Mirrors Player.UpdateDyes() for modded slots Runs On Player Select, so is Player instance sensitive!!! |
+| `void DropItems(IEntitySource itemSource)` | method | same |  |
+
 ## ModBuff
 
 `abstract class Terraria.ModLoader.ModBuff` : `ModTexturedType`

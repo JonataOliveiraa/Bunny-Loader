@@ -1,0 +1,14 @@
+ExampleBuilderToggleDimmedLight:
+{
+    OnText: Пример вкл.
+    OffText: Пример выкл.
+}
+ExampleBuilderToggle:
+{
+    CurrentColor: Цвет: {0}
+    Color_0: Красный
+    Color_1: Синий
+    Color_2: Зелёный
+    Color_3: Жёлтый
+}
+FreeBaitBuilderToggle.NameText: Бесплатная наживка: {0}

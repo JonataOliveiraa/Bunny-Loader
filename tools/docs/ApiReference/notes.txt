@@ -468,8 +468,8 @@ Terraria.ModLoader.ItemLoot.Add|Adds a rule.
 Terraria.ModLoader.ItemLoot.RemoveWhere|Removes the rules that match.
 Terraria.ModLoader.ModItem.IsQuestFish|Whether this fish can be an Angler quest.
 Terraria.ModLoader.ModItem.SummonPrefix|Whether this item takes summon prefixes.
-Terraria.ModLoader.ModItem.AltFunctionIcon|Icon of the Interact touch button while this item is held and its alternative use can be switched there. `alternative` says which mode is on. Return null for the game's swap icon.
-Terraria.ModLoader.GlobalItem.AltFunctionIcon|Icon of the Interact touch button while this item is held and its alternative use can be switched there. `alternative` says which mode is on. Return null to keep the icon of the item or of an earlier global.
+Terraria.ModLoader.ModItem.AltFunctionIcon|Icon of the Interact touch button while this item is held and its alternative use can be switched there, also shown in the touch glyph that `{InputTrigger_InteractWithTile}` becomes in its tooltip. `alternative` says which mode is on. Return null for the item's own icon; return `ModContent.Request<Texture2D>("Terraria/Images/UI/ExtraIcons/ItemSwap1")` for the game's swap arrows.
+Terraria.ModLoader.GlobalItem.AltFunctionIcon|Icon of the Interact touch button while this item is held and its alternative use can be switched there, also shown in the touch glyph of its tooltip. `alternative` says which mode is on. Return null to keep the item's icon or the one of the ModItem or an earlier global.
 Terraria.ModLoader.ModPrefix.Type|The prefix's number.
 Terraria.ModLoader.ModRarity.Type|The rarity's number, for `Item.rare`.
 Terraria.ModLoader.RarityLoader.GetRarity|The `ModRarity` of a number, or null.

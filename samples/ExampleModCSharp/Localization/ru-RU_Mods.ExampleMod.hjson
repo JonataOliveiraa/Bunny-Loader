@@ -1,0 +1,1323 @@
+MessageInfo: {
+	UnstablePylonIsOff: Нестабильный пилон выключен.
+	NearbyUnstablePylonIsOff: Ближайший нестабильный пилон выключен.
+}
+
+Invasions: {
+	PaladinCrusade: {
+		DisplayName: Крестовый поход паладинов
+		Start: Крестовый поход паладинов начался!
+		Fail: Паладины отступают на рассвете.
+		Complete: Крестовый поход паладинов отбит!
+	}
+
+	GraveLegion: {
+		DisplayName: Могильный легион
+	}
+}
+
+Items: {
+	ExampleSandBlock: {
+		DisplayName: Пример блока песка
+		Tooltip: Это блок песка из мода
+	}
+
+	ExampleSandRod: {
+		DisplayName: Пример жезла песка
+		Tooltip: Перемещает песок с помощью магии
+	}
+
+	ExampleSolution: {
+		DisplayName: Пример раствора
+		Tooltip:
+			'''
+			Используется в Очистителе
+			Распространяет пример
+			'''
+	}
+
+	ExampleHellSolution: {
+		DisplayName: Пример адского раствора
+		Tooltip:
+			'''
+			Используется в Очистителе
+			Распространяет преисподнюю
+			'''
+	}
+
+	ExampleDye: {
+		DisplayName: Пример красителя
+		Tooltip: ""
+	}
+
+	ExampleHairDye: {
+		DisplayName: Пример краски для волос
+		Tooltip: ""
+	}
+
+	ExamplePressurePlate: {
+		DisplayName: Пример нажимной плиты с грузом
+		Tooltip: "{$ItemTooltip.WeightedPressurePlateCyan}"
+	}
+
+	ExamplePylonItemAdvanced: {
+		DisplayName: Нестабильный пилон
+		Tooltip: Случайно включается и выключается, но к нему можно телепортироваться без жителей и в любом биоме!
+	}
+
+	HallowedFossilTileItem: {
+		DisplayName: Предмет плитки освящённой окаменелости
+		Tooltip: ""
+	}
+
+	CorruptFossilTileItem: {
+		DisplayName: Предмет плитки искажённой окаменелости
+		Tooltip: ""
+	}
+
+	CrimsonFossilTileItem: {
+		DisplayName: Предмет плитки багряной окаменелости
+		Tooltip: ""
+	}
+
+	HallowedFossilWallItem: {
+		DisplayName: Предмет стены освящённой окаменелости
+		Tooltip: ""
+	}
+
+	CorruptFossilWallItem: {
+		DisplayName: Предмет стены искажённой окаменелости
+		Tooltip: ""
+	}
+
+	CrimsonFossilWallItem: {
+		DisplayName: Предмет стены багряной окаменелости
+		Tooltip: ""
+	}
+
+	ConsecratedAxe: {
+		DisplayName: Освящённый топор
+		Tooltip:
+			'''
+			Призывает крестовый поход паладинов
+			Можно использовать только ночью
+			'''
+	}
+
+	GraveBell: {
+		DisplayName: Могильный колокол
+		Tooltip:
+			'''
+			Призывает могильный легион
+			Три волны нежити
+			'''
+	}
+
+	ActiveSoundShowcase: {
+		DisplayName: Витрина активного звука
+		Tooltip: ""
+	}
+
+	ExampleMultiUseItem: {
+		DisplayName: Пример предмета многократного использования
+		Tooltip: Можно использовать {0} раз
+	}
+
+	PlanteraItem: {
+		DisplayName: Плантера
+		Tooltip: Гнев джунглей
+	}
+
+	ExampleBasicFish: {
+		DisplayName: Пример обычной рыбы
+		Tooltip: ""
+	}
+
+	ExampleDataItem: {
+		DisplayName: Горячая картошка
+		Tooltip: Когда таймер дойдёт до нуля, случится что-то волшебное...
+		Countdown: Осталось секунд: {0}!
+	}
+
+	ExamplePaperAirplane: {
+		DisplayName: Пример бумажного самолётика
+		Tooltip: Это бумажный самолётик из мода.
+	}
+
+	ExampleCanStackItem: {
+		DisplayName: Пример предмета CanStack: подарочный мешок
+		Tooltip: "{$CommonItemTooltip.RightClickToOpen}"
+		CraftedPlayerNameCannotOpen: Вы сами сделали этот мешок и не можете его открыть!
+		CraftedPlayerNameOther: Это мешок от {0}, откройте его, чтобы получить подарок!
+		CraftedPlayerNameEmpty: Этот мешок не был создан, он ничего не сделает
+	}
+
+	ExampleStackableDurabilityItem: {
+		DisplayName: Пример складываемого предмета с прочностью
+		Tooltip: ""
+		Durability: Прочность: {0}%
+	}
+
+	ExampleFlask: {
+		DisplayName: Флакон примера
+		Tooltip: Атаки в ближнем бою и кнутом снижают защиту врагов
+	}
+
+	CustomItemDrawingShowcase: {
+		DisplayName: Витрина особой отрисовки предмета
+		Tooltip: Нажмите «Открыть» в инвентаре, чтобы переключать примеры отрисовки
+		RightClick: Переключение на drawMode №{0}: {1}
+		DrawMode_0: Рисует наложение/светящуюся маску
+		DrawMode_1: Масштабирует отрисовку, создавая пульсацию, как у душ
+		DrawMode_2: Рисует текстуру позади предмета
+		DrawMode_3: Рисует подсветку контура, как у мешка с сокровищами босса
+		DrawMode_4: Предмет покачивается влево и вправо
+	}
+
+	HoldStyleShowcase: {
+		DisplayName: Витрина стилей удержания
+		Tooltip:
+			'''
+			Этот предмет показывает каждый HoldStyle.
+			{InputTrigger_InteractWithTile}, чтобы переключать HoldStyles.
+			'''
+		Switching: Переключение на ItemHoldStyleID №{0}
+		ThisIs: Это ItemHoldStyleID №{0}
+	}
+
+	UseStyleShowcase: {
+		DisplayName: Витрина стилей использования
+		Tooltip:
+			'''
+			Этот предмет показывает каждый UseStyle.
+			{InputTrigger_InteractWithTile}, чтобы переключать UseStyles.
+			'''
+		Switching: Переключение на ItemUseStyleID №{0}
+		ThisIs: Это ItemUseStyleID №{0}
+	}
+
+	ShimmerShowcaseConditions: {
+		DisplayName: Витрина условий мерцания
+		Tooltip: ""
+	}
+
+	ShimmerShowcaseCustomShimmerResult: {
+		DisplayName: Витрина особого результата мерцания
+		Tooltip: ""
+	}
+
+	ExampleCustomAISlimeNPCBanner: {
+		DisplayName: "Знамя: {$Mods.ExampleMod.NPCs.ExampleCustomAISlimeNPC.DisplayName}"
+		Tooltip: "{$CommonItemTooltip.BannerBonus}{$Mods.ExampleMod.NPCs.ExampleCustomAISlimeNPC.DisplayName}"
+	}
+
+	ExampleBullet: {
+		DisplayName: Пример пули
+		Tooltip: Это пуля из мода.
+	}
+
+	ExampleFishingRod: {
+		DisplayName: Пример удочки
+		Tooltip:
+			'''
+			Забрасывает несколько лесок сразу. Может рыбачить в лаве.
+			Леска никогда не рвётся.
+			'''
+	}
+
+	ExampleHookItem: {
+		DisplayName: Пример крюка
+		Tooltip: Цепляется за деревья
+	}
+
+	ExampleQuestFish: {
+		DisplayName: Перевёрнутая рыба
+		Tooltip: Ловится где угодно, если стоять вверх ногами
+		Description: Я слышал истории о рыбе, которая плавает вверх брюхом. Говорят, чтобы её найти, нужно самому стоять вверх ногами. Такая рыба отлично смотрелась бы у меня на потолке. Неси!
+		CatchLocation: Ловится где угодно, если стоять вверх ногами.
+	}
+
+	ExampleItem: {
+		DisplayName: Пример предмета
+		Tooltip: Описание предмета
+	}
+
+	ExampleMeleeWeapon: {
+		DisplayName: Меч
+		Tooltip: ""
+	}
+
+	ExampleHelmet: {
+		DisplayName: Пример шлема
+		Tooltip: Это шлем из мода.
+		SetBonus: Увеличивает наносимый урон на {0}%
+	}
+
+	ExampleBreastplate: {
+		DisplayName: Пример нагрудника
+		Tooltip:
+			'''
+			Это нагрудник из мода.
+			Иммунитет к «Горению!»
+			Максимум маны увеличен на 20
+			Максимальное число приспешников увеличено на 1
+			'''
+	}
+
+	ExampleLeggings: {
+		DisplayName: Пример поножей
+		Tooltip:
+			'''
+			Это поножи из мода.
+			Скорость передвижения увеличена на 5%
+			'''
+	}
+
+	ExampleRobe: {
+		DisplayName: Пример мантии
+		Tooltip: ""
+	}
+
+	ExampleLifeFruit: {
+		DisplayName: Пример плода жизни
+		Tooltip:
+			'''
+			Навсегда увеличивает максимум здоровья на {0}
+			Можно использовать не больше {1} раз
+			'''
+	}
+
+	ExampleManaCrystal: {
+		DisplayName: Пример кристалла маны
+		Tooltip:
+			'''
+			Навсегда увеличивает максимум маны на {0}
+			Можно использовать не больше {1} раз
+			'''
+	}
+
+	ExampleImmunityAccessory: {
+		DisplayName: Пример аксессуара неуязвимости
+		Tooltip: Это крестик из мода, увеличивающий время неуязвимости на 1 секунду.
+	}
+
+	ExampleCratePotion: {
+		DisplayName: Пример зелья ящиков
+		Tooltip:
+			'''
+			Повышает шанс выловить ящик
+			Складывается с зельем ящиков
+			'''
+	}
+
+	ExampleBuffPotion: {
+		DisplayName: Пример зелья усиления
+		Tooltip: Даёт небольшую прибавку к защите.
+	}
+
+	ExampleExtraJumpAccessory: {
+		DisplayName: Пример аксессуара дополнительного прыжка
+		Tooltip: Позволяет совершить дополнительный прыжок в воздухе
+	}
+
+	ExampleWings: {
+		DisplayName: Пример крыльев
+		Tooltip: Это крылья из мода.
+	}
+
+	ExampleShield: {
+		DisplayName: Пример щита
+		Tooltip: Это щит из мода.
+	}
+
+	ExampleCustomDamageWeapon: {
+		DisplayName: Пример оружия с особым уроном
+		Tooltip: ""
+	}
+
+	ExampleModifiedProjectilesItem: {
+		DisplayName: Пример предмета с изменёнными снарядами
+		Tooltip: ""
+	}
+
+	ExampleWall: {
+		DisplayName: Пример стены
+		Tooltip: Это стена из мода.
+	}
+
+	ExampleWallAdvanced: {
+		DisplayName: Пример продвинутой стены
+		Tooltip: Это продвинутая стена из мода.
+	}
+
+	ExamplePylonItem: {
+		DisplayName: Пример пилона
+		Tooltip:
+			'''
+			Работает только в наземном или подземном биоме примера.
+			Жители не нужны!
+			'''
+	}
+
+	ExampleBed: {
+		DisplayName: Пример кровати
+		Tooltip: Это кровать из мода.
+	}
+
+	ExampleChair: {
+		DisplayName: Пример стула
+		Tooltip: Это стул из мода.
+	}
+
+	ExampleSignItem: {
+		DisplayName: Пример таблички
+		Tooltip: ""
+	}
+
+	BasicTileEntityItem: {
+		DisplayName: Предмет простой сущности плитки
+		Tooltip: Собирает дождевую воду. Когда наполнится, взаимодействуйте с ним, чтобы получить ведро воды.
+	}
+
+	ExampleChest: {
+		DisplayName: Пример сундука
+		Tooltip: Это сундук из мода.
+	}
+
+	ExampleChestKey: {
+		DisplayName: Пример ключа от сундука
+		Tooltip: ""
+	}
+
+	ExampleDresser: {
+		DisplayName: Пример комода
+		Tooltip: Это комод из мода.
+	}
+
+	ExampleGun: {
+		DisplayName: Пример пистолета
+		Tooltip: Это пистолет из мода.
+	}
+
+	ExampleShotgun: {
+		DisplayName: Пример дробовика
+		Tooltip: Это дробовик из мода.
+	}
+
+	ExampleMinigun: {
+		DisplayName: Пример минигана
+		Tooltip: Это миниган из мода.
+	}
+
+	ExampleSword: {
+		DisplayName: Пример меча
+		Tooltip: Это меч из мода.
+	}
+
+	ExampleDualUseWeapon: {
+		DisplayName: Пример оружия двойного назначения
+		Tooltip: Это оружие делает кое-что особое по {InputTrigger_InteractWithTile}.
+	}
+
+	ExampleMagicWeapon: {
+		DisplayName: Пример магического оружия
+		Tooltip: Это пример магического оружия
+	}
+
+	ExampleRiftStaff: {
+		DisplayName: Пример посоха разлома
+		Tooltip:
+			'''
+			Открывает разлом, который искажает мир вокруг себя
+			Пример эффекта экрана: собственный шейдер .frag
+			'''
+	}
+
+	ExampleLastPrism: {
+		DisplayName: Пример последней призмы
+		Tooltip:
+			'''
+			Десять лучей, сходящихся в один
+			Там, где они попадают, экран идёт рябью
+			'''
+	}
+
+	ExampleStatBonusAccessory: {
+		DisplayName: Пример аксессуара бонусов к характеристикам
+		Tooltip:
+			'''
+			Урон увеличен на 25%, этот множитель складывается с другими бонусами к урону
+			Множитель урона увеличен на 12%; он перемножается с другими бонусами к урону
+			Базовый урон всего оружия увеличен на 4
+			Итоговый урон всего оружия увеличен на 5
+			Шанс критического удара в ближнем бою увеличен на 10%
+			Скорость стрельбы дальнего боя увеличена на 15%
+			5 ед. пробивания брони для магии
+			Отбрасывание примера увеличено на 100%
+			'''
+	}
+
+	ExampleShortsword: {
+		DisplayName: Пример короткого меча
+		Tooltip: ""
+	}
+
+	ExampleSpear: {
+		DisplayName: Пример копья
+		Tooltip: Это копьё из мода
+	}
+
+	ExampleFlail: {
+		DisplayName: Пример цепа
+		Tooltip: Это цеп из мода с обычным поведением.
+	}
+
+	ExampleYoyo: {
+		DisplayName: Пример йо-йо
+		Tooltip: Это йо-йо из мода с обычным поведением. Плохие модификаторы на него не выпадают.
+	}
+
+	ExampleWhip: {
+		DisplayName: Пример кнута
+		Tooltip:
+			'''
+			{$CommonItemTooltip.SummonTagDamage}
+			{$CommonItemTooltip.Whips}
+			'''
+	}
+
+	ExampleSwingingEnergySword: {
+		DisplayName: Пример энергетического меча
+		Tooltip: ""
+	}
+
+	ExamplePickaxe: {
+		DisplayName: Пример кирки
+		Tooltip: Это кирка из мода.
+	}
+
+	ExampleHamaxe: {
+		DisplayName: Пример молотопора
+		Tooltip: Это молотопор из мода.
+	}
+
+	ExampleDrill: {
+		DisplayName: Пример бура
+		Tooltip: ""
+	}
+
+	ExampleRocketLauncher: {
+		DisplayName: Пример ракетницы
+		Tooltip: ""
+	}
+
+	ExampleMultiplePrefixCategoryWeapon: {
+		DisplayName: Пример оружия с несколькими категориями модификаторов
+		Tooltip: Может получать и сохранять модификаторы ближнего боя и магии
+	}
+
+	ExampleGolfBall: {
+		DisplayName: Пример мяча для гольфа
+		Tooltip: ""
+	}
+
+	ExampleAdvancedAnimatedProjectileItem: {
+		DisplayName: Пример предмета продвинутого анимированного снаряда
+		Tooltip: ""
+	}
+
+	ExampleSimpleMinionItem: {
+		DisplayName: Пример предмета приспешника
+		Tooltip: Призывает приспешника, который сражается за вас
+	}
+
+	ExampleSentryItem: {
+		DisplayName: Пример предмета турели
+		Tooltip: Призывает турель, которая сражается за вас
+	}
+
+	ExamplePetItem: {
+		DisplayName: "{$Common.PaperAirplane}"
+		Tooltip:
+			'''
+			Призывает {$Mods.ExampleMod.Common.PaperAirplane}, бесцельно следующий за вами
+			Вторая строка!
+			'''
+	}
+
+	ExampleLightPetItem: {
+		DisplayName: Надоедливый свет
+		Tooltip: Призывает надоедливый свет
+	}
+
+	ExampleMinecart: {
+		DisplayName: Пример вагонетки
+		Tooltip: ""
+	}
+
+	ExampleBoots: {
+		DisplayName: Пример ботинок
+		Tooltip:
+			'''
+			Позволяет летать, очень быстро бегать, ещё быстрее — по песку, и лучше двигаться по льду
+			Скорость передвижения увеличена на {0}%
+			Позволяет ходить по воде, мёду, лаве и мерцанию
+			Даёт иммунитет к огненным блокам и {1} с иммунитета к лаве
+			Уменьшает урон от касания лавы
+			Защищает от урона при падении
+			Оставляет за собой огненный след
+			'''
+	}
+
+	ExampleResourceAccessory: {
+		DisplayName: Пример аксессуара ресурса
+		Tooltip:
+			'''
+			Сильно ускоряет восстановление ресурса примера
+			Максимум ресурса примера увеличен на {0}
+			Увеличивает радиус подбора сфер ресурса примера
+			'''
+	}
+
+	ExampleCustomResourceWeapon: {
+		DisplayName: Пример оружия с особым ресурсом
+		Tooltip: ""
+		UsesXExampleResource: Тратит {0} ед. ресурса примера
+	}
+
+	ExampleResourcePickup: {
+		DisplayName: Пример сферы ресурса
+		Tooltip: ""
+	}
+
+	ExampleCostume: {
+		DisplayName: Амулет примера
+		Tooltip:
+			'''
+			Превращает владельца в Кубика рядом с жителями
+			В воде цвета Кубика инвертируются
+			'''
+	}
+
+	ExampleBeard: {
+		DisplayName: Пример бороды
+		Tooltip: Это борода из мода, в цвет ваших волос.
+	}
+
+	ExampleCustomDrawWings: {
+		DisplayName: Пример крыльев с особой отрисовкой
+		Tooltip: ""
+	}
+
+	WaspNest: {
+		DisplayName: Осиное гнездо
+		Tooltip:
+			'''
+			{$ItemTooltip.HiveBackpack}
+			Выпускает пчёл при получении урона
+			'''
+	}
+
+	ExampleSoul: {
+		DisplayName: Душа примерности
+		Tooltip: "«Сущность примерных созданий»"
+	}
+
+	ExampleBar: {
+		DisplayName: Пример слитка
+		Tooltip: ""
+	}
+
+	ExampleTooltipsItem: {
+		DisplayName: Пример предмета с подсказками
+		Tooltip:
+			'''
+			Как вы сегодня себя чувствуете?
+			[c/FF0000:Цвета ][c/00FF00:это ][c/0000FF:весело, ]и предметы тоже: [i:5236][i:5230][i:1508]
+			'''
+		RemoveMe: Эта подсказка не появится в игре
+		Face: Я чувствую себя отлично!
+	}
+
+	ExampleTorch: {
+		DisplayName: Пример факела
+		Tooltip: Это факел из мода.
+	}
+
+	ExampleWaterTorch: {
+		DisplayName: Пример водного факела
+		Tooltip: "{$ItemTooltip.IchorTorch}"
+	}
+
+	ExampleLamp.DisplayName: Пример лампы
+
+	ExampleCampfire: {
+		DisplayName: Пример костра
+		Tooltip: "{$ItemTooltip.Campfire}"
+	}
+
+	ExampleChandelier: {
+		DisplayName: Пример люстры
+		Tooltip: ""
+	}
+
+	ExampleClock: {
+		DisplayName: Пример часов
+		Tooltip: Это часы из мода.
+	}
+
+	ExampleDoor: {
+		DisplayName: Пример двери
+		Tooltip: Это дверь из мода.
+	}
+
+	ExamplePlatform: {
+		DisplayName: Пример платформы
+		Tooltip: Это платформа из мода.
+	}
+
+	ExampleSink: {
+		DisplayName: Пример раковины
+		Tooltip:
+			'''
+			Считается источником воды, лавы и мёда
+			«Жаль, что примеров жидкостей нет (пока)»
+			'''
+	}
+
+	ExampleTable: {
+		DisplayName: Пример стола
+		Tooltip: Это стол из мода.
+	}
+
+	ExampleToilet: {
+		DisplayName: Пример унитаза
+		Tooltip: Это унитаз из мода.
+	}
+
+	ExampleWideBanner: {
+		DisplayName: Пример широкого знамени
+		Tooltip: Это знамя шире всех остальных!
+	}
+
+	ExampleCutTile: {
+		DisplayName: Хрупкая ловушка-валун
+		Tooltip: ""
+	}
+
+	ExampleGem: {
+		DisplayName: Пример самоцвета
+		Tooltip: ""
+	}
+
+	ExampleGemsparkBlock: {
+		DisplayName: Пример блока самоцветного сияния
+		Tooltip: ""
+	}
+
+	ExampleHerbSeeds: {
+		DisplayName: Пример семян травы
+		Tooltip: ""
+	}
+
+	ExampleLivingFire: {
+		DisplayName: Пример блока живого огня
+		Tooltip: ""
+	}
+
+	ExampleSlopedTile: {
+		DisplayName: Пример скошенной плитки
+		Tooltip: '''
+			Плитка-пример, которую можно скосить, но она не твёрдая
+			Срабатывает, когда игрок проходит сквозь неё в указанном направлении
+			'''
+	}
+
+	ExampleStatue: {
+		DisplayName: Пример статуи
+		Tooltip: В этой неживой рыбе течёт сила примерия
+	}
+
+	ExampleTrap: {
+		DisplayName: Пример ловушки
+		Tooltip: ""
+	}
+
+	ExampleFishingCrate: {
+		DisplayName: Пример рыболовного ящика
+		Tooltip: "{$CommonItemTooltip.RightClickToOpen}"
+	}
+
+	ExampleAnimatedTileItem: {
+		DisplayName: Красный светлячок в бутылке
+		Tooltip: ""
+	}
+
+	ExampleAnimatedGlowmaskTileItem: {
+		DisplayName: Предмет плитки-примера с анимированной светящейся маской
+		Tooltip: ""
+	}
+
+	ExampleTransparentShapedTileItem: {
+		DisplayName: Огненная сетка
+		Tooltip: "«Коснись — и СГОРИШЬ!!»"
+	}
+
+	TileObjectDataShowcaseStyle0: {
+		DisplayName: Витрина TileObjectData, стиль 0 — золото
+		Tooltip: Ставится между блоками золотой руды
+	}
+
+	TileObjectDataShowcaseStyle1: {
+		DisplayName: Витрина TileObjectData, стиль 1 — серебро
+		Tooltip: Ставится между блоками серебряной руды
+	}
+
+	TileObjectDataShowcaseStyle2: {
+		DisplayName: Витрина TileObjectData, стиль 2 — медь
+		Tooltip: Ставится между блоками медной руды
+	}
+
+	TileObjectDataShowcaseStyle3: {
+		DisplayName: Витрина TileObjectData, стиль 3 — ExampleBlock
+		Tooltip: Ставится между блоками ExampleBlock
+	}
+}
+
+Conditions: {
+	LowHealth: С низким здоровьем
+	InExampleBiome: В биоме примера
+}
+
+DamageClasses: {
+	ExampleDamageClass: {
+		DisplayName: урон примера
+	}
+}
+
+Buffs: {
+	ExampleDefenseDebuff: {
+		DisplayName: Пример ослабления защиты
+		Description: Защита снижена на 25%
+	}
+
+	ExampleCrateBuff: {
+		DisplayName: Пример ящика
+		Description: Повышенный шанс выловить ящик
+	}
+
+	ExampleDefenseBuff: {
+		DisplayName: Защитный эффект
+		Description: Защита увеличена на {0}
+	}
+
+	ExampleLifeRegenDebuff: {
+		DisplayName: Огненный дебафф
+		Description: Теряет здоровье
+	}
+
+	ExampleSimpleMinionBuff: {
+		DisplayName: Пример приспешника
+		Description: Приспешник-пример сражается за вас
+	}
+
+	ExamplePetBuff: {
+		DisplayName: "{$Mods.ExampleMod.Common.PaperAirplane}"
+		Description: '''«Пусть этот питомец будет для вас примером!»'''
+	}
+
+	ExampleLightPetBuff: {
+		DisplayName: Надоедливый свет
+		Description: Ух, ну оооочень надоедливый
+	}
+
+	Blocky: {
+		DisplayName: Кубик
+		Description: Сила прыжка увеличена
+	}
+}
+
+ExampleGlobalBuff: {
+	RemainingTime: "[ExampleGlobalBuff] Осталось времени: {0}"
+	CannotCancel: Этот эффект нельзя отменить, пока вы стоите на месте!
+}
+
+GelGlobalItem: {
+	SpecialShiftClick: Щёлкните по этому предмету в инвентаре с Shift, чтобы получить случайный цвет и редкость!
+}
+
+Projectiles: {
+	ExampleBobber.DisplayName: Пример поплавка
+	ExampleBullet.DisplayName: Пример пули
+	ExampleInstancedProjectile.DisplayName: Пример отдельного снаряда
+	ExampleHookProjectile.DisplayName: Пример крюка
+	ExampleHookProjectile.DisplayName: Пример крюка
+	ExampleLastPrismHoldout.DisplayName: Пример последней призмы
+	ExampleLastPrismBeam.DisplayName: Луч примера последней призмы
+	ExampleRiftProjectile.DisplayName: Разлом
+	ExampleShortswordProjectile.DisplayName: Пример короткого меча
+	ExampleSpearProjectile.DisplayName: Копьё
+	ExampleFlailProjectile.DisplayName: Пример цепа
+	ExampleYoyoProjectile.DisplayName: Снаряд примера йо-йо
+	ExampleWhipProjectile.DisplayName: Снаряд примера кнута
+	ExampleSwingingEnergySwordProjectile.DisplayName: Снаряд примера энергетического меча
+	ExampleDrillProjectile.DisplayName: Снаряд примера бура
+	ExampleGolfBallProjectile.DisplayName: Пример мяча для гольфа
+	ExampleAdvancedAnimatedProjectile.DisplayName: Пример продвинутого анимированного снаряда
+	ExampleSimpleMinion.DisplayName: Пример приспешника
+	ExampleSentry.DisplayName: Пример турели
+	ExampleSentryShot.DisplayName: Выстрел примера турели
+	ExamplePetProjectile.DisplayName: "{$Mods.ExampleMod.Common.PaperAirplane}"
+	ExampleLightPetProjectile.DisplayName: Надоедливый свет
+}
+
+NPCs: {
+	ExamplePerson: {
+		DisplayName: Человек-пример
+		Interactions.DayOnlyShopButton: Магазин только днём
+	}
+	PartyZombie.DisplayName: Праздничный зомби
+	ExampleCustomAISlimeNPC: {
+		DisplayName: Порхающий слизень
+		GotStomped: Вас растоптали
+	}
+}
+
+DropConditions: {
+	Example: Днём
+}
+
+Bestiary: {
+	ExamplePerson_1: Человек-пример пришёл из таинственного серого мира кубов, чтобы помочь вам разобраться во всём, что касается tModLoader.
+	ExamplePerson_2: Сделан из блоков, руки из стали. Качается днём и ночью.
+	PartyZombie: Этот зомби почему-то очень любит разбрасывать конфетти. В остальном он ведёт себя как обычный зомби.
+}
+
+Dialogue.ExamplePerson: {
+	StandardDialogue1: "Иногда мне кажется, что я не такой, как все здесь."
+	StandardDialogue2: "Какой твой любимый цвет? Мои любимые — белый и чёрный."
+	StandardDialogue3: "Что? У меня нет рук и ног? Ой, не говори глупостей!"
+	TalkALot: "Я устал с тобой разговаривать. Мне пора."
+}
+
+Biomes: {
+	ExampleSurfaceBiome: {
+		DisplayName: Наземный биом примера
+		TownNPCDialogueName: наземный биом примера
+	}
+
+	ExampleUndergroundBiome: {
+		DisplayName: Подземный биом примера
+		TownNPCDialogueName: подземный биом примера
+	}
+}
+
+Tiles: {
+	ExampleAnimatedTile.MapEntry: Красный светлячок в бутылке
+	ExampleFishingCrate.MapEntry: Ящик
+	ExampleHerb.MapEntry: Пример травы
+	ExampleExposedGem.MapEntry: Пример самоцвета
+	ExampleSign: {
+		DefaultSignText: Взаимодействуй со мной!
+		MapEntry: Пример таблички
+	}
+
+	BasicTileEntityTile: {
+		MapEntry: Плитка простой сущности плитки
+		StatusText: Заполнено: {0}%
+	}
+
+	ExampleChest: {
+		MapEntry0: Пример сундука
+		MapEntry1: Запертый пример сундука
+		Locked: При свете дня сундук упрямо не открывается. Попробуйте ночью.
+	}
+
+	ExampleDresser.MapEntry: Пример комода
+	ExampleOre.MapEntry: Пример руды
+	ExampleWorkbench.MapEntry: Пример верстака
+	ExamplePylonTile.MapEntry: "{$Mods.ExampleMod.Items.ExamplePylonItem.DisplayName}"
+}
+
+Walls: {
+	ExampleWall.MapEntry: Пример стены
+	ExampleWallAdvanced.MapEntry: Пример продвинутой стены
+	ExampleWallUnsafe.MapEntry: Пример стены
+}
+
+Commands: {
+	ExampleCoinsCommand: {
+		Description: Показать окно монет в минуту
+	}
+
+	ExampleItemCommand: {
+		Usage:
+			'''
+			/item <тип|название> [количество]
+			тип — ItemID предмета.
+			название — название предмета на текущем языке.
+			Пробелы в названии замените подчёркиваниями.
+			'''
+		Description: Создаёт предмет по названию или по ID типа
+		Error_0: Нужен хотя бы один аргумент.
+		Error_1: Неизвестный предмет — укажите верное название или 0 < тип < {0}
+		Error_2: Количество должно быть целым числом, а получено: {0}
+	}
+
+	ExampleTimeCommand: {
+		Usage:
+			'''
+			/addTime numTicks
+			numTicks — положительное или отрицательное число тиков (1 секунда = 60 тиков).
+			'''
+		Description: Добавляет numTicks, чтобы перемотать время мира вперёд или назад
+		Error_0: Нужен хотя бы один аргумент.
+		Error_1: "{0} — неверное целое значение."
+	}
+
+	ModifyServerConfigValueCommand: {
+		Usage:
+			'''
+			/setSomeNumber value
+			value — число, которое присваивается ModConfigShowcaseAcceptClientChanges.SomeNumber
+			'''
+		Description: Задаёт ModConfigShowcaseAcceptClientChanges.SomeNumber. Показывает команду, которая меняет значение ModConfig и сохраняет эту конфигурацию.
+		Error_0: Нужен хотя бы один аргумент.
+		Error_1: "{0} — неверное целое значение."
+	}
+}
+
+Achievements: {
+	PartyZombieKilled: {
+		FriendlyName: Срыв вечеринки
+		Description: Победите праздничного зомби.
+	}
+
+	ManyGiantWormsKilled: {
+		FriendlyName: Охотник на червей
+		Description: Победите 5 гигантских червей.
+	}
+}
+
+ExampleKeybindPlayer: {
+	RandomBuff: Только что нажата ModKeybind из ExampleMod. Игрок получил эффект {0}.
+	LearningExampleHeld: LearningExampleKeybind удерживалась полсекунды
+	LearningExampleDoubleTap: LearningExampleKeybind нажата дважды за четверть секунды
+}
+
+ExampleModWingSlot: {
+	Wings: Крылья
+	WingsDye: Краситель крыльев
+}
+
+Keybinds: {
+	RandomBuff.DisplayName: Случайный эффект
+	LearningExample.DisplayName: Учебный пример
+}
+
+UI: {
+	ExampleCoinsUIState.Reset: Сбросить счётчик монет в минуту
+	ExampleResource: Ресурс примера: {0} / {1}
+}
+
+Common: {
+	PaperAirplane: Бумажный самолётик
+}
+
+Prefixes: {
+	PowerTooltip: "{0:+0;-#} к силе"
+
+	ExamplePrefix: {
+		DisplayName: Пример префикса
+		AdditionalTooltip: Больше силы
+	}
+
+	ExampleDerivedPrefix: {
+		DisplayName: Пример префикса с наследованием
+		AdditionalTooltip: Ещё больше силы
+	}
+
+	ExampleAccessoryPrefix.DisplayName: Пример префикса аксессуара
+}
+Achievements.MinionBossKilled.Description: "Победите Босса приспешников — огромный глаз под защитой кольца друзей."
+Achievements.MinionBossKilled.FriendlyName: "Босс приспешников побеждён"
+Achievements.ManyExampleWormsKilled.Description: "Ладно... мы поняли, теперь, пожалуйста, хватит убивать этих бедных червей."
+Achievements.ManyExampleWormsKilled.FriendlyName: "Убито много червей-примеров"
+Achievements.AdvancedExampleAchievement.FriendlyName: "Продвинутое достижение-пример"
+Achievements.AdvancedExampleAchievement.Description: "У этого достижения слишком много условий, но оно отлично подходит для изучения продвинутых возможностей ModAchievement. Сделайте с лавовой лягушкой всё возможное."
+Currencies.ExampleCustomCurrency: "предметы примера"
+ExampleFishingPlayer.Wrong: "Что-то не так..."
+InfoDisplays.ExampleInfoDisplay.DisplayName: "Число приспешников"
+InfoDisplays.ExampleInfoDisplay.CurrentMinions: "Приспешников: {0}"
+InfoDisplays.ExampleInfoDisplay.NoMinions: "Нет приспешников"
+WeaponWithGrowingDamage.Level: "Уровень: {0}"
+WeaponWithGrowingDamage.Experience: "Опыт: {0} (до следующего уровня: {1})"
+ExampleProjectileModifications.HitMessage: "В этого жителя попали изменённым снарядом {0} раз."
+NPCs.ExampleBoneMerchant.DisplayName: "Костяной торговец-пример"
+NPCs.ExampleDrawBehindNPC.DisplayName: "Пример отрисовки позади NPC"
+NPCs.ExamplePerson.TownNPCMood.Content: "Сейчас я чувствую себя вполне хорошо."
+NPCs.ExamplePerson.TownNPCMood.NoHome: "Мне бы очень хотелось дом, все эти разноцветные монстры меня пугают."
+NPCs.ExamplePerson.TownNPCMood.FarFromHome: "Не могли бы вы вернуть меня домой?"
+NPCs.ExamplePerson.TownNPCMood.LoveSpace: "Обожаю, как много здесь места, чтобы писать моды для tModLoader!"
+NPCs.ExamplePerson.TownNPCMood.DislikeCrowded: "Вокруг слишком много народу, мне трудно сосредоточиться на модах."
+NPCs.ExamplePerson.TownNPCMood.HateCrowded: "Не могу тестировать мод, когда вокруг столько людей!"
+NPCs.ExamplePerson.TownNPCMood.LoveBiome: "Я обожаю {BiomeName}."
+NPCs.ExamplePerson.TownNPCMood.LikeBiome: "{BiomeName} — отличное место, чтобы тестировать моды."
+NPCs.ExamplePerson.TownNPCMood.DislikeBiome: "В {BiomeName} слишком холодно, я замерзаю!"
+NPCs.ExamplePerson.TownNPCMood.HateBiome: "Трудно делать моды, когда в {BiomeName} на тебя нападают монстры."
+NPCs.ExamplePerson.TownNPCMood.LoveNPC: "Как думаете, {NPCName} меня замечает?"
+NPCs.ExamplePerson.TownNPCMood.LikeNPC: "Я уважаю {NPCName} как коллегу-проводника и наставника!"
+NPCs.ExamplePerson.TownNPCMood.DislikeNPC: "От {NPCName} мало толку."
+NPCs.ExamplePerson.TownNPCMood.HateNPC: "Ненавижу весь этот грохот от взрывчатки {NPCName}! Я просто хочу тишины и покоя."
+NPCs.ExamplePerson.TownNPCMood.LikeNPC_Princess: "{NPCName} — принцесса? Вот здорово!"
+NPCs.ExamplePerson.TownNPCMood.Princess_LovesNPC: "{NPCName} такая квадратная. Мне это в ней нравится!"
+NPCs.ExamplePerson.TownNPCMood.LikeNPC_BestiaryGirl: "{NPCName} изучает животных так же, как я изучаю моды."
+NPCs.ExamplePerson.TownNPCMood.DislikeNPC_Merchant: "{NPCName} без умолку болтает о «платных модах»... Хотел бы я убедить его, какая это ужасная идея."
+NPCs.ExamplePerson.TownNPCMood.DislikeBiome_Desert: "В {BiomeName} слишком жарко, я горю!"
+NPCs.ExamplePerson.TownNPCMood.LoveBiome_ExampleMod/ExampleSurfaceBiome: "В {BiomeName} я чувствую себя как дома!"
+NPCs.ExamplePerson.TownNPCMood.Guide_LovesNPC: "Я обожаю такого коллегу-наставника, как {NPCName}."
+NPCs.ExamplePerson.TownNPCMood.BestiaryGirl_LikesNPC: "Мне нравятся исследования {NPCName}."
+NPCs.ExamplePerson.TownNPCMood.Transformed.BestiaryGirl_LikesNPC: "{NPCName} исследовать ХОРОШО!"
+NPCs.ExamplePerson.Interactions.AwesomeifyButton: "Сделать потрясающим"
+NPCs.ExamplePerson.Interactions.AwesomeifyResponse: "Потрясающе!"
+NPCs.ExamplePerson.Interactions.UpgradeItemButton: "Улучшить {$ItemName.HiveBackpack}"
+NPCs.ExamplePerson.Interactions.UpgradeItemResponse: "Я улучшил ваш {$ItemName.HiveBackpack} до {$Mods.ExampleMod.Items.WaspNest.DisplayName}"
+NPCs.ExamplePerson.HousingText.HousingRequirements: "(Чтобы {NPCName} согласился считать помещение домом, в нём должны быть пример двери, пример стула или кровати, пример верстака и источник света. Также проследите, чтобы стены дома были из примеров стен и примеров блоков.)"
+NPCs.ExamplePerson.Census.SpawnCondition: "Имейте в инвентаре {$Items.ExampleItem.DisplayName} [i:ExampleMod/ExampleItem] или {$Items.ExampleBlock.DisplayName} [i:ExampleMod/ExampleBlock]"
+NPCs.ExamplePerson.DeathMessage: "{0} ушёл..."
+NPCs.ExamplePerson.DeathMessageAlt: "{0} растворился в небытии..."
+NPCs.ExampleTravelingMerchant.DisplayName: "Странствующий торговец-пример"
+NPCs.ExampleWormBody.DisplayName: "Червь-пример"
+NPCs.ExampleWormHead.DisplayName: "Червь-пример"
+NPCs.ExampleWormTail.DisplayName: "Червь-пример"
+NPCs.ExampleZombieThief.DisplayName: "Зомби-вор пример"
+NPCs.MinionBossBody.DisplayName: "Босс приспешников"
+NPCs.MinionBossBody.BossChecklistIntegration.SpawnInfo: "Используйте [i:ExampleMod/MinionBossSummonItem]"
+NPCs.MinionBossBody.BossFightName: "Босс приспешников и его приспешники"
+NPCs.MinionBossMinion.DisplayName: "Приспешник Босса приспешников"
+NPCs.ExampleCritterNPC.DisplayName: "Лавовая лягушка"
+NPCs.ExampleTownPet.DisplayName: "Городской питомец-пример"
+NPCs.ExampleTownPet.TownNPCMood.NoHome: "*Звуки городского питомца-примера*?"
+NPCs.ExampleTownPet.Census.SpawnCondition: "Используйте [i:ExampleMod/ExampleTownPetLicense] лицензию на городского питомца-примера. Продаётся у зоолога, когда бестиарий заполнен на 50%."
+NPCs.ExampleTownPet.Names.Green.Green: "Зелёный"
+NPCs.ExampleTownPet.Names.Green.Jade: "Нефрит"
+NPCs.ExampleTownPet.Names.Green.Lime: "Лайм"
+NPCs.ExampleTownPet.Names.Green.Mint: "Мята"
+NPCs.ExampleTownPet.Names.Green.Olive: "Олива"
+NPCs.ExampleTownPet.Names.Green.Pine: "Сосна"
+Items.ExampleStaff.DisplayName: "Пример посоха"
+Items.ExampleStaff.Tooltip: "Это магический посох из мода"
+Items.ExampleSpecificAmmoGun.DisplayName: "Пример винтовки"
+Items.ExampleInfoAccessory.DisplayName: "Пример информационного аксессуара"
+Items.ExampleInfoAccessory.Tooltip: "Показывает, сколько приспешников вы призвали"
+Items.ExamplePotionDelayAccessory.DisplayName: "Пример аксессуара задержки зелий"
+Items.ExampleCustomAmmo.DisplayName: "Пример особых боеприпасов"
+Items.ExampleCustomAmmo.Tooltip: "Преследует врагов сквозь стены"
+Items.ExampleHood.DisplayName: "Пример капюшона"
+Items.ExampleHood.Tooltip: "Это капюшон из мода."
+Items.ExampleTallHelmet.DisplayName: "Пример высокого шлема"
+Items.ExampleTallHelmet.Tooltip: "Это высокий шлем из мода."
+Items.MinionBossMask.DisplayName: "Маска Босса приспешников"
+Items.ExampleFoodItem.DisplayName: "Пример пирога"
+Items.ExampleHealingPotion.DisplayName: "Пример лечебного зелья"
+Items.ExampleHealingPotion.Tooltip: "Время восстановления зелья сокращено на {0} с"
+Items.ExampleHealingPotion.RestoreLifeText: "{0} ({1} при быстром лечении)"
+Items.MinionBossBag.DisplayName: "Мешок с сокровищами ({$Mods.ExampleMod.NPCs.MinionBossBody.DisplayName})"
+Items.MinionBossBag.Tooltip: "{$CommonItemTooltip.RightClickToOpen}"
+Items.MinionBossSummonItem.DisplayName: "Предмет призыва Босса приспешников"
+Items.MinionBossSummonItem.Tooltip: "Призывает Босса приспешников"
+Items.ExampleInstancedItem.DisplayName: "Пример отдельного предмета"
+Items.ExampleInstancedItem.EM: "Пример: {0}"
+Items.ExampleMountItem.DisplayName: "Ключ от машины ExampleMount"
+Items.ExampleMountItem.Tooltip: "Призывает ездовое существо из мода."
+Items.ExampleOnBuyItem.DisplayName: "Нестабильное взрывное устройство"
+Items.ExampleOnBuyItem.Tooltip: "С вероятностью 50% убивает игрока при каждой покупке в магазине"
+Items.ExampleOnBuyItem.DeathMessage: "{0} пытался справиться с очень нестабильным взрывным устройством, но не смог."
+Items.ExampleBlock.DisplayName: "Пример блока"
+Items.ExampleBlock.Tooltip: "Это блок из мода."
+Items.ExampleMusicBox.DisplayName: "Музыкальная шкатулка (Мраморная галерея)"
+Items.ExampleOre.DisplayName: "Пример руды"
+Items.ExampleWorkbench.DisplayName: "Пример верстака"
+Items.ExampleWorkbench.Tooltip: "Это верстак из мода."
+Items.MinionBossRelic.DisplayName: "Реликвия Босса приспешников"
+Items.MinionBossTrophy.DisplayName: "Трофей Босса приспешников"
+Items.ExampleBugNet.DisplayName: "Пример сачка"
+Items.ExampleMagicMirror.DisplayName: "Пример волшебного зеркала"
+Items.ExampleAdvancedFlail.DisplayName: "Пример продвинутого цепа"
+Items.ExampleAdvancedFlail.Tooltip: "Это цеп из мода с особым поведением."
+Items.ExampleCloneWeapon.DisplayName: "Мяумур V2"
+Items.ExampleCloneWeapon.Tooltip: "Похож на {$ItemName.Meowmere} [i:Meowmere]"
+Items.ExampleCustomAmmoGun.DisplayName: "Пример ружья с особыми боеприпасами"
+Items.ExampleCustomAmmoGun.Tooltip: "Использует ExampleCustomAmmo как боеприпасы и стреляет HomingProjectiles"
+Items.ExampleJoustingLance.DisplayName: "Пример рыцарского копья"
+Items.ExampleShootingSword.DisplayName: "Пример стреляющего меча"
+Items.ExampleShootingSword.Tooltip: "Это меч из мода, стреляющий снарядами как у Звёздного гнева."
+Items.ExampleWhipAdvanced.DisplayName: "Пример продвинутого кнута"
+Items.MinionBossPetItem.DisplayName: "Питомец Босс приспешников"
+Items.MinionBossPetItem.Tooltip: "Призывает миниатюрного Босса приспешников, который следует за вами"
+Items.ExamplePiercingProjectileItem.DisplayName: "Предмет примера пробивающего снаряда"
+Items.ExampleCustomSwingSword.DisplayName: "Пример меча с особым взмахом"
+Items.HitModifiersShowcase.DisplayName: "Витрина модификаторов удара"
+Items.HitModifiersShowcase.Switching: "Переключение на режим №{0}: {1}"
+Items.HitModifiersShowcase.CurrentMode: "Режим №{0}: {1}"
+Items.HitModifiersShowcase.Mode_0: "Обычный урон"
+Items.HitModifiersShowcase.Mode_1: "Разброс урона отключён"
+Items.HitModifiersShowcase.Mode_2: "+{0}% к отбрасыванию"
+Items.HitModifiersShowcase.Mode_3: "+{0}% к критическому урону"
+Items.HitModifiersShowcase.Mode_4: "+{0} к пробиванию брони. Проверьте на враге с высокой защитой"
+Items.HitModifiersShowcase.Mode_5: "+{0}% к пробиванию брони. Игнорирует {0}% защиты врага"
+Items.HitModifiersShowcase.Mode_6: "Накладывает ExampleDefenseDebuff, снижая защиту на {0}%"
+Items.HitModifiersShowcase.Mode_7: "При попадании даёт игроку ExampleDodgeBuff, чтобы уклониться от следующего удара"
+Items.AbsorbTeamDamageAccessory.DisplayName: "Аксессуар поглощения урона команды"
+Items.AbsorbTeamDamageAccessory.Tooltip: "Поглощает {0}% урона, наносимого игрокам вашей команды, пока ваше здоровье выше {1}%"
+Items.ExampleExplosive.DisplayName: "Пример взрывчатки"
+Items.ExampleExplosive.Tooltip: "{$ItemTooltip.Dynamite}"
+Items.ExampleJavelin.DisplayName: "Пример метательного копья"
+Items.ExampleGravityDebuffBullet.DisplayName: "Пример пули гравитационного дебаффа"
+Items.ExampleMultiExtraJumpAccessory.DisplayName: "Пример аксессуара многоразового дополнительного прыжка"
+Items.ExampleCritterItem.DisplayName: "Лавовая лягушка"
+Items.ExampleCritterItem.Tooltip: "Острый малыш"
+Items.ExampleCritterCageItem.DisplayName: "Клетка с лавовой лягушкой"
+Items.ExampleCritterCageItem.Tooltip: "Грустный острый малыш"
+Items.ExampleRocket.DisplayName: "Пример ракеты"
+Items.ExampleRocket.Tooltip: "{$ItemTooltip.RocketI}"
+Items.ExampleArrow.DisplayName: "Пример стрелы"
+Items.ExampleTownPetLicense.DisplayName: "Лицензия на городского питомца-примера"
+Items.ExampleTownPetLicense.LicenseExampleTownPetUse: "Лицензия телепортируется в службу доставки городских питомцев-примеров..."
+Items.ExampleWormHeadBanner.DisplayName: "Знамя: {$NPCs.ExampleWormHead.DisplayName}"
+Items.ExampleWormHeadBanner.Tooltip: "{$CommonItemTooltip.BannerBonus}{$NPCs.ExampleWormHead.DisplayName}"
+Items.CameraModifierShowcase.DisplayName: "Витрина модификаторов камеры"
+Items.RubyEarrings.DisplayName: "Рубиновые серьги"
+Items.SapphireEarrings.DisplayName: "Сапфировые серьги"
+Items.ExampleInteractableProjectileItem.DisplayName: "Предмет примера интерактивного снаряда"
+Items.ExampleCustomUseStyleWeapon.DisplayName: "Пример оружия с особым UseStyle"
+Items.ExampleHeldProjectileWeapon.DisplayName: "Пример оружия с удерживаемым снарядом"
+Items.SimpleAccessory.DisplayName: "Простой аксессуар"
+Items.SimpleAccessory.Tooltip: "Атаки приспешников и турелей вызывают обморожение"
+Items.ExampleGolfClub.DisplayName: "Пример клюшки для гольфа (драйвер)"
+Items.ExampleGolfClub.Tooltip: "{$CommonItemTooltip.GolfDriver}"
+Items.ExampleSpecialGlideWings.DisplayName: "Пример особых крыльев для планирования"
+Projectiles.MinionBossPetProjectile.DisplayName: "Питомец Босс приспешников"
+Projectiles.ExampleAdvancedFlailProjectile.DisplayName: "Пример продвинутого цепа"
+Projectiles.ExampleCloneProjectile.DisplayName: "Мяумур V2"
+Projectiles.ExampleHomingProjectile.DisplayName: "Пример самонаводящегося снаряда"
+Projectiles.ExampleJoustingLanceProjectile.DisplayName: "Пример рыцарского копья"
+Projectiles.ExamplePaperAirplaneProjectile.DisplayName: "Снаряд примера бумажного самолётика"
+Projectiles.ExamplePiercingProjectile.DisplayName: "Пример пробивающего снаряда"
+Projectiles.ExampleWhipProjectileAdvanced.DisplayName: "Снаряд примера продвинутого кнута"
+Projectiles.MinionBossEye.DisplayName: "Глаз Босса приспешников"
+Projectiles.SparklingBall.DisplayName: "Искрящийся шар"
+Projectiles.ExampleCustomSwingProjectile.DisplayName: "Снаряд примера особого взмаха"
+Projectiles.ExampleExplosive.DisplayName: "Пример взрывчатки"
+Projectiles.ExampleJavelinProjectile.DisplayName: "Снаряд примера метательного копья"
+Projectiles.ActiveSoundShowcaseProjectile.DisplayName: "Снаряд витрины активного звука"
+Projectiles.ExampleGravityDebuffBullet.DisplayName: "Пример пули гравитационного дебаффа"
+Projectiles.ExampleGrenadeProjectile.DisplayName: "Снаряд примера гранаты"
+Projectiles.ExampleProximityMineProjectile.DisplayName: "Снаряд примера мины"
+Projectiles.ExampleRocketProjectile.DisplayName: "Снаряд примера ракеты"
+Projectiles.ExampleSnowmanRocketProjectile.DisplayName: "Снаряд примера ракеты-снеговика"
+Projectiles.ExampleArrowProjectile.DisplayName: "Снаряд примера стрелы"
+Projectiles.ExampleInteractableProjectile.DisplayName: "Пример интерактивного снаряда"
+Projectiles.ExampleHeldProjectileWeaponProjectile.DisplayName: "Снаряд примера оружия с удерживаемым снарядом"
+Buffs.AnimatedBuff.DisplayName: "Анимированный эффект"
+Buffs.AnimatedBuff.Description: "Анимируется и увеличивает весь урон на {0}%."
+Buffs.ExampleMountBuff.DisplayName: "ExampleMount"
+Buffs.ExampleMountBuff.Description: "Кожаные сиденья, 4 подстаканника"
+Buffs.MinionBossPetBuff.DisplayName: "Питомец Босс приспешников"
+Buffs.MinionBossPetBuff.Description: "За вами следует миниатюрный Босс приспешников"
+Buffs.ExampleDodgeBuff.DisplayName: "Пример эффекта уклонения"
+Buffs.ExampleDodgeBuff.Description: "Вы уклонитесь от следующей атаки"
+Buffs.ExampleGravityDebuff.DisplayName: "Пример гравитационного дебаффа"
+Buffs.ExampleGravityDebuff.Description: "Гравитация сошла с ума."
+Buffs.AbsorbTeamDamageBuff.DisplayName: "Эффект поглощения урона команды"
+Buffs.AbsorbTeamDamageBuff.Description: "{0}% получаемого урона перенаправляется другому игроку"
+Buffs.ExampleJavelinDebuff.DisplayName: "Пример дебаффа метательного копья"
+Buffs.ExampleJavelinDebuff.Description: "Теряет здоровье"
+Buffs.ExampleWeaponImbue.DisplayName: "Пример зачарования оружия"
+Buffs.ExampleWeaponImbue.Description: "{$Items.ExampleFlask.Tooltip}"
+Buffs.ExampleWhipAdvancedPlayerBuff.DisplayName: "Пример хлёсткости!"
+Buffs.ExampleWhipAdvancedPlayerBuff.Description: "Скорость кнута увеличена"
+Buffs.ExampleCrowdControlledDebuff.DisplayName: "Пример дебаффа обездвиживания"
+Buffs.ExampleCrowdControlledDebuff.Description: "Вы не можете двигать руками и ногами"
+Bestiary.ImportantFlavorText: "Важный описательный текст!"
+Bestiary.ExampleBoneMerchant_1: "Костяной торговец-пример пришёл из таинственного серого мира кубов, чтобы показать, как сделать загадочного подземного торговца в tModLoader."
+Bestiary.ExampleBoneMerchant_2: "Сделан из костяных блоков, руки из стали. Бросает кости днём и ночью."
+Bestiary.ExampleTownPet: "Квадратный городской питомец, который делает город ещё милее."
+Bestiary.MinionBossBody: "Пример босса, который призывает приспешников при появлении, вызывается предметом призыва. Показывает работу с приспешниками босса, особенности мультиплеера и свою полосу здоровья босса."
+Bestiary.ExampleCritterNPC: "Самый милый и хороший острый малыш. Даже не думайте его обижать!"
+Bestiary.ExampleZombieThief: "Этот зомби очень любит предметы-примеры. Он крадёт их, как только находит."
+Bestiary.MinionBossMinion: "Приспешник, который защищает босса от урона, жертвуя собой. Если ни одного не осталось, босс становится уязвим."
+Bestiary.ExampleWormHead: "Похоже, копатель свалился в бирюзовую краску. Ну что ж."
+Dialogue.ExamplePerson.PartyGirlDialogue: "Можешь попросить {PartyGirl} перестать раскрашивать мой дом?"
+Dialogue.ExamplePerson.StandardDialogue4: "Эй, если найдёшь [i:HiveBackpack], я могу его улучшить."
+Dialogue.ExamplePerson.ConditionalDialogue1: "{?ExampleMod/DownedMinionBoss}{?GolemDefeated}Ого, ты победил и {$NPCs.MinionBossBody.DisplayName}, и {$NPCName.Golem}? Потрясающе!"
+Dialogue.ExamplePerson.ConditionalDialogue2: "{?!Day}{?!NPCFirstName_ExampleMod/ExampleTownPet}Ночью страшно. Мне было бы спокойнее, если бы рядом был питомец."
+Dialogue.ExamplePerson.CommonDialogue: "У этого сообщения вес 5, значит, оно появляется в 5 раз чаще."
+Dialogue.ExamplePerson.RareDialogue: "У этого сообщения вес 0,1, значит, оно появляется в 10 раз реже."
+Dialogue.ExampleBoneMerchant.StandardDialogue1: "Здесь, под землёй, так спокойно."
+Dialogue.ExampleBoneMerchant.StandardDialogue2: "Что я тут делаю, спросите вы? Сам не знаю, но оставьте меня в покое!"
+Dialogue.ExampleBoneMerchant.StandardDialogue3: "А? Какие у меня товары? Понятия не имею! Может, спросишь?"
+Dialogue.ExampleTravelingMerchant.PartyGirlDialogue: "Можешь попросить {PartyGirl} перестать раскрашивать дом моего кузена?"
+Dialogue.ExampleTravelingMerchant.StandardDialogue1: "Иногда моему кузену кажется, что он не такой, как все здесь."
+Dialogue.ExampleTravelingMerchant.StandardDialogue2: "Какой твой любимый цвет? Любимые цвета моего кузена — белый и чёрный."
+Dialogue.ExampleTravelingMerchant.StandardDialogue3: "Я странствующий торговец и продаю всякое."
+Dialogue.ExampleTravelingMerchant.ConditionalDialogue1: "Это там мой кузен {NPCFirstName_ExampleMod/ExamplePerson}?"
+Dialogue.ExampleTravelingMerchant.HiveBackpackDialogue: "Эй, если найдёшь [i:HiveBackpack], мой кузен может его улучшить."
+Dialogue.ExampleTownPet.StandardDialogue: "*Звуки городского питомца-примера*"
+GameTips.ExampleTip0: "Ого! Совет-пример!"
+GameTips.ExampleTip1: "Этот совет добавлен Example Mod!"
+GameTips.ExampleTip2: "Это ещё один совет от Example Mod!"
+GameTips.ExampleTip3: "Нажмите {InputTrigger_ExampleMod/RandomBuff}, чтобы получить случайный эффект!"
+GameTips.DisabledExampleTip: "Этот совет будет добавлен, а потом отключён Example Mod."
+Conditions.PlayerHasLifeforceBuff: "Когда у игрока есть эффект «Жизненная сила»"
+Conditions.NotSellingExampleItem: "Когда не продаётся пример предмета"
+Conditions.DownedMinionBoss: "После победы над {$NPCs.MinionBossBody.DisplayName}"
+DropConditions.ExampleSoul: "Выпадает в подземном биоме примера в хардмоде"
+DropConditions.JourneyMode: "Выпадает в режиме путешествия"
+WorldGen.ExampleOrePassMessage: "Руды Example Mod"
+WorldGen.BlessedWithExampleOreMessage: "Ваш мир благословлён рудой примера!"
+BuilderToggles.ExampleBuilderToggleDimmedLight.OnText: "Пример вкл."
+BuilderToggles.ExampleBuilderToggleDimmedLight.OffText: "Пример выкл."
+BuilderToggles.ExampleBuilderToggle.CurrentColor: "Цвет: {0}"
+BuilderToggles.ExampleBuilderToggle.Color_0: "Красный"
+BuilderToggles.ExampleBuilderToggle.Color_1: "Синий"
+BuilderToggles.ExampleBuilderToggle.Color_2: "Зелёный"
+BuilderToggles.ExampleBuilderToggle.Color_3: "Жёлтый"
+BuilderToggles.FreeBaitBuilderToggle.NameText: "Бесплатная наживка: {0}"
+Emotes.ExampleBiomeEmote.Command: "exbiome"
+Emotes.ExampleBoneMerchantEmote.Command: "exbonemerchant"
+Emotes.ExampleItemEmote.Command: "exitem"
+Emotes.ExamplePersonEmote.Command: "experson"
+Emotes.ExamplePickaxeEmote.Command: "expickaxe"
+Emotes.ExampleTravellingMerchantEmote.Command: "extravelingmerchant"
+Emotes.MinionBossEmote.Command: "exminionboss"
+Commands.Common.NoParameters: "Нужен хотя бы один аргумент."
+Commands.Common.NotInteger: "{0} — неверное целое значение."
+Commands.ExampleSummonCommand.Description: "Создаёт NPC по NPCID"
+Commands.ExampleSummonCommand.Error_0: "{$Mods.ExampleMod.Commands.Common.NoParameters}"
+Commands.ExampleSummonCommand.Error_1: "{$Mods.ExampleMod.Commands.Common.NotInteger}"
+Commands.ExampleSummonCommand.Error_2: "{0} — неверная позиция X (нужно целое число)."
+Commands.ExampleSummonCommand.Error_3: "{0} — неверная позиция Y (нужно целое число)."
+Commands.ExampleSummonCommand.Error_4: "{0} — неверное число (нужно целое число)."
+VariationShowcase.LooksNiceMessage: "Какой славный {0}"
+VariationShowcase.LooksNiceMessage$Male: "Какой красивый {0}"
+VariationShowcase.LooksNiceMessage$Female: "Какая красивая {0}"
+VariationShowcase.CollectiveNounMessage: "Группа: {0}."
+VariationShowcase.CollectiveNounMessage$Flock: "Стая {0} летит высоко."
+VariationShowcase.CollectiveNounMessage$School: "Косяк {0} изящно плывёт."
+VariationShowcase.CollectiveNounMessage$Herd: "Стадо {0} бродит вокруг."
+VariationShowcase.NounA: "{^0:ящерица;ящерицы;ящериц}"
+VariationShowcase.NounB: "{^0:кошка;кошки;кошек}"
+VariationShowcase.NounB$Gender: "Female"
+VariationShowcase.NounB$Collective: "Herd"
+VariationShowcase.NounC: "{^0:собака;собаки;собак}"
+VariationShowcase.NounC$Gender: "Male"
+VariationShowcase.NounD: "{^0:птица;птицы;птиц}"
+VariationShowcase.NounD$Collective: "Flock"
+VariationShowcase.NounE: "рыбы"
+VariationShowcase.NounE$Collective: "School"
+Keybinds.ExampleTouchButton.DisplayName: "Пример сенсорной кнопки"
+Keybinds.ExampleHoldButton.DisplayName: "Пример кнопки удержания"
+Keybinds.ExampleAimJoystick.DisplayName: "Пример джойстика прицеливания"
+ExampleTouchButtonPlayer.Touch: "Нажата сенсорная кнопка-пример."
+ExampleTouchButtonPlayer.Hold: "Кнопку удержания-пример отпустили на {0}% заряда."

@@ -66,6 +66,7 @@ void addLanguageKey(const std::string& key, Il2CppObject* text);
 Il2CppObject* findLanguageText(const std::string& key);
 bool setLocalizedTextValue(Il2CppObject* text, const std::string& value);
 std::string localizedTextValue(Il2CppObject* text);
+void invalidateItemTooltips();
 
 /** tabela[index] = value no array estatico `table`, pelo Array.SetValue (barreira do coletor). */
 bool setTableElement(FieldInfo* table, int index, Il2CppObject* value);
