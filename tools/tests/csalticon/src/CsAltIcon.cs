@@ -51,7 +51,7 @@ public sealed class CsAltIconMod : Mod
     static Point tile;
     static VirtualControlsProfile_Layout profile, advanced;
     static Stage[] stages = Array.Empty<Stage>();
-    static bool capturing, swapDrawn, modeBefore, interactable;
+    static bool capturing, swapDrawn, modeBefore, interactable, pressedDrawn, vanillaPressed;
     static string swapId = "-";
     static nint swapTexture;
     static int current = -1;
@@ -88,6 +88,7 @@ public sealed class CsAltIconMod : Mod
         if (!capturing || current != (int)Control.Interact || overloadedButton.IsNull) return;
         Texture_Layout icon = overloadedButton.IconTexture;
         swapDrawn = true;
+        pressedDrawn |= pressed;
         swapId = icon.IsNull ? "-" : icon.TextureId ?? "-";
         swapTexture = icon.IsNull ? 0 : icon.Texture.Pointer;
     }
@@ -182,6 +183,7 @@ public sealed class CsAltIconMod : Mod
                     new("mod near npc", plain, false, Near: Near.Npc),
                     new("vanilla tap", staff, false, Tap: true),
                     new("tap", plain, false, Tap: true),
+                    new("tap again", plain, null, Tap: true),
                     new("vanilla tap near npc", staff, false, true, Near.Npc),
                     new("tap near npc", plain, false, true, Near.Npc),
                     new("vanilla tap near workbench", staff, false, true, Near.WorkBench),
@@ -217,6 +219,7 @@ public sealed class CsAltIconMod : Mod
                 Advanced();
                 Place(self, stages[stage].Near);
                 swapDrawn = false;
+                pressedDrawn = false;
                 swapId = "-";
                 swapTexture = 0;
                 capturing = true;
@@ -267,10 +270,15 @@ public sealed class CsAltIconMod : Mod
                 Report("near an npc the mod item draws what the game's item draws", swapDrawn == vanillaNearNpc.Drawn, $"{seen} interactable={interactable} vanilla={vanillaNearNpc}");
                 return;
             case "vanilla tap":
+                vanillaPressed = pressedDrawn;
                 Report("tapping Interact switches the mode of the game's item", Input.ToggleAlternativeFireMode != modeBefore, TapResult(self));
                 return;
             case "tap":
                 Report("tapping Interact switches the mode of a mod item", Input.ToggleAlternativeFireMode != modeBefore, TapResult(self));
+                Report("the mod item's button looks pressed under the finger like the game's", pressedDrawn && vanillaPressed, $"mod={pressedDrawn} game={vanillaPressed}");
+                return;
+            case "tap again":
+                Report("a second tap switches the mode back", Input.ToggleAlternativeFireMode != modeBefore, TapResult(self));
                 return;
         }
         if (!s.Tap) return;

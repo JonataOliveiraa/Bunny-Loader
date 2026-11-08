@@ -156,6 +156,11 @@ public sealed class CsAccSlotMod : Mod
                 player.inventory[inventorySlot] = new Item(ItemID.AngelWings);
                 ItemSlot.SwapEquip(player.inventory, ItemSlot.Context.InventoryItem, inventorySlot);
                 Report("equipping wings from the inventory picks the wing slot", wing.FunctionalItem.type == ItemID.AngelWings && player.inventory[inventorySlot].IsAir, $"slot={wing.FunctionalItem.type} inventory={player.inventory[inventorySlot].type}");
+                int vanillaSlot = Enumerable.Range(3, 7).First(k => player.armor[k].IsAir && player.IsItemSlotUnlockedAndUsable(k));
+                int secondWings = ItemSlot.PickItemMovementAction(player.armor, ItemSlot.Context.EquipAccessory, vanillaSlot, new Item(ItemID.DemonWings));
+                int sameInVanity = ItemSlot.PickItemMovementAction(player.armor, ItemSlot.Context.EquipAccessoryVanity, vanillaSlot + 10, new Item(ItemID.AngelWings));
+                int otherAccessory = ItemSlot.PickItemMovementAction(player.armor, ItemSlot.Context.EquipAccessory, vanillaSlot, new Item(ItemID.LuckyHorseshoe));
+                Report("a vanilla slot refuses wings while a mod slot has wings", secondWings == -1 && sameInVanity == -1 && otherAccessory != -1, $"wings={secondWings} sameInVanity={sameInVanity} horseshoe={otherAccessory} slot={vanillaSlot}");
                 wing.FunctionalItem = Item.New();
                 one.FunctionalItem = new Item(ItemID.HermesBoots);
                 previousLoadout = player.CurrentLoadoutIndex;

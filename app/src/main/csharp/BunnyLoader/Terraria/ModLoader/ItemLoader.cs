@@ -276,6 +276,17 @@ public static unsafe partial class ItemLoader
         }
     }
 
+    internal static void RefreshTooltips(IReadOnlySet<string> changedKeys)
+    {
+        foreach (ModItem? item in Volatile.Read(ref items))
+        {
+            if (item == null || !changedKeys.Contains(item.GetLocalizationKey(nameof(ModItem.Tooltip)))) continue;
+            byte* tooltip = Host.Utf8(Tooltips(item));
+            try { Host.Native()->SetItemTooltip(item.Type, tooltip); }
+            finally { Host.FreeUtf8(tooltip); }
+        }
+    }
+
     static string DisplayNames(ModItem item) => Localized(item, item.DisplayName, nameof(ModItem.DisplayName));
 
     static string Tooltips(ModItem item) => Localized(item, item.Tooltip, nameof(ModItem.Tooltip));

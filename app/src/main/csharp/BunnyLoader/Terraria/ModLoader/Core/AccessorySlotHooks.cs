@@ -172,6 +172,28 @@ internal static class AccessorySlotHooks
         return false;
     }
 
+    static bool ConflictsWithModSlots(GameArray<Item> inv, int context, Item item)
+    {
+        if (context is not (ItemSlot.Context.EquipAccessory or ItemSlot.Context.EquipAccessoryVanity))
+            return false;
+        Player player = Main.LocalPlayer;
+        if (inv.Pointer != player.armor.Pointer)
+            return false;
+        ModAccessorySlotPlayer slots = Of(player);
+        int count = slots.SlotCount;
+        bool vanity = context == ItemSlot.Context.EquipAccessoryVanity;
+        for (int j = 0; j < count; j++)
+        {
+            Item same = slots.exAccessorySlot[vanity ? j + count : j];
+            if (!same.IsAir && !ItemSlot.CanEquipBothAccessories(same, item, vanity))
+                return true;
+            Item other = slots.exAccessorySlot[vanity ? j : j + count];
+            if (!other.IsAir && SameItem(other, item))
+                return true;
+        }
+        return false;
+    }
+
     static bool SameItem(Item equipped, Item item)
     {
         if (equipped.type == item.type)
@@ -292,8 +314,17 @@ internal static class AccessorySlotHooks
     static int PickItemMovementAction(On_ItemSlot.orig_PickItemMovementAction orig, GameArray<Item> inv, int context, int slot, Item checkItem, bool backwardCheck, int initialSlot)
     {
         int action = orig(inv, context, slot, checkItem, backwardCheck, initialSlot);
-        if (!scoped || action == -1 || checkItem.IsNull || checkItem.IsAir)
+        if (action == -1 || checkItem.IsNull || checkItem.IsAir)
             return action;
+        if (!scoped)
+        {
+            try { return ConflictsWithModSlots(inv, context, checkItem) ? -1 : action; }
+            catch (Exception e)
+            {
+                ItemHooks.Report("ModAccessorySlot vanilla slot check", e);
+                return action;
+            }
+        }
         if (context is not (ItemSlot.Context.EquipAccessory or ItemSlot.Context.EquipAccessoryVanity or ItemSlot.Context.EquipDye))
             return action;
         try

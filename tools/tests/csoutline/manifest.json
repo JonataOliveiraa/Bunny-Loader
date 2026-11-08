@@ -1,0 +1,17 @@
+{
+  "uid": "3d1c7a52-8f0e-4b6a-a2c9-5e74b1d0f8a3",
+  "id": "CsOutline",
+  "name": "Test: tile highlight outlines",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Places a vanilla chest next to the Example Mod chest and work bench and checks that the mod tiles get the game's highlight outline.",
+  "description": "Compile with tools/tests/build-cs.sh csoutline. Run with SAMPLE=1 tools/tests/run-taps.sh csoutline.",
+  "updated": "2026-11-08",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

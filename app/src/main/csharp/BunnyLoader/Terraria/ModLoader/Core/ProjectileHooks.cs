@@ -369,6 +369,45 @@ internal static unsafe class ProjectileHooks
         ItemHooks.Once("ProjectileDraw", () => On_Main.DrawProjDirect += DrawProjDirect);
     }
 
+    static bool drawOffsets;
+
+    [ThreadStatic] static Vector3 drawOffset;
+
+    internal static void WantDrawOffset()
+    {
+        if (drawOffsets) return;
+        drawOffsets = true;
+        ItemHooks.Once("ProjectileDraw", () => On_Main.DrawProjDirect += DrawProjDirect);
+    }
+
+    static void Original(On_Main.orig_DrawProjDirect orig, Main self, Projectile proj, Player overridePlayer)
+    {
+        ModProjectile? m = drawOffsets && proj.type >= ProjectileID.Count ? ProjectileLoader.InstanceOf(proj) : null;
+        if (m == null || !m.HasDrawOffset)
+        {
+            orig(self, proj, overridePlayer);
+            return;
+        }
+        Vector3 previous = drawOffset;
+        drawOffset = new Vector3(m.DrawOffsetX + m.DrawOriginOffsetX, m.DrawOriginOffsetX, -m.DrawOriginOffsetY);
+        bool shifted = Host.Native()->BeginDrawCapture(TextureAssets.Projectile[proj.type].Value.Pointer, &ShiftByDrawOffset) != 0;
+        try { orig(self, proj, overridePlayer); }
+        finally
+        {
+            if (shifted) Host.Native()->EndDrawCapture();
+            drawOffset = previous;
+        }
+    }
+
+    [System.Runtime.InteropServices.UnmanagedCallersOnly]
+    static int ShiftByDrawOffset(BunnyLoader.Interop.DrawCapture* draw)
+    {
+        draw->X += drawOffset.X;
+        draw->OriginX += drawOffset.Y;
+        draw->OriginY += drawOffset.Z;
+        return 0;
+    }
+
     static bool IsInteractable(On_Projectile.orig_IsInteractable orig, Projectile self) =>
         self.type >= ProjectileID.Count ? ProjectileID.Sets.IsInteractable[self.type] : orig(self);
 
@@ -404,7 +443,7 @@ internal static unsafe class ProjectileHooks
         bool wantsExtras = Wants(proj, nameof(ModProjectile.PreDrawExtras));
         if (!draw && !wantsExtras && !glows.ContainsKey(proj.type))
         {
-            orig(self, proj, overridePlayer);
+            Original(orig, self, proj, overridePlayer);
             return;
         }
         Player player = overridePlayer.IsNull ? Main.player[proj.owner] : overridePlayer;
@@ -436,7 +475,7 @@ internal static unsafe class ProjectileHooks
         {
             if (Host.Native()->BeginProjectileDrawSplit(TextureAssets.Projectile[proj.type].Value.Pointer, 1, 0) != 0)
             {
-                try { orig(self, proj, overridePlayer); }
+                try { Original(orig, self, proj, overridePlayer); }
                 finally { Host.Native()->EndProjectileDrawSplit(); }
                 extras = false;
             }
@@ -451,7 +490,7 @@ internal static unsafe class ProjectileHooks
         {
             var outer = drawLight;
             if (!light.Equals(original)) drawLight = (proj.Pointer, light);
-            try { orig(self, proj, overridePlayer); }
+            try { Original(orig, self, proj, overridePlayer); }
             finally
             {
                 drawLight = outer;

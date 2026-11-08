@@ -414,6 +414,11 @@ Items: {
 		Tooltip: Esta é uma espada de mod.
 	}
 
+	ExampleDualUseWeapon: {
+		DisplayName: Arma de Uso Duplo de Exemplo
+		Tooltip: Esta arma faz algo especial com {InputTrigger_InteractWithTile}.
+	}
+
 	ExampleMagicWeapon: {
 		DisplayName: Arma Mágica de Exemplo
 		Tooltip: Esta é uma arma mágica de exemplo

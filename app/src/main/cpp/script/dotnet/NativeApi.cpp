@@ -226,6 +226,7 @@ struct NativeApi {
     void (*setBuffTexts)(int32_t type, const char* displayName, const char* description);
     int32_t (*installTileTextureHook)(int32_t firstType, int32_t secondType, void* (*callback)(int32_t, int32_t, int32_t));
     void** (*installGatedHook)(void* method, void* replacement, int32_t arg, int32_t pointerOffset, int32_t fieldOffset, int32_t fieldSize);
+    void (*setItemTooltip)(int32_t type, const char* tooltip);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -1161,6 +1162,9 @@ const NativeApi kNativeApi{
     },
     [](void* method, void* replacement, int32_t arg, int32_t pointerOffset, int32_t fieldOffset, int32_t fieldSize) -> void** {
         return gate::installHook(static_cast<const MethodInfo*>(method), replacement, arg, pointerOffset, fieldOffset, fieldSize);
+    },
+    [](int32_t type, const char* tooltip) {
+        if (tooltip) runtime::setModItemTooltip(type, cultureTexts(tooltip));
     },
 };
 

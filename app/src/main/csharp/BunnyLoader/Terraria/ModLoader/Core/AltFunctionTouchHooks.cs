@@ -62,12 +62,22 @@ internal static class AltFunctionTouchHooks
         {
             if (!pressed[InteractPress]) return;
             pressed[InteractPress] = false;
+            bool fresh = !pressed[SwapPress] && !Held(self.WasPressed);
             pressed[SwapPress] = true;
             Mouse._virtualCursorOverride = virtualCursor;
             Mouse._virtualCursorOverrideState = virtualCursorState;
-            if (!cursor.IsNull && cursor.Down && !cursor.WasDown) input.ToggleAlternativeFireMode = !input.ToggleAlternativeFireMode;
+            if (fresh) input.ToggleAlternativeFireMode = !input.ToggleAlternativeFireMode;
         }
         catch (Exception e) { ItemHooks.Report("AltFunctionUse: touch", e); }
+    }
+
+    static bool Held(GameArray<bool> pressed) => !pressed.IsNull && pressed.Length > SwapPress && pressed[SwapPress];
+
+    static bool SwapHeld()
+    {
+        GUIInstance gui = GUIInstance.Active;
+        GUIVirtualInputController controller = gui.IsNull ? default : gui.GUIVirtualInputController;
+        return !controller.IsNull && Held(controller.Pressed);
     }
 
     static void Draw(On_GUIQuickActionButton.orig_Draw_QuickActionControl_QuickActionButton_Layout_bool_reffloat_bool_bool orig, Control actionType, QuickActionButton_Layout layout, bool pressed, ref float scale, bool ignoreChecks, bool ignoreIcon)
@@ -86,7 +96,7 @@ internal static class AltFunctionTouchHooks
         }
         Texture_Layout original = swap.IconTexture;
         if (!icon.IsNull) swap.IconTexture = icon;
-        try { GUIQuickActionButton.DrawOverloadedButtonStyle(swap, Empty(), layout, false, pressed, ref scale); }
+        try { GUIQuickActionButton.DrawOverloadedButtonStyle(swap, Empty(), layout, false, pressed || SwapHeld(), ref scale); }
         catch (Exception e) { ItemHooks.Report("AltFunctionIcon", e); }
         finally
         {

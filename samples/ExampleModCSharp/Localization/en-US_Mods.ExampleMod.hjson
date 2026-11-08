@@ -414,6 +414,11 @@ Items: {
 		Tooltip: This is a modded sword.
 	}
 
+	ExampleDualUseWeapon: {
+		DisplayName: Example Dual Use Weapon
+		Tooltip: This weapon does something special with {InputTrigger_InteractWithTile}.
+	}
+
 	ExampleMagicWeapon: {
 		DisplayName: Example Magic Weapon
 		Tooltip: This is an example magic weapon

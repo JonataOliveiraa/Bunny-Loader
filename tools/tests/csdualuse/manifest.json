@@ -1,0 +1,17 @@
+{
+  "uid": "8e2f4a71-c3d9-4b05-9a6e-1f7d2c8b5e04",
+  "id": "CsDualUse",
+  "name": "Test: Example Mod dual use weapon",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Holds ExampleDualUseWeapon and fires it with the aim stick in both modes: the alternative mode thrusts and shoots bees, the normal mode swings without projectiles.",
+  "description": "Compile with tools/tests/build-cs.sh csdualuse. Run with SAMPLE=1 tools/tests/run-taps.sh csdualuse.",
+  "updated": "2026-11-08",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

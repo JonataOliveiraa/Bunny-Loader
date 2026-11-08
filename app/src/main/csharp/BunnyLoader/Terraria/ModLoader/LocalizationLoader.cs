@@ -61,6 +61,7 @@ internal static unsafe class LocalizationLoader
 
     internal static void ResolvePlaceholders()
     {
+        var changedKeys = new HashSet<string>(StringComparer.Ordinal);
         lock (ByMod)
         {
             foreach (var all in ByMod.Values)
@@ -78,10 +79,13 @@ internal static unsafe class LocalizationLoader
                         texts[i] = (culture, resolved);
                         changed = true;
                     }
-                    if (changed) Native(key, Pack(texts), replace: true);
+                    if (!changed) continue;
+                    Native(key, Pack(texts), replace: true);
+                    changedKeys.Add(key);
                 }
             }
         }
+        if (changedKeys.Count > 0) ItemLoader.RefreshTooltips(changedKeys);
     }
 
     static string ResolveInputTriggers(Dictionary<string, List<(string Culture, string Text)>> all, string culture, string text) =>

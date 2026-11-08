@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using BunnyLoader.Interop;
 using log4net;
 using Microsoft.Xna.Framework;
@@ -67,6 +68,9 @@ public sealed class CsReportsMod : Mod
         Log.Info($"csreports raw open={Language.GetTextValue("CommonItemTooltip.RightClickToOpen")}");
         string hold = Language.GetTextValue("Mods.ExampleMod.Items.HoldStyleShowcase.Tooltip");
         Report("input placeholders become the phone's touch glyphs", !hold.Contains("{InputTrigger") && hold.Contains("<interact>"), hold.Replace('\n', '|'));
+        Terraria.UI.ItemTooltip tooltip = Lang.GetTooltip(ModContent.Find<ModItem>("ExampleMod/HoldStyleShowcase").Type);
+        string lines = string.Join("|", Enumerable.Range(0, tooltip.Lines).Select(tooltip.GetLine));
+        Report("the item tooltip the game draws turns it into the button glyph", !lines.Contains("{InputTrigger") && !lines.Contains("<interact>") && lines.Contains("[ct:"), lines);
     }
 
     static void CanStack()

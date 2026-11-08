@@ -22,11 +22,40 @@ public abstract class ModProjectile : ModType<Projectile, ModProjectile>, ILocal
 
     public int CooldownSlot { get; set; } = -1;
 
-    public int DrawOffsetX { get; set; }
+    int drawOffsetX, drawOriginOffsetY;
+    float drawOriginOffsetX;
 
-    public int DrawOriginOffsetY { get; set; }
+    public int DrawOffsetX
+    {
+        get => drawOffsetX;
+        set
+        {
+            drawOffsetX = value;
+            if (value != 0) Core.ProjectileHooks.WantDrawOffset();
+        }
+    }
 
-    public float DrawOriginOffsetX { get; set; }
+    public int DrawOriginOffsetY
+    {
+        get => drawOriginOffsetY;
+        set
+        {
+            drawOriginOffsetY = value;
+            if (value != 0) Core.ProjectileHooks.WantDrawOffset();
+        }
+    }
+
+    public float DrawOriginOffsetX
+    {
+        get => drawOriginOffsetX;
+        set
+        {
+            drawOriginOffsetX = value;
+            if (value != 0) Core.ProjectileHooks.WantDrawOffset();
+        }
+    }
+
+    internal bool HasDrawOffset => drawOffsetX != 0 || drawOriginOffsetY != 0 || drawOriginOffsetX != 0;
 
     public virtual string Texture => (GetType().Namespace + "." + Name).Replace('.', '/');
 
