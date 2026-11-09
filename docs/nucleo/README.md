@@ -96,8 +96,8 @@ sequenceDiagram
 
 In order:
 
-1. **Kotlin.** `GameActivity` checks eligibility (the official Terraria from
-   Google Play installed on the device), checks that the runtime is in the
+1. **Kotlin.** `GameActivity` checks eligibility (Terraria installed on the
+   device), checks that the runtime is in the
    build, loads the game's `.so` files by name and, after them, `libbunny.so`.
 2. **`libbunny`'s constructor.** `bl_on_load`
    ([`boot/Entry.cpp`](../../app/src/main/cpp/boot/Entry.cpp)) installs the

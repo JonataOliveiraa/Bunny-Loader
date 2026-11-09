@@ -395,8 +395,6 @@
   "Play": "เล่น",
   "TerrariaRequiredTitle": "ต้องมี Terraria",
   "TerrariaRequiredDescription": "หากต้องการเล่น ต้องติดตั้ง Terraria ในโทรศัพท์เครื่องนี้ ติดตั้งจาก Play Store แล้วกลับมาที่นี่",
-  "TerrariaNotOriginalTitle": "ต้องใช้ Terraria ของแท้",
-  "TerrariaNotOriginalDescription": "Terraria ที่ติดตั้งในโทรศัพท์เครื่องนี้ไม่ใช่เวอร์ชันทางการ ติดตั้งจาก Play Store แล้วกลับมาที่นี่",
   "OpenPlayStore": "เปิด Play Store",
   "LanguageConfirmDescription": "นี่คือภาษาของคุณใช่ไหม? แตะภาษาอื่นเพื่อเปลี่ยน และเปลี่ยนภายหลังได้ในการตั้งค่า",
   "Confirm": "ยืนยัน",

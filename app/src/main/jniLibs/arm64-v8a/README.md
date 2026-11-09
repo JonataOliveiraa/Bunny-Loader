@@ -41,6 +41,7 @@ instead of blowing up inside Unity.
   - `uk.co.drstudios.lvl.BuildConfig`
   - `uk.co.drstudios.lvl.LicensingCheck`
   - `com.google.android.vending.licensing.*` (Google's LVL)
-- **Checking that Terraria is installed.** Today `Eligibility` only detects the
-  package and warns if it is missing; it does not check origin or signature
-  and does not block.
+- **Checking that Terraria is installed.** `Eligibility` only detects the
+  package and blocks the game if it is missing; it checks neither origin nor
+  signature, because Play installs of the bought game failed a signature check
+  on many phones.
