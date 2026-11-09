@@ -24,9 +24,11 @@ public static unsafe partial class ItemLoader
 
     static ModItem?[] items = Array.Empty<ModItem?>();
 
-    static int itemCount = ItemID.Count;
+    static int itemCount = ItemID.Count, registeredItemCount = ItemID.Count;
 
     public static int ItemCount => Volatile.Read(ref itemCount);
+
+    internal static int RegisteredItemCount => Volatile.Read(ref registeredItemCount);
 
     static bool hooked;
 
@@ -256,6 +258,7 @@ public static unsafe partial class ItemLoader
         if (type < 0) throw new InvalidOperationException($"{item.FullName}: registration failed ({type})");
         item.Type = type;
         if (type + 1 > Volatile.Read(ref itemCount)) Volatile.Write(ref itemCount, type + 1);
+        if (type + 1 > Volatile.Read(ref registeredItemCount)) Volatile.Write(ref registeredItemCount, type + 1);
 
         EnsureHooked();
         EquipLoader.Autoload(item);
@@ -610,6 +613,7 @@ public static unsafe partial class ItemLoader
     [UnmanagedCallersOnly]
     static void ItemsInstalled(int first, int last)
     {
+        if (last + 1 > Volatile.Read(ref itemCount)) Volatile.Write(ref itemCount, last + 1);
         EquipLoader.Install();
         for (int type = first; type <= last; type++)
         {

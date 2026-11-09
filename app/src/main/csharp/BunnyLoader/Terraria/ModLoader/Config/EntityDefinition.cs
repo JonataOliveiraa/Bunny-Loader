@@ -107,7 +107,7 @@ public class ItemDefinition : EntityDefinition
 
     internal override int MinType => 0;
 
-    internal override int MaxType => ItemLoader.ItemCount - 1;
+    internal override int MaxType => ItemLoader.RegisteredItemCount - 1;
 
     internal override EntityDefinition AtType(int type) => new ItemDefinition(type);
 }

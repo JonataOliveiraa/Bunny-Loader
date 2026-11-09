@@ -1,0 +1,17 @@
+{
+  "uid": "5b2f8c1e-7a4d-4e09-9c3b-1f6e2d8a4b70",
+  "id": "CsGolf",
+  "name": "Test: golf item checks",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Calls Item.IsAGolfingItem for every item, mod items included, and checks the sets it reads.",
+  "description": "Compile with tools/tests/build-cs.sh csgolf. Run with SAMPLE=1 tools/tests/run-cs.sh csgolf.",
+  "updated": "2026-11-08",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}
