@@ -37,7 +37,7 @@ the channel, `beta` (default) or `stable`.
 | [`init-upload-key.sh`](play/init-upload-key.sh) | Creates the upload key once: `bunny-upload.keystore` and `keystore-play.properties`, both out of Git. Back them up outside the PC. |
 | [`build-aab.sh`](play/build-aab.sh) | Runs `:app:bundleRelease -Pbl.play=true`, writes `out/bunny-loader-beta.aab` (+ `.sha256`) and runs the checks. |
 | [`check-aab.sh`](play/check-aab.sh) | Checks what Play enforces: `bundletool validate`, target SDK, not debuggable, no debug certificate, 16 KB pages, base module download size. Also checks that Unity's files are stored in the base APK. |
-| [`install-aab.sh`](play/install-aab.sh) | Installs the bundle on a connected device as Play would (splits and asset pack), signed with the official key, so it updates the installed app and keeps its data. |
+| [`install-aab.sh`](play/install-aab.sh) | Installs the bundle on a connected device as Play would (splits and asset pack), signed with the official key. It installs `com.bunnyloader.potatolabs`, next to the APKs, and keeps its data between installs. |
 
 ```bash
 tools/play/build-aab.sh
@@ -46,6 +46,7 @@ tools/play/install-aab.sh
 
 What `-Pbl.play=true` changes, compared with the normal APK:
 
+- **Package:** `com.bunnyloader.potatolabs` in both channels, the package of the app on the Play Console. Beta and stable are tracks of that one app there, so the bundle never gets the `.beta` suffix.
 - **Key:** Play refuses a debug certificate, and the official key is one
   (`CN=Android Debug`), so the bundle is signed with the upload key.
 - **Target SDK:** 36, which Play requires. The normal APK stays on 34.

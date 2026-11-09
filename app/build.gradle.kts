@@ -82,7 +82,7 @@ android {
     ndkVersion = "30.0.16248370"
 
     defaultConfig {
-        applicationId = "com.bunnyloader"
+        applicationId = if (playBuild) "com.bunnyloader.potatolabs" else "com.bunnyloader"
         minSdk = 24
         targetSdk = if (playBuild) 36 else 34
         versionCode = commitCount
@@ -97,7 +97,7 @@ android {
             // versionCode igual) e o personagem e o mundo criados la ficam.
             versionCode = (System.currentTimeMillis() / 60_000).toInt()
         }
-        if (betaBuild) applicationIdSuffix = ".beta"
+        if (betaBuild && !playBuild) applicationIdSuffix = ".beta"
         manifestPlaceholders["appLabel"] = when {
             benchBuild -> "Bunny Loader Bench"
             betaBuild -> "Bunny Loader Beta"

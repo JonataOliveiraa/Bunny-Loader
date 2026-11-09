@@ -16,11 +16,12 @@ READELF="$SDK_DIR/ndk/$NDK_VERSION/toolchains/llvm/prebuilt/windows-x86_64/bin/l
 
 CHANNEL="${1:-beta}"
 case "$CHANNEL" in
-    beta) BETA_PROPERTY=true; AAB_NAME=bunny-loader-beta.aab; PACKAGE=com.bunnyloader.beta ;;
-    stable) BETA_PROPERTY=false; AAB_NAME=bunny-loader.aab; PACKAGE=com.bunnyloader ;;
+    beta) BETA_PROPERTY=true; AAB_NAME=bunny-loader-beta.aab ;;
+    stable) BETA_PROPERTY=false; AAB_NAME=bunny-loader.aab ;;
     *) echo "unknown channel: $CHANNEL (use beta or stable)" >&2; exit 2 ;;
 esac
 AAB="out/$AAB_NAME"
+PACKAGE=com.bunnyloader.potatolabs
 
 gradle_bin() {
     if [[ -n "${BL_GRADLE:-}" ]]; then echo "$BL_GRADLE"; return; fi
