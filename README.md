@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/JonataOliveiraa/Bunny-Loader/releases">Download</a> ·
+  <a href="https://discord.gg/eunzRDSvuj">Download</a> ·
   <a href="docs/mods-em-csharp/README.md">Make a mod</a> ·
   <a href="docs/README.md">Documentation</a> ·
   <a href="docs/mods-em-csharp/referencia/README.md">API reference</a> ·
