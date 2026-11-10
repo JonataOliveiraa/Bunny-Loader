@@ -80,5 +80,15 @@
   "InvasionWave": "{0}: onda {1} de {2}!",
   "InvasionComplete": "{0} foi derrotada!",
   "InvasionFail": "{0} recuou.",
-  "InvasionAlreadyActive": "Já há uma invasão acontecendo."
+  "InvasionAlreadyActive": "Já há uma invasão acontecendo.",
+  "LoadingDimension": "Carregando Dimensão",
+  "ExitDimension": "Sair da Dimensão",
+  "SubworldRequest": "O host quer viajar para",
+  "SubworldAccept": "Aceitar",
+  "SubworldDecline": "Recusar",
+  "SubworldYou": "Você",
+  "SubworldSeconds": "{0} s",
+  "SubworldNobodyAccepted": "Ninguém aceitou a viagem para {0}.",
+  "SubworldOnlyHost": "Só o host pode abrir dimensões.",
+  "SubworldBusy": "O host está trocando de dimensão. Tente de novo em instantes."
 }

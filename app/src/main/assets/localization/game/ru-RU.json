@@ -80,5 +80,15 @@
   "InvasionWave": "{0}: волна {1} из {2}!",
   "InvasionComplete": "{0} повержен!",
   "InvasionFail": "{0} отступает.",
-  "InvasionAlreadyActive": "Вторжение уже идёт."
+  "InvasionAlreadyActive": "Вторжение уже идёт.",
+  "LoadingDimension": "Загрузка измерения",
+  "ExitDimension": "Покинуть измерение",
+  "SubworldRequest": "Хост хочет отправиться в",
+  "SubworldAccept": "Принять",
+  "SubworldDecline": "Отказаться",
+  "SubworldYou": "Вы",
+  "SubworldSeconds": "{0} с",
+  "SubworldNobodyAccepted": "Никто не согласился на путешествие в {0}.",
+  "SubworldOnlyHost": "Только хост может открывать измерения.",
+  "SubworldBusy": "Хост меняет измерение. Попробуйте ещё раз через мгновение."
 }

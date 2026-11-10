@@ -79,5 +79,15 @@
   "InvasionWave": "{0}：第{1}波，共{2}波！",
   "InvasionComplete": "{0}已被击败！",
   "InvasionFail": "{0}撤退了。",
-  "InvasionAlreadyActive": "已有入侵正在进行。"
+  "InvasionAlreadyActive": "已有入侵正在进行。",
+  "LoadingDimension": "正在加载维度",
+  "ExitDimension": "离开维度",
+  "SubworldRequest": "房主想要前往",
+  "SubworldAccept": "接受",
+  "SubworldDecline": "拒绝",
+  "SubworldYou": "你",
+  "SubworldSeconds": "{0} 秒",
+  "SubworldNobodyAccepted": "没有人同意前往{0}。",
+  "SubworldOnlyHost": "只有房主可以开启维度。",
+  "SubworldBusy": "房主正在切换维度，请稍后再试。"
 }

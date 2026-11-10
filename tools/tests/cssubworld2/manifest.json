@@ -1,0 +1,17 @@
+{
+  "uid": "253e5866-e3fc-4d94-ae53-6117ec9599ea",
+  "id": "CsSubworld2",
+  "name": "Test: subworld world rules (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Update, random tile updates, the hidden underworld, a temporary subworld file and SavePlayerChanges.",
+  "description": "Compile with tools/tests/build-cs.sh cssubworld2. Logs cssubworld2 <case>: ok | FAIL and cssubworld2 END pass=N fail=M.",
+  "updated": "2026-11-09",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

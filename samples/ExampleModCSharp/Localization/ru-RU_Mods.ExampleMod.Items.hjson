@@ -221,3 +221,13 @@ ExampleExplosive:
     DisplayName: Пример взрывчатки
     Tooltip: "{$ItemTooltip.Dynamite}"
 }
+ExampleSubworldKey:
+{
+    DisplayName: Пример ключа измерения
+    Tooltip: Переносит в Пример равнин и обратно
+}
+ExampleAdvancedSubworldKey:
+{
+    DisplayName: Пример продвинутого ключа измерения
+    Tooltip: Переносит в Пример ночных холмов и обратно, без экрана загрузки
+}

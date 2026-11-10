@@ -245,6 +245,7 @@ XNAUnityRunner
 Terraria.ID.PrefixID
 Terraria.GameContent.Prefixes.PrefixLegacy
 Terraria.Utilities.UnifiedRandom
+Terraria.Utilities.FileUtilities
 !Terraria.GameContent.TextureAssets.Tile
 Terraria.ID.TileID
 Terraria.ID.RecipeGroups
@@ -551,6 +552,9 @@ WorldSelectMenu_Layout
 WorldGenerateMenu_Layout
 GUIWorldGenerateMenu
 GUIStatusMenu
+GUIConfigureTouchControlsPopup
+MPSessionManager
+PlatformUser
 ProgressBar_Layout
 GUIProgressBar
 Terraria.GameContent.Bestiary.IBestiaryUICollectionInfoProvider

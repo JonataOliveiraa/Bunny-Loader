@@ -1,0 +1,17 @@
+{
+  "uid": "0ea9e7a1-5e5a-47bb-a646-2743b8feb422",
+  "id": "CsSubMp",
+  "name": "Test: subworlds in multiplayer (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "The host asks to travel three times: the client accepts, declines, then does not answer.",
+  "description": "Host on one device, client on another. The client joins 127.0.0.1:7777 by itself from the title (CSSUBMP_PLAYER file in Players). Logs cssubmp <case>: ok | FAIL and cssubmp END.",
+  "updated": "2026-11-09",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

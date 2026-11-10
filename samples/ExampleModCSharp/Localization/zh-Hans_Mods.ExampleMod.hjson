@@ -16,6 +16,17 @@ Invasions: {
 	}
 }
 
+Subworlds: {
+	ExampleSubworld: {
+		DisplayName: 示例平原
+	}
+
+	ExampleAdvancedSubworld: {
+		DisplayName: 示例夜色丘陵
+		Welcome: 这里的夜晚永不结束。
+	}
+}
+
 Items: {
 	ExampleSandBlock: {
 		DisplayName: 示例沙块

@@ -137,7 +137,7 @@ The `tModLoader` column looks at signatures only. A member can be `same` and sti
 act differently on the phone, and an `only here` member can be a wrapper around
 something the PC game has under another shape, such as `GameList` for a `List<T>`.
 
-**599 classes, 5320 members:** 4311 the same as tModLoader or the PC game, 146 with a different signature, 535 only here, 328 not here. tModLoader's loaders have 297 more methods that only run hooks: each page counts them under its loader.
+**601 classes, 5349 members:** 4311 the same as tModLoader or the PC game, 146 with a different signature, 564 only here, 328 not here. tModLoader's loaders have 297 more methods that only run hooks: each page counts them under its loader.
 
 ## [Items](itens.md)
 
@@ -429,6 +429,7 @@ something the PC game has under another shape, such as `GameList` for a `List<T>
 | [ModMapLayer.Position](tiles.md#modmaplayerposition) | abstract class | yes | Where a map layer goes in the draw order. |
 | [ModPylon](tiles.md#modpylon) | abstract class | yes | Extension to that streamlines the process of creating a modded Pylon. |
 | [ModSceneEffect](tiles.md#modsceneeffect) | abstract class | yes | ModSceneEffect is an abstract class that your classes can derive from. |
+| [ModSubworld](tiles.md#modsubworld) | abstract class | **no** | A dimension: a separate world the player travels to, with its own size, generation and save file. |
 | [ModSurfaceBackgroundStyle](tiles.md#modsurfacebackgroundstyle) | abstract class | yes | Each background style determines in its own way how exactly the background is drawn. |
 | [ModTile](tiles.md#modtile) | abstract class | yes | This class represents a type of tile that can be added by a mod. |
 | [ModTileEntity](tiles.md#modtileentity) | abstract class | yes | Tile Entities are Entities tightly coupled with tiles, allowing the possibility of tiles to exhibit cool behavior. |
@@ -444,6 +445,7 @@ something the PC game has under another shape, such as `GameList` for a `List<T>
 | [SceneEffectLoader.SceneEffectInstance](tiles.md#sceneeffectloadersceneeffectinstance) | class | yes | The scene the player is in now: music, water, backgrounds, each with a priority. |
 | [SceneEffectLoader.SceneEffectInstance.PrioritizedPair](tiles.md#sceneeffectloadersceneeffectinstanceprioritizedpair) | struct | yes | A value and the priority that chose it. |
 | [SceneEffectPriority](tiles.md#sceneeffectpriority) | enum | yes | This enum dictates from low to high which SceneEffect selections take priority. |
+| [SubworldLoader](tiles.md#subworldloader) | static class | **no** | Travels between the main world and the dimensions: `Enter`, `Exit`, `Current`. |
 | [TEModdedPylon](tiles.md#temoddedpylon) | abstract class | yes | This is a TML provided Tile Entity that acts extremely similar to vanilla's pylon TEs by default. |
 | [TeleportPylonInfo](tiles.md#teleportpyloninfo) | struct | yes | A pylon in the world: its position and type. |
 | [Tile](tiles.md#tile) | struct | yes | A data structure used for accessing information about tiles, walls, wires, and liquids at a single position in the world. |

@@ -1,5 +1,12 @@
 # Novidades
 
+## 0.42.0
+
+- Duas dimensões: as Planícies de Exemplo, com tudo no padrão, e as Colinas
+  Noturnas de Exemplo, com colinas, cavernas, minério, uma noite sem fim e uma
+  transição que escurece a tela em vez da tela de carregamento.
+- Chaves que levam a cada dimensão e trazem de volta.
+
 ## 0.41.0
 
 - Areia de exemplo que cai, com a bola da pistola de areia e a vara que a move.

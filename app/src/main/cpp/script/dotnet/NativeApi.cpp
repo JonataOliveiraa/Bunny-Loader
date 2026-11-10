@@ -16,6 +16,7 @@
 #include "content/walls/WallEvents.h"
 #include "content/tiles/ModTrees.h"
 #include "content/common/BunnyHeadIcon.h"
+#include "content/common/PlanetIcon.h"
 #include "content/ui/ResourceDraws.h"
 #include "content/buffs/ModBuffs.h"
 #include "content/projectiles/ModProjectiles.h"
@@ -49,6 +50,7 @@
 #include "content/items/ModItems.h"
 #include "content/sounds/AndroidAudio.h"
 #include "core/Log.h"
+#include "hook/CodePatch.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
@@ -227,6 +229,8 @@ struct NativeApi {
     int32_t (*installTileTextureHook)(int32_t firstType, int32_t secondType, void* (*callback)(int32_t, int32_t, int32_t));
     void** (*installGatedHook)(void* method, void* replacement, int32_t arg, int32_t pointerOffset, int32_t fieldOffset, int32_t fieldSize);
     void (*setItemTooltip)(int32_t type, const char* tooltip);
+    void* (*planetTexture)();
+    int32_t (*hideUnderworld)(int32_t hide);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -1165,6 +1169,51 @@ const NativeApi kNativeApi{
     },
     [](int32_t type, const char* tooltip) {
         if (tooltip) runtime::setModItemTooltip(type, cultureTexts(tooltip));
+    },
+    []() -> void* {
+        static uint32_t handle = 0;
+        if (handle) return il2cpp::api().gchandle_get_target(handle);
+        int w = 0, h = 0;
+        Il2CppObject* asset = runtime::content::loadTextureAsset("", bl_planet_png, bl_planet_png_len, "bunny:planet", &w, &h);
+        if (asset) handle = il2cpp::api().gchandle_new(asset, false);
+        return asset;
+    },
+    [](int32_t hide) -> int32_t {
+        struct Site {
+            const char* method;
+            uint32_t pattern;
+            uint32_t replacement;
+            int32_t length;
+            uint32_t* at;
+            uint32_t original;
+        };
+        static Site sites[] = {
+            {"DrawBackground", 0x51052800u, 0x11100000u, 400, nullptr, 0},
+            {"get_UnderworldLayer", 0x51032000u, 0x11000000u, 40, nullptr, 0},
+        };
+        int32_t done = 1;
+        for (Site& site : sites) {
+            if (!site.at) {
+                Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
+                const MethodInfo* m = main ? il2cpp::api().class_get_method_from_name(main, site.method, 0) : nullptr;
+                auto* code = m ? static_cast<uint32_t*>(il2cpp::methodPointer(m)) : nullptr;
+                for (int i = 0; code && i < site.length; ++i) {
+                    if ((code[i] & 0xFFFFFC00u) == site.pattern) {
+                        site.at = code + i;
+                        site.original = code[i];
+                        break;
+                    }
+                }
+                if (!site.at) {
+                    BL_ERROR("subworlds: the underworld layer of Main.%s was not found", site.method);
+                    done = 0;
+                    continue;
+                }
+            }
+            const uint32_t moved = site.replacement | (site.original & 0x3FFu);
+            if (!runtime::replaceInstruction(site.at, 0, hide ? site.original : moved, hide ? moved : site.original)) done = 0;
+        }
+        return done;
     },
 };
 

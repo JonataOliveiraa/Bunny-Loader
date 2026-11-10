@@ -16,6 +16,17 @@ Invasions: {
 	}
 }
 
+Subworlds: {
+	ExampleSubworld: {
+		DisplayName: Planícies de Exemplo
+	}
+
+	ExampleAdvancedSubworld: {
+		DisplayName: Colinas Noturnas de Exemplo
+		Welcome: Aqui a noite nunca acaba.
+	}
+}
+
 Items: {
 	ExampleSandBlock: {
 		DisplayName: Bloco de Areia de Exemplo

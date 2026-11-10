@@ -87,6 +87,8 @@ internal static class InterfaceLayerHooks
             layers.Add(layer);
         }
         SystemLoader.ModifyInterfaceLayers(layers);
+        SubworldVoteUI.ModifyInterfaceLayers(layers);
+        SubworldTransition.ModifyInterfaceLayers(layers);
 
         seen.Clear();
         final.Clear();

@@ -127,6 +127,13 @@ internal static unsafe class ServerSyncHooks
     {
         if (from < 0 || from >= 255 || from == Main.myPlayer)
             return;
+        if (SubworldNet.Admit(from) is { } busy)
+        {
+            Log.Info($"server sync: player {from} refused while the host changes dimension");
+            Boot(from, busy);
+            return;
+        }
+
         JsonObject? hello = null;
         try
         {

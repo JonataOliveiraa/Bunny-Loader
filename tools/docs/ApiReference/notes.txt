@@ -80,6 +80,8 @@ Terraria.ModLoader.InvasionEnemy|An enemy of an invasion wave: its NPC type, how
 Terraria.ModLoader.InvasionLoader|Runs invasions: `Start`, `Stop`, `AddPoints`, and reads the wave and progress. Keeps the host and clients in sync.
 Terraria.ModLoader.InvasionWave|One wave of an invasion: the points to clear it and its enemies.
 Terraria.ModLoader.ModInvasion|A wave-based event that uses the game's progress bar. See [guide 23](../23-invasoes.md). Your subclass lists the waves.
+Terraria.ModLoader.ModSubworld|A dimension: a separate world the player travels to, with its own size, generation and save file. See [guide 24](../24-dimensoes.md).
+Terraria.ModLoader.SubworldLoader|Travels between the main world and the dimensions: `Enter`, `Exit`, `Current`. In multiplayer the host asks every player first.
 Terraria.NPC|What Bunny Loader adds to the game's NPC.
 Terraria.NPC.Spawner|Spawns a boss or event the way the game does, through the phone's `NPC.Spawner`.
 Terraria.ID.NPCAIStyleID|Values of `NPC.aiStyle`.
@@ -579,6 +581,34 @@ Terraria.ModLoader.ModInvasion.OnWaveComplete|Runs at the end of each wave.
 Terraria.ModLoader.ModInvasion.OnComplete|Runs when it is won.
 Terraria.ModLoader.ModInvasion.OnFail|Runs when it is lost.
 Terraria.ModLoader.ModInvasion.Update|Runs every tick while it is active.
+Terraria.ModLoader.ModSubworld.Width|Width in tiles, up to 8400.
+Terraria.ModLoader.ModSubworld.Height|Height in tiles, up to 2400.
+Terraria.ModLoader.ModSubworld.GenerationTasks|The passes that build the world, as in world generation.
+Terraria.ModLoader.ModSubworld.Persistent|`true` keeps the world between trips; `false` generates it on every trip.
+Terraria.ModLoader.ModSubworld.SavePlayerChanges|`false` gives the player back as they entered.
+Terraria.ModLoader.ModSubworld.RandomTileUpdates|Grass spreading and plants growing. Liquids, wiring and tile entities update either way.
+Terraria.ModLoader.ModSubworld.HideUnderworld|The bottom 200 rows are not the underworld: no background, light, music, enemies or evaporating water.
+Terraria.ModLoader.ModSubworld.LoadingText|The text of the loading screen.
+Terraria.ModLoader.ModSubworld.ShowLoadingScreen|`false` keeps the screen black while the world changes, with `DrawTransition` on top.
+Terraria.ModLoader.ModSubworld.TransitionOutSeconds|How long the transition plays in the world being left.
+Terraria.ModLoader.ModSubworld.TransitionInSeconds|How long the transition plays in the world being entered.
+Terraria.ModLoader.ModSubworld.DrawTransition|Draws the transition over the whole screen, interface included (`Main.screenWidth` × `Main.screenHeight`); `progress` goes 0 to 1 while leaving and back to 0 while arriving. Draws black by default.
+Terraria.ModLoader.ModSubworld.DisplayName|The world's name, from the `Subworlds` translations.
+Terraria.ModLoader.ModSubworld.FileName|`<Mod>_<Name>`, the name of the save file.
+Terraria.ModLoader.ModSubworld.LocalizationCategory|`Subworlds`.
+Terraria.ModLoader.ModSubworld.OnEnter|Before the dimension loads or generates.
+Terraria.ModLoader.ModSubworld.OnExit|Before the player leaves the dimension.
+Terraria.ModLoader.ModSubworld.PostWorldReady|Once the player is in the dimension.
+Terraria.ModLoader.ModSubworld.Update|Once per world update while the dimension is active.
+Terraria.ModLoader.ModSubworld.SaveCarriedData|Writes what travels to the next world, on every dimension, whenever a world is left.
+Terraria.ModLoader.ModSubworld.LoadCarriedData|Reads back the tag `SaveCarriedData` wrote, once the next world is loaded.
+Terraria.ModLoader.SubworldLoader.Subworlds|Every registered dimension.
+Terraria.ModLoader.SubworldLoader.Current|The active dimension, null in the main world.
+Terraria.ModLoader.SubworldLoader.InSubworld|Whether a dimension is active.
+Terraria.ModLoader.SubworldLoader.Traveling|From `Enter` until the player is in the new world and its transition is over.
+Terraria.ModLoader.SubworldLoader.IsActive|Whether that dimension is the active one.
+Terraria.ModLoader.SubworldLoader.Enter|Starts the trip, or the vote in multiplayer. false on a client, while traveling or when already there.
+Terraria.ModLoader.SubworldLoader.Exit|Back to the main world. The host's alone in multiplayer.
 Terraria.ModLoader.ModNPC.BossLoot|Changes the potion a boss drops, and what else happens at its death.
 Terraria.ModLoader.ModNPC.SetChatButtons|The text of the two chat buttons. For more buttons use `RegisterChatButtons`.
 Terraria.ModLoader.NPCHappiness.NpcType|The NPC.

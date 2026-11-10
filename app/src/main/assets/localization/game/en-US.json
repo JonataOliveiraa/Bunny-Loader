@@ -80,5 +80,15 @@
   "InvasionWave": "{0}: wave {1} of {2}!",
   "InvasionComplete": "{0} has been defeated!",
   "InvasionFail": "{0} has retreated.",
-  "InvasionAlreadyActive": "An invasion is already happening."
+  "InvasionAlreadyActive": "An invasion is already happening.",
+  "LoadingDimension": "Loading Dimension",
+  "ExitDimension": "Exit Dimension",
+  "SubworldRequest": "The host wants to travel to",
+  "SubworldAccept": "Accept",
+  "SubworldDecline": "Decline",
+  "SubworldYou": "You",
+  "SubworldSeconds": "{0} s",
+  "SubworldNobodyAccepted": "Nobody accepted the trip to {0}.",
+  "SubworldOnlyHost": "Only the host can open dimensions.",
+  "SubworldBusy": "The host is changing dimension. Try again in a moment."
 }

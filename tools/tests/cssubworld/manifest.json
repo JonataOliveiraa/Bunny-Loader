@@ -1,0 +1,17 @@
+{
+  "uid": "c35fd4ff-9980-4e48-ade8-29c1e9da5902",
+  "id": "CsSubworld",
+  "name": "Test: subworlds in single player (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Enters a generated subworld, comes back, enters again from its file, and leaves through the pause menu button.",
+  "description": "Compile with tools/tests/build-cs.sh cssubworld. The last step waits for a tap on Exit Dimension at the logged 'cssubworld TAP x y'.",
+  "updated": "2026-11-09",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

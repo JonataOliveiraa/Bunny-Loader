@@ -1,0 +1,17 @@
+{
+  "uid": "a7afb8f9-f489-4aec-92ed-f3aef54abc3d",
+  "id": "CsSubTrans",
+  "name": "Test: subworld transitions and the hidden underworld (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Fade out, covered loading, fade in, the underworld layer, water and light at the bottom, and the Example Mod dimensions.",
+  "description": "Compile with tools/tests/build-cs.sh cssubtrans. Run with SAMPLE=1 to cover the Example Mod dimensions. Logs cssubtrans <case>: ok | FAIL and cssubtrans END pass=N fail=M.",
+  "updated": "2026-11-10",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

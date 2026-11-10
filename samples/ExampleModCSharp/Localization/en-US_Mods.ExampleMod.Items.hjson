@@ -221,3 +221,13 @@ ExampleExplosive:
     DisplayName: Example Explosive
     Tooltip: "{$ItemTooltip.Dynamite}"
 }
+ExampleSubworldKey:
+{
+    DisplayName: Example Subworld Key
+    Tooltip: Takes you to the Example Plains and back
+}
+ExampleAdvancedSubworldKey:
+{
+    DisplayName: Example Advanced Subworld Key
+    Tooltip: Takes you to the Example Night Hills and back, with no loading screen
+}

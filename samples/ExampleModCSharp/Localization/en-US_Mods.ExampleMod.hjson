@@ -16,6 +16,17 @@ Invasions: {
 	}
 }
 
+Subworlds: {
+	ExampleSubworld: {
+		DisplayName: Example Plains
+	}
+
+	ExampleAdvancedSubworld: {
+		DisplayName: Example Night Hills
+		Welcome: The night never ends here.
+	}
+}
+
 Items: {
 	ExampleSandBlock: {
 		DisplayName: Example Sand Block

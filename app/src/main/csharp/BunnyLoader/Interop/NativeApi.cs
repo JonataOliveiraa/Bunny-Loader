@@ -153,6 +153,8 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<int, int, delegate* unmanaged<int, int, int, IntPtr>, int> InstallTileTextureHook;
     public delegate* unmanaged<IntPtr, IntPtr, int, int, int, int, IntPtr*> InstallGatedHook;
     public delegate* unmanaged<int, byte*, void> SetItemTooltip;
+    public delegate* unmanaged<IntPtr> PlanetTexture;
+    public delegate* unmanaged<int, int> HideUnderworld;
 }
 
 [StructLayout(LayoutKind.Sequential)]

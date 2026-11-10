@@ -16,6 +16,17 @@ Invasions: {
 	}
 }
 
+Subworlds: {
+	ExampleSubworld: {
+		DisplayName: Пример равнин
+	}
+
+	ExampleAdvancedSubworld: {
+		DisplayName: Пример ночных холмов
+		Welcome: Здесь ночь никогда не кончается.
+	}
+}
+
 Items: {
 	ExampleSandBlock: {
 		DisplayName: Пример блока песка

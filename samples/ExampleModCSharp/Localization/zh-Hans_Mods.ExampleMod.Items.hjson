@@ -221,3 +221,13 @@ ExampleExplosive:
     DisplayName: 示例炸药
     Tooltip: "{$ItemTooltip.Dynamite}"
 }
+ExampleSubworldKey:
+{
+    DisplayName: 示例维度钥匙
+    Tooltip: 带你前往示例平原并返回
+}
+ExampleAdvancedSubworldKey:
+{
+    DisplayName: 示例高级维度钥匙
+    Tooltip: 带你前往示例夜色丘陵并返回，没有加载画面
+}
