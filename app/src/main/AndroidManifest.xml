@@ -14,7 +14,7 @@
          a mesma chave, abre a EditorBridgeActivity. Ele declara a mesma
          permissão, para valer em qualquer ordem de instalação. -->
     <permission
-        android:name="com.bunnyloader.permission.EDITOR"
+        android:name="${editorPermission}"
         android:protectionLevel="signature" />
 
     <!-- A detecção consulta o Terraria instalado — no Android 11+
@@ -75,14 +75,14 @@
             android:name=".mods.EditorBridgeProvider"
             android:authorities="${applicationId}.editorbridge"
             android:exported="true"
-            android:permission="com.bunnyloader.permission.EDITOR" />
+            android:permission="${editorPermission}" />
 
         <!-- Conectar e "Testar" do BL Editor. Transparente: quem aparece
              enquanto empacota é o editor. -->
         <activity
             android:name=".EditorBridgeActivity"
             android:exported="true"
-            android:permission="com.bunnyloader.permission.EDITOR"
+            android:permission="${editorPermission}"
             android:excludeFromRecents="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar">
             <intent-filter>

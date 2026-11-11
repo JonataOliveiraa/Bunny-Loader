@@ -103,6 +103,8 @@ android {
             betaBuild -> "Bunny Loader Beta"
             else -> "@string/app_name"
         }
+        manifestPlaceholders["editorPermission"] =
+            if (playBuild) "com.bunnyloader.potatolabs.permission.EDITOR" else "com.bunnyloader.permission.EDITOR"
         buildConfigField("boolean", "BENCH", benchBuild.toString())
 
         // Só arm64. O runtime do jogo é integrado e existe apenas para
