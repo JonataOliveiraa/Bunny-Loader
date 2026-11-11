@@ -12,6 +12,20 @@ internal object ModOrder {
     fun enabledFirst(order: List<String>, enabled: Set<String>): List<String> =
         order.filter { it in enabled } + order.filter { it !in enabled }
 
+    fun dependenciesFirst(order: List<String>, ids: Map<String, String>, dependencies: Map<String, List<String>>): List<String> {
+        val sorted = LinkedHashSet<String>()
+        val visiting = mutableSetOf<String>()
+        fun resolve(ref: String): String? = ref.takeIf { it in ids } ?: order.filter { ids[it] == ref }.singleOrNull()
+        fun visit(uid: String) {
+            if (uid in sorted || !visiting.add(uid)) return
+            dependencies[uid].orEmpty().mapNotNull(::resolve).forEach(::visit)
+            visiting.remove(uid)
+            sorted += uid
+        }
+        order.forEach(::visit)
+        return sorted.toList()
+    }
+
     /** Quem acabou de ser ligado vai para o topo da lista (e carrega primeiro). */
     fun activate(order: List<String>, uid: String, enabled: Set<String>): List<String> {
         if (uid !in order || uid in enabled) return order

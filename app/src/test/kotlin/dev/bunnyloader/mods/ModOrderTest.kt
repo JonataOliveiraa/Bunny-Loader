@@ -104,6 +104,33 @@ class ModOrderTest {
         }
     }
 
+    private val ids = mapOf("app" to "App", "lib" to "Lib", "core" to "Core", "other" to "Other")
+
+    @Test fun aDependencyComesBeforeTheModThatNeedsItEvenWhenActivatedLater() {
+        val order = ModOrder.activate(listOf("lib", "app"), "app", setOf("lib"))
+        assertEquals(listOf("app", "lib"), order)
+        assertEquals(listOf("lib", "app"), ModOrder.dependenciesFirst(order, ids, mapOf("app" to listOf("Lib"))))
+    }
+
+    @Test fun anOrderThatAlreadyRespectsDependenciesStaysTheSame() {
+        val order = listOf("core", "other", "lib", "app")
+        val dependencies = mapOf("app" to listOf("Lib", "Core"), "lib" to listOf("Core"))
+        assertEquals(order, ModOrder.dependenciesFirst(order, ids, dependencies))
+    }
+
+    @Test fun chainsAreSortedAndUnrelatedModsKeepTheirPlace() {
+        val dependencies = mapOf("app" to listOf("Lib"), "lib" to listOf("core"))
+        assertEquals(listOf("other", "core", "lib", "app"),
+            ModOrder.dependenciesFirst(listOf("other", "app", "lib", "core"), ids, dependencies))
+    }
+
+    @Test fun missingAmbiguousAndCyclicDependenciesKeepEveryMod() {
+        val twins = ids + ("twin" to "Lib")
+        val order = listOf("app", "lib", "twin", "core", "other")
+        val dependencies = mapOf("app" to listOf("Lib", "Gone"), "core" to listOf("Other"), "other" to listOf("Core"))
+        assertEquals(listOf("app", "lib", "twin", "other", "core"), ModOrder.dependenciesFirst(order, twins, dependencies))
+    }
+
     @Test fun savedMovesSurviveRestartAndStatusChangesKeepTheEnabledLoadOrder() {
         val installed = listOf("a", "b", "c", "d", "e")
         val enabled = setOf("a", "b", "c")
