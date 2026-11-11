@@ -69,6 +69,49 @@ phone.
   `LegacyPlayerRenderer.RenderOutlines` always draws a black ring outside the
   ring of the given colour, so `Color.Transparent` left only the black ring.
 
+### Third pass (2026-11-10)
+
+| Pack | Covers | Result |
+|---|---|---|
+| `cssubmap` | Beach at the edges with and without `HideOcean`, the fullscreen map of dimensions of 1000×500 to 250×200, a 120×100 dimension refused | 12/12 on MuMu |
+| `cssubwld` | The Example Mod arena from `ExampleArena.wld`: size, Example Block and Wall from the `.bl` files, torches, name, difficulty, spawn, no dungeon, death mark, a fresh copy on every trip | 14/14 on MuMu |
+
+- **`.wld` files.** `ModSubworld.WorldFile` names a `.wld` in the mod. The trip
+  copies it (through `FileUtilities`, the game's file cache) and every file
+  beside it that starts with its name (Bunny Loader's `.tiles.bl`,
+  `.walls.bl`, `.npcs.bl`, `.bl.json`...) to the dimension's path, loads it,
+  then gives it the dimension's name, an id derived from the main world and
+  the dimension, and the main world's difficulty. `cswldmake` built the arena
+  with Example Mod blocks and walls; the `.bl` files name mod content as
+  `<mod uid>/<name>`, so they load on any device with the same mod.
+- **The fullscreen map** on the phone is `GUIMap.DrawMapFullscreenBackground`
+  (`Main`'s copy is never called). Its background was the underworld whenever
+  the screen was below `maxTilesY - 232` (always, in a world under ~300 tiles
+  tall) and the ocean within 380 columns of an edge. Both constants are
+  swapped with the rest of the hidden underworld and with `HideOcean`.
+- **The map frame.** The fullscreen map draws `TextureAssets.Map` (a backdrop
+  with a wooden frame) behind the world, scaled by `maxTilesX / 840` with
+  constants only for widths 4200, 6300, 6400 and 8400; any other width draws
+  it at its own size, pinned to the map's corner, and its brown border shows
+  beside a small dimension. While a dimension is active, that one
+  `SpriteBatch.Draw(Texture2D, Rectangle, Color)` call in `GUIMap.DrawMap`
+  (found by its target, `NativeApi.HideMapFrame`) is a `nop`.
+- **`HideOcean`.** `WorldGen.oceanDepths` (beach zone, ocean music and spawns,
+  water settling) counted the 380 columns next to each edge as beach: most of
+  a small dimension. With `HideOcean` (on by default) its `b.pl` after the
+  height check becomes a `nop`, so it answers `false`.
+- **Minimum size 200×160.** The camera stays 40 tiles inside every edge and
+  sees up to 120×75 tiles (`Main.MaxWorldViewSize`). In a 120×100 world it
+  left the world and `TileLightScanner.ExportTo` read tiles at -81: the game
+  crashed. `Enter` refuses smaller dimensions, and a smaller `.wld` sends the
+  trip back to the main world.
+- **No dungeon.** Generated dimensions kept the main world's `dungeonX/Y`; a
+  file kept `0,0`. They start at `-1` now, which keeps the Old Man away. The
+  skull in the arena's map was the Example Mod's `ExampleMapLayer`, which drew
+  the dungeon icon even with no dungeon; it checks for `-1` now.
+- **Death mark.** Each world keeps its own `showLastDeath`/`lastDeathPostion`
+  across trips; a temporary dimension forgets its own.
+
 ## 1. API
 
 Named like the rest of the C# API (`ModBiome`, `ModSystem`, loaders):

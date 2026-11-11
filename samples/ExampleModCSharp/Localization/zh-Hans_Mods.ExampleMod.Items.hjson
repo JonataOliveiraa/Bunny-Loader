@@ -231,3 +231,8 @@ ExampleAdvancedSubworldKey:
     DisplayName: 示例高级维度钥匙
     Tooltip: 带你前往示例夜色丘陵并返回，没有加载画面
 }
+ExampleWorldFileSubworldKey:
+{
+    DisplayName: 示例竞技场钥匙
+    Tooltip: 带你前往从 .wld 文件载入的示例竞技场并返回
+}

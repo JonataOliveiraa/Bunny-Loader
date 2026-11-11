@@ -14,11 +14,13 @@ public abstract class ModSubworld : ModType, ILocalizedModType
 
     public virtual LocalizedText DisplayName => this.GetLocalization(nameof(DisplayName), PrettyPrintName);
 
-    public abstract int Width { get; }
+    public virtual int Width => 0;
 
-    public abstract int Height { get; }
+    public virtual int Height => 0;
 
-    public abstract List<GenPass> GenerationTasks { get; }
+    public virtual List<GenPass> GenerationTasks => new();
+
+    public virtual string? WorldFile => null;
 
     public virtual bool Persistent => false;
 
@@ -27,6 +29,8 @@ public abstract class ModSubworld : ModType, ILocalizedModType
     public virtual bool RandomTileUpdates => false;
 
     public virtual bool HideUnderworld => true;
+
+    public virtual bool HideOcean => true;
 
     public virtual string LoadingText => Language.GetTextValue("BunnyLoader.LoadingDimension");
 

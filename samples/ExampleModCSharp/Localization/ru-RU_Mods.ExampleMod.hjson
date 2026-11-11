@@ -21,6 +21,10 @@ Subworlds: {
 		DisplayName: Пример равнин
 	}
 
+	ExampleWorldFileSubworld: {
+		DisplayName: Пример арены
+	}
+
 	ExampleAdvancedSubworld: {
 		DisplayName: Пример ночных холмов
 		Welcome: Здесь ночь никогда не кончается.

@@ -21,6 +21,10 @@ Subworlds: {
 		DisplayName: Example Plains
 	}
 
+	ExampleWorldFileSubworld: {
+		DisplayName: Example Arena
+	}
+
 	ExampleAdvancedSubworld: {
 		DisplayName: Example Night Hills
 		Welcome: The night never ends here.

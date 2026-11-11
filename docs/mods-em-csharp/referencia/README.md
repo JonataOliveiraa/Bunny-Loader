@@ -137,7 +137,7 @@ The `tModLoader` column looks at signatures only. A member can be `same` and sti
 act differently on the phone, and an `only here` member can be a wrapper around
 something the PC game has under another shape, such as `GameList` for a `List<T>`.
 
-**601 classes, 5349 members:** 4311 the same as tModLoader or the PC game, 146 with a different signature, 564 only here, 328 not here. tModLoader's loaders have 297 more methods that only run hooks: each page counts them under its loader.
+**601 classes, 5351 members:** 4311 the same as tModLoader or the PC game, 146 with a different signature, 566 only here, 328 not here. tModLoader's loaders have 297 more methods that only run hooks: each page counts them under its loader.
 
 ## [Items](itens.md)
 

@@ -1,0 +1,17 @@
+{
+  "uid": "bd55ad57-b3ab-44df-84cc-eb1caf02fd96",
+  "id": "CsWldMake",
+  "name": "Tool: build the Example Mod arena world (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Builds the arena of ExampleWorldFileSubworld with Example Mod blocks and walls, saves it and logs where the file is.",
+  "description": "Compile with tools/tests/build-cs.sh cswldmake and run with SAMPLE=1. Copy Worlds/<main world id>/CsWldMake_ArenaMaker.subworld and its .bl files to samples/ExampleModCSharp/Content/Subworlds/ExampleArena.wld.",
+  "updated": "2026-11-10",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

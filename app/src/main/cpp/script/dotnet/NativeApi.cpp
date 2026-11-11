@@ -231,6 +231,8 @@ struct NativeApi {
     void (*setItemTooltip)(int32_t type, const char* tooltip);
     void* (*planetTexture)();
     int32_t (*hideUnderworld)(int32_t hide);
+    int32_t (*hideOcean)(int32_t hide);
+    int32_t (*hideMapFrame)(int32_t hide);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -981,6 +983,92 @@ int32_t nativeStoreChestItem(int32_t chest, int32_t slot, void* item) {
     return runtime::storeChestItemData(chest, slot, static_cast<Il2CppObject*>(item)) ? 1 : 0;
 }
 
+struct CodeSite {
+    const char* ns;
+    const char* klass;
+    const char* method;
+    int32_t args;
+    uint32_t mask;
+    uint32_t pattern;
+    uint32_t keep;
+    uint32_t replacement;
+    int32_t length;
+    uint32_t* at;
+    uint32_t original;
+};
+
+int32_t toggleSites(CodeSite* sites, size_t count, bool on) {
+    int32_t done = 1;
+    for (size_t s = 0; s < count; ++s) {
+        CodeSite& site = sites[s];
+        if (!site.at) {
+            Il2CppClass* klass = il2cpp::findClass({site.ns, site.klass, {}});
+            const MethodInfo* m = klass ? il2cpp::api().class_get_method_from_name(klass, site.method, site.args) : nullptr;
+            auto* code = m ? static_cast<uint32_t*>(il2cpp::methodPointer(m)) : nullptr;
+            for (int i = 0; code && i < site.length; ++i) {
+                if ((code[i] & site.mask) == site.pattern) {
+                    site.at = code + i;
+                    site.original = code[i];
+                    break;
+                }
+            }
+            if (!site.at) {
+                BL_ERROR("subworlds: the instruction to change in %s.%s was not found", site.klass, site.method);
+                done = 0;
+                continue;
+            }
+        }
+        const uint32_t changed = site.replacement | (site.original & site.keep);
+        if (!runtime::replaceInstruction(site.at, 0, on ? site.original : changed, on ? changed : site.original)) done = 0;
+    }
+    return done;
+}
+
+int32_t nativeHideUnderworld(int32_t hide) {
+    static CodeSite sites[] = {
+        {"Terraria", "Main", "DrawBackground", 0, 0xFFFFFC00u, 0x51052800u, 0x3FFu, 0x11100000u, 400, nullptr, 0},
+        {"Terraria", "Main", "get_UnderworldLayer", 0, 0xFFFFFC00u, 0x51032000u, 0x3FFu, 0x11000000u, 40, nullptr, 0},
+        {"", "GUIMap", "DrawMapFullscreenBackground", 3, 0xFFFFFC00u, 0x513A0000u, 0x3FFu, 0x11100000u, 400, nullptr, 0},
+    };
+    return toggleSites(sites, sizeof(sites) / sizeof(sites[0]), hide != 0);
+}
+
+int32_t nativeHideMapFrame(int32_t hide) {
+    static uint32_t* at = nullptr;
+    static uint32_t original = 0;
+    if (!at) {
+        Il2CppClass* map = il2cpp::findClass({"", "GUIMap", {}});
+        Il2CppClass* batch = il2cpp::findClass({"Microsoft.Xna.Framework.Graphics", "SpriteBatch", {}});
+        const MethodInfo* drawMap = map ? il2cpp::api().class_get_method_from_name(map, "DrawMap", 0) : nullptr;
+        const MethodInfo* draw = batch ? il2cpp::findMethodBySignature(batch, il2cpp::parseSignature("void Draw(Texture2D texture, Rectangle destinationRectangle, Color color)")) : nullptr;
+        auto* code = drawMap ? static_cast<uint32_t*>(il2cpp::methodPointer(drawMap)) : nullptr;
+        const auto target = draw ? reinterpret_cast<uintptr_t>(il2cpp::methodPointer(draw)) : 0;
+        for (int i = 0; code && target && i < 6000; ++i) {
+            if ((code[i] & 0xFC000000u) != 0x94000000u) continue;
+            const int32_t offset = static_cast<int32_t>(code[i] << 6) >> 6;
+            if (reinterpret_cast<uintptr_t>(code + i) + static_cast<intptr_t>(offset) * 4 != target) continue;
+            at = code + i;
+            original = code[i];
+            break;
+        }
+        if (!at) {
+            BL_ERROR("subworlds: the map frame of GUIMap.DrawMap was not found");
+            return 0;
+        }
+    }
+    constexpr uint32_t nop = 0xD503201Fu;
+    return runtime::replaceInstruction(at, 0, hide ? original : nop, hide ? nop : original) ? 1 : 0;
+}
+
+int32_t nativeHideOcean(int32_t hide) {
+    static CodeSite sites[] = {
+        {"Terraria", "WorldGen", "oceanDepths", 2, 0xFF00001Fu, 0x54000005u, 0u, 0xD503201Fu, 40, nullptr, 0},
+        {"", "GUIMap", "DrawMapFullscreenBackground", 3, 0xFFFFFC1Fu, 0x7105F01Fu, 0x3FFu, 0x71000000u, 900, nullptr, 0},
+        {"", "GUIMap", "DrawMapFullscreenBackground", 3, 0xFFFFFC00u, 0x5105F000u, 0x3FFu, 0x11100000u, 900, nullptr, 0},
+    };
+    return toggleSites(sites, sizeof(sites) / sizeof(sites[0]), hide != 0);
+}
+
 const NativeApi kNativeApi{
     sizeof(NativeApi),
     nativeLog,
@@ -1178,43 +1266,9 @@ const NativeApi kNativeApi{
         if (asset) handle = il2cpp::api().gchandle_new(asset, false);
         return asset;
     },
-    [](int32_t hide) -> int32_t {
-        struct Site {
-            const char* method;
-            uint32_t pattern;
-            uint32_t replacement;
-            int32_t length;
-            uint32_t* at;
-            uint32_t original;
-        };
-        static Site sites[] = {
-            {"DrawBackground", 0x51052800u, 0x11100000u, 400, nullptr, 0},
-            {"get_UnderworldLayer", 0x51032000u, 0x11000000u, 40, nullptr, 0},
-        };
-        int32_t done = 1;
-        for (Site& site : sites) {
-            if (!site.at) {
-                Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
-                const MethodInfo* m = main ? il2cpp::api().class_get_method_from_name(main, site.method, 0) : nullptr;
-                auto* code = m ? static_cast<uint32_t*>(il2cpp::methodPointer(m)) : nullptr;
-                for (int i = 0; code && i < site.length; ++i) {
-                    if ((code[i] & 0xFFFFFC00u) == site.pattern) {
-                        site.at = code + i;
-                        site.original = code[i];
-                        break;
-                    }
-                }
-                if (!site.at) {
-                    BL_ERROR("subworlds: the underworld layer of Main.%s was not found", site.method);
-                    done = 0;
-                    continue;
-                }
-            }
-            const uint32_t moved = site.replacement | (site.original & 0x3FFu);
-            if (!runtime::replaceInstruction(site.at, 0, hide ? site.original : moved, hide ? moved : site.original)) done = 0;
-        }
-        return done;
-    },
+    nativeHideUnderworld,
+    nativeHideOcean,
+    nativeHideMapFrame,
 };
 
 } // namespace

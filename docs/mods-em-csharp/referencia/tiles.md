@@ -543,13 +543,15 @@ A dimension: a separate world the player travels to, with its own size, generati
 |---|---|---|---|
 | `string LocalizationCategory` | hook | **only here** | `Subworlds`. |
 | `LocalizedText DisplayName` | hook | **only here** | The world's name, from the `Subworlds` translations. |
-| `int Width` | hook | **only here** | Width in tiles, up to 8400. |
-| `int Height` | hook | **only here** | Height in tiles, up to 2400. |
-| `List<GenPass> GenerationTasks` | hook | **only here** | The passes that build the world, as in world generation. |
-| `bool Persistent` | hook | **only here** | `true` keeps the world between trips; `false` generates it on every trip. |
+| `int Width` | hook | **only here** | Width in tiles, from 200 to 8400. Not used with `WorldFile`. |
+| `int Height` | hook | **only here** | Height in tiles, from 160 to 2400. Not used with `WorldFile`. |
+| `List<GenPass> GenerationTasks` | hook | **only here** | The passes that build the world, as in world generation. Not used with `WorldFile`. |
+| `string WorldFile` | hook | **only here** | A `.wld` inside the mod to load instead of generating, with the mod's `.bl` files beside it. |
+| `bool Persistent` | hook | **only here** | `true` keeps the world between trips; `false` builds it again on every trip. |
 | `bool SavePlayerChanges` | hook | **only here** | `false` gives the player back as they entered. |
 | `bool RandomTileUpdates` | hook | **only here** | Grass spreading and plants growing. Liquids, wiring and tile entities update either way. |
 | `bool HideUnderworld` | hook | **only here** | The bottom 200 rows are not the underworld: no background, light, music, enemies or evaporating water. |
+| `bool HideOcean` | hook | **only here** | The columns next to the edges are not a beach: no ocean zone, music or background. |
 | `string LoadingText` | hook | **only here** | The text of the loading screen. |
 | `bool ShowLoadingScreen` | hook | **only here** | `false` keeps the screen black while the world changes, with `DrawTransition` on top. |
 | `float TransitionOutSeconds` | hook | **only here** | How long the transition plays in the world being left. |

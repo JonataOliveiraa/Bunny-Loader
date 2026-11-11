@@ -155,6 +155,8 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<int, byte*, void> SetItemTooltip;
     public delegate* unmanaged<IntPtr> PlanetTexture;
     public delegate* unmanaged<int, int> HideUnderworld;
+    public delegate* unmanaged<int, int> HideOcean;
+    public delegate* unmanaged<int, int> HideMapFrame;
 }
 
 [StructLayout(LayoutKind.Sequential)]

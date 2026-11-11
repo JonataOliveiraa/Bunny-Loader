@@ -1,0 +1,17 @@
+{
+  "uid": "156ea9ae-e0e9-4075-b564-ebd1927cd24e",
+  "id": "CsSubMap",
+  "name": "Test: the map in small subworlds (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Minimap and fullscreen map in dimensions of 1000x500, 400x300 and 250x200 tiles.",
+  "description": "Compile with tools/tests/build-cs.sh cssubmap. Logs cssubmap <case>: ok | FAIL and cssubmap END pass=N fail=M.",
+  "updated": "2026-11-10",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

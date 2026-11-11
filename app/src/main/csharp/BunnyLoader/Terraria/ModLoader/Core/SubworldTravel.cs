@@ -4,6 +4,7 @@ using System.IO;
 using System.Text;
 using BunnyLoader;
 using BunnyLoader.Interop;
+using Microsoft.Xna.Framework;
 using Terraria.IO;
 using Terraria.Localization;
 using Terraria.Map;
@@ -15,12 +16,12 @@ namespace Terraria.ModLoader.Core;
 
 internal static class SubworldTravel
 {
-    const int MaxWidth = 8400, MaxHeight = 2400;
+    const int MinWidth = 200, MinHeight = 160, MaxWidth = 8400, MaxHeight = 2400;
 
     sealed class Trip
     {
         internal readonly ModSubworld? From, To;
-        internal bool Started;
+        internal bool Started, Copied;
 
         internal Trip(ModSubworld? from, ModSubworld? to)
         {
@@ -35,6 +36,7 @@ internal static class SubworldTravel
     static int hiddenPrompts;
     static bool promptWasDisabled;
     static readonly Dictionary<string, TagCompound> carried = new(StringComparer.Ordinal);
+    static readonly Dictionary<string, (bool Show, Vector2 Position)> deathMarks = new(StringComparer.Ordinal);
 
     internal static bool Busy => trip != null;
 
@@ -126,9 +128,17 @@ internal static class SubworldTravel
     {
         try
         {
+            string? file = subworld.WorldFile;
+            if (!string.IsNullOrEmpty(file))
+            {
+                if (SourceOf(subworld) != null) return true;
+                Log.Error($"Subworlds: {subworld.FullName} uses {file}, which is not in {subworld.Mod.Name}");
+                return false;
+            }
+
             int width = subworld.Width, height = subworld.Height;
-            if (width > 0 && height > 0 && width <= MaxWidth && height <= MaxHeight) return true;
-            Log.Error($"Subworlds: {subworld.FullName} is {width}x{height} tiles; sizes go from 1x1 to {MaxWidth}x{MaxHeight}");
+            if (width >= MinWidth && height >= MinHeight && width <= MaxWidth && height <= MaxHeight) return true;
+            Log.Error($"Subworlds: {subworld.FullName} is {width}x{height} tiles; sizes go from {MinWidth}x{MinHeight} to {MaxWidth}x{MaxHeight}");
         }
         catch (Exception e) { ItemHooks.Report(subworld.FullName + " size", e); }
         return false;
@@ -163,14 +173,18 @@ internal static class SubworldTravel
         }
 
         orig(canCheckFileState);
-        if (WorldGen.loadFailed && SubworldLoader.Current is { } failed)
+        if (SubworldLoader.Current is { } failed && (WorldGen.loadFailed || Main.maxTilesX < MinWidth || Main.maxTilesY < MinHeight))
         {
-            Log.Error($"Subworlds: {failed.FullName} could not be loaded; going back to the main world");
+            Log.Error(WorldGen.loadFailed
+                ? $"Subworlds: {failed.FullName} could not be loaded; going back to the main world"
+                : $"Subworlds: {failed.FullName} is {Main.maxTilesX}x{Main.maxTilesY} tiles; dimensions start at {MinWidth}x{MinHeight}; going back to the main world");
             BackToMain();
             orig(canCheckFileState);
         }
 
-        if (!WorldGen.loadFailed) LoadCarried();
+        if (WorldGen.loadFailed) return;
+        if (t.Copied && SubworldLoader.Current is { } copied) Adopt(copied);
+        LoadCarried();
     }
 
     static void Finalise(On_WorldGen.orig_FinaliseOnMainThread orig, GameObject threadContext)
@@ -187,9 +201,34 @@ internal static class SubworldTravel
         finally { ShowTouchControlsPrompt(true); }
 
         trip = null;
+        RestoreDeathMark();
         ModSubworld? subworld = SubworldLoader.Current;
         if (subworld != null) Run(subworld, nameof(ModSubworld.PostWorldReady), subworld.PostWorldReady);
         SubworldTransition.Arrive();
+    }
+
+    static void KeepDeathMark()
+    {
+        Player player = Main.LocalPlayer;
+        string? world = Main.ActiveWorldFileData.Path;
+        if (player.IsNull || string.IsNullOrEmpty(world)) return;
+        lock (deathMarks)
+        {
+            if (SubworldLoader.Current is { Persistent: false }) deathMarks.Remove(world);
+            else deathMarks[world] = (player.showLastDeath, player.lastDeathPostion);
+        }
+    }
+
+    static void RestoreDeathMark()
+    {
+        Player player = Main.LocalPlayer;
+        string? world = Main.ActiveWorldFileData.Path;
+        if (player.IsNull || string.IsNullOrEmpty(world)) return;
+        (bool Show, Vector2 Position) mark;
+        lock (deathMarks)
+            if (!deathMarks.TryGetValue(world, out mark)) mark = default;
+        player.showLastDeath = mark.Show;
+        player.lastDeathPostion = mark.Position;
     }
 
     static void SaveAndQuitCallBack(On_WorldGen.orig_SaveAndQuitCallBack orig, GameObject threadContext)
@@ -235,10 +274,12 @@ internal static class SubworldTravel
         activeWorld?.Dispose();
         activeWorld = null;
         lock (carried) carried.Clear();
+        lock (deathMarks) deathMarks.Clear();
     }
 
     static void Leave(Trip t)
     {
+        KeepDeathMark();
         foreach (ModSubworld subworld in SubworldLoader.Subworlds)
         {
             var tag = new TagCompound();
@@ -286,8 +327,54 @@ internal static class SubworldTravel
             return;
         }
 
+        if (SourceOf(to) is { } source)
+        {
+            Copy(source, path);
+            t.Copied = true;
+            return;
+        }
+
         Generate(to, path);
     }
+
+    static string? SourceOf(ModSubworld subworld)
+    {
+        string? file = subworld.WorldFile;
+        if (string.IsNullOrEmpty(file)) return null;
+        string? path = subworld.Mod.ResolveFile(file);
+        return path != null && File.Exists(path) ? path : null;
+    }
+
+    static void Copy(string source, string path)
+    {
+        string folder = Path.GetDirectoryName(path)!;
+        Directory.CreateDirectory(folder);
+        FileUtilities.CreateDirectory(folder);
+        DeleteFiles(path);
+        FileUtilities.WriteAllBytes(path, File.ReadAllBytes(source), false);
+        foreach (string file in Directory.GetFiles(Path.GetDirectoryName(source)!, Path.GetFileName(source) + ".*"))
+        {
+            string suffix = file.Substring(source.Length);
+            if (suffix is not (".bak" or ".bad")) File.Copy(file, path + suffix, true);
+        }
+
+        Activate(WorldFile.GetAllMetadata(path, false));
+    }
+
+    static void Adopt(ModSubworld subworld)
+    {
+        WorldFileData data = Main.ActiveWorldFileData;
+        string name = NameOf(subworld);
+        data.Name = name;
+        data.UniqueId = IdOf(subworld);
+        data.WorldId = (int)(Hash(data.UniqueId.ToString("N"), 0x9E3779B97F4A7C15UL) & int.MaxValue);
+        data.GameMode = new WorldFileData(mainWorld!.Target).GameMode;
+        Main.GameMode = data.GameMode;
+        Main.worldName = name;
+        DeleteMap(data);
+    }
+
+    static string NameOf(ModSubworld subworld) => subworld.DisplayName.Value ?? subworld.Name;
 
     static void BackToMain()
     {
@@ -315,7 +402,7 @@ internal static class SubworldTravel
         FileUtilities.CreateDirectory(folder);
         DeleteFiles(path);
         WorldFileData main = new(mainWorld!.Target);
-        string name = subworld.DisplayName.Value ?? subworld.Name;
+        string name = NameOf(subworld);
         WorldFileData data = WorldFile.CreateMetadata(name, false, main.GameMode);
         data._path = path;
         data.UniqueId = IdOf(subworld);
@@ -332,6 +419,8 @@ internal static class SubworldTravel
         Main.rockLayer = Main.maxTilesY * 0.5;
         Main.spawnTileX = Main.maxTilesX / 2;
         Main.spawnTileY = (int)Main.worldSurface;
+        Main.dungeonX = -1;
+        Main.dungeonY = -1;
         Main.rand = UnifiedRandom.New(data.Seed);
         WorldGen.RandomizeTreeStyle();
         WorldGen.RandomizeCaveBackgrounds();

@@ -15,5 +15,6 @@ gradlew text eol=lf
 *.so    binary
 *.dat   binary
 *.dll   binary
+*.wld   binary
 ports/textures/**/bl/** -text
 ports/textures/**/pc/** -text

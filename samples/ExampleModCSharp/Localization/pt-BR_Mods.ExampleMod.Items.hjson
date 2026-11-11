@@ -231,3 +231,8 @@ ExampleAdvancedSubworldKey:
     DisplayName: Chave da Dimensão Avançada de Exemplo
     Tooltip: Leva às Colinas Noturnas de Exemplo e de volta, sem tela de carregamento
 }
+ExampleWorldFileSubworldKey:
+{
+    DisplayName: Chave da Arena de Exemplo
+    Tooltip: Leva à Arena de Exemplo, carregada de um arquivo .wld, e de volta
+}

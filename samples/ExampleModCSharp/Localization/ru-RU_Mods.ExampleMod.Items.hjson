@@ -231,3 +231,8 @@ ExampleAdvancedSubworldKey:
     DisplayName: Пример продвинутого ключа измерения
     Tooltip: Переносит в Пример ночных холмов и обратно, без экрана загрузки
 }
+ExampleWorldFileSubworldKey:
+{
+    DisplayName: Пример ключа арены
+    Tooltip: Переносит в Пример арены, загруженный из файла .wld, и обратно
+}

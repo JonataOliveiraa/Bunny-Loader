@@ -231,3 +231,8 @@ ExampleAdvancedSubworldKey:
     DisplayName: Example Advanced Subworld Key
     Tooltip: Takes you to the Example Night Hills and back, with no loading screen
 }
+ExampleWorldFileSubworldKey:
+{
+    DisplayName: Example Arena Key
+    Tooltip: Takes you to the Example Arena, loaded from a .wld file, and back
+}

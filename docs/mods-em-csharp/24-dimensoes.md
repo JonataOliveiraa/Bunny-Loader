@@ -42,11 +42,17 @@ public override bool? UseItem(Player player) {
 While a dimension is active, the pause menu's **Save & Exit** becomes **Exit
 Dimension**, with a planet icon, and takes the player back to the main world.
 
-The Example Mod has two: `Content/Subworlds/ExampleSubworld.cs`, a flat plain
-with every default, and `Content/Subworlds/ExampleAdvancedSubworld.cs`, with
-hills, caves, ore, an endless night, carried data and a transition with no
-loading screen. The keys in `Content/Items/Tools/ExampleSubworldKey.cs` and
-`ExampleAdvancedSubworldKey.cs` take the player there and back.
+The Example Mod has three, in `Content/Subworlds/`:
+
+- `ExampleSubworld.cs`, a flat plain with every default;
+- `ExampleAdvancedSubworld.cs`, with hills, caves, ore, an endless night,
+  carried data and a transition with no loading screen;
+- `ExampleWorldFileSubworld.cs`, an arena loaded from `ExampleArena.wld`, with
+  Example Mod blocks and walls.
+
+The keys in `Content/Items/Tools/` (`ExampleSubworldKey.cs`,
+`ExampleAdvancedSubworldKey.cs`, `ExampleWorldFileSubworldKey.cs`) take the
+player there and back.
 
 ## `SubworldLoader`
 
@@ -63,12 +69,14 @@ loading screen. The keys in `Content/Items/Tools/ExampleSubworldKey.cs` and
 
 | Member | Default | |
 |---|---|---|
-| `Width`, `Height` | (required) | Size in tiles, up to 8400 × 2400. |
-| `GenerationTasks` | (required) | The passes that build it, `GenPass` or `PassLegacy`, as in [world generation](12-worldgen.md). |
-| `Persistent` | `false` | `true` keeps the world between trips; `false` generates it again on every trip and deletes the file on the way out. |
+| `Width`, `Height` | (required to generate) | Size in tiles, from 200 × 160 to 8400 × 2400. |
+| `GenerationTasks` | (required to generate) | The passes that build it, `GenPass` or `PassLegacy`, as in [world generation](12-worldgen.md). |
+| `WorldFile` | `null` | A `.wld` inside the mod to load instead of generating. See [From a .wld file](#from-a-wld-file). |
+| `Persistent` | `false` | `true` keeps the world between trips; `false` builds it again on every trip, from the passes or the `.wld`, and deletes the file on the way out. |
 | `SavePlayerChanges` | `true` | `false` gives the player back as they entered: inventory, health, everything in the `.plr`. |
 | `RandomTileUpdates` | `false` | Grass spreading, plants and trees growing, corruption spreading. Liquids, wiring and tile entities update either way. |
-| `HideUnderworld` | `true` | The bottom 200 rows are not the underworld: no underworld background, light, music or enemies, water does not evaporate there and the player's zone is not the underworld. `Main.UnderworldLayer` is `Main.maxTilesY` while it is on. |
+| `HideUnderworld` | `true` | The bottom 200 rows are not the underworld: no underworld background on screen or on the map, no underworld light, music or enemies, water does not evaporate there and the player's zone is not the underworld. `Main.UnderworldLayer` is `Main.maxTilesY` while it is on. |
+| `HideOcean` | `true` | The 380 columns next to each edge are not a beach: no ocean zone, music, background or map background, and `WorldGen.oceanDepths` is `false`. In a small dimension they would be most of the world. |
 | `LoadingText` | "Loading Dimension" | The text of the loading screen. |
 | `ShowLoadingScreen` | `true` | `false` keeps the screen black while the world changes, with `DrawTransition` on top. |
 | `TransitionOutSeconds`, `TransitionInSeconds` | `0` | How long the transition takes in the world being left and in the world being entered. See [Transitions](#transitions). |
@@ -76,9 +84,41 @@ loading screen. The keys in `Content/Items/Tools/ExampleSubworldKey.cs` and
 
 Before the passes run, the world is cleared, `Main.worldSurface` is 30% of the
 height, `Main.rockLayer` 50%, the spawn point is the middle of the surface,
-and the backgrounds, trees and moon get a random style, as in a new world.
+there is no dungeon (`Main.dungeonX` and `Main.dungeonY` are -1, so the Old
+Man does not show up), and the backgrounds, trees and moon get a random
+style, as in a new world.
 Move `Main.spawnTileX`/`Main.spawnTileY` in a pass to put the player
 elsewhere.
+
+## From a .wld file
+
+A dimension can load a world built in the game instead of generating one:
+
+```csharp
+public class Arena : ModSubworld
+{
+    public override string WorldFile => "Content/Subworlds/Arena.wld";
+}
+```
+
+On the first trip (or on every trip, without `Persistent`) the `.wld` is copied
+next to the main world and loaded. The size, the spawn point and everything in
+the world come from the file; `Width`, `Height` and `GenerationTasks` are not
+used. Then the copy takes the dimension's identity: the name from
+`DisplayName`, an id of its own for each main world (each one has its own map)
+and the main world's difficulty.
+
+Blocks, walls and NPCs from mods are not in a `.wld`: Bunny Loader keeps them
+in files beside the world, with the same name and an extra ending
+(`Arena.wld.tiles.bl`, `Arena.wld.walls.bl`, `Arena.wld.npcs.bl`,
+`Arena.wld.bl.json`...). Put them next to the `.wld` in the mod and they are
+copied along. A world made in Bunny Loader has them in `Worlds/`, next to the
+`.wld`, or, for a persistent dimension, next to its `.subworld` file, which is
+a `.wld` with another name.
+
+The file has to be one the game on the phone can open, and at least 200 × 160
+tiles: otherwise the trip goes back to the main world with an error in the log. Only the `.wld`
+part of a tModLoader world is read; its `.twld` is not.
 
 ## Hooks and their order
 
@@ -187,5 +227,8 @@ Everyone travels together:
 
 ## Limits
 
+- Dimensions start at 200 × 160 tiles. The camera stays 40 tiles away from
+  every edge and sees up to 120 × 75 tiles; in a smaller world it would leave
+  the world, so `Enter` refuses the dimension.
 - A trip in multiplayer reconnects the clients: what only lives on a client
   (open chests, the camera) starts over.

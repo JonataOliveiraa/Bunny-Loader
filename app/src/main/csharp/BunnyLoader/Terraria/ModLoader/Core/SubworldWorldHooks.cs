@@ -10,7 +10,7 @@ namespace Terraria.ModLoader.Core;
 internal static unsafe class SubworldWorldHooks
 {
     static ModSubworld? active;
-    static bool hideUnderworld, randomTileUpdates, savePlayerChanges = true, patched;
+    static bool hideUnderworld, hideOcean, randomTileUpdates, savePlayerChanges = true, underworldPatched, oceanPatched, framePatched;
 
     internal static void Install()
     {
@@ -26,10 +26,13 @@ internal static unsafe class SubworldWorldHooks
     {
         active = subworld;
         hideUnderworld = subworld != null && Read(subworld, nameof(ModSubworld.HideUnderworld), () => subworld.HideUnderworld, true);
+        hideOcean = subworld != null && Read(subworld, nameof(ModSubworld.HideOcean), () => subworld.HideOcean, true);
         randomTileUpdates = subworld != null && Read(subworld, nameof(ModSubworld.RandomTileUpdates), () => subworld.RandomTileUpdates, false);
         savePlayerChanges = subworld == null || Read(subworld, nameof(ModSubworld.SavePlayerChanges), () => subworld.SavePlayerChanges, true);
-        if (hideUnderworld == patched) return;
-        if (Host.Native()->HideUnderworld(hideUnderworld ? 1 : 0) != 0) patched = hideUnderworld;
+        if (hideUnderworld != underworldPatched && Host.Native()->HideUnderworld(hideUnderworld ? 1 : 0) != 0) underworldPatched = hideUnderworld;
+        if (hideOcean != oceanPatched && Host.Native()->HideOcean(hideOcean ? 1 : 0) != 0) oceanPatched = hideOcean;
+        bool hideFrame = subworld != null;
+        if (hideFrame != framePatched && Host.Native()->HideMapFrame(hideFrame ? 1 : 0) != 0) framePatched = hideFrame;
     }
 
     static bool Read(ModSubworld subworld, string name, Func<bool> value, bool fallback)

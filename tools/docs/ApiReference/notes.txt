@@ -581,13 +581,15 @@ Terraria.ModLoader.ModInvasion.OnWaveComplete|Runs at the end of each wave.
 Terraria.ModLoader.ModInvasion.OnComplete|Runs when it is won.
 Terraria.ModLoader.ModInvasion.OnFail|Runs when it is lost.
 Terraria.ModLoader.ModInvasion.Update|Runs every tick while it is active.
-Terraria.ModLoader.ModSubworld.Width|Width in tiles, up to 8400.
-Terraria.ModLoader.ModSubworld.Height|Height in tiles, up to 2400.
-Terraria.ModLoader.ModSubworld.GenerationTasks|The passes that build the world, as in world generation.
-Terraria.ModLoader.ModSubworld.Persistent|`true` keeps the world between trips; `false` generates it on every trip.
+Terraria.ModLoader.ModSubworld.Width|Width in tiles, from 200 to 8400. Not used with `WorldFile`.
+Terraria.ModLoader.ModSubworld.Height|Height in tiles, from 160 to 2400. Not used with `WorldFile`.
+Terraria.ModLoader.ModSubworld.GenerationTasks|The passes that build the world, as in world generation. Not used with `WorldFile`.
+Terraria.ModLoader.ModSubworld.WorldFile|A `.wld` inside the mod to load instead of generating, with the mod's `.bl` files beside it.
+Terraria.ModLoader.ModSubworld.Persistent|`true` keeps the world between trips; `false` builds it again on every trip.
 Terraria.ModLoader.ModSubworld.SavePlayerChanges|`false` gives the player back as they entered.
 Terraria.ModLoader.ModSubworld.RandomTileUpdates|Grass spreading and plants growing. Liquids, wiring and tile entities update either way.
 Terraria.ModLoader.ModSubworld.HideUnderworld|The bottom 200 rows are not the underworld: no background, light, music, enemies or evaporating water.
+Terraria.ModLoader.ModSubworld.HideOcean|The columns next to the edges are not a beach: no ocean zone, music or background.
 Terraria.ModLoader.ModSubworld.LoadingText|The text of the loading screen.
 Terraria.ModLoader.ModSubworld.ShowLoadingScreen|`false` keeps the screen black while the world changes, with `DrawTransition` on top.
 Terraria.ModLoader.ModSubworld.TransitionOutSeconds|How long the transition plays in the world being left.

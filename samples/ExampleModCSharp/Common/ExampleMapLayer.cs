@@ -21,6 +21,10 @@ namespace ExampleMod.Common
             const float scaleIfNotSelected = 1f;
             const float scaleIfSelected = scaleIfNotSelected * 2f;
 
+            if (Main.dungeonX < 0 || Main.dungeonY < 0) {
+                return;
+            }
+
             var dungeonTexture = TextureAssets.NpcHeadBoss[19].Value;
 
             if (context.Draw(dungeonTexture, new Vector2(Main.dungeonX, Main.dungeonY), Color.White, new SpriteFrame(1, 1, 0, 0), scaleIfNotSelected, scaleIfSelected, Alignment.Center).IsMouseOver) {

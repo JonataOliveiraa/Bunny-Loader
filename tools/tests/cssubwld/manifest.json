@@ -1,0 +1,17 @@
+{
+  "uid": "67c338f0-2907-488b-8dd4-b1eacdac9b3e",
+  "id": "CsSubWld",
+  "name": "Test: a subworld from a .wld file (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Enters the Example Mod arena loaded from ExampleArena.wld, checks its blocks, walls, name and difficulty, and that a temporary copy starts over on the next trip.",
+  "description": "Compile with tools/tests/build-cs.sh cssubwld and run with SAMPLE=1. Logs cssubwld <case>: ok | FAIL and cssubwld END pass=N fail=M.",
+  "updated": "2026-11-10",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

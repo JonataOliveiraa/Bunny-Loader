@@ -21,6 +21,10 @@ Subworlds: {
 		DisplayName: Planícies de Exemplo
 	}
 
+	ExampleWorldFileSubworld: {
+		DisplayName: Arena de Exemplo
+	}
+
 	ExampleAdvancedSubworld: {
 		DisplayName: Colinas Noturnas de Exemplo
 		Welcome: Aqui a noite nunca acaba.

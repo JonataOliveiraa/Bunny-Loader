@@ -1,5 +1,11 @@
 # Novidades
 
+## 0.43.0
+
+- Arena de Exemplo: uma dimensão carregada de um arquivo `.wld`, com blocos e
+  paredes de exemplo guardados nos arquivos `.bl` ao lado dele, e a chave que
+  leva até ela.
+
 ## 0.42.0
 
 - Duas dimensões: as Planícies de Exemplo, com tudo no padrão, e as Colinas
