@@ -8,6 +8,7 @@ using Terraria;
 using Terraria.GameContent;
 using Terraria.ID;
 using Terraria.ModLoader;
+using Terraria.ObjectData;
 
 namespace CsOutline;
 
@@ -21,11 +22,17 @@ public sealed class CsOutlineMod : Mod
         ("ExampleBed", TileID.Beds, false),
         ("ExampleDresser", TileID.Dressers, false),
         ("ExampleDoorClosed", TileID.ClosedDoor, true),
+        ("ExampleWorkbench", TileID.WorkBenches, false),
+        ("ExampleClock", TileID.GrandfatherClocks, false),
+        ("ExampleSign", TileID.Signs, false),
+        ("ExampleSink", TileID.Sinks, false),
+        ("ExampleCampfire", TileID.Campfire, false),
+        ("ExampleMusicBoxTile", TileID.MusicBoxes, false),
     };
 
     static int frames, pass, fail, shots, floor, px, stage = -1, waitUntil;
-    static bool done;
-    static readonly Dictionary<string, string> vanillaSeen = new();
+    static bool done, smartCursor, chosen;
+    static readonly Dictionary<string, (string Data, bool Chosen)> vanillaSeen = new();
 
     static ILog Log => ModContent.GetInstance<CsOutlineMod>().Logger;
 
@@ -46,7 +53,9 @@ public sealed class CsOutlineMod : Mod
             Report("run", false, e.ToString());
             done = true;
         }
-        if (done) Log.Info($"csoutline END pass={pass} fail={fail}");
+        if (!done) return;
+        Main.SmartCursorWanted = smartCursor;
+        Log.Info($"csoutline END pass={pass} fail={fail}");
     }
 
     static (string Name, int Type, bool Ceiling) Current()
@@ -61,6 +70,8 @@ public sealed class CsOutlineMod : Mod
         if (f < 30) return;
         if (f == 30)
         {
+            smartCursor = Main.SmartCursorWanted;
+            Main.SmartCursorWanted = true;
             px = (int)(Main.LocalPlayer.Center.X / 16);
             floor = FindFloor(px);
             Clear();
@@ -68,7 +79,11 @@ public sealed class CsOutlineMod : Mod
             return;
         }
         if (f == waitUntil - 180) Log.Info($"csoutline SHOT {++shots} {Current().Name}");
-        if (f < waitUntil) return;
+        if (f < waitUntil)
+        {
+            if (f >= waitUntil - 120) chosen |= Selected().Any(e => Math.Abs((e.Key & 0xFFFF) - (px + 2)) <= 3 && e.Value != 0);
+            return;
+        }
         Check();
         Clear();
         Next(f);
@@ -93,9 +108,13 @@ public sealed class CsOutlineMod : Mod
         if (ceiling)
             for (int x = px + 1; x <= px + 3; x++)
                 WorldGen.PlaceTile(x, floor - 4, TileID.Stone, true, true);
-        bool placed = type > 0 && WorldGen.PlaceObject(px + 2, floor - 1, type, true);
+        int y = floor - 1;
+        if (type > 0 && TileObjectData.GetTileData(type, 0) is { IsNull: false } data)
+            y -= data.Height - 1 - data.Origin.Y;
+        bool placed = type > 0 && WorldGen.PlaceObject(px + 2, y, type, true);
         if (!placed) Report($"{name} is placed", false, $"type={type}");
         waitUntil = f + 300;
+        chosen = false;
     }
 
     static string Mask(int type)
@@ -107,20 +126,25 @@ public sealed class CsOutlineMod : Mod
         return value.IsNull ? "no texture" : "loaded";
     }
 
+    static KeyValuePair<int, int>[] Selected()
+    {
+        var selected = new GameDictionary(Main.SmartInteractTileCoordsSelected);
+        return selected.IsNull ? Array.Empty<KeyValuePair<int, int>>() : selected.IntEntries();
+    }
+
     static void Check()
     {
         (string name, int type, _) = Current();
-        var selected = new GameDictionary(Main.SmartInteractTileCoordsSelected);
-        var entries = selected.IsNull ? Array.Empty<KeyValuePair<int, int>>() : selected.IntEntries();
-        bool chosen = entries.Any(e => Math.Abs((e.Key & 0xFFFF) - (px + 2)) <= 3 && e.Value != 0);
-        string seen = $"outlines={type > 0 && TileID.Sets.HasOutlines[type]} mask={Mask(type)} selected={chosen}";
-        Log.Info($"csoutline {name}: {seen}");
+        var entries = Selected();
+        string seen = $"outlines={type > 0 && TileID.Sets.HasOutlines[type]} mask={Mask(type)}";
+        Log.Info($"csoutline {name}: {seen} selected={chosen} genuine={Main.SmartInteractShowingGenuine} fake={Main.SmartInteractShowingFake} at={Main.SmartInteractX},{Main.SmartInteractY} coords={Main.SmartInteractTileCoordsCount} entries={entries.Length} npc={Main.SmartInteractNPC} smart={Main.SmartCursorIsUsed}");
         if (stage % 2 == 0)
         {
-            vanillaSeen[Pairs[stage / 2].Mod] = seen;
+            vanillaSeen[Pairs[stage / 2].Mod] = (seen, chosen);
             return;
         }
-        Report($"{name} is highlighted like the game's tile", vanillaSeen.TryGetValue(name, out string? vanilla) && vanilla == seen && chosen, $"mod: {seen} | game: {vanilla}");
+        bool known = vanillaSeen.TryGetValue(name, out var vanilla);
+        Report($"{name} is highlighted like the game's tile", known && vanilla.Data == seen && (chosen || !vanilla.Chosen), $"mod: {seen} selected={chosen} | game: {vanilla.Data} selected={vanilla.Chosen}");
     }
 
     static int FindFloor(int column)

@@ -1,5 +1,10 @@
 # Novidades
 
+## 0.43.1
+
+- Relógio e placa de exemplo ganham o contorno de destaque com o cursor
+  inteligente, como os do jogo.
+
 ## 0.43.0
 
 - Arena de Exemplo: uma dimensão carregada de um arquivo `.wld`, com blocos e

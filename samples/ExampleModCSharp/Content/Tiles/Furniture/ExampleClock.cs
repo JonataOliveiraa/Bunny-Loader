@@ -2,6 +2,7 @@ using ExampleMod.Content.Dusts;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria;
+using Terraria.GameContent.ObjectInteractions;
 using Terraria.ID;
 using Terraria.Localization;
 using Terraria.ModLoader;
@@ -17,6 +18,7 @@ public class ExampleClock : ModTile
         Main.tileNoAttach[Type] = true;
         Main.tileLavaDeath[Type] = true;
         TileID.Sets.Clock[Type] = true;
+        TileID.Sets.HasOutlines[Type] = true;
 
         DustType = ModContent.DustType<Sparkle>();
         AdjTiles = [TileID.GrandfatherClocks];
@@ -27,6 +29,11 @@ public class ExampleClock : ModTile
         TileObjectData.addTile(Type);
 
         AddMapEntry(new Color(200, 200, 200), Language.GetText("ItemName.GrandfatherClock"));
+    }
+
+    public override bool HasSmartInteract(int i, int j, SmartInteractScanSettings settings)
+    {
+        return true;
     }
 
     public override bool RightClick(int x, int y)

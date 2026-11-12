@@ -5,9 +5,9 @@
   "version": "1.0.0",
   "author": "test",
   "category": "Utilidade",
-  "summary": "Places a vanilla chest next to the Example Mod chest and work bench and checks that the mod tiles get the game's highlight outline.",
+  "summary": "Places each Example Mod furniture tile and its vanilla twin with the smart cursor on and checks that the mod tile gets the game's highlight outline.",
   "description": "Compile with tools/tests/build-cs.sh csoutline. Run with SAMPLE=1 tools/tests/run-taps.sh csoutline.",
-  "updated": "2026-11-08",
+  "updated": "2026-11-12",
   "blVersion": 3,
   "gameVersion": [
     301720,

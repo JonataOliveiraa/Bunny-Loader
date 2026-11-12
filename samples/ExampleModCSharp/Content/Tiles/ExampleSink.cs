@@ -15,6 +15,7 @@ public class ExampleSink : ModTile
         TileID.Sets.CountsAsWaterForCrafting[Type] = true;
         TileID.Sets.CountsAsHoneyForCrafting[Type] = true;
         TileID.Sets.CountsAsLavaForCrafting[Type] = true;
+        TileID.Sets.HasOutlines[Type] = true;
 
         Main.tileSolid[Type] = false;
         Main.tileLavaDeath[Type] = false;

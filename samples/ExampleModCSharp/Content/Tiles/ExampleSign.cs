@@ -21,6 +21,7 @@ public class ExampleSign : ModTile
         Main.tileSign[Type] = true;
         Main.tileFrameImportant[Type] = true;
         Main.tileLavaDeath[Type] = true;
+        TileID.Sets.HasOutlines[Type] = true;
         TileID.Sets.DisableSmartCursor[Type] = true;
         TileID.Sets.FramesOnKillWall[Type] = true;
         TileID.Sets.AvoidedByNPCs[Type] = true;
