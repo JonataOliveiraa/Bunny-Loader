@@ -161,7 +161,9 @@ public override float TransitionInSeconds => 1.2f;
 
 `DrawTransition(SpriteBatch spriteBatch, float progress)` draws it over the
 whole screen, the interface and the touch controls included. While it draws,
-the screen is `Main.screenWidth` × `Main.screenHeight`.
+the screen is `Main.screenWidth` × `Main.screenHeight`, and that rectangle is
+stretched over the whole display: on a phone it also covers the edges outside
+the safe area, where the interface never draws.
 `progress` goes from 0 to 1 while leaving, stays at 1 while the world changes,
 and goes back to 0 while arriving. The default draws black with `progress` as
 its opacity; override it for anything else, and call `base.DrawTransition` to

@@ -552,6 +552,8 @@ WorldSelectMenu_Layout
 WorldGenerateMenu_Layout
 GUIWorldGenerateMenu
 GUIStatusMenu
+StatusMenu_Layout
+Microsoft.Xna.Framework.Graphics.SpriteBatcher
 GUIConfigureTouchControlsPopup
 MPSessionManager
 PlatformUser

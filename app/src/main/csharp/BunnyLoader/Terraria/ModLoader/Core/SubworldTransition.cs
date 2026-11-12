@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using BunnyLoader.Interop;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria.GameContent;
@@ -19,6 +20,7 @@ internal static class SubworldTransition
     static long started;
     static float seconds;
     static Action? then;
+    static int[]? vertices;
 
     internal static bool Active => stage != Stage.None;
 
@@ -134,12 +136,50 @@ internal static class SubworldTransition
         }
     }
 
+    static unsafe void WholeScreen(SpriteBatch batch, int first)
+    {
+        SpriteBatcher batcher = batch._batcher;
+        if (batcher.IsNull) return;
+        GameArray<SpriteBatchItem> items = batcher._batchItemList;
+        int count = Math.Min(batcher._batchItemCount, items.Length);
+        if (first > count) first = 0;
+        Vector2 from = XNAUnityRunner.AdjustRealScreenForUI(new Vector2(0, XNAUnityRunner.ScreenHeight));
+        Vector2 to = XNAUnityRunner.AdjustRealScreenForUI(new Vector2(XNAUnityRunner.ScreenWidth, 0));
+        float scaleX = (to.X - from.X) / Math.Max(1, Main.screenWidth), scaleY = (to.Y - from.Y) / Math.Max(1, Main.screenHeight);
+        vertices ??= new[]
+        {
+            ItemHooks.FieldOffset(SpriteBatchItem.Class, "vertexTL"),
+            ItemHooks.FieldOffset(SpriteBatchItem.Class, "vertexTR"),
+            ItemHooks.FieldOffset(SpriteBatchItem.Class, "vertexBL"),
+            ItemHooks.FieldOffset(SpriteBatchItem.Class, "vertexBR"),
+        };
+        for (int i = first; i < count; i++)
+        {
+            SpriteBatchItem item = items[i];
+            if (item.IsNull) continue;
+            foreach (int offset in vertices)
+            {
+                Vector2* position = (Vector2*)(item.Pointer + offset);
+                position->X = from.X + position->X * scaleX;
+                position->Y = from.Y + position->Y * scaleY;
+            }
+        }
+    }
+
+    static int Queued(SpriteBatch batch) => batch._batcher.IsNull ? 0 : batch._batcher._batchItemCount;
+
     internal static void ModifyInterfaceLayers(List<GameInterfaceLayer> layers)
     {
         if (!Active) return;
         layers.Add(new LegacyGameInterfaceLayer(LayerName, () =>
         {
-            if (!Main.gameMenu && Current(out ModSubworld subworld, out float progress)) Draw(Main.spriteBatch, subworld, progress, false);
+            if (Main.gameMenu || !Current(out ModSubworld subworld, out float progress)) return true;
+            SpriteBatch batch = Main.spriteBatch;
+            DrawBatches.Restart(batch);
+            int first = Queued(batch);
+            Draw(batch, subworld, progress, false);
+            WholeScreen(batch, first);
+            DrawBatches.Restart(batch);
             return true;
         }, InterfaceScaleType.UI));
     }
@@ -152,7 +192,11 @@ internal static class SubworldTransition
         if (!ui) XNAUnityRunner.SetupRenderingUI(true);
         SpriteBatch batch = Main.spriteBatch;
         batch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp, DepthStencilState.None, RasterizerState.CullNone, default, Matrix.Identity);
-        try { Draw(batch, subworld, progress, true); }
+        try
+        {
+            Draw(batch, subworld, progress, true);
+            WholeScreen(batch, 0);
+        }
         finally
         {
             batch.End();

@@ -245,6 +245,15 @@ on 2026-11-09:
 - Loading screen text "Loading Dimension" for single player, host and clients:
   the phone's own status screen (`GUIStatusMenu`, menu mode 10) with our text in
   `Main.statusText`. A subworld can change the text with `LoadingText`.
+  The save and load threads write `Main.statusText` too ("Saving world",
+  "Drawing map"), so the status screen draws our text itself during a trip
+  instead of reading the field (`SubworldScreens.StatusDraw`, through
+  `StatusMenu_Layout`).
+- The phone's `SpriteBatch.Begin` ignores the transform matrix (it only keeps
+  `_hasMatrix`), and the UI camera puts (0, 0) at the corner of the safe area.
+  `DrawTransition` is stretched over the whole display by moving the vertices
+  queued in `SpriteBatcher._batchItemList` after it draws (the full screen comes
+  from `XNAUnityRunner.AdjustRealScreenForUI`, whose input has Y going up).
 - The "Save & Exit" label is `Lang.mobile[79]` in this build (read by
   `GUISettingsPauseMenu.Draw`); it is swapped only while that menu draws.
 - Texts in `assets/localization/game/<culture>.json`, `BunnyLoader.` keys: Loading

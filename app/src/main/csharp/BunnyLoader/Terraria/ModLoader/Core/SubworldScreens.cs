@@ -3,6 +3,7 @@ using BunnyLoader;
 using BunnyLoader.Interop;
 using Microsoft.Xna.Framework.Graphics;
 using ReLogic.Content;
+using Terraria.GameContent.UI;
 using Terraria.Localization;
 
 namespace Terraria.ModLoader.Core;
@@ -24,21 +25,33 @@ internal static unsafe class SubworldScreens
         On_WorldGen.SaveAndQuit += SaveAndQuit;
     }
 
-    static void Loading()
-    {
-        if (SubworldTravel.Busy) Main.statusText = SubworldTravel.LoadingText;
-        else if (SubworldNet.Rejoining) Main.statusText = SubworldNet.RejoinText;
-    }
+    static string? LoadingText() =>
+        SubworldTravel.Busy ? SubworldTravel.LoadingText
+        : SubworldNet.Rejoining ? SubworldNet.RejoinText
+        : null;
 
     static void StatusDraw(On_GUIStatusMenu.orig_Draw orig, GUIStatusMenu self)
     {
-        Loading();
-        orig(self);
+        string? text = LoadingText();
+        StatusMenu_Layout layout = StatusMenu_Layout.Instance;
+        if (text == null || layout.IsNull)
+        {
+            orig(self);
+            return;
+        }
+
+        Main.statusText = text;
+        Main.ClearVisualPostProcessEffects(true);
+        GUIStringButton.DrawButton(layout.Status, text, ref self.scale0);
+        GameTipsDisplay tips = Main.gameTips;
+        if (tips.IsNull) return;
+        tips.Update();
+        tips.Draw(layout.GameTip);
     }
 
     static void NetStatusDraw(On_GUINetPlayStatusMenu.orig_Draw orig, GUINetPlayStatusMenu self)
     {
-        Loading();
+        if (LoadingText() is { } text) Main.statusText = text;
         orig(self);
     }
 
