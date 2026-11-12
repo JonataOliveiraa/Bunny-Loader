@@ -1,7 +1,10 @@
 package dev.bunnyloader.compile
 
+import android.app.ActivityManager
+import android.app.ApplicationExitInfo
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -65,13 +68,17 @@ class CompileActivity : ComponentActivity() {
         UiLocalization.initialize(this)
         setContent { Screen() }
         val builds = intent.getStringArrayListExtra(EXTRA_BUILDS).orEmpty().map(SourceBuild::decode)
-        crashMarker(this).writeText("")
+        val marker = crashMarker(this)
+        marker.writeText((attempts(marker) + 1).toString())
         Thread(null, { compile(builds) }, "compile", STACK_BYTES).start()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        if (isFinishing) Process.killProcess(Process.myPid())
+        if (isFinishing) {
+            crashMarker(this).delete()
+            Process.killProcess(Process.myPid())
+        }
     }
 
     private fun compile(builds: List<SourceBuild>) {
@@ -150,17 +157,42 @@ class CompileActivity : ComponentActivity() {
         const val EXTRA_ERRORS = "errors"
         const val RESULT_FAILED = RESULT_FIRST_USER
 
+        private const val BLIND_ATTEMPTS = 2
+        private val CRASH_REASONS = setOf(
+            ApplicationExitInfo.REASON_CRASH,
+            ApplicationExitInfo.REASON_CRASH_NATIVE,
+            ApplicationExitInfo.REASON_ANR,
+            ApplicationExitInfo.REASON_INITIALIZATION_FAILURE,
+        )
+
         private fun crashMarker(context: Context) = File(context.filesDir, "compile.running")
+
+        private fun attempts(marker: File): Int =
+            if (marker.exists()) runCatching { marker.readText().trim().toInt() }.getOrDefault(1) else 0
+
+        private fun compilerCrashed(context: Context, marker: File): Boolean {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return attempts(marker) >= BLIND_ATTEMPTS
+            val process = "${context.packageName}:compile"
+            val exit = context.getSystemService(ActivityManager::class.java)
+                .getHistoricalProcessExitReasons(context.packageName, 0, 0)
+                .firstOrNull { it.processName == process && it.timestamp >= marker.lastModified() }
+                ?: return false
+            return exit.reason in CRASH_REASONS
+        }
 
         private fun pending(context: Context): List<SourceBuild>? {
             val marker = crashMarker(context)
             if (marker.exists()) {
-                Log.w(TAG, "compile: the last compile did not finish; the game compiles the mods instead")
-                marker.delete()
-                return null
+                if (compilerCrashed(context, marker)) {
+                    Log.w(TAG, "compile: the last compile crashed; the game compiles the mods instead")
+                    marker.delete()
+                    return null
+                }
+                Log.w(TAG, "compile: the last compile was interrupted; compiling again")
             }
-            val builds = ModRepository(context).enabledSourceBuilds()
-            return builds.takeIf { list -> list.any { !it.looksCurrent() } }
+            val builds = ModRepository(context).enabledSourceBuilds().takeIf { list -> list.any { !it.looksCurrent() } }
+            if (builds == null) marker.delete()
+            return builds
         }
 
         fun compileIntent(context: Context): Intent? = pending(context)?.let { builds ->
