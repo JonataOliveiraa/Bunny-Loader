@@ -48,6 +48,7 @@
 #include "content/items/ModPrefixes.h"
 #include "content/items/ModRarities.h"
 #include "content/items/ModItems.h"
+#include "content/items/VisualItemClone.h"
 #include "content/sounds/AndroidAudio.h"
 #include "core/Log.h"
 #include "hook/CodePatch.h"
@@ -233,6 +234,7 @@ struct NativeApi {
     int32_t (*hideUnderworld)(int32_t hide);
     int32_t (*hideOcean)(int32_t hide);
     int32_t (*hideMapFrame)(int32_t hide);
+    void (*onVisualItemCopy)(runtime::VisualItemCopyHook hook);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -1269,6 +1271,7 @@ const NativeApi kNativeApi{
     nativeHideUnderworld,
     nativeHideOcean,
     nativeHideMapFrame,
+    [](runtime::VisualItemCopyHook hook) { runtime::setVisualItemCopyHook(hook ? profile::wrap(hook, "VisualItemCopy") : nullptr); },
 };
 
 } // namespace

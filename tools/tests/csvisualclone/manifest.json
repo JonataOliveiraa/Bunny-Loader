@@ -1,0 +1,17 @@
+{
+  "uid": "7d150130-bcbc-4809-a99e-3019b9161bbd",
+  "id": "CsVisualClone",
+  "name": "Test: the held item copy keeps the mod instances",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Holds a ModItem with a counter and checks that Player.lastVisualizedSelectedItem gets a fresh ModItem and GlobalItem copy every update, while the Player.clientClone copies do not.",
+  "description": "Build with tools/tests/build-cs.sh csvisualclone. Run with tools/tests/run-cs.sh csvisualclone. Logs csvisualclone <case>: ok | FAIL and csvisualclone END.",
+  "updated": "2026-11-11",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

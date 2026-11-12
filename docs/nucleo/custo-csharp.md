@@ -210,6 +210,61 @@ one), `Dust.update` (the mod's own `Lighting.AddLight` per dust), and the
 remaining per-slot entries that a field check cannot decide
 (`RefreshInfoAccsFromItemType`, 64-75 per frame).
 
+## Hosting a world (2026-11-11)
+
+Players reported lag when hosting, and none with the JS engine. Hosting
+(`netMode` 3) runs `Main.TrySyncingMyPlayer`, which calls `Player.clientClone`
+once per update, and `PlayerNetHooks` takes a second copy for
+`ModPlayer.SendClientChanges`. Each `Player.clientClone` calls
+`Item.clientClone` for about 380 items (inventory, armor, dyes, banks,
+loadouts). With any `GlobalItem` loaded, `ItemLoader` hooked
+`Item.clientClone` to copy the `ModItem` and `GlobalItem` instances, so every
+one of those copies entered C# and allocated. tModLoader copies only the net
+state there (`Item.CopyNetStateTo`) and forbids `Item.Clone` inside
+`Player.clientClone`.
+
+Only the copy shown in the player's hand needs the instances:
+`lastVisualizedSelectedItem`, refreshed with `clientClone` by `ItemCheck` and
+at the end of `ItemCheckWrapped`. `content/items/VisualItemClone.cpp` already
+watched those calls; it now also covers `ItemCheckWrapped` and calls C#
+(`NativeApi.OnVisualItemCopy`, `ItemLoader.VisualItemCopied`) only when the
+destination is that copy. `ItemLoader` no longer hooks `Item.clientClone`.
+`tools/tests/csvisualclone` checks that the hand copy still follows the held
+item's `ModItem` and `GlobalItem` (3/3 before and after).
+
+`tools/tests/csmpperf` measures the host alone, with a client, and with 60
+`SparklingBall` projectiles and 15 `ExampleCustomAISlimeNPC`; the client
+measures its own frames. With ExampleModCSharp, the phone (SM-A156M) hosting
+`Limite_Petrificado` and MuMu joining, old and new `BunnyLoader.dll` on the
+same APK:
+
+| Phone hosting | Alone, before | Alone, after | Client, before | after | Entities, before | after |
+|-|--:|--:|--:|--:|--:|--:|
+| Frame | 16.6 ms | 16.6 ms | 16.8 ms | 16.7 ms | 33.9 ms | 21.9 ms |
+| DoUpdate | 6.9 ms | 4.5 ms | 7.7 ms | 5.1 ms | 11.5 ms | 9.1 ms |
+| C# self time | 5.7 ms | 3.5 ms | 6.5 ms | 3.9 ms | 17.9 ms | 9.1 ms |
+| C# entries per frame | 1369 | 606 | 1531 | 753 | 4259 | 1958 |
+| `Item.clientClone` entries | 761 | 0 | 763 | 0 | 1547 | 0 |
+| Managed allocation | 125 KB | 40 KB | 132 KB | 46 KB | 264 KB | 60 KB |
+| Mono GCs in 5 s | 9 | 3 | 9 | 4 | 9 | 4 |
+
+The cost fed itself: a slower frame runs more updates per drawn frame, and
+each update copies the player twice. On MuMu hosting alone the copies took
+10.5 ms of the 19.9 ms of C# per frame (1532 entries), with 186 KB allocated per
+frame and a gen0 GC every 0.8 s; after the change, 553 entries, 14 KB and no
+GC in 5 s.
+
+`NPC.TrySyncingUniqueTownNPCData` (hooked when a mod NPC has
+`ActsLikeTownNPC`) entered C# for every NPC on every update. The game only
+acts there on a client, and only while `needsUniqueInfoUpdate` is set: the hook
+is now gated on that field, and outside a client it clears the field, so each
+NPC enters once.
+
+Still open: with a second player, the host and the client allocate about
+46-63 KB per frame against 14-40 KB alone (a gen0 GC every 1-2 s, no frame
+spike on the phone), and `PlayerNetHooks` could compare against
+`Main.clientPlayer` instead of taking its own copy every update.
+
 ## Time to the title screen (2026-11-04)
 
 Measured on MuMu `127.0.0.1:16384`, from the tap on Play to `startup: title on

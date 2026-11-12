@@ -157,6 +157,7 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<int, int> HideUnderworld;
     public delegate* unmanaged<int, int> HideOcean;
     public delegate* unmanaged<int, int> HideMapFrame;
+    public delegate* unmanaged<delegate* unmanaged<IntPtr, IntPtr, void>, void> OnVisualItemCopy;
 }
 
 [StructLayout(LayoutKind.Sequential)]

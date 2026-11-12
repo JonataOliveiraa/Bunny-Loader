@@ -51,9 +51,9 @@ public static unsafe partial class ItemLoader
             On_Item.SetDefaults += SetDefaults;
             On_Item.Clone += Clone;
             On_Item.DeepClone += DeepClone;
-            On_Item.clientClone += ClientClone;
             Host.Native()->OnItemsInstalled(&ItemsInstalled);
             Host.Native()->OnItemData(&SaveItemData, &LoadItemData);
+            Host.Native()->OnVisualItemCopy(&VisualItemCopied);
             hooked = true;
         }
     }
@@ -505,7 +505,12 @@ public static unsafe partial class ItemLoader
 
     static Item DeepClone(On_Item.orig_DeepClone orig, Item self) => CopyInstances(self, orig(self));
 
-    static Item ClientClone(On_Item.orig_clientClone orig, Item self, Item cloneDestination) => CopyInstances(self, orig(self, cloneDestination));
+    [UnmanagedCallersOnly]
+    static void VisualItemCopied(IntPtr source, IntPtr destination)
+    {
+        try { CopyInstances(new Item(source), new Item(destination)); }
+        catch (Exception e) { Log.Error($"visual item copy threw: {e}"); }
+    }
 
     internal static void KeepInstances(Item original, Item copy) => CopyInstances(original, copy);
 

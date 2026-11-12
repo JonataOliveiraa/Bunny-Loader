@@ -4,6 +4,7 @@
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
+#include <atomic>
 #include <cstdint>
 #include <unordered_map>
 
@@ -13,6 +14,7 @@ namespace {
 using CloneFn = Il2CppObject* (*)(Il2CppObject*, const MethodInfo*);
 using ClientCloneFn = Il2CppObject* (*)(Il2CppObject*, Il2CppObject*, const MethodInfo*);
 using ItemCheckFn = void (*)(Il2CppObject*, const MethodInfo*);
+using ItemCheckWrappedFn = void (*)(Il2CppObject*, int32_t, const MethodInfo*);
 using HeldItemFn = Il2CppObject* (*)(Il2CppObject*, const MethodInfo*);
 
 struct Visual {
@@ -23,6 +25,8 @@ struct Visual {
 
 ClientCloneFn g_origClientClone = nullptr;
 ItemCheckFn g_origItemCheck = nullptr;
+ItemCheckWrappedFn g_origItemCheckWrapped = nullptr;
+std::atomic<VisualItemCopyHook> g_copyHook{nullptr};
 const MethodInfo* g_clone = nullptr;
 const MethodInfo* g_clientClone = nullptr;
 const MethodInfo* g_heldItem = nullptr;
@@ -36,6 +40,10 @@ T& at(Il2CppObject* object, int32_t offset) {
     return *reinterpret_cast<T*>(reinterpret_cast<uint8_t*>(object) + offset);
 }
 
+void copied(Il2CppObject* source, Il2CppObject* destination) {
+    if (VisualItemCopyHook hook = g_copyHook.load(std::memory_order_acquire)) hook(source, destination);
+}
+
 void refreshOnUseStart(Il2CppObject* self, int32_t before) {
     const int32_t animation = at<int32_t>(self, g_animationOffset);
     if (animation <= 0 || animation <= before) return;
@@ -45,6 +53,7 @@ void refreshOnUseStart(Il2CppObject* self, int32_t before) {
     if (at<int32_t>(held, g_useStyleOffset) == at<int32_t>(visual, g_useStyleOffset) &&
         at<int32_t>(held, g_holdStyleOffset) == at<int32_t>(visual, g_holdStyleOffset)) return;
     g_origClientClone(held, visual, g_clientClone);
+    copied(held, visual);
 }
 
 void hkItemCheck(Il2CppObject* self, const MethodInfo* method) {
@@ -56,6 +65,13 @@ void hkItemCheck(Il2CppObject* self, const MethodInfo* method) {
     t_player = outer;
 }
 
+void hkItemCheckWrapped(Il2CppObject* self, int32_t i, const MethodInfo* method) {
+    Il2CppObject* outer = t_player;
+    t_player = self;
+    g_origItemCheckWrapped(self, i, method);
+    t_player = outer;
+}
+
 Il2CppObject* hkClientClone(Il2CppObject* self, Il2CppObject* destination, const MethodInfo* method) {
     Il2CppObject* result = g_origClientClone(self, destination, method);
     Il2CppObject* player = t_player;
@@ -63,7 +79,10 @@ Il2CppObject* hkClientClone(Il2CppObject* self, Il2CppObject* destination, const
     const int32_t type = at<int32_t>(self, g_typeOffset);
     const uint8_t prefix = at<uint8_t>(self, g_prefixOffset);
     Visual& visual = g_visuals[player];
-    if (visual.item == destination && visual.type == type && visual.prefix == prefix) return result;
+    if (visual.item == destination && visual.type == type && visual.prefix == prefix) {
+        copied(self, destination);
+        return result;
+    }
     Il2CppObject* full = reinterpret_cast<CloneFn>(il2cpp::methodPointer(g_clone))(self, g_clone);
     if (!full) return result;
     il2cpp::api().gc_wbarrier_set_field(player, reinterpret_cast<void**>(reinterpret_cast<uint8_t*>(player) + g_visualOffset), full);
@@ -93,13 +112,19 @@ void installVisualItemClone() {
     if (heldItem && g_animationOffset >= 0 && g_useStyleOffset >= 0 && g_holdStyleOffset >= 0) g_heldItem = heldItem;
     else BL_ERROR("visual item clone: the use start refresh is off (members not found)");
     const MethodInfo* itemCheck = il2cpp::findMethodBySignature(player, il2cpp::parseSignature("void ItemCheck()"));
-    if (g_visualOffset < 0 || g_typeOffset < 0 || g_prefixOffset < 0 || !g_clone || !clientClone || !itemCheck) {
+    const MethodInfo* itemCheckWrapped = il2cpp::findMethodBySignature(player, il2cpp::parseSignature("void ItemCheckWrapped(int i)"));
+    if (g_visualOffset < 0 || g_typeOffset < 0 || g_prefixOffset < 0 || !g_clone || !clientClone || !itemCheck || !itemCheckWrapped) {
         BL_ERROR("visual item clone: members not found");
         return;
     }
-    if (!hook::install(itemCheck, hkItemCheck, &g_origItemCheck) || !hook::install(clientClone, hkClientClone, &g_origClientClone)) {
+    if (!hook::install(itemCheckWrapped, hkItemCheckWrapped, &g_origItemCheckWrapped) || !hook::install(itemCheck, hkItemCheck, &g_origItemCheck) ||
+        !hook::install(clientClone, hkClientClone, &g_origClientClone)) {
         BL_ERROR("visual item clone: hooks not installed");
     }
+}
+
+void setVisualItemCopyHook(VisualItemCopyHook hook) {
+    g_copyHook.store(hook, std::memory_order_release);
 }
 
 }

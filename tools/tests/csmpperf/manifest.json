@@ -1,0 +1,17 @@
+{
+  "uid": "d78c9bea-497a-4dce-b88c-d7b494ee90d1",
+  "id": "CsMpPerf",
+  "name": "Test: C# cost per frame when hosting",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Frame time and C# self time per hook on the host: alone, with a client, then with 60 SparklingBall projectiles and 15 ExampleCustomAISlimeNPC. The client measures its own frames. Also runs in singleplayer for the baseline.",
+  "description": "Build with tools/tests/build-cs.sh csmpperf. Needs adb shell setprop debug.bl.cshookprofile 1 and ExampleModCSharp on. The client joins 127.0.0.1:7777 by itself from the title when Players/csmpperf.client exists. Logs csmpperf ... and csmpperf END.",
+  "updated": "2026-11-11",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}
