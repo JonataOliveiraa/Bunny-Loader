@@ -1,0 +1,17 @@
+{
+  "uid": "3d9f6b20-1e47-4c8a-b5f2-6a0c9d7e1b42",
+  "id": "CsWhip",
+  "name": "Test: whips repeat while held",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Holds the attack with a vanilla whip and the Example Mod whips and counts the swings.",
+  "description": "Compile with tools/tests/build-cs.sh cswhip. Run with SAMPLE=1 tools/tests/run-taps.sh cswhip (holds the item button for 4 s).",
+  "updated": "2026-11-09",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

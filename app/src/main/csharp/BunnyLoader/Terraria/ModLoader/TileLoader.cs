@@ -339,6 +339,17 @@ public static unsafe partial class TileLoader
                 ItemHooks.Report(tile.FullName + ".SetStaticDefaults", e);
             }
         }
+        FitPylonSceneMetrics();
+    }
+
+    static void FitPylonSceneMetrics()
+    {
+        TeleportPylonsSystem pylons = Main.PylonSystem;
+        if (pylons.IsNull)
+            return;
+        SceneMetrics metrics = pylons._sceneMetrics;
+        if (!metrics.IsNull && !metrics._tileCounts.IsNull && metrics._tileCounts.Length < TileCount)
+            metrics._tileCounts = metrics._tileCounts.Resized(TileCount);
     }
 
     static void RoomNeed(GameArray<bool> flags, ref GameArray<int> list, int type)

@@ -40,7 +40,7 @@ internal static class ItemTouchCategories
         if (item.hammer > 0) return Category.Hammer;
         if (item.buffType > 0 && item.damage <= 0 && item.useStyle == ItemUseStyleID.DrinkLiquid) return Category.BuffPotion;
         if (item.damage <= 0 || item.useStyle == ItemUseStyleID.None) return Category.None;
-        if (item.summon) return item.sentry ? Category.SummoningSentry : Category.SummoningMinion;
+        if (item.summon) return Whip(item) ? Category.SummoningWhip : item.sentry ? Category.SummoningSentry : Category.SummoningMinion;
         if (item.magic)
         {
             if (item.channel) return item.autoReuse ? Category.AutoFireControlledMagicWeapons : Category.ControlledMagicWeapons;
@@ -49,6 +49,13 @@ internal static class ItemTouchCategories
         if (item.ranged) return Ranged(item);
         if (item.melee) return Melee(item);
         return item.useStyle == ItemUseStyleID.Swing ? Category.NonAutoFireMeleeSwing : Category.ManualGuns;
+    }
+
+    static bool Whip(Item item)
+    {
+        var whips = ProjectileID.Sets.IsAWhip;
+        var speed = ItemID.Sets.SummonerWeaponThatScalesWithAttackSpeed;
+        return (uint)item.shoot < (uint)whips.Length && whips[item.shoot] || (uint)item.type < (uint)speed.Length && speed[item.type];
     }
 
     static Category Ranged(Item item)

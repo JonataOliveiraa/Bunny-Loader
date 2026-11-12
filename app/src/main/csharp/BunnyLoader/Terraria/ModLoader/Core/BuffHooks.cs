@@ -48,11 +48,14 @@ internal static unsafe class BuffHooks
                 On_NPC.AddBuff += AddNPCBuff;
             });
         if (Has(nameof(ModBuff.ModifyBuffText)))
+        {
             ItemHooks.Once("BuffText", () =>
             {
                 On_Lang.GetBuffName += GetBuffName;
                 On_Main.GetBuffTooltip += GetBuffTooltip;
             });
+            ItemHooks.Once("BuffTip", () => On_Main.MouseText_DrawBuffTooltip += DrawBuffTooltip);
+        }
         if (Has(nameof(ModBuff.RightClick))) ItemHooks.Once("BuffRightClick", () => On_GUIBuffs.RemoveBuff_int += RemoveBuff);
         if (Has(nameof(GlobalBuff.CustomBuffTipSize)) || Has(nameof(GlobalBuff.DrawCustomBuffTip)))
             ItemHooks.Once("BuffTip", () => On_Main.MouseText_DrawBuffTooltip += DrawBuffTooltip);
@@ -68,8 +71,11 @@ internal static unsafe class BuffHooks
     static void DrawBuffTooltip(On_Main.orig_MouseText_DrawBuffTooltip orig, Main self, string? cursorText, string? buffString, ref int X, ref int Y)
     {
         string tip = buffString ?? "";
+        bool merged = tip.Contains('\n') && !ShowsBanners();
+        string name = merged ? (cursorText ?? "") + "\n" + tip : cursorText ?? "";
+        string shown = merged ? "" : tip;
         SpriteFont font = FontAssets.MouseText.Value;
-        var sizes = new System.Collections.Generic.List<Vector2> { font.MeasureString(tip), font.MeasureString(cursorText ?? "") };
+        var sizes = new System.Collections.Generic.List<Vector2> { font.MeasureString(shown), font.MeasureString(name) };
         int fixedSizes = sizes.Count;
         foreach (GlobalBuff g in BuffLoader.Globals)
         {
@@ -88,8 +94,8 @@ internal static unsafe class BuffHooks
             if (X + largest.X + 24f > Main.screenWidth) X = (int)(Main.screenWidth - largest.X - 24f);
             if (Y + largest.Y + 4f > Main.screenHeight) Y = (int)(Main.screenHeight - largest.Y - 4f);
         }
-        orig(self, cursorText, buffString, ref X, ref Y);
-        int originY = Y + (int)font.MeasureString(tip).Y;
+        orig(self, name, shown, ref X, ref Y);
+        int originY = Y + (int)font.MeasureString(merged ? name : tip).Y;
         foreach (GlobalBuff g in BuffLoader.Globals)
         {
             if (!Over(g, typeof(GlobalBuff), nameof(GlobalBuff.DrawCustomBuffTip))) continue;
@@ -328,6 +334,12 @@ internal static unsafe class BuffHooks
         }
         catch (Exception e) { ItemHooks.Report("ModBuff.ReApply (NPC)", e); }
         orig(self, type, time, quiet);
+    }
+
+    static bool ShowsBanners()
+    {
+        GUIInstance gui = GUIInstance.Active;
+        return !gui.IsNull && !gui.GUIBuffs.IsNull && gui.GUIBuffs.lastDrawBuffText == Terraria.ID.BuffID.MonsterBanner;
     }
 
     static bool WantsText(int type)

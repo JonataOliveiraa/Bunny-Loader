@@ -1,0 +1,17 @@
+{
+  "uid": "c1e8a4d2-6b37-49f0-a215-7d3f9b0e5c84",
+  "id": "CsPaladin",
+  "name": "Test: Paladin's Crusade spawns",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Starts the Example Mod's Paladin's Crusade at night and counts the paladins it spawns.",
+  "description": "Compile with tools/tests/build-cs.sh cspaladin. Run with NOENV=1 SAMPLE=1 tools/tests/run-cs.sh cspaladin.",
+  "updated": "2026-11-09",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

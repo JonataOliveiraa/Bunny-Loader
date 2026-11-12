@@ -1,0 +1,17 @@
+{
+  "uid": "4c772b1b-9ebd-4a1e-ba1d-bdde111f5657",
+  "id": "CsTileCounts",
+  "name": "Test: tile counts with mod tiles (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "ModSystem.TileCountsAvailable and every SceneMetrics count mod tiles: tileCounts[ModContent.TileType<T>()] like tModLoader.",
+  "description": "Build with tools/tests/build-cs.sh cstilecounts. Logs cstilecounts <case>: ok | FAIL and cstilecounts END pass=N fail=M.",
+  "updated": "2026-11-12",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

@@ -1,0 +1,17 @@
+{
+  "uid": "a7c2e5f1-90b3-4d6e-8f14-2b5d7c9e3a61",
+  "id": "CsBuffBox",
+  "name": "Test: buff tooltip box",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Shows a buff tooltip with the Example Mod's extra line and logs how the phone builds and measures it.",
+  "description": "Compile with tools/tests/build-cs.sh csbuffbox. Run with SAMPLE=1 tools/tests/run-taps.sh csbuffbox; holds the buff icon, check the log and the capture (no pass/fail on the box).",
+  "updated": "2026-11-09",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

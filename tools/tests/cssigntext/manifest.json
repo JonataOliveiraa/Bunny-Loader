@@ -1,0 +1,17 @@
+{
+  "uid": "63e5b474-0498-4468-887a-d5c72e0115c7",
+  "id": "CsSignText",
+  "name": "Test: sign with text",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Places the vanilla sign and the Example Mod sign, empty and with text, with the smart cursor on, and logs the interaction icon the game picks for each.",
+  "description": "Compile with tools/tests/build-cs.sh cssigntext. Run with SAMPLE=1 tools/tests/run-taps.sh cssigntext.",
+  "updated": "2026-11-12",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

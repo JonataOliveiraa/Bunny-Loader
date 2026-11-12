@@ -702,7 +702,7 @@ internal static partial class TileHooks
         mod?.MouseOver(i, j);
         foreach (GlobalTile g in TileLoader.Hooks.MouseOver)
             g.MouseOver(i, j, type);
-        if (mod != null && TileLoader.Has(mod, 14) && !player.cursorItemIconEnabled)
+        if (mod != null && TileLoader.Has(mod, 14) && !player.cursorItemIconEnabled && !(Main.tileSign[type] && Sign.ReadSign(i, j, false) != -1))
         {
             player.noThrow = 2;
             player.cursorItemIconEnabled = true;

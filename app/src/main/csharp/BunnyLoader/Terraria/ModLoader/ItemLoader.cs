@@ -51,11 +51,18 @@ public static unsafe partial class ItemLoader
             On_Item.SetDefaults += SetDefaults;
             On_Item.Clone += Clone;
             On_Item.DeepClone += DeepClone;
+            On_Item.DefaultToWhip += DefaultToWhip;
             Host.Native()->OnItemsInstalled(&ItemsInstalled);
             Host.Native()->OnItemData(&SaveItemData, &LoadItemData);
             Host.Native()->OnVisualItemCopy(&VisualItemCopied);
             hooked = true;
         }
+    }
+
+    static void DefaultToWhip(On_Item.orig_DefaultToWhip orig, Item self, int projectileId, int dmg, float kb, float shootspeed, int animationTotalTime)
+    {
+        orig(self, projectileId, dmg, kb, shootspeed, animationTotalTime);
+        if (self.type >= ItemID.Count) self.DamageType = DamageClass.SummonMeleeSpeed;
     }
 
     internal static ModItem? InstanceOf(Item item)

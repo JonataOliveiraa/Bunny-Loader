@@ -1,0 +1,17 @@
+{
+  "uid": "8e41d2a7-3c5b-4f19-a6d0-92b7c4e1f305",
+  "id": "CsSpider",
+  "name": "Test: wall spiders",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Spawns the wall and ground spiders in front of a wall and captures the screen.",
+  "description": "Compile with tools/tests/build-cs.sh csspider. Run with SAMPLE=1 tools/tests/run-taps.sh csspider, and without SAMPLE to compare.",
+  "updated": "2026-11-09",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

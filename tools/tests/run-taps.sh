@@ -2,7 +2,7 @@
 # Roda um pacote de teste C# que pede toques reais: o teste escreve
 # "<pacote> TAP <n> x y" ou "<pacote> SWIPE <n> x1 y1 x2 y2" em unidades de UI
 # e o script toca uma vez por <n>; "<pacote> FTAP <n> x y" toca na fracao da tela
-# (0 a 1), FHOLD segura 300 ms; "<pacote> DRAG <n> x1 y1 x2 y2" aperta, arrasta e solta;
+# (0 a 1), FHOLD segura 300 ms (ou os ms do 3o numero); "<pacote> DRAG <n> x1 y1 x2 y2" aperta, arrasta e solta;
 # "<pacote> SHOT <n>" so captura a tela.
 # UIW = largura da tela em unidades de UI.
 #
@@ -37,7 +37,7 @@ launch "$dev"
 wait_mods "$dev" && enter_single "$dev" || exit 1
 done=" "
 for _ in $(seq 1 "${WAIT:-240}"); do
-    log="$(adb -s "$dev" logcat -d | grep -o "$test \(SWIPE\|TAP\|FTAP\|FHOLD\|DRAG\|SHOT\|END\) .*")"
+    log="$(adb -s "$dev" logcat -d -e "$test (SWIPE|TAP|FTAP|FHOLD|DRAG|SHOT|END) " | grep -o "$test \(SWIPE\|TAP\|FTAP\|FHOLD\|DRAG\|SHOT\|END\) .*")"
     while read -r _ kind n rest; do
         case "$done" in *" $n "*) continue ;; esac
         set -- $rest
@@ -45,7 +45,7 @@ for _ in $(seq 1 "${WAIT:-240}"); do
         case "$kind" in
             TAP) adb -s "$dev" shell input tap $(pixels "$1" "$2") ;;
             FTAP) adb -s "$dev" shell input tap $(fraction "$1" "$2") ;;
-            FHOLD) set -- $(fraction "$1" "$2"); adb -s "$dev" shell input swipe "$1" "$2" "$1" "$2" 300 ;;
+            FHOLD) hold="${3:-300}"; set -- $(fraction "$1" "$2"); adb -s "$dev" shell input swipe "$1" "$2" "$1" "$2" "$hold" ;;
             DRAG) drag $(pixels "$1" "$2") $(pixels "$3" "$4") ;;
             SWIPE) adb -s "$dev" shell input swipe $(pixels "$1" "$2") $(pixels "$3" "$4") 900 ;;
             SHOT) ;;
