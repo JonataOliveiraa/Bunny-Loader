@@ -21,8 +21,8 @@ import java.io.File
  * fonte de runtime, extrair a interface é mecânico.
  */
 object BundledRuntime {
-    /** Ordem de dependência; a libunity precisa da libmain, que precisa da libc++. */
-    private val LIBS = listOf("c++_shared", "main", "unity", "il2cpp")
+    /** Ordem de dependência; a libunity precisa da libmain. */
+    private val LIBS = listOf("main", "unity", "il2cpp")
 
     /** Versão que esta build carrega. Confira contra o que o jogo reporta. */
     const val VERSION_NAME = "1.4.5.8.6"

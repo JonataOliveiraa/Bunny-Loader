@@ -177,6 +177,7 @@ android {
     packaging {
         jniLibs {
             useLegacyPackaging = true // extractNativeLibs=true
+            excludes += "**/libc++_shared.so"
 
             // A outra metade do -Pbl.uiOnly=true: aqui saem as libs do jogo
             // (os assets saem lá em cima, não entrando no source set). Juntos
@@ -188,8 +189,7 @@ android {
             // voltar a jogar, refaça sem a flag.
             if ((project.findProperty("bl.uiOnly") as String?)?.toBoolean() == true) {
                 excludes += listOf(
-                    "**/libil2cpp.so", "**/libunity.so",
-                    "**/libmain.so", "**/libc++_shared.so",
+                    "**/libil2cpp.so", "**/libunity.so", "**/libmain.so",
                 )
             }
         }

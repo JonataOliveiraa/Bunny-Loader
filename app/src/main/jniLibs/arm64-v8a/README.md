@@ -1,13 +1,17 @@
 # Game runtime (arm64-v8a)
 
-These four `.so` files **are not in the repository** and are not added by me:
+These three `.so` files **are not in the repository** and are not added by me:
 
 ```
 libil2cpp.so
 libunity.so
 libmain.so
-libc++_shared.so
 ```
+
+The game's `libc++_shared.so` is not needed: the three libraries link libc++
+statically and have no `DT_NEEDED` on it. Gradle leaves it out of the package
+even if it is in this folder, because Google Play flags it as built with an old
+NDK (clang 5) on 16 KB devices.
 
 Putting them here means redistributing the game's binaries. It is a step for
 the project owner, covered by the license they declare to have — not a build
