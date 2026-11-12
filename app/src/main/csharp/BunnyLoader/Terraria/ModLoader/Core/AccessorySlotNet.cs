@@ -70,8 +70,18 @@ internal static class AccessorySlotNet
     {
         if (msgType != 4 || ModNet.NetMode == 0 || number < 0 || number > 254)
             return;
+        if (ModNet.NetMode == 1 && Main.gameMenu)
+            return;
         try { Send(number, remote, ignore); }
         catch (Exception e) { ItemHooks.Report("ModAccessorySlot net", e); }
+    }
+
+    internal static void AfterEnterWorld(Player player)
+    {
+        if (ModNet.NetMode != 1)
+            return;
+        lastSent = Signature(AccessorySlotHooks.Of(player));
+        Send(player.whoAmI, -1, -1);
     }
 
     internal static void AfterUpdateEquips(Player player)

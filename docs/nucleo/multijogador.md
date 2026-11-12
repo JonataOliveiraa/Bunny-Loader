@@ -22,6 +22,12 @@ this state", any message above 12 from someone still joining, except 16, 38,
 host reads the 68 in a hook on `MessageBuffer.ProcessData` and does not pass it
 on: the client's real UUID, which arrives in another 68, stays intact.
 
+The same rule applies to the C# side: a client sends its mod packets only from
+`Player.Hooks.EnterWorld`, right after the message 12 that moves it to state
+10 (`ModPlayer.SyncPlayer`, the mod accessory slots). The slots used to follow
+the client's message 4, which goes out while joining, and the server kicked
+the client.
+
 Every Bunny Loader server answers the introduction with a **welcome** (a C#
 net packet, kind 200, carrying the host rules: bit 0 is the cheat menu). If the
 world data (message 7) arrives without a welcome, the server is vanilla (or an

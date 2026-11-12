@@ -266,6 +266,8 @@ internal static class AccessorySlotHooks
             return;
         try { Of(player).OnEnterWorld(); }
         catch (Exception e) { ItemHooks.Report("ModAccessorySlot enter world", e); }
+        try { AccessorySlotNet.AfterEnterWorld(player); }
+        catch (Exception e) { ItemHooks.Report("ModAccessorySlot net", e); }
     }
 
     static void InternalSavePlayerFile(On_Player.orig_InternalSavePlayerFile orig, PlayerFileData playerFile)

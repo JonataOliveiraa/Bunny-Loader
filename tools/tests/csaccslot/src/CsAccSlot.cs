@@ -35,7 +35,32 @@ public sealed class CsAccSlotMod : Mod
 
     static Type PanelType => typeof(ModAccessorySlot).Assembly.GetType("Terraria.ModLoader.Core.AccessorySlotPanel")!;
 
-    public override void Load() => On_Player.Update += Update;
+    static bool probing, vanillaProbe;
+    static int vanillaShown;
+    static Item keptAccessory;
+    static int probed, probedMod, sharedOnMod;
+    static string probeSample = "";
+
+    public override void Load()
+    {
+        On_Player.Update += Update;
+        On_Main.MouseText_DrawItemTooltip_GetLinesInfo += Probe;
+    }
+
+    static void Probe(On_Main.orig_MouseText_DrawItemTooltip_GetLinesInfo orig, Item item, ref int yoyoLogo, ref int researchLine, ref int materialsLine, float oldKB, ref int numLines, GameArray<GameString> toolTipLine, GameArray<bool> preFixLine, GameArray<bool> badPreFixLine, ref int setBonusLine, ref Microsoft.Xna.Framework.Graphics.Color setBonusColour, ref int sharedLine)
+    {
+        orig(item, ref yoyoLogo, ref researchLine, ref materialsLine, oldKB, ref numLines, toolTipLine, preFixLine, badPreFixLine, ref setBonusLine, ref setBonusColour, ref sharedLine);
+        if (vanillaProbe && !item.IsNull && item.type == ItemID.BandofRegeneration) vanillaShown++;
+        if (!probing || item.IsNull || item.type != ItemID.HermesBoots) return;
+        probed++;
+        bool mine = item.Pointer == one.FunctionalItem.Pointer;
+        if (mine) probedMod++;
+        string lines = string.Join(" | ", Enumerable.Range(0, numLines).Select(k => (string)toolTipLine[k]));
+        bool hint = sharedLine >= 0 || lines.Contains(Terraria.Localization.Language.GetTextValue("UI.ItemLoadoutShareHint")) || lines.Contains(Lang.tip[23].Value);
+        if (hint) sharedOnMod++;
+        if (probed <= 3) Log.Info($"csaccslot probe mine={mine} context={item.tooltipContext} slot={item.tooltipSlot} sharedLine={sharedLine} lines={lines}");
+        probeSample = lines;
+    }
 
     static void Report(string name, bool ok, string detail = "")
     {
@@ -229,6 +254,15 @@ public sealed class CsAccSlotMod : Mod
                 var selected = PanelType.GetProperty("SelectedCell", Hidden)!.GetValue(null);
                 if (selected == null && !After(900)) break;
                 Report("tapping a mod slot selects only that slot", selected is ValueTuple<int, int> s && s.Item1 == one.Type && s.Item2 == 2 && GUIInstance.Active.GUIEquipment.itemPieceSelected_internal >= 0, $"selected={selected} vanilla={GUIInstance.Active.GUIEquipment.itemPieceSelected_internal}");
+                probing = true;
+                Wait();
+                step = 40;
+                break;
+            }
+            case 40 when After(30):
+            {
+                probing = false;
+                Report("a mod slot item's tooltip has no loadout share line and no Equipable line", probed > 0 && sharedOnMod == 0, $"probed={probed} mine={probedMod} shared={sharedOnMod} lines={probeSample}");
                 Log.Info($"csaccslot SHOT {++taps}");
                 Rectangle eye = PanelValue<Rectangle>("HideShowRegion");
                 Log.Info($"csaccslot TAP {++taps} {eye.Center.X} {eye.Center.Y}");
@@ -388,6 +422,34 @@ public sealed class CsAccSlotMod : Mod
                 break;
             case 29:
                 if (!PanelValue<bool>("Open") && !After(900)) break;
+                Wait();
+                step = 50;
+                break;
+            case 50 when After(60):
+            {
+                keptAccessory = player.armor[3];
+                player.armor[3] = new Item(ItemID.BandofRegeneration);
+                one.FunctionalItem = Item.New();
+                var cells = (System.Collections.IDictionary)PanelType.GetField("CellRegions", Hidden)!.GetValue(null)!;
+                var cell = (Rectangle)cells[(one.Type, 2)]!;
+                Log.Info($"csaccslot TAP {++taps} {cell.Center.X} {cell.Center.Y}");
+                Wait();
+                step = 51;
+                break;
+            }
+            case 51:
+                if (PanelType.GetProperty("SelectedCell", Hidden)!.GetValue(null) == null && !After(900)) break;
+                vanillaShown = 0;
+                vanillaProbe = true;
+                Wait();
+                step = 52;
+                break;
+            case 52 when After(60):
+                vanillaProbe = false;
+                Report("an empty mod slot does not show the vanilla accessory's tooltip", vanillaShown == 0, $"vanilla tooltips={vanillaShown} hover={Main.HoverItem.type}");
+                Log.Info($"csaccslot SHOT {++taps}");
+                player.armor[3] = keptAccessory;
+                one.FunctionalItem = new Item(ItemID.HermesBoots);
                 Wait();
                 step = 10;
                 break;

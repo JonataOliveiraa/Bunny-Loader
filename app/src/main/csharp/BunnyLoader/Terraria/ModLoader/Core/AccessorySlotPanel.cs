@@ -57,6 +57,7 @@ internal static unsafe class AccessorySlotPanel
         On_GUIEquipment.DrawUnequipButton += DrawUnequipButton;
         On_GUIEquipment.DrawHideShowButton += DrawHideShowButton;
         On_GUIEquipment.DrawShareButton += DrawShareButton;
+        On_Main.MouseText_DrawItemTooltip_GetLinesInfo += TooltipLines;
     }
 
     static nint Keep(nint pointer)
@@ -674,7 +675,7 @@ internal static unsafe class AccessorySlotPanel
         ControlAnchor.SetGridItemRegion(region);
         try
         {
-            Swapped(player, slots, slot, column, () =>
+            Swapped(player, slots, slot, column, () => WithoutLoadoutShare(column, () =>
             {
                 switch (column)
                 {
@@ -682,7 +683,7 @@ internal static unsafe class AccessorySlotPanel
                     case Vanity: equipment.AccessoryVanityDrawImp(vanillaGrid[Vanity], 0, position, scale); break;
                     default: equipment.AccessoryDyeDrawImp(vanillaGrid[Dye], 0, position, scale); break;
                 }
-            });
+            }));
         }
         finally
         {
@@ -762,6 +763,19 @@ internal static unsafe class AccessorySlotPanel
         player.QuickSpawnItem(player.GetSource_FromThis(), item);
     }
 
+    static void WithoutLoadoutShare(int column, Action call)
+    {
+        GameArray<bool> share = ItemSlot.canLoadoutShareAt;
+        int context = ContextOf(column);
+        bool shared = !share.IsNull && (uint)context < (uint)share.Length && share[context];
+        if (shared) share[context] = false;
+        try { call(); }
+        finally
+        {
+            if (shared) share[context] = true;
+        }
+    }
+
     static int ContextOf(int column) => column switch
     {
         Functional => ItemSlot.Context.EquipAccessory,
@@ -780,8 +794,8 @@ internal static unsafe class AccessorySlotPanel
         modOver = true;
         try
         {
-            AccessorySlotHooks.Scope(slot, () =>
-                equipment.ItemOver(column == Dye ? dyeTemp : accessoryTemp, proxy, TypeOf(column), ContextOf(column), ref dragStart));
+            AccessorySlotHooks.Scope(slot, () => WithoutLoadoutShare(column, () =>
+                equipment.ItemOver(column == Dye ? dyeTemp : accessoryTemp, proxy, TypeOf(column), ContextOf(column), ref dragStart)));
         }
         finally { modOver = false; }
         if (dragStart == proxy) dragCell = cell;
@@ -851,7 +865,38 @@ internal static unsafe class AccessorySlotPanel
 
     static void DrawHideShowButton(On_GUIEquipment.orig_DrawHideShowButton orig, GUIEquipment self) => WithSelected(self, () => orig(self));
 
-    static void DrawShareButton(On_GUIEquipment.orig_DrawShareButton orig, GUIEquipment self) => WithSelected(self, () => orig(self));
+    static void DrawShareButton(On_GUIEquipment.orig_DrawShareButton orig, GUIEquipment self)
+    {
+        if (selectedCell == null || Main.gameMenu) orig(self);
+    }
+
+    static void TooltipLines(On_Main.orig_MouseText_DrawItemTooltip_GetLinesInfo orig, Item item, ref int yoyoLogo, ref int researchLine, ref int materialsLine, float oldKB, ref int numLines,
+        GameArray<GameString> toolTipLine, GameArray<bool> preFixLine, GameArray<bool> badPreFixLine, ref int setBonusLine, ref Color setBonusColour, ref int sharedLine)
+    {
+        orig(item, ref yoyoLogo, ref researchLine, ref materialsLine, oldKB, ref numLines, toolTipLine, preFixLine, badPreFixLine, ref setBonusLine, ref setBonusColour, ref sharedLine);
+        if (selectedCell == null && overCell == null || item.IsNull || sharedLine < 0 || sharedLine >= numLines ||
+            item.tooltipContext is not (ItemSlot.Context.EquipAccessory or ItemSlot.Context.EquipAccessoryVanity or ItemSlot.Context.EquipDye) ||
+            item.tooltipSlot is not (AccessorySlotHooks.FunctionalProxySlot or AccessorySlotHooks.VanityProxySlot))
+            return;
+        int removed = sharedLine;
+        for (int k = removed; k < numLines - 1; k++)
+        {
+            toolTipLine[k] = toolTipLine[k + 1];
+            preFixLine[k] = preFixLine[k + 1];
+            badPreFixLine[k] = badPreFixLine[k + 1];
+        }
+        numLines--;
+        sharedLine = -1;
+        Shift(ref yoyoLogo, removed);
+        Shift(ref researchLine, removed);
+        Shift(ref materialsLine, removed);
+        Shift(ref setBonusLine, removed);
+    }
+
+    static void Shift(ref int line, int removed)
+    {
+        if (line > removed) line--;
+    }
 
     static void DrawCustomLocations(GUIEquipment equipment, Player player, ModAccessorySlotPlayer slots)
     {
