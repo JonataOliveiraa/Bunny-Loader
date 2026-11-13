@@ -15,6 +15,7 @@ public static class RecipeLoader
     internal sealed class Extra
     {
         public Mod? Mod;
+        public readonly List<Mod> Editors = new();
         public readonly List<Condition> Conditions = new();
         public readonly List<Condition> DecraftConditions = new();
         public Recipe.OnCraftCallback? OnCraft;
@@ -38,7 +39,7 @@ public static class RecipeLoader
 
     static readonly HashSet<nint> GroupsToSort = new();
 
-    static bool vanillaGroups, filtering, beyond, ordering;
+    static bool vanillaGroups, filtering, beyond, ordering, edited;
 
     static int added;
 
@@ -114,22 +115,52 @@ public static class RecipeLoader
 
     internal static void Register(Recipe recipe)
     {
+        CheckBeforeRegister(recipe);
         Extra extra = DataOf(recipe);
         int index = Recipe.numRecipes;
         var recipes = Main.recipe;
-        if (index >= recipes.Length)
+        bool grew = index >= recipes.Length;
+        if (grew)
         {
             var grown = GameArray<Recipe>.New(Recipe.Class, index + 1);
             for (int i = 0; i < recipes.Length; i++) grown[i] = recipes[i];
             Main.recipe = grown;
         }
         Recipe.currentRecipe = recipe;
-        Recipe.AddRecipe();
+        try { Recipe.AddRecipe(); }
+        catch
+        {
+            if (grew) Main.recipe = recipes;
+            throw;
+        }
         extra.Index = index;
         extra.Pin?.Dispose();
         extra.Pin = null;
         added++;
         if (index >= Recipe.maxRecipes) WantBeyond();
+    }
+
+    internal static void Edited(Recipe recipe)
+    {
+        if (!setupRecipes) return;
+        edited = true;
+        Mod? mod = CurrentMod;
+        if (mod == null) return;
+        Extra extra = DataOf(recipe);
+        if (extra.Mod != mod && !extra.Editors.Contains(mod)) extra.Editors.Add(mod);
+    }
+
+    static void CheckBeforeRegister(Recipe recipe)
+    {
+        var items = recipe.requiredItem;
+        if (items.IsNull) throw new RecipeException("A recipe without an ingredient array has been added.");
+        int end = -1;
+        for (int j = 0; j < items.Length; j++)
+        {
+            if (items[j].IsNull) throw new RecipeException($"A recipe with nothing in ingredient slot {j} has been added; set ingredients with Recipe.AddIngredient.");
+            if (end < 0 && items[j].type <= 0) end = j;
+        }
+        if (end < 0) throw new RecipeException($"A recipe with {items.Length} ingredients has been added; the game needs the last slot empty, so it takes at most {items.Length - 1}.");
     }
 
     internal static void BeginSetup() => setupRecipes = true;
@@ -145,16 +176,75 @@ public static class RecipeLoader
 
     static void Finish()
     {
-        if (added == 0 && GroupsToSort.Count == 0 && !ordering) return;
+        if (added == 0 && GroupsToSort.Count == 0 && !ordering && !edited) return;
         if (ordering) Step("recipe order", OrderRecipes);
         foreach (nint pointer in GroupsToSort) Step("recipe groups", () => new RecipeGroup(pointer).SortDecraftingEntries());
-        Step("recipes", Recipe.CreateRequiredItemQuickLookups);
-        Step("recipes", UpdateWhichItemsAreMaterials);
-        Step("recipes", Recipe.UpdateMaterialFieldForAllRecipes);
-        Step("recipes", Recipe.UpdateWhichItemsAreCrafted);
-        Step("recipes", ShimmerTransforms.UpdateRecipeSets);
-        Step("recipes", ContentSamples.FixItemsAfterRecipesAreAdded);
+        Step("recipe ingredients", CheckIngredients);
+        Step("recipe quick lookups", Recipe.CreateRequiredItemQuickLookups);
+        Step("recipe materials", UpdateWhichItemsAreMaterials);
+        Step("recipe material fields", Recipe.UpdateMaterialFieldForAllRecipes);
+        Step("crafted items", Recipe.UpdateWhichItemsAreCrafted);
+        Step("shimmer recipes", ShimmerTransforms.UpdateRecipeSets);
+        Step("item samples after recipes", ContentSamples.FixItemsAfterRecipesAreAdded);
         Log.Info($"recipes: {added} from C# mods (total {Recipe.numRecipes})");
+    }
+
+    static void CheckIngredients()
+    {
+        Item empty = Recipe.defaultRecipeItem;
+        if (!empty.IsNull && empty.type != 0)
+        {
+            Log.Error($"recipes: a mod turned the empty ingredient slot that all the game's recipes share into {ItemName(empty.type)}, so every recipe gained that ingredient. It was emptied again; mods should add ingredients with Recipe.AddIngredient.");
+            empty.TurnToAir();
+        }
+        var recipes = Main.recipe;
+        for (int i = 0, count = Math.Min(Recipe.numRecipes, recipes.Length); i < count; i++)
+        {
+            Recipe recipe = recipes[i];
+            if (recipe.IsNull) throw new InvalidOperationException($"Main.recipe[{i}] is null below Recipe.numRecipes ({Recipe.numRecipes})");
+            if (recipe.createItem.IsNull)
+            {
+                recipe.createItem = Item.New();
+                Disable(recipe, i, "has no result item");
+            }
+            var items = recipe.requiredItem;
+            if (items.IsNull) throw new InvalidOperationException($"{Describe(recipe, i)} has no ingredient array");
+            int end = -1;
+            for (int j = 0; j < items.Length; j++)
+            {
+                if (items[j].IsNull)
+                {
+                    items[j] = Item.New();
+                    Disable(recipe, i, $"had nothing in ingredient slot {j}");
+                }
+                if (end < 0 && items[j].type <= 0) end = j;
+            }
+            if (end >= 0) continue;
+            items[items.Length - 1] = Item.New();
+            Disable(recipe, i, $"had {items.Length} ingredients and no empty slot after the last one, which makes the game read past the end");
+        }
+    }
+
+    static void Disable(Recipe recipe, int index, string problem)
+    {
+        Log.Error($"recipes: {Describe(recipe, index)} {problem}. The recipe was turned off.");
+        DataOf(recipe).Disabled = true;
+        WantFilter();
+    }
+
+    static string Describe(Recipe recipe, int index)
+    {
+        Extra? extra = Peek(recipe);
+        string result = recipe.createItem.IsNull ? "nothing" : ItemName(recipe.createItem.type);
+        string origin = extra?.Mod is Mod mod ? $"added by {mod.Name}" : "from the game";
+        if (extra != null && extra.Editors.Count > 0) origin += $", changed by {string.Join(", ", extra.Editors.ConvertAll(m => m.Name))}";
+        return $"recipe #{index} for {result} ({origin})";
+    }
+
+    static string ItemName(int type)
+    {
+        try { return ItemLoader.GetItem(type)?.FullName ?? ItemID.Search.GetName(type) ?? $"item {type}"; }
+        catch (Exception) { return $"item {type}"; }
     }
 
     internal static void WantOrder() => ordering = true;

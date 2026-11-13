@@ -1,0 +1,17 @@
+{
+  "uid": "05176db1-6c5b-4f46-8b2e-d9d37f087839",
+  "id": "CsRecipeLimits",
+  "name": "Test: recipe ingredient limits",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Checks the 14-ingredient limit and the repair of broken recipes before the game's recipe passes.",
+  "description": "Compile with tools/tests/build-cs.sh csrecipelimits. In the world it logs 'csrecipelimits <case>: ok | FAIL' and 'csrecipelimits END'.",
+  "updated": "2026-11-13",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

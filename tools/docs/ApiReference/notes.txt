@@ -479,6 +479,7 @@ Terraria.Recipe.Mod|The mod that made the recipe.
 Terraria.Recipe.Conditions|What must hold to craft.
 Terraria.Recipe.DecraftConditions|What must hold to undo the recipe in shimmer.
 Terraria.Recipe.AddCustomShimmerResult|What this recipe gives back in shimmer, instead of the ingredients.
+Terraria.Recipe.AddIngredient~|A recipe takes at most 14 ingredients, because the game needs the last of its 15 slots empty. The 15th throws `RecipeException`, and `Register` refuses a recipe filled past that by hand.
 Terraria.Recipe.AddCondition|Adds a condition to craft.
 Terraria.Recipe.AddDecraftCondition|Adds a condition to undo the recipe in shimmer.
 Terraria.Recipe.HasResult|Whether the recipe makes this item.

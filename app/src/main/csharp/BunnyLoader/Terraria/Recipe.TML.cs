@@ -57,11 +57,13 @@ public readonly partial struct Recipe
         var items = requiredItem;
         int slot = 0;
         while (slot < items.Length && items[slot].type > 0) slot++;
-        if (slot >= items.Length) throw new RecipeException($"A recipe takes at most {items.Length} ingredients; item {itemID} does not fit.");
+        if (slot >= items.Length - 1)
+            throw new RecipeException($"A recipe takes at most {items.Length - 1} ingredients, because the game needs an empty slot after the last one; item {itemID} does not fit.");
         Item item = Item.New();
         item.SetDefaults(itemID, default);
         item.stack = stack;
         items[slot] = item;
+        RecipeLoader.Edited(this);
         return this;
     }
 
@@ -344,6 +346,7 @@ public readonly partial struct Recipe
             if (groups[i] != groupID) continue;
             for (int j = i; j < groups.Length - 1; j++) groups[j] = groups[j + 1];
             groups[groups.Length - 1] = -1;
+            RecipeLoader.Edited(this);
             return true;
         }
         return false;
@@ -364,6 +367,7 @@ public readonly partial struct Recipe
     {
         createItem.SetDefaults(itemID, default);
         createItem.stack = stack;
+        RecipeLoader.Edited(this);
     }
 
     public void ReplaceResult(ModItem item, int stack = 1) => ReplaceResult(item.Type, stack);
@@ -390,5 +394,6 @@ public readonly partial struct Recipe
         removed.SetDefaults(0, default);
         removed.stack = 0;
         items[items.Length - 1] = removed;
+        RecipeLoader.Edited(this);
     }
 }
