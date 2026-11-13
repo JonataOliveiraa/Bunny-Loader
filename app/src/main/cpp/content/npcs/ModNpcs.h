@@ -45,8 +45,6 @@ std::vector<ModNpcInfo> modNpcs();
 
 void setModNpcFrames(int type, int frames);
 
-void setModNpcAnimation(int type, int animationType);
-
 bool ensureNpcFrameHook();
 void runNpcFindFrame(Il2CppObject* npc, int borrowed);
 

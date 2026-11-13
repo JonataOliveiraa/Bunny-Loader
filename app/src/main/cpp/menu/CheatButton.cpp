@@ -169,17 +169,15 @@ void JNICALL jni_onGive(JNIEnv*, jclass, jint type, jint stack) {
     bl::runtime::requestGive(type, stack);
 }
 
-jobjectArray toJavaStringArray(JNIEnv* env, const std::vector<std::u16string>& names,
-                               runtime::MenuKind kind) {
+jobjectArray toJavaStringArray(JNIEnv* env, const std::vector<std::u16string>& names) {
     if (!runtime::namesReady()) return nullptr;
-    const std::unordered_set<int> hidden = runtime::hiddenFromModMenu(kind);
     jclass sc = env->FindClass("java/lang/String");
     if (!sc) return nullptr;
     std::lock_guard<std::mutex> guard(runtime::namesLock());
     jobjectArray out = env->NewObjectArray(static_cast<jsize>(names.size()), sc, nullptr);
     if (!out) return nullptr;
     for (size_t i = 0; i < names.size(); ++i) {
-        if (names[i].empty() || hidden.count(static_cast<int>(i))) continue;
+        if (names[i].empty()) continue;
         jstring js = env->NewString(reinterpret_cast<const jchar*>(names[i].data()),
                                     static_cast<jsize>(names[i].size()));
         env->SetObjectArrayElement(out, static_cast<jsize>(i), js);
@@ -189,11 +187,11 @@ jobjectArray toJavaStringArray(JNIEnv* env, const std::vector<std::u16string>& n
 }
 
 jobjectArray JNICALL jni_itemNames(JNIEnv* env, jclass) {
-    return toJavaStringArray(env, runtime::itemNames(), runtime::MenuKind::Item);
+    return toJavaStringArray(env, runtime::itemNames());
 }
 
 jobjectArray JNICALL jni_npcNames(JNIEnv* env, jclass) {
-    return toJavaStringArray(env, runtime::npcNames(), runtime::MenuKind::Npc);
+    return toJavaStringArray(env, runtime::npcNames());
 }
 
 jint JNICALL jni_namesGeneration(JNIEnv*, jclass) {
@@ -244,7 +242,7 @@ jbyteArray JNICALL jni_npcClasses(JNIEnv* env, jclass) {
 }
 
 jobjectArray JNICALL jni_buffNames(JNIEnv* env, jclass) {
-    return toJavaStringArray(env, runtime::buffNames(), runtime::MenuKind::Buff);
+    return toJavaStringArray(env, runtime::buffNames());
 }
 
 jbyteArray JNICALL jni_buffClasses(JNIEnv* env, jclass) {

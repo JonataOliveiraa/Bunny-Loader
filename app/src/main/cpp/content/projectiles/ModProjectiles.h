@@ -19,8 +19,6 @@ struct ModProjectileDef {
 
 int registerModProjectile(ModProjectileDef def);
 
-bool isModProjectile(int type);
-
 int projectileTypeCount();
 
 void tickModProjectiles();
@@ -33,7 +31,5 @@ using ProjectilesInstalledHook = void (*)(int first, int last);
 void setProjectilesInstalledHook(ProjectilesInstalledHook hook);
 
 void setModProjectileFrames(int type, int frames);
-
-int modProjectileTypeByName(const std::string& mod, const std::string& name);
 
 }

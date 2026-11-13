@@ -24,7 +24,6 @@ struct Entry {
 
 std::mutex g_mx;
 std::vector<Entry> g_regs;
-std::atomic<WallsInstalledHook> g_installedHook{nullptr};
 std::atomic<WallsInstalledHook> g_managedInstalledHook{nullptr};
 std::atomic<int> g_total{0};
 std::atomic<int> g_installed{0};
@@ -194,9 +193,6 @@ void tickModWalls() {
     }
     BL_INFO("paredes de mod: %d instalada(s) (ids %d..%d), %d tabela(s) aumentadas de %d para %d; "
             "WallID.Count = %d", total - installed, from, to - 1, grown, from, to, readWallCount());
-    if (WallsInstalledHook hook = g_installedHook.load(std::memory_order_acquire)) {
-        hook(from, to - 1);
-    }
     if (WallsInstalledHook hook = g_managedInstalledHook.load(std::memory_order_acquire)) {
         hook(from, to - 1);
     }
@@ -204,10 +200,6 @@ void tickModWalls() {
 
 bool modWallsSettled() {
     return g_failed || g_installed.load(std::memory_order_relaxed) == g_total.load(std::memory_order_acquire);
-}
-
-void setWallsInstalledHook(WallsInstalledHook hook) {
-    g_installedHook.store(hook, std::memory_order_release);
 }
 
 void setManagedWallsInstalledHook(WallsInstalledHook hook) {
@@ -252,16 +244,6 @@ void registerUnloadedWall() {
 int unloadedWallType() {
     const int type = g_unloadedType.load();
     return type >= 0 && !g_failed && type < wallTypeCount() ? type : -1;
-}
-
-std::vector<ModWallInfo> modWalls() {
-    std::lock_guard<std::mutex> l(g_mx);
-    std::vector<ModWallInfo> out;
-    for (size_t i = 0; i < g_regs.size(); ++i) {
-        const ModWallDef& d = g_regs[i].def;
-        out.push_back({kVanillaWallCount + static_cast<int>(i), d.mod, d.name, d.texture});
-    }
-    return out;
 }
 
 }

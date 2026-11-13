@@ -28,7 +28,6 @@ void tickModWalls();
 bool modWallsSettled();
 
 using WallsInstalledHook = void (*)(int first, int last);
-void setWallsInstalledHook(WallsInstalledHook hook);
 void setManagedWallsInstalledHook(WallsInstalledHook hook);
 
 int modWallTypeByName(const std::string& mod, const std::string& name);
@@ -36,13 +35,6 @@ int modWallTypeByName(const std::string& mod, const std::string& name);
 std::string modWallKey(int type);
 
 int modWallTypeByKey(const std::string& key);
-
-struct ModWallInfo {
-    int type;
-    std::string mod, name, texture;
-};
-
-std::vector<ModWallInfo> modWalls();
 
 void registerUnloadedWall();
 

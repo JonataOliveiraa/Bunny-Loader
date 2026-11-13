@@ -38,7 +38,7 @@ struct Stage {
     uint32_t expected[4];
     void (*bridge)();
     void** original;
-    std::atomic<bl::runtime::SystemStageFn> callbacks[bl::runtime::kStageClientCount]{};
+    std::atomic<bl::runtime::SystemStageFn> callback{};
 };
 
 extern Stage stages[bl::runtime::kSystemStageCount];
@@ -53,8 +53,8 @@ extern "C" __attribute__((visibility("hidden"))) void blSystemStageDispatch(unsi
     double value = 0;
     if (clock) std::memcpy(&value, frame->vectors[0], sizeof(value));
     const double before = value;
-    for (auto& slot : stage.callbacks) {
-        if (bl::runtime::SystemStageFn fn = slot.load(std::memory_order_acquire)) fn(static_cast<int32_t>(index), clock ? &value : nullptr);
+    if (bl::runtime::SystemStageFn fn = stage.callback.load(std::memory_order_acquire)) {
+        fn(static_cast<int32_t>(index), clock ? &value : nullptr);
     }
     if (clock && value != before && std::isfinite(value) && value >= 0) std::memcpy(frame->vectors[0], &value, sizeof(value));
 }
@@ -173,20 +173,8 @@ Stage stages[bl::runtime::kSystemStageCount] = {
 
 namespace bl::runtime {
 
-int32_t systemStageIndex(const char* name) {
-    if (!name) return -1;
-    for (int32_t i = 0; i < kSystemStageCount; ++i) {
-        if (std::strcmp(stages[i].name, name) == 0) return i;
-    }
-    return -1;
-}
-
-const char* systemStageName(int32_t stage) {
-    return stage >= 0 && stage < kSystemStageCount ? stages[stage].name : "?";
-}
-
-bool installSystemStage(int32_t index, int32_t client, SystemStageFn fn) {
-    if (index < 0 || index >= kSystemStageCount || client < 0 || client >= kStageClientCount || !fn) return false;
+bool installSystemStage(int32_t index, SystemStageFn fn) {
+    if (index < 0 || index >= kSystemStageCount || !fn) return false;
     std::lock_guard<std::mutex> lock(g_mx);
     Stage& stage = stages[index];
     if (!*stage.original) {
@@ -202,15 +190,13 @@ bool installSystemStage(int32_t index, int32_t client, SystemStageFn fn) {
             return false;
         }
     }
-    stage.callbacks[client].store(fn, std::memory_order_release);
+    stage.callback.store(fn, std::memory_order_release);
     return true;
 }
 
 }
 #else
 namespace bl::runtime {
-int32_t systemStageIndex(const char*) { return -1; }
-const char* systemStageName(int32_t) { return "?"; }
-bool installSystemStage(int32_t, int32_t, SystemStageFn) { return false; }
+bool installSystemStage(int32_t, SystemStageFn) { return false; }
 }
 #endif

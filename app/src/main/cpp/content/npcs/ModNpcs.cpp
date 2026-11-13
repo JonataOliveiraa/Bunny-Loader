@@ -507,15 +507,6 @@ void setModNpcFrames(int type, int frames) {
     }
 }
 
-void setModNpcAnimation(int type, int animationType) {
-    if (animationType < 0 || animationType >= kVanillaNpcCount) return;
-    std::lock_guard<std::mutex> l(g_mx);
-    const size_t i = static_cast<size_t>(type - kVanillaNpcCount);
-    if (type < kVanillaNpcCount || i >= g_regs.size()) return;
-    g_regs[i].def.animationType = animationType;
-    if (i < g_animation.size()) g_animation[i] = animationType;
-}
-
 bool ensureNpcFrameHook() {
     int state = g_frameState.load(std::memory_order_acquire);
     if (state != 0) return state == 1;

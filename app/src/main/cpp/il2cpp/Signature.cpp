@@ -307,21 +307,6 @@ std::string explainParamNames(const MethodInfo* m, const Signature& sig) {
     return out + ". No jogo: " + describeMethod(m);
 }
 
-std::vector<std::string> listOverloads(Il2CppClass* cls, std::string_view name) {
-    std::vector<std::string> out;
-    if (!cls) return out;
-    auto& a = api();
-    std::string n(name);
-    for (Il2CppClass* c = cls; c; c = a.class_get_parent(c)) {
-        void* iter = nullptr;
-        while (const MethodInfo* m = a.class_get_methods(c, &iter)) {
-            if (n == a.method_get_name(m)) out.push_back(describeMethod(m));
-        }
-        if (!out.empty()) break;
-    }
-    return out;
-}
-
 std::string describeMethod(const MethodInfo* m) {
     if (!m) return "(null)";
     auto& a = api();

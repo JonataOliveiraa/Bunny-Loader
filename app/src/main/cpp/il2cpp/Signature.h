@@ -21,8 +21,6 @@ const MethodInfo* findMethodBySignature(Il2CppClass* cls, const Signature& sig,
 
 std::string explainParamNames(const MethodInfo* m, const Signature& sig);
 
-std::vector<std::string> listOverloads(Il2CppClass* cls, std::string_view name);
-
 std::string describeMethod(const MethodInfo* m);
 
 }

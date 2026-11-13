@@ -28,13 +28,11 @@ struct Entry {
 
 std::mutex g_mx;
 std::vector<Entry> g_regs;
-std::atomic<TilesInstalledHook> g_installedHook{nullptr};
 std::atomic<TilesInstalledHook> g_managedInstalledHook{nullptr};
 std::atomic<int> g_total{0};
 std::atomic<int> g_installed{0};
 std::atomic<bool> g_staticDone{false};
 bool g_failed = false;
-std::atomic<uint32_t> g_drawEpoch{1};
 
 TypeTables g_tables("tiles de mod", kVanillaTileCount, {
     {"Terraria", "Main", ""},
@@ -353,7 +351,6 @@ MapInitFn g_origMapInit = nullptr;
 
 void hkMapInitialize(const MethodInfo* m) {
     g_origMapInit(m);
-    g_drawEpoch.fetch_add(1, std::memory_order_relaxed);
     const int total = tileTypeCount();
     if (total <= kVanillaTileCount) return;
     g_tables.watch(total, onTableRegrown);
@@ -457,9 +454,6 @@ std::vector<DrawShape> g_drawShapes;
 constexpr size_t kMaxAnimated = 8192;
 std::atomic<int> g_animHeight[kMaxAnimated];
 FieldInfo* g_tileFrameField = nullptr;
-std::atomic<DrawDataHook> g_drawDataHook{nullptr};
-std::atomic<const std::atomic<uint8_t>*> g_drawDataMarks{nullptr};
-std::atomic<const std::atomic<uint8_t>*> g_drawDataUncached{nullptr};
 
 using DrawDataFn = void (*)(Il2CppObject*, int32_t, int32_t, void*, uint16_t, int16_t*, int16_t*, int32_t*,
                             int32_t*, int32_t*, int32_t*, int32_t*, int32_t*, int32_t*, Il2CppObject**, void*,
@@ -467,125 +461,14 @@ using DrawDataFn = void (*)(Il2CppObject*, int32_t, int32_t, void*, uint16_t, in
 DrawDataFn g_origDrawData = nullptr;
 DrawDataFn g_origSpecialDrawData = nullptr;
 
-struct DrawKey {
-    int32_t x = 0, y = 0, type = 0, tileFrame = 0;
-    TileDrawData in;
-};
-static_assert(sizeof(DrawKey) == 12 * sizeof(int32_t), "DrawKey sem preenchimento (comparada com memcmp)");
-
-struct DrawEpoch {
-    uint32_t world = 0, area = 0;
-    bool operator==(const DrawEpoch& o) const { return world == o.world && area == o.area; }
-};
-
-struct DrawSlot {
-    std::atomic_flag busy = ATOMIC_FLAG_INIT;
-    bool used = false;
-    DrawEpoch epoch;
-    int64_t stamp = 0;
-    DrawKey key;
-    TileDrawData out;
-};
-
-constexpr size_t kDrawCacheSlots = 4096;
-constexpr int64_t kDrawCacheTtlNs = 5000000000LL;
-DrawSlot g_drawCache[kDrawCacheSlots];
-
-constexpr int kAreaShift = 4;
-constexpr size_t kAreaEpochs = 65536;
-std::atomic<uint32_t> g_areaEpoch[kAreaEpochs];
-
-std::atomic<uint32_t>& areaEpochOf(int32_t areaX, int32_t areaY) {
-    uint32_t h = static_cast<uint32_t>(areaX) * 73856093u ^ static_cast<uint32_t>(areaY) * 19349663u;
-    h ^= h >> 16;
-    return g_areaEpoch[h & (kAreaEpochs - 1)];
-}
-
-DrawEpoch drawEpochAt(int32_t x, int32_t y) {
-    return {g_drawEpoch.load(std::memory_order_relaxed),
-            areaEpochOf(x >> kAreaShift, y >> kAreaShift).load(std::memory_order_relaxed)};
-}
-
-void touchDrawArea(int32_t x0, int32_t y0, int32_t x1, int32_t y1) {
-    const int32_t ax0 = x0 >> kAreaShift, ax1 = x1 >> kAreaShift;
-    const int32_t ay0 = y0 >> kAreaShift, ay1 = y1 >> kAreaShift;
-    if (ax1 < ax0 || ay1 < ay0) return;
-    if (static_cast<int64_t>(ax1 - ax0 + 1) * (ay1 - ay0 + 1) > 1024) {
-        g_drawEpoch.fetch_add(1, std::memory_order_relaxed);
-        return;
-    }
-    for (int32_t ax = ax0; ax <= ax1; ++ax) {
-        for (int32_t ay = ay0; ay <= ay1; ++ay) areaEpochOf(ax, ay).fetch_add(1, std::memory_order_relaxed);
-    }
-}
-
-int64_t coarseNowNs() {
-    timespec ts;
-    clock_gettime(CLOCK_MONOTONIC_COARSE, &ts);
-    return static_cast<int64_t>(ts.tv_sec) * 1000000000LL + ts.tv_nsec;
-}
-
-DrawSlot& drawSlotOf(const DrawKey& k) {
-    uint32_t h = static_cast<uint32_t>(k.x) * 73856093u ^ static_cast<uint32_t>(k.y) * 19349663u ^
-                 static_cast<uint32_t>(k.type) * 83492791u ^ static_cast<uint32_t>(k.tileFrame) * 2654435761u ^
-                 static_cast<uint32_t>(k.in.frameX) * 40503u ^ static_cast<uint32_t>(k.in.frameY) * 2246822519u;
-    h ^= h >> 15;
-    return g_drawCache[h & (kDrawCacheSlots - 1)];
-}
-
-bool drawCacheGet(const DrawKey& k, DrawEpoch epoch, int64_t now, TileDrawData* out) {
-    DrawSlot& s = drawSlotOf(k);
-    if (s.busy.test_and_set(std::memory_order_acquire)) return false;
-    const bool hit = s.used && s.epoch == epoch && now - s.stamp < kDrawCacheTtlNs &&
-                     std::memcmp(&s.key, &k, sizeof(DrawKey)) == 0;
-    if (hit) *out = s.out;
-    s.busy.clear(std::memory_order_release);
-    return hit;
-}
-
-void drawCachePut(const DrawKey& k, DrawEpoch epoch, int64_t now, const TileDrawData& out) {
-    DrawSlot& s = drawSlotOf(k);
-    if (s.busy.test_and_set(std::memory_order_acquire)) return;
-    s.key = k;
-    s.out = out;
-    s.epoch = epoch;
-    s.stamp = now;
-    s.used = true;
-    s.busy.clear(std::memory_order_release);
-}
-
-void invalidateDrawCache() {
-    g_drawEpoch.fetch_add(1, std::memory_order_relaxed);
-}
-
-using SquareFrameFn = void (*)(int32_t, int32_t, bool, const MethodInfo*);
-using RangeFrameFn = void (*)(int32_t, int32_t, int32_t, int32_t, const MethodInfo*);
-SquareFrameFn g_origSquareFrame = nullptr;
-RangeFrameFn g_origRangeFrame = nullptr;
-
-void hkSquareTileFrame(int32_t i, int32_t j, bool resetFrame, const MethodInfo* m) {
-    g_origSquareFrame(i, j, resetFrame, m);
-    touchDrawArea(i - 2, j - 2, i + 2, j + 2);
-}
-
-void hkRangeFrame(int32_t x0, int32_t y0, int32_t x1, int32_t y1, const MethodInfo* m) {
-    g_origRangeFrame(x0, y0, x1, y1, m);
-    touchDrawArea(x0 - 2, y0 - 2, x1 + 2, y1 + 2);
-}
-
-void applyTileDrawData(int32_t x, int32_t y, uint16_t type, int16_t* frameX,
-                       int16_t* frameY, int32_t* width, int32_t* height, int32_t* top, int32_t* halfBrick,
-                       int32_t* addFrX, int32_t* addFrY, int32_t* effects, bool special) {
+void applyTileDrawData(uint16_t type, int16_t* frameY, int32_t* width, int32_t* height, int32_t* top,
+                       int32_t* addFrY) {
     if (type < kVanillaTileCount) return;
     const size_t i = static_cast<size_t>(type) - kVanillaTileCount;
 
-    const DrawDataHook hook = g_drawDataHook.load(std::memory_order_acquire);
-    const std::atomic<uint8_t>* marks = g_drawDataMarks.load(std::memory_order_acquire);
-    const bool toMod = hook && marks && marks[type].load(std::memory_order_relaxed);
-
     const int frameHeight = i < kMaxAnimated ? g_animHeight[i].load(std::memory_order_relaxed) : 0;
     int32_t tileFrame = 0;
-    if ((frameHeight > 0 || toMod) && g_tileFrameField) {
+    if (frameHeight > 0 && g_tileFrameField) {
         Il2CppArray* frames = readStatic(g_tileFrameField);
         if (frames && type < frames->length) tileFrame = static_cast<const int32_t*>(arrayData(frames))[type];
     }
@@ -602,38 +485,6 @@ void applyTileDrawData(int32_t x, int32_t y, uint16_t type, int16_t* frameX,
         *top = s.yOffset;
         *height = s.heights[row];
     }
-
-    if (!toMod) return;
-    DrawKey key;
-    key.x = x;
-    key.y = y;
-    key.type = type;
-    key.tileFrame = tileFrame;
-    key.in.frameX = *frameX;
-    key.in.frameY = *frameY;
-    key.in.width = *width;
-    key.in.height = *height;
-    key.in.top = *top;
-    key.in.addFrX = *addFrX;
-    key.in.addFrY = *addFrY;
-    key.in.effects = *effects;
-    const DrawEpoch epoch = drawEpochAt(x, y);
-    const int64_t now = coarseNowNs();
-    const std::atomic<uint8_t>* uncached = g_drawDataUncached.load(std::memory_order_acquire);
-    const bool cached = !special && (!uncached || !uncached[type].load(std::memory_order_relaxed));
-    TileDrawData d;
-    if (!cached || !drawCacheGet(key, epoch, now, &d)) {
-        d = key.in;
-        if (hook(x, y, type, &d, special) && cached) drawCachePut(key, epoch, now, d);
-    }
-    *frameX = static_cast<int16_t>(d.frameX);
-    *frameY = static_cast<int16_t>(d.frameY);
-    *width = d.width;
-    *height = d.height;
-    *top = d.top;
-    *addFrX = d.addFrX;
-    *addFrY = d.addFrY;
-    *effects = d.effects;
 }
 
 void hkGetTileDrawData(Il2CppObject* self, int32_t x, int32_t y, void* info, uint16_t type, int16_t* frameX,
@@ -642,7 +493,7 @@ void hkGetTileDrawData(Il2CppObject* self, int32_t x, int32_t y, void* info, uin
                        void* glowColor, const MethodInfo* m) {
     g_origDrawData(self, x, y, info, type, frameX, frameY, width, height, top, halfBrick, addFrX, addFrY, effects, glow, glowRect, glowColor, m);
     noteTreeDrawTile(x, y, type, *frameX, *frameY);
-    applyTileDrawData(x, y, type, frameX, frameY, width, height, top, halfBrick, addFrX, addFrY, effects, false);
+    applyTileDrawData(type, frameY, width, height, top, addFrY);
     if (hasManagedTileDrawData(type)) {
         TileDrawData managed{*frameX, *frameY, *width, *height, *top, *addFrX, *addFrY, *effects};
         managedTileDrawData(x, y, type, &managed, false);
@@ -656,7 +507,7 @@ void hkGetSpecialTileDrawData(Il2CppObject* self, int32_t x, int32_t y, void* ti
                        int32_t* addFrX, int32_t* addFrY, int32_t* effects, Il2CppObject** glow, void* glowRect,
                        void* glowColor, const MethodInfo* m) {
     g_origSpecialDrawData(self, x, y, tile, type, frameX, frameY, width, height, top, halfBrick, addFrX, addFrY, effects, glow, glowRect, glowColor, m);
-    applyTileDrawData(x, y, type, frameX, frameY, width, height, top, halfBrick, addFrX, addFrY, effects, true);
+    applyTileDrawData(type, frameY, width, height, top, addFrY);
     if (hasManagedTileDrawData(type)) {
         TileDrawData managed{*frameX, *frameY, *width, *height, *top, *addFrX, *addFrY, *effects};
         managedTileDrawData(x, y, type, &managed, true);
@@ -726,15 +577,6 @@ void hookDrawData() {
         BL_ERROR("tiles de mod: sem hook no TileDrawing.GetTileDrawData; a ultima linha de um movel de mod sai cortada");
         return;
     }
-
-    Il2CppClass* worldGen = il2cpp::findClass({"Terraria", "WorldGen", {}});
-    const MethodInfo* square = worldGen ? a.class_get_method_from_name(worldGen, "SquareTileFrame", 3) : nullptr;
-    const MethodInfo* range = worldGen ? a.class_get_method_from_name(worldGen, "RangeFrame", 4) : nullptr;
-    if (!square || !range || !hook::install(square, hkSquareTileFrame, &g_origSquareFrame) ||
-        !hook::install(range, hkRangeFrame, &g_origRangeFrame)) {
-        BL_ERROR("tiles de mod: sem hook no WorldGen.SquareTileFrame/RangeFrame; o desenho de tile de mod "
-                 "pode levar ate 1 s para ver um bloco vizinho mudar");
-    }
 }
 
 void keepObjectData(int first, int last) {
@@ -765,7 +607,6 @@ void runStaticDefaults(int first, int last) {
     if (hasObjectDataField() && !objectDataList()) return;
     padTileObjectData(last + 1);
     const bool wasLocked = setObjectDataLocked(false);
-    if (TilesInstalledHook hook = g_installedHook.load(std::memory_order_acquire)) hook(first, last);
     if (TilesInstalledHook hook = g_managedInstalledHook.load(std::memory_order_acquire)) hook(first, last);
     setObjectDataLocked(wasLocked);
     keepObjectData(first, last);
@@ -953,17 +794,13 @@ void readManagedTileDrawData(void* renderer, int x, int y, int offset, int type,
     g_origSpecialDrawData(static_cast<Il2CppObject*>(renderer), x, y, reinterpret_cast<void*>(static_cast<intptr_t>(offset)), type,
         &frameX, &frameY, &d->width, &d->height, &d->top, halfBrick, &d->addFrX, &d->addFrY, &d->effects, &glow, rectangle, &color, nullptr);
     d->frameX = frameX; d->frameY = frameY;
-    applyTileDrawData(x,y,type,&frameX,&frameY,&d->width,&d->height,&d->top,halfBrick,&d->addFrX,&d->addFrY,&d->effects,true);
+    applyTileDrawData(static_cast<uint16_t>(type), &frameY, &d->width, &d->height, &d->top, &d->addFrY);
     d->frameX = frameX; d->frameY = frameY;
     managedTileDrawData(x,y,type,d,true);
 }
 
 void setManagedTilesInstalledHook(TilesInstalledHook hook) {
     g_managedInstalledHook.store(hook, std::memory_order_release);
-}
-
-void setTilesInstalledHook(TilesInstalledHook hook) {
-    g_installedHook.store(hook, std::memory_order_release);
 }
 
 int modTileTypeByName(const std::string& mod, const std::string& name) {
@@ -1009,23 +846,6 @@ void setModTileAnimation(int type, int frameHeight) {
     const size_t i = static_cast<size_t>(type - kVanillaTileCount);
     if (type < kVanillaTileCount || i >= kMaxAnimated) return;
     g_animHeight[i].store(frameHeight > 0 ? frameHeight : 0, std::memory_order_relaxed);
-}
-
-void setDrawDataHook(DrawDataHook hook, const std::atomic<uint8_t>* marks, const std::atomic<uint8_t>* uncached) {
-    g_drawDataUncached.store(uncached, std::memory_order_release);
-    g_drawDataMarks.store(marks, std::memory_order_release);
-    g_drawDataHook.store(hook, std::memory_order_release);
-    invalidateDrawCache();
-}
-
-std::vector<ModTileInfo> modTiles() {
-    std::lock_guard<std::mutex> l(g_mx);
-    std::vector<ModTileInfo> out;
-    for (size_t i = 0; i < g_regs.size(); ++i) {
-        const ModTileDef& d = g_regs[i].def;
-        out.push_back({kVanillaTileCount + static_cast<int>(i), d.mod, d.name, d.texture});
-    }
-    return out;
 }
 
 }

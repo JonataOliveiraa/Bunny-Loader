@@ -202,11 +202,6 @@ int registerModProjectile(ModProjectileDef def) {
     return kVanillaProjectileCount + static_cast<int>(g_regs.size()) - 1;
 }
 
-bool isModProjectile(int type) {
-    return type >= kVanillaProjectileCount &&
-           type < kVanillaProjectileCount + g_total.load(std::memory_order_acquire);
-}
-
 int projectileTypeCount() {
     return kVanillaProjectileCount + g_installed.load(std::memory_order_acquire);
 }
@@ -290,16 +285,6 @@ void setModProjectileFrames(int type, int frames) {
     e.def.frames = frames;
     if (e.textureHeight > 0) e.height = e.textureHeight / frames;
     if (static_cast<int>(i) < g_installed.load(std::memory_order_relaxed)) applyFrames(type, e);
-}
-
-int modProjectileTypeByName(const std::string& mod, const std::string& name) {
-    std::lock_guard<std::mutex> l(g_mx);
-    for (size_t i = 0; i < g_regs.size(); ++i) {
-        if (g_regs[i].def.mod == mod && g_regs[i].def.name == name) {
-            return kVanillaProjectileCount + static_cast<int>(i);
-        }
-    }
-    return -1;
 }
 
 void finishModProjectile(Il2CppObject* projectile, int type) {

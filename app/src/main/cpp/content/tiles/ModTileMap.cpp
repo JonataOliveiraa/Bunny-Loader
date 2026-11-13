@@ -776,24 +776,6 @@ void applyModTileMap(int total, bool rebuilt) {
     g_modPosition.store(pos);
 }
 
-bool readMapTile(int x, int y, int* type, int* light, int* paint) {
-    const Refs& r = refs();
-    if (!r.ok || !r.saveOk) return false;
-    Il2CppObject* map = call<Il2CppObject*>(r.getMap);
-    Il2CppObject* lock = map ? field<Il2CppObject*>(map, r.lockObject) : nullptr;
-    if (!lock) return false;
-    il2cpp::api().monitor_enter(lock);
-    Il2CppObject* chunk = nullptr;
-    const MapCell* p = cellAt(r, map, x, y, &chunk);
-    const MapCell cell = p ? *p : MapCell{};
-    il2cpp::api().monitor_exit(lock);
-    if (!p) return false;
-    *type = cell.type;
-    *light = cell.light;
-    *paint = cell.extra & 0x1F;
-    return true;
-}
-
 void installModTileMap() {
     static std::atomic<bool> once{false};
     if (once.exchange(true)) return;

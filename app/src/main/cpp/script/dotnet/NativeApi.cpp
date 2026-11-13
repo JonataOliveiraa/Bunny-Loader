@@ -901,7 +901,6 @@ int32_t nativeRegisterDust(const char* mod, const char* name, const char* textur
     def.texture = texture ? texture : "";
     if (!def.texture.empty() && !fileExists(def.texture.c_str())) return -2;
     def.hooks = hooks;
-    def.engine = 1;
     const int type = runtime::registerModDust(std::move(def));
     if (type >= 0) noteModForMenu(mod);
     return type;
@@ -1139,7 +1138,7 @@ const NativeApi kNativeApi{
     runtime::scanTileEvents,
     runtime::readManagedTileDrawData,
     [](int32_t stage, runtime::SystemStageFn callback) -> int32_t {
-        return runtime::installSystemStage(stage, runtime::kStageClientManaged, profile::wrap(callback, "SystemStage")) ? 1 : 0;
+        return runtime::installSystemStage(stage, profile::wrap(callback, "SystemStage")) ? 1 : 0;
     },
     profile::read,
     [](const char* path) -> int32_t {

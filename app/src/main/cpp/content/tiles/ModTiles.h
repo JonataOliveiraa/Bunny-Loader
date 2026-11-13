@@ -30,7 +30,6 @@ void tickModTiles();
 bool modTilesSettled();
 
 using TilesInstalledHook = void (*)(int first, int last);
-void setTilesInstalledHook(TilesInstalledHook hook);
 void setManagedTilesInstalledHook(TilesInstalledHook hook);
 
 int modTileTypeByName(const std::string& mod, const std::string& name);
@@ -46,11 +45,6 @@ bool modObjectShape(int type, ModObjectShape* out);
 
 int modTileTypeByKey(const std::string& key);
 
-struct ModTileInfo {
-    int type;
-    std::string mod, name, texture;
-};
-
 void setModTileAnimation(int type, int frameHeight);
 void readManagedTileDrawData(void* renderer, int x, int y, int offset, int type, void* data, int* halfBrick);
 
@@ -60,10 +54,5 @@ struct TileDrawData {
     int32_t addFrX = 0, addFrY = 0;
     int32_t effects = 0;
 };
-
-using DrawDataHook = bool (*)(int x, int y, int type, TileDrawData* d, bool special);
-void setDrawDataHook(DrawDataHook hook, const std::atomic<uint8_t>* marks, const std::atomic<uint8_t>* uncached);
-
-std::vector<ModTileInfo> modTiles();
 
 }

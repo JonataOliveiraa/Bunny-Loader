@@ -20,16 +20,6 @@ std::vector<LoadedMod>& registry() {
     return list;
 }
 
-std::string& currentDirSlot() {
-    static std::string current;
-    return current;
-}
-
-std::string& currentIdSlot() {
-    static std::string current;
-    return current;
-}
-
 std::map<std::string, std::string>& dirsById() {
     static std::map<std::string, std::string> m;
     return m;
@@ -134,11 +124,7 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
             registry()[i].enabled = false;
             continue;
         }
-        currentDirSlot() = dir;
-        currentIdSlot() = id;
         const bool ok = dotnet::host().loadMod(id, path);
-        currentDirSlot().clear();
-        currentIdSlot().clear();
         if (!ok) {
             BL_ERROR("mod %s falhou ao carregar (%s)", id.c_str(), path.c_str());
             registry()[i].enabled = false;
@@ -147,9 +133,6 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
         }
     }
 }
-
-const std::string& currentDir() { return currentDirSlot(); }
-const std::string& currentId() { return currentIdSlot(); }
 
 std::string rootOf(const std::string& id) {
     for (const LoadedMod& m : registry()) if (m.id == id) return m.dir;
@@ -164,12 +147,6 @@ std::string displayName(const std::string& id) {
 const LoadedMod* find(const std::string& id) {
     for (const LoadedMod& m : registry()) if (m.id == id) return &m;
     return nullptr;
-}
-
-const std::string& dirOf(const std::string& id) {
-    static const std::string none;
-    auto it = dirsById().find(id);
-    return it == dirsById().end() ? none : it->second;
 }
 
 size_t loadedCount() { return registry().size(); }

@@ -9,8 +9,6 @@
 
 #include <EGL/egl.h>
 #include <atomic>
-#include <cstdarg>
-#include <cstdio>
 #include <cstring>
 #include <dlfcn.h>
 #include <mutex>
@@ -23,10 +21,8 @@ namespace {
 using SwapFn = EGLBoolean (*)(EGLDisplay, EGLSurface);
 using BindFramebufferFn = void (*)(GLenum, GLuint);
 using ViewportFn = void (*)(GLint, GLint, GLsizei, GLsizei);
-using ClearFn = void (*)(GLbitfield);
 using DrawElementsFn = void (*)(GLenum, GLsizei, GLenum, const void*);
 using DrawArraysFn = void (*)(GLenum, GLint, GLsizei);
-using BlitFn = void (*)(GLint, GLint, GLint, GLint, GLint, GLint, GLint, GLint, GLbitfield, GLenum);
 using UintFn = void (*)(GLuint);
 using EnumFn = void (*)(GLenum);
 using ColorMaskFn = void (*)(GLboolean, GLboolean, GLboolean, GLboolean);
@@ -34,10 +30,8 @@ using ColorMaskFn = void (*)(GLboolean, GLboolean, GLboolean, GLboolean);
 SwapFn g_origSwap = nullptr;
 BindFramebufferFn g_origBindFramebuffer = nullptr;
 ViewportFn g_origViewport = nullptr;
-ClearFn g_origClear = nullptr;
 DrawElementsFn g_origDrawElements = nullptr;
 DrawArraysFn g_origDrawArrays = nullptr;
-BlitFn g_origBlit = nullptr;
 UintFn g_origUseProgram = nullptr;
 UintFn g_origBindVertexArray = nullptr;
 EnumFn g_origActiveTexture = nullptr;
@@ -83,7 +77,7 @@ GlShadow unityState() {
         if (compareGlState(g_shadow, real, diff, sizeof diff) > 0) {
             g_shadowMismatches++;
             g_trustShadow = false;
-            BL_ERROR("efeitos de tela: espelho do estado GL errado (%s); volta para glGet*", diff);
+            BL_ERROR("screen effects: GL state mirror is wrong (%s); falling back to glGet*", diff);
             g_shadow = real;
             return real;
         }
@@ -96,40 +90,7 @@ void noteDraw() {
     for (int i = 0; i < 4; ++i) g_lastDraw.viewport[i] = g_shadow.viewport[i];
 }
 
-std::atomic<bool> g_traceRequested{false};
-bool g_tracing = false;
-std::string g_trace;
-int g_pendingDraws = 0;
-
-void flushDraws() {
-    if (g_pendingDraws == 0) return;
-    g_trace += " D" + std::to_string(g_pendingDraws);
-    g_pendingDraws = 0;
-}
-
-void traceEvent(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
-void traceEvent(const char* fmt, ...) {
-    if (!g_tracing || g_trace.size() > 12000) return;
-    flushDraws();
-    char buf[96];
-    va_list args;
-    va_start(args, fmt);
-    vsnprintf(buf, sizeof buf, fmt, args);
-    va_end(args);
-    g_trace += ' ';
-    g_trace += buf;
-}
-
-void logTrace() {
-    flushDraws();
-    BL_INFO("rastro GL: %zu caracteres", g_trace.size());
-    for (size_t i = 0; i < g_trace.size(); i += 700) {
-        BL_INFO("rastro GL [%zu]:%s", i / 700, g_trace.substr(i, 700).c_str());
-    }
-}
-
 void onMarker() {
-    traceEvent("MARCADOR");
     noteMarkerHit();
     EffectFrame effects;
     if (!takeWorldEffects(effects) || g_lastDraw.viewport[2] <= 0) return;
@@ -143,14 +104,12 @@ void hkBindFramebuffer(GLenum target, GLuint fbo) {
     if (tracked()) {
         if (target != GL_READ_FRAMEBUFFER) g_shadow.drawFbo = fbo;
         if (target != GL_DRAW_FRAMEBUFFER) g_shadow.readFbo = fbo;
-        traceEvent("FB%s(%u)", target == GL_READ_FRAMEBUFFER ? "r" : target == GL_DRAW_FRAMEBUFFER ? "d" : "", fbo);
     }
     g_origBindFramebuffer(target, fbo);
 }
 
 void hkViewport(GLint x, GLint y, GLsizei w, GLsizei h) {
     if (tracked()) {
-        traceEvent("VP(%d,%d,%d,%d)", x, y, w, h);
         if (w == kMarkerWidth && h == kMarkerHeight) onMarker();
         g_shadow.viewport[0] = x;
         g_shadow.viewport[1] = y;
@@ -210,50 +169,20 @@ void hkColorMask(GLboolean r, GLboolean gr, GLboolean b, GLboolean a) {
     g_origColorMask(r, gr, b, a);
 }
 
-void hkClear(GLbitfield mask) {
-    if (tracked()) {
-        traceEvent("CL(%s%s%s)", mask & GL_COLOR_BUFFER_BIT ? "c" : "", mask & GL_DEPTH_BUFFER_BIT ? "d" : "",
-                   mask & GL_STENCIL_BUFFER_BIT ? "s" : "");
-    }
-    g_origClear(mask);
-}
-
 void hkDrawElements(GLenum mode, GLsizei count, GLenum type, const void* indices) {
-    if (tracked()) {
-        noteDraw();
-        if (g_tracing) g_pendingDraws++;
-    }
+    if (tracked()) noteDraw();
     g_origDrawElements(mode, count, type, indices);
 }
 
 void hkDrawArrays(GLenum mode, GLint first, GLsizei count) {
-    if (tracked()) {
-        noteDraw();
-        if (g_tracing) g_pendingDraws++;
-    }
+    if (tracked()) noteDraw();
     g_origDrawArrays(mode, first, count);
-}
-
-void hkBlit(GLint sx0, GLint sy0, GLint sx1, GLint sy1, GLint dx0, GLint dy0, GLint dx1, GLint dy1,
-            GLbitfield mask, GLenum filter) {
-    if (tracked()) traceEvent("BL(%d,%d,%d,%d->%d,%d,%d,%d)", sx0, sy0, sx1, sy1, dx0, dy0, dx1, dy1);
-    g_origBlit(sx0, sy0, sx1, sy1, dx0, dy0, dx1, dy1, mask, filter);
 }
 
 int g_frame = 0;
 
 EGLBoolean hkSwap(EGLDisplay display, EGLSurface surface) {
     if (!unityThread()) return g_origSwap(display, surface);
-
-    if (g_tracing) {
-        traceEvent("SWAP");
-        g_tracing = false;
-        logTrace();
-        g_trace.clear();
-    } else if (g_traceRequested.exchange(false)) {
-        g_tracing = true;
-        g_trace = "SWAP";
-    }
 
     EffectFrame effects;
     if (takeScreenEffects(effects)) {
@@ -277,7 +206,7 @@ bool hookGl(const char* name, void* address, Fn replacement, Fn* original) {
     if (address && hook::install(address, reinterpret_cast<void*>(replacement), reinterpret_cast<void**>(original))) {
         return true;
     }
-    BL_ERROR("efeitos de tela: %s nao hookado", name);
+    BL_ERROR("screen effects: %s not hooked", name);
     return false;
 }
 
@@ -300,17 +229,10 @@ void installGlHooks() {
         ok &= hookGl("glEnable", reinterpret_cast<void*>(g.Enable), hkEnable, &g_origEnable);
         ok &= hookGl("glDisable", reinterpret_cast<void*>(g.Disable), hkDisable, &g_origDisable);
         ok &= hookGl("glColorMask", reinterpret_cast<void*>(g.ColorMask), hkColorMask, &g_origColorMask);
-        ok &= hookGl("glClear", reinterpret_cast<void*>(g.Clear), hkClear, &g_origClear);
         ok &= hookGl("glDrawElements", reinterpret_cast<void*>(g.DrawElements), hkDrawElements, &g_origDrawElements);
         ok &= hookGl("glDrawArrays", reinterpret_cast<void*>(g.DrawArrays), hkDrawArrays, &g_origDrawArrays);
-        ok &= hookGl("glBlitFramebuffer", reinterpret_cast<void*>(g.BlitFramebuffer), hkBlit, &g_origBlit);
-        BL_INFO("efeitos de tela: hooks GL %s", ok ? "ok" : "com falha");
+        BL_INFO("screen effects: GL hooks %s", ok ? "ok" : "failed");
     });
-}
-
-void requestGlTrace() {
-    installGlHooks();
-    g_traceRequested.store(true);
 }
 
 void fillGlHookStats(RenderStats& stats) {

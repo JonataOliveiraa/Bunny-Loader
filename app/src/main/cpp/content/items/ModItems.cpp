@@ -156,15 +156,6 @@ bool invoke(const MethodInfo* m, void* self, void** args, const char* what,
     return true;
 }
 
-Il2CppObject* invokeValue(const MethodInfo* m, void* self, void** args, const char* what) {
-    Il2CppObject* r = nullptr;
-    return invoke(m, self, args, what, &r) ? r : nullptr;
-}
-
-int unboxInt(Il2CppObject* o) {
-    return o ? *reinterpret_cast<int*>(reinterpret_cast<char*>(o) + sizeof(Il2CppObject)) : 0;
-}
-
 Il2CppArray* readStatic(FieldInfo* f) {
     Il2CppArray* arr = nullptr;
     il2cpp::api().field_static_get_value(f, &arr);

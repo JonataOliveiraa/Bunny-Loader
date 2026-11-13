@@ -18,11 +18,7 @@ struct TileArrays {
 
 bool tileArrays(TileArrays* out);
 
-int tileTypeAtOffset(int32_t offset);
-
 int tileTypeAt(int x, int y);
-
-int wallTypeAtOffset(int32_t offset);
 
 int wallTypeAt(int x, int y);
 

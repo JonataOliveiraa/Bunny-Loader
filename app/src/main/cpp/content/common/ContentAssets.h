@@ -20,14 +20,12 @@ Il2CppObject* loadPackTexture(const std::string& path, int* width, int* height);
 void destroyGameTexture(Il2CppObject* texture);
 
 bool textureAssetSize(Il2CppObject* asset, int* width, int* height);
-Il2CppClass* textureAssetClass();
 std::string textureAssetName(Il2CppObject* asset);
 Il2CppObject* textureAssetValue(Il2CppObject* asset);
 Il2CppObject* textureAssetSource(Il2CppObject* asset);
 int textureAssetState(Il2CppObject* asset);
 bool replaceTextureAssetValue(Il2CppObject* asset, Il2CppObject* value, Il2CppObject* source, int state = 2);
 std::vector<Il2CppObject*> textureAssets();
-void destroyTextureAsset(Il2CppObject* asset);
 
 std::string normalizeTextureAssetName(std::string name);
 
@@ -36,8 +34,6 @@ Il2CppObject* vanillaTextureAsset(const std::string& name, bool* missingOnMobile
 using CultureNames = std::vector<std::pair<std::string, std::string>>;
 
 std::string textForCulture(const CultureNames& names, const std::string& fallback);
-
-Il2CppObject* makeLocalizedText(const std::string& key, const std::string& text);
 
 std::string activeCultureName();
 Il2CppObject* newLocalizedText(const std::string& key, const std::string& text);

@@ -835,27 +835,6 @@ bool resolve() {
 
 }
 
-std::string modChestItemData(Il2CppObject* chest, int slot) {
-    if (!g_chest.ok || !chest) return {};
-
-    auto* items = reinterpret_cast<Il2CppArray*>(objectAt(chest, g_chest.items));
-    const ChestSlot value = items ? slotOf(items, slot) : ChestSlot{};
-
-    return value.data ? chestData(value.data, value.type()) : std::string();
-}
-
-bool setModChestItemData(Il2CppObject* chest, int slot, const std::string& data) {
-    if (!g_chest.ok || !chest) return false;
-
-    auto* items = reinterpret_cast<Il2CppArray*>(objectAt(chest, g_chest.items));
-    const ChestSlot value = items ? slotOf(items, slot) : ChestSlot{};
-    if (!value.data) return false;
-
-    setChestData(value.data, value.type(), data);
-
-    return true;
-}
-
 namespace {
 
 char* chestSlotAt(int chestIndex, int slot) {

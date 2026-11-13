@@ -111,11 +111,6 @@ std::string errorsSoFar() {
     return g_errors;
 }
 
-int errorCount() {
-    std::lock_guard<std::mutex> guard(g_mutex);
-    return g_errorCount;
-}
-
 void onLine(void (*fn)(int level, const char* line)) {
     g_onLine.store(fn, std::memory_order_release);
 }

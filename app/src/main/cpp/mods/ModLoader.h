@@ -26,12 +26,6 @@ size_t loadedCount();
 
 LoadedMod* get(uint16_t index);
 
-const std::string& currentDir();
-
-const std::string& dirOf(const std::string& id);
-
-const std::string& currentId();
-
 std::string rootOf(const std::string& id);
 
 std::string displayName(const std::string& id);

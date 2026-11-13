@@ -74,29 +74,12 @@ bool tileArrays(TileArrays* out) {
     return out->width > 0 && out->height > 0 && out->lookup && out->type && out->sHeader;
 }
 
-int tileTypeAtOffset(int32_t offset) {
-    TileArrays t;
-    if (offset < 0 || !tileArrays(&t)) return -1;
-    if (static_cast<int64_t>(offset) >= static_cast<int64_t>(t.width) * t.height) return -1;
-    const uint32_t def = t.lookup[offset];
-    if (!(t.sHeader[def] & kTileActiveBit)) return -1;
-    return t.type[def];
-}
-
 int tileTypeAt(int x, int y) {
     TileArrays t;
     if (x < 0 || y < 0 || !tileArrays(&t) || x >= t.width || y >= t.height) return -1;
     const uint32_t def = t.lookup[static_cast<int64_t>(t.width) * y + x];
     if (!(t.sHeader[def] & kTileActiveBit)) return -1;
     return t.type[def];
-}
-
-int wallTypeAtOffset(int32_t offset) {
-    TileArrays t;
-    if (offset < 0 || !tileArrays(&t) || !t.wall) return -1;
-    if (static_cast<int64_t>(offset) >= static_cast<int64_t>(t.width) * t.height) return -1;
-    const uint16_t w = t.wall[offset];
-    return w ? w : -1;
 }
 
 int wallTypeAt(int x, int y) {

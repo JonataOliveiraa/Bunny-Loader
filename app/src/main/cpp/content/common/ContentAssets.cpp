@@ -249,8 +249,6 @@ Il2CppObject* missingTextureAsset(int* width, int* height) {
     return asset;
 }
 
-Il2CppClass* textureAssetClass() { return refs().assetCls; }
-
 std::string textureAssetName(Il2CppObject* asset) {
     const auto& r = refs();
     if (!asset || il2cpp::api().object_get_class(asset) != r.assetCls || r.nameOffset < 0) return {};
@@ -372,12 +370,6 @@ bool textureAssetSize(Il2CppObject* asset, int* width, int* height) {
     return *width > 0 && *height > 0;
 }
 
-void destroyTextureAsset(Il2CppObject* asset) {
-    const Refs& r = refs();
-    if (!asset || r.valueOffset < 0) return;
-    destroyGameTexture(*reinterpret_cast<Il2CppObject**>(reinterpret_cast<char*>(asset) + r.valueOffset));
-}
-
 void destroyGameTexture(Il2CppObject* texture) {
     const Refs& r = refs();
     if (!texture || r.unityOffset < 0 || !r.destroy) return;
@@ -436,18 +428,6 @@ void registerLanguageKey(Il2CppString* key, Il2CppObject* text) {
     invoke(setItem, dict, args, "LanguageManager._localizedTexts[chave]");
 }
 
-}
-
-Il2CppObject* makeLocalizedText(const std::string& key, const std::string& text) {
-    auto& a = il2cpp::api();
-    const Refs& r = refs();
-    if (!r.ok) return nullptr;
-    Il2CppObject* t = a.object_new(r.localizedTextCls);
-    Il2CppString* k = a.string_new(key.c_str());
-    void* c[2] = {k, a.string_new(text.c_str())};
-    if (!invoke(r.localizedTextCtor, t, c, "LocalizedText.ctor")) return nullptr;
-    registerLanguageKey(k, t);
-    return t;
 }
 
 Il2CppObject* newLocalizedText(const std::string& key, const std::string& text) {

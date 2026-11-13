@@ -11,7 +11,6 @@ void setVerbose(bool on);
 void write(int level, const char* fmt, ...) __attribute__((format(printf, 2, 3)));
 
 std::string errorsSoFar();
-int errorCount();
 
 void onError(void (*fn)(const char* line));
 
