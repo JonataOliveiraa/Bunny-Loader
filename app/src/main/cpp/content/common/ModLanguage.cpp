@@ -89,6 +89,7 @@ void tickModLanguage() {
             break;
         }
     }
+    if (!pending && !reapply) return;
     bool applied = false;
     for (auto& [key, text] : g_texts) {
         Il2CppObject* object = a.gchandle_get_target(text.handle);

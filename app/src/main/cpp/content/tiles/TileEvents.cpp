@@ -17,6 +17,9 @@ namespace
 {
 std::array<std::atomic<uint32_t>, 65536> g_flags{};
 std::atomic<uint32_t> g_globals{0};
+std::atomic<uint32_t> g_typeFlags{0};
+std::atomic<int32_t> g_lowType{65536};
+std::atomic<int32_t> g_highType{-1};
 std::atomic<TileEventCallback> g_callback{nullptr};
 std::mutex g_gate;
 uint32_t g_installed = 0;
@@ -173,8 +176,13 @@ bool installTileEvents(int32_t type, uint32_t flags, TileEventCallback callback)
     g_callback.store(callback, std::memory_order_release);
     if (type < 0)
         g_globals.fetch_or(flags, std::memory_order_release);
-    else
+    else if (flags)
+    {
+        if (type < g_lowType.load(std::memory_order_relaxed)) g_lowType.store(type, std::memory_order_relaxed);
+        if (type > g_highType.load(std::memory_order_relaxed)) g_highType.store(type, std::memory_order_relaxed);
         g_flags[type].fetch_or(flags, std::memory_order_release);
+        g_typeFlags.fetch_or(flags, std::memory_order_release);
+    }
     uint32_t missing = flags & ~g_installed;
     if (missing & (1u << 17))
     {
@@ -231,24 +239,33 @@ int32_t scanTileEvents(int32_t x, int32_t y, int32_t width, int32_t height, uint
                        int32_t capacity)
 {
     if (!cells || capacity <= 0 || width <= 0 || height <= 0) return 0;
+    const bool every = (g_globals.load(std::memory_order_acquire) & flags) != 0;
+    if (!every && !(g_typeFlags.load(std::memory_order_acquire) & flags)) return 0;
     TileArrays arrays;
     if (!tileArrays(&arrays)) return 0;
-    int right = static_cast<int>(std::min<int64_t>(arrays.width, static_cast<int64_t>(x) + width));
-    int bottom = static_cast<int>(std::min<int64_t>(arrays.height, static_cast<int64_t>(y) + height));
+    const int low = g_lowType.load(std::memory_order_relaxed);
+    const int high = g_highType.load(std::memory_order_relaxed);
+    const int left = std::max(x, 0);
+    const int right = static_cast<int>(std::min<int64_t>(arrays.width, static_cast<int64_t>(x) + width));
+    const int bottom = static_cast<int>(std::min<int64_t>(arrays.height, static_cast<int64_t>(y) + height));
     int count = 0;
     for (int j = std::max(y, 0); j < bottom; ++j)
-        for (int i = std::max(x, 0); i < right; ++i)
+    {
+        const uint32_t *row = arrays.lookup + static_cast<int64_t>(arrays.width) * j;
+        for (int i = left; i < right; ++i)
         {
-            auto definition = arrays.lookup[arrays.width * j + i];
+            const uint32_t definition = row[i];
             if (!(arrays.sHeader[definition] & kTileActiveBit)) continue;
-            int type = arrays.type[definition];
-            if (!(flagsOf(type) & flags)) continue;
+            const int type = arrays.type[definition];
+            if (!every && (type < low || type > high || !(g_flags[type].load(std::memory_order_relaxed) & flags)))
+                continue;
             if (count == capacity) return -count;
             cells[count * 3] = i;
             cells[count * 3 + 1] = j;
             cells[count * 3 + 2] = type;
             ++count;
         }
+    }
     return count;
 }
 

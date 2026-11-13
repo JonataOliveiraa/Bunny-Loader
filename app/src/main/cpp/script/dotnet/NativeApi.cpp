@@ -70,6 +70,8 @@
 #include <cstring>
 #include <map>
 #include <mutex>
+#include <string>
+#include <unordered_map>
 
 namespace bl::dotnet {
 
@@ -361,6 +363,14 @@ void* nativeNewParameterObject(void* method, int32_t parameter) {
 
 void* nativeFindMethodBySignature(void* cls, const char* signature) {
     if (!cls || !signature) return nullptr;
+    static std::mutex cacheLock;
+    static std::unordered_map<std::string, const MethodInfo*> cache;
+    std::string key(reinterpret_cast<const char*>(&cls), sizeof(cls));
+    key += signature;
+    {
+        std::lock_guard<std::mutex> lock(cacheLock);
+        if (auto hit = cache.find(key); hit != cache.end()) return const_cast<MethodInfo*>(hit->second);
+    }
     il2cpp::Signature sig = il2cpp::parseSignature(signature);
     bool ambiguous = false;
     const MethodInfo* nameMismatch = nullptr;
@@ -368,6 +378,8 @@ void* nativeFindMethodBySignature(void* cls, const char* signature) {
     if (!m && nameMismatch) {
         BL_WARN("dotnet: '%s': %s", signature, il2cpp::explainParamNames(nameMismatch, sig).c_str());
     }
+    std::lock_guard<std::mutex> lock(cacheLock);
+    cache.emplace(std::move(key), m);
     return const_cast<MethodInfo*>(m);
 }
 
