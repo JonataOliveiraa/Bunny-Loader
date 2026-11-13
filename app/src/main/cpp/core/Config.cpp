@@ -30,10 +30,10 @@ void splitCsv(const std::string& value, std::vector<ModSpec>& out) {
 
 }
 
-ModSpec parseModSpec(const std::string& texto) {
-    size_t eq = texto.find('=');
-    if (eq == std::string::npos) return {texto, {}};
-    return {trim(texto.substr(0, eq)), trim(texto.substr(eq + 1))};
+ModSpec parseModSpec(const std::string& text) {
+    size_t eq = text.find('=');
+    if (eq == std::string::npos) return {text, {}};
+    return {trim(text.substr(0, eq)), trim(text.substr(eq + 1))};
 }
 
 bool loadConfigFromFile(const char* path) {

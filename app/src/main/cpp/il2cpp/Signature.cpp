@@ -107,14 +107,14 @@ bool typeMatches(const std::string& want, const char* got) {
     std::string g(got);
     if (nameEndsWith(g, want)) return true;
 
-    size_t fim = want.size();
-    while (fim > 0 && (want[fim - 1] == '&' || want[fim - 1] == ']' || want[fim - 1] == '[')) {
-        --fim;
+    size_t end = want.size();
+    while (end > 0 && (want[end - 1] == '&' || want[end - 1] == ']' || want[end - 1] == '[')) {
+        --end;
     }
-    if (fim == want.size() || fim == 0) return false;
-    const char* clr = keywordToClr(want.substr(0, fim));
+    if (end == want.size() || end == 0) return false;
+    const char* clr = keywordToClr(want.substr(0, end));
     if (!clr) return false;
-    return (std::string(clr) + want.substr(fim)) == got;
+    return (std::string(clr) + want.substr(end)) == got;
 }
 
 std::string typeName(const Il2CppType* t) {

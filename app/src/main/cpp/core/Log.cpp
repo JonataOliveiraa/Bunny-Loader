@@ -116,13 +116,13 @@ void onLine(void (*fn)(int level, const char* line)) {
 }
 
 void onError(void (*fn)(const char*)) {
-    bool atrasados = false;
+    bool hadEarlierErrors = false;
     {
         std::lock_guard<std::mutex> guard(g_mutex);
         g_onError = fn;
-        atrasados = fn && g_errorCount > 0;
+        hadEarlierErrors = fn && g_errorCount > 0;
     }
-    if (atrasados) fn("(errors from before the panel)");
+    if (hadEarlierErrors) fn("(errors from before the panel)");
 }
 
 }
