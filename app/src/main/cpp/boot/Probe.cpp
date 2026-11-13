@@ -97,7 +97,7 @@ void probeThread() {
                 BL_ERROR("probe: resolveGameRefs failed");
                 return;
             }
-            BL_DEBUG("sonda: RESOLUCAO OK");
+            BL_DEBUG("probe: references resolved");
             installSplashHook();
             waitGameContentLoaded();
 
