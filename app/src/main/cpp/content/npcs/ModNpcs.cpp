@@ -40,7 +40,7 @@ bool g_staticDefaultsPending = false;
 
 std::vector<int> g_animation;
 
-TypeTables g_tables("NPCs de mod", kVanillaNpcCount, {
+TypeTables g_tables("mod NPCs", kVanillaNpcCount, {
     {"Terraria.ID", "NPCID", "Sets"},
     {"Terraria", "Main", ""},
     {"Terraria", "Lang", ""},
@@ -127,7 +127,7 @@ Refs& refs() {
            r.defDamage >= 0 && r.defDefense >= 0 && r.defLifeMax >= 0 && r.npcCtor && r.setDefaults && r.findFrame &&
            r.playerCtor;
     if (!r.ok) {
-        BL_ERROR("NPCs de mod: refs faltando (TextureAssets.Npc=%p Lang._npcNameCache=%p "
+        BL_ERROR("mod NPCs: references missing (TextureAssets.Npc=%p Lang._npcNameCache=%p "
                  "Main.npcFrameCount=%p ContentSamples=%p SetDefaults=%p FindFrame=%p)",
                  (void*)r.textures, (void*)r.names, (void*)r.frames, (void*)r.samples,
                  (void*)r.setDefaults, (void*)r.findFrame);
@@ -208,7 +208,7 @@ void registerSample(int type, const std::string& key) {
     int t = type;
     alignas(8) uint8_t spawnParams[32] = {};
     void* sd[2] = {&t, spawnParams};
-    invoke(r.setDefaults, npc, sd, "SetDefaults da amostra");
+    invoke(r.setDefaults, npc, sd, "sample SetDefaults");
     setDictionaryEntry(r.samples, &t, npc, "ContentSamples.NpcsByNetId");
     {
         std::lock_guard<std::mutex> l(g_mx);
@@ -263,14 +263,14 @@ void patchLimits(int total) {
         }
         if (patched > 0) {
             ++methodsOk;
-            BL_DEBUG("NPCs de mod: %s.%s: %d limite(s) de %u para %u", p.cls, p.method, patched, p.vanilla, to);
+            BL_DEBUG("mod NPCs: %s.%s: %d limit(s) from %u to %u", p.cls, p.method, patched, p.vanilla, to);
         } else {
-            BL_ERROR("NPCs de mod: %s.%s: limite %u nao trocado (o NPC de mod fica sem isso): %s", p.cls,
+            BL_ERROR("mod NPCs: %s.%s: limit %u not swapped (the mod NPC goes without it): %s", p.cls,
                      p.method, p.vanilla, describeCompareMiss(last, p.vanilla, to).c_str());
         }
     }
     const int methods = static_cast<int>(sizeof(kLimitPatches) / sizeof(kLimitPatches[0]));
-    BL_INFO("NPCs de mod: limites do codigo trocados em %d de %d metodo(s)", methodsOk, methods);
+    BL_INFO("mod NPCs: compiled limits swapped in %d of %d method(s)", methodsOk, methods);
 }
 
 using FindFrameFn = void (*)(Il2CppObject*, const MethodInfo*);
@@ -330,7 +330,7 @@ void hkPlayerCtor(Il2CppObject* self, const MethodInfo* m) {
 void growPlayers(int size) {
     const Refs& r = refs();
     if (!hook::install(r.playerCtor, hkPlayerCtor, &g_origPlayerCtor)) {
-        BL_ERROR("NPCs de mod: sem hook no construtor de Player; jogador novo le fora de npcTypeNoAggro");
+        BL_ERROR("mod NPCs: no hook on the Player constructor; a new player reads past npcTypeNoAggro");
     }
     Il2CppArray* players = readStatic(r.players);
     for (uintptr_t i = 0; players && i < players->length; ++i) {
@@ -428,7 +428,7 @@ void tickModNpcs() {
         return;
     }
     if (installed > 0) {
-        BL_ERROR("NPCs de mod: registro depois da instalacao ignorado");
+        BL_ERROR("mod NPCs: registration after installation ignored");
         g_failed = true;
         return;
     }
@@ -437,7 +437,7 @@ void tickModNpcs() {
     const int to = kVanillaNpcCount + total;
     const int grown = g_tables.grow(from, to);
     if (grown < 0) {
-        BL_ERROR("NPCs de mod: nenhuma tabela de NPC achada; NPCs de mod desligados");
+        BL_ERROR("mod NPCs: no NPC table found; mod NPCs disabled");
         g_failed = true;
         return;
     }
@@ -467,12 +467,12 @@ void tickModNpcs() {
         }
     }
     if (!ensureNpcFrameHook()) {
-        BL_ERROR("NPCs de mod: sem hook em NPC.FindFrame; NPC de mod nao anima");
+        BL_ERROR("mod NPCs: no hook on NPC.FindFrame; mod NPCs do not animate");
     }
     installTownNpcs(to);
     installBossHeads();
     for (const auto& s : samples) registerSample(s.first, s.second);
-    BL_INFO("NPCs de mod: %d instalado(s) (ids %d..%d), %d tabela(s) aumentadas de %d para %d",
+    BL_INFO("mod NPCs: %d installed (ids %d..%d), %d table(s) grown from %d to %d",
             total, from, to - 1, grown, from, to);
     g_staticDefaultsPending = true;
 }

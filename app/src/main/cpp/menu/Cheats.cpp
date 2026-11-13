@@ -94,12 +94,12 @@ bool resolveCheatRefs() {
     auto& a = api();
     Il2CppClass* main = findClass({"Terraria", "Main", {}});
     Il2CppClass* item = findClass({"Terraria", "Item", {}});
-    if (!main || !item) { BL_ERROR("cheats: Main/Item nao resolvidos"); return false; }
+    if (!main || !item) { BL_ERROR("cheats: Main/Item not resolved"); return false; }
 
     g_playerField = a.class_get_field_from_name(main, "player");
     g_getMyPlayer = a.class_get_method_from_name(main, "get_myPlayer", 0);
     g_getGameMenu = a.class_get_method_from_name(main, "get_gameMenu", 0);
-    if (!g_getGameMenu) BL_WARN("cheats: get_gameMenu nao encontrado; o botao fica sempre visivel");
+    if (!g_getGameMenu) BL_WARN("cheats: get_gameMenu not found; the button stays always visible");
     g_newItem = findMethodBySignature(item, parseSignature(
         "int NewItem(int X, int Y, int Width, int Height, int Type, int Stack, "
         "bool noBroadcast, int pfix, NewItemOwnership ownership)"));
@@ -123,7 +123,7 @@ bool resolveCheatRefs() {
     g_maxTilesX = a.class_get_field_from_name(main, "maxTilesX");
     if (!g_itemCtor || !g_setDefaults || g_offInventory < 0 || g_offItemType < 0 || g_offItemStack < 0 ||
         g_offItemMaxStack < 0) {
-        BL_WARN("cheats: dar item no inventario indisponivel (ctor=%p SetDefaults=%p inventory=%d); cai no chao",
+        BL_WARN("cheats: giving an item into the inventory is unavailable (ctor=%p SetDefaults=%p inventory=%d); it drops on the ground",
                 (const void*)g_itemCtor, (const void*)g_setDefaults, g_offInventory);
     }
 
@@ -137,7 +137,7 @@ bool resolveCheatRefs() {
     }
 
     if (!g_playerField || !g_getMyPlayer || !g_newItem) {
-        BL_ERROR("cheats: refs faltando (player=%p get_myPlayer=%p NewItem=%p)",
+        BL_ERROR("cheats: references missing (player=%p get_myPlayer=%p NewItem=%p)",
                  (void*)g_playerField, (void*)g_getMyPlayer, (void*)g_newItem);
         return false;
     }
@@ -410,7 +410,7 @@ Il2CppArray* staticArray(const char* ns, const char* cls, const char* nested, co
         il2cpp::api().runtime_class_init(c);
         il2cpp::api().field_static_get_value(f, &arr);
     }
-    if (!arr) BL_WARN("cheats: %s.%s nao encontrado; essa subcategoria fica vazia", cls, name);
+    if (!arr) BL_WARN("cheats: %s.%s not found; this subcategory stays empty", cls, name);
     return arr;
 }
 
@@ -487,7 +487,7 @@ struct Classification {
 } g_class;
 
 void failClassification(const char* reason) {
-    BL_ERROR("cheats: %s; as secoes de item ficam vazias (Todos os itens continua)", reason);
+    BL_ERROR("cheats: %s; the item sections stay empty (All items still works)", reason);
     g_class.failed = true;
 }
 
@@ -510,12 +510,12 @@ bool prepareClassification() {
     Il2CppObject* dict = nullptr;
     if (k.fDict) a.field_static_get_value(k.fDict, &dict);
     Il2CppClass* itemCls = findClass({"Terraria", "Item", {}});
-    if (!dict || !itemCls) { failClassification("ContentSamples.ItemsByType nao encontrado"); return false; }
+    if (!dict || !itemCls) { failClassification("ContentSamples.ItemsByType not found"); return false; }
 
     Il2CppClass* dc = a.object_get_class(dict);
     FieldInfo* fEntries = a.class_get_field_from_name(dc, "_entries");
     FieldInfo* fCount = a.class_get_field_from_name(dc, "_count");
-    if (!fEntries || !fCount) { failClassification("layout do Dictionary diferente do esperado"); return false; }
+    if (!fEntries || !fCount) { failClassification("Dictionary layout differs from the expected"); return false; }
     k.offEntries = static_cast<int32_t>(a.field_get_offset(fEntries));
     k.offCount = static_cast<int32_t>(a.field_get_offset(fCount));
 
@@ -524,11 +524,11 @@ bool prepareClassification() {
     Il2CppClass* ec = entries ? a.class_get_element_class(
                                     a.object_get_class(reinterpret_cast<Il2CppObject*>(entries)))
                               : nullptr;
-    if (!ec) { failClassification("entradas do dicionario sem tipo"); return false; }
+    if (!ec) { failClassification("dictionary entries without a type"); return false; }
     FieldInfo* fKey = a.class_get_field_from_name(ec, "key");
     FieldInfo* fVal = a.class_get_field_from_name(ec, "value");
     FieldInfo* fHash = a.class_get_field_from_name(ec, "hashCode");
-    if (!fKey || !fVal || !fHash) { failClassification("Entry sem key/value/hashCode"); return false; }
+    if (!fKey || !fVal || !fHash) { failClassification("Entry without key/value/hashCode"); return false; }
 
     uint32_t align = 0;
     k.stride = static_cast<size_t>(a.class_value_size(ec, &align));
@@ -559,7 +559,7 @@ bool prepareClassification() {
     for (auto& c : fields) {
         *c.dst = fieldOffset(itemCls, c.name);
         if (*c.dst < 0) {
-            BL_ERROR("cheats: Item.%s nao encontrado; as secoes de item ficam vazias", c.name);
+            BL_ERROR("cheats: Item.%s not found; the item sections stay empty", c.name);
             k.failed = true;
             return false;
         }
@@ -581,7 +581,7 @@ bool classifyUntil(TimePoint deadline) {
 
     int32_t count = 0;
     Il2CppArray* entries = dictionaryEntries(&count);
-    if (!entries) { failClassification("o dicionario de amostras sumiu no meio"); return true; }
+    if (!entries) { failClassification("the samples dictionary vanished midway"); return true; }
     const char* base = static_cast<const char*>(arrayData(entries));
     const ItemFields& o = k.o;
     for (; k.pos < count && static_cast<uintptr_t>(k.pos) < entries->length; ++k.pos) {
@@ -687,7 +687,7 @@ void refreshNamesSlice() {
     std::vector<std::u16string>().swap(g_nextNpcNames);
     g_renameProgress = -1;
     g_namesGeneration.store(-g_namesGeneration.load(), std::memory_order_release);
-    BL_DEBUG("cheats: idioma trocado; nomes relidos (geracao %d)", g_namesGeneration.load());
+    BL_DEBUG("cheats: language changed; names reloaded (generation %d)", g_namesGeneration.load());
 }
 
 void readNamesSlice() {
@@ -700,8 +700,8 @@ void readNamesSlice() {
         g_itemNameOf = lang ? a.class_get_method_from_name(lang, "GetItemNameValue", 1) : nullptr;
         g_npcNameOf  = lang ? a.class_get_method_from_name(lang, "GetNPCNameValue", 1) : nullptr;
         if (!g_itemNameOf || !g_npcNameOf) {
-            BL_ERROR("cheats: Lang.GetItemNameValue/GetNPCNameValue nao encontrados; "
-                     "o menu fica so com os ids");
+            BL_ERROR("cheats: Lang.GetItemNameValue/GetNPCNameValue not found; "
+                     "the menu shows only the ids");
             g_namesReady.store(true, std::memory_order_release);
             return;
         }
@@ -733,8 +733,8 @@ void readNamesSlice() {
             size_t n = static_cast<size_t>(arr->length);
             g_npcFrames.assign(v, v + n);
         } else {
-            BL_ERROR("cheats: Main.npcFrameCount nao veio; a lista vai mostrar a "
-                     "tira inteira de cada NPC");
+            BL_ERROR("cheats: Main.npcFrameCount did not arrive; the list will show "
+                     "each NPC's whole sheet");
         }
         buildMenuCatalogExtras();
         g_namesReady.store(true, std::memory_order_release);
@@ -742,8 +742,8 @@ void readNamesSlice() {
         for (const auto& n : g_itemNames) if (n.empty()) ++unnamed;
         const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
             Clock::now() - g_nameReadStart).count();
-        BL_DEBUG("cheats: nomes e classes prontos (%d itens, %d NPCs; %d itens sem "
-                 "nome) em %lld ms, %d quadros, pior quadro %.1f ms", g_itemTotal, g_npcTotal,
+        BL_DEBUG("cheats: names and classes ready (%d items, %d NPCs; %d items without a "
+                 "name) in %lld ms, %d frames, worst frame %.1f ms", g_itemTotal, g_npcTotal,
                  unnamed, static_cast<long long>(ms), g_nameReadFrames, g_nameReadWorstUs / 1000.0);
     }
 }
@@ -755,7 +755,7 @@ void giveBuff(int type, int seconds) {
         Il2CppClass* player = il2cpp::findClass({"Terraria", "Player", {}});
         addBuff = player ? il2cpp::findMethodBySignature(
             player, il2cpp::parseSignature("void AddBuff(int type, int time, bool fromNetPvP)")) : nullptr;
-        if (!addBuff) { BL_ERROR("cheats: Player.AddBuff nao encontrado"); return; }
+        if (!addBuff) { BL_ERROR("cheats: Player.AddBuff not found"); return; }
     }
     Il2CppObject* p = playerAt(-1);
     if (!p) return;
@@ -863,14 +863,14 @@ void spawnNpcs(int type, int count, int player) {
         return;
     }
     Il2CppObject* p = playerAt(player);
-    if (!p) { BL_WARN("spawnNpcs: sem jogador %d (fora do mundo?)", player); return; }
+    if (!p) { BL_WARN("spawnNpcs: no player %d (outside the world?)", player); return; }
 
     static Il2CppObject* source = nullptr;
     if (!source) {
         source = a.object_new(g_sourceClass);
         Il2CppObject* exc = nullptr;
         a.runtime_invoke(g_sourceCtor, source, nullptr, &exc);
-        if (exc) { BL_ERROR("spawnNpcs: ctor da fonte lancou excecao"); source = nullptr; return; }
+        if (exc) { BL_ERROR("spawnNpcs: the source constructor threw an exception"); source = nullptr; return; }
     }
 
     const auto& e = game().entity;
@@ -918,7 +918,7 @@ void spawnNpcs(int type, int count, int player) {
         ++spawned;
         lastIdx = idx;
     }
-    BL_INFO("spawnNpcs: type=%d, %d de %d perto do jogador %d (lado %d, netMode %d, ultimo npc[%d])",
+    BL_INFO("spawnNpcs: type=%d, %d of %d near player %d (side %d, netMode %d, last npc[%d])",
             type, spawned, count, player, dir, mode, lastIdx);
 }
 
@@ -990,17 +990,17 @@ int giveToInventory(Il2CppObject* p, int type, int stack) {
 
 void giveItem(int type, int stack, int player) {
     using namespace il2cpp;
-    if (!g_refsOk) { BL_ERROR("cheats: refs nao prontas"); return; }
+    if (!g_refsOk) { BL_ERROR("cheats: references not ready"); return; }
     auto& a = api();
 
     Il2CppObject* p = playerAt(player);
-    if (!p) { BL_WARN("giveItem: sem jogador %d (fora do mundo?)", player); return; }
+    if (!p) { BL_WARN("giveItem: no player %d (outside the world?)", player); return; }
 
     if ((player < 0 || p == localPlayer()) && g_itemCtor && g_setDefaults && g_offInventory >= 0 &&
         g_offItemMaxStack >= 0) {
         const int left = giveToInventory(p, type, stack > 0 ? stack : 1);
-        if (left > 0) BL_WARN("giveItem: inventario cheio; %d de %d ficaram de fora", left, type);
-        BL_INFO("giveItem: type=%d x%d pedido, no inventario (jogador %d)", type, stack, player);
+        if (left > 0) BL_WARN("giveItem: inventory full; %d of %d left out", left, type);
+        BL_INFO("giveItem: type=%d x%d requested, in the inventory (player %d)", type, stack, player);
         return;
     }
 
@@ -1018,23 +1018,23 @@ void giveItem(int type, int stack, int player) {
     Il2CppObject* exc = nullptr;
     int idx = unboxInt(a.runtime_invoke(g_newItem, nullptr, args, &exc));
     if (exc) { BL_ERROR("giveItem: NewItem lancou excecao"); return; }
-    BL_INFO("giveItem: type=%d x%d dado em (%d,%d) -> item[%d] (jogador %d)", t, n, x, y, idx, player);
+    BL_INFO("giveItem: type=%d x%d given at (%d,%d) -> item[%d] (player %d)", t, n, x, y, idx, player);
 }
 
 void installCheats() {
     installNetRequests();
     g_refsOk = resolveCheatRefs();
-    if (!g_refsOk) { BL_ERROR("cheats: desabilitado (refs faltando)"); return; }
+    if (!g_refsOk) { BL_ERROR("cheats: disabled (references missing)"); return; }
 
     Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
     const MethodInfo* doUpdate = main
         ? il2cpp::api().class_get_method_from_name(main, "DoUpdate", 1) : nullptr;
     if (doUpdate && hook::install(doUpdate, hkDoUpdate, &g_origDoUpdate)) {
         const std::string& cmd = cmdPath();
-        BL_DEBUG("cheats: pronto (canal dev por arquivo: %s)",
-                 cmd.empty() ? "desligado" : cmd.c_str());
+        BL_DEBUG("cheats: ready (file dev channel: %s)",
+                 cmd.empty() ? "off" : cmd.c_str());
     } else {
-        BL_ERROR("cheats: falha ao hookar Main.DoUpdate");
+        BL_ERROR("cheats: failed to hook Main.DoUpdate");
     }
 }
 

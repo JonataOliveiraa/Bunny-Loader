@@ -66,11 +66,11 @@ Java_dev_bunnyloader_nativebridge_NativeBridge_init(JNIEnv* env, jobject, jobjec
 
     bl::log::setVerbose(c.verboseLog);
     bl::log::open(c.logPath.c_str());
-    BL_INFO("Bunny Loader iniciando, versao do jogo %lld (log %s)", (long long)c.gameVersion,
-            c.verboseLog ? "detalhado" : "resumido; detalhes em Configuracoes > Log detalhado");
+    BL_INFO("Bunny Loader starting, game version %lld (log: %s)", (long long)c.gameVersion,
+            c.verboseLog ? "detailed" : "short; details under Settings > Detailed log");
 
     if (!bl::loader::installWatcher()) {
-        g_lastError = "falha ao instalar o watcher de il2cpp_init";
+        g_lastError = "failed to install the il2cpp_init watcher";
         return JNI_FALSE;
     }
     return JNI_TRUE;

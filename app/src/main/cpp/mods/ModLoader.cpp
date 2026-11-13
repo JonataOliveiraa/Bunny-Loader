@@ -62,7 +62,7 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
     runtime::configureFontPacks(modsDir, enabled);
     registry().clear();
     dirsById().clear();
-    BL_INFO("carregando mods de %s (%zu habilitados)", modsDir.c_str(), enabled.size());
+    BL_INFO("loading mods from %s (%zu enabled)", modsDir.c_str(), enabled.size());
 
     std::vector<LoadedMod> listed;
     for (const auto& spec : enabled) {
@@ -126,7 +126,7 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
         }
         const bool ok = dotnet::host().loadMod(id, path);
         if (!ok) {
-            BL_ERROR("mod %s falhou ao carregar (%s)", id.c_str(), path.c_str());
+            BL_ERROR("mod %s failed to load (%s)", id.c_str(), path.c_str());
             registry()[i].enabled = false;
         } else {
             registry()[i].loaded = true;

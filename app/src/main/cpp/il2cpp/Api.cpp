@@ -14,7 +14,7 @@ namespace {
 bool bind(void* lib, const char* name, void* slot) {
     void* sym = dlsym(lib, name);
     if (!sym) {
-        BL_ERROR("Simbolo ausente: %s", name);
+        BL_ERROR("Missing symbol: %s", name);
         return false;
     }
     *reinterpret_cast<void**>(slot) = sym;
@@ -24,7 +24,7 @@ bool bind(void* lib, const char* name, void* slot) {
 void bindSoft(void* lib, const char* name, void* slot) {
     void* sym = dlsym(lib, name);
     if (!sym) {
-        BL_WARN("Simbolo opcional ausente: %s", name);
+        BL_WARN("Missing optional symbol: %s", name);
         return;
     }
     *reinterpret_cast<void**>(slot) = sym;
@@ -34,7 +34,7 @@ void bindSoft(void* lib, const char* name, void* slot) {
 bool Api::load() {
     void* lib = dlopen("libil2cpp.so", RTLD_NOW | RTLD_NOLOAD);
     if (!lib) {
-        BL_ERROR("libil2cpp.so nao esta carregada");
+        BL_ERROR("libil2cpp.so is not loaded");
         return false;
     }
 

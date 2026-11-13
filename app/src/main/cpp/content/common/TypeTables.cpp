@@ -126,13 +126,13 @@ void TypeTables::growInstanceTable(Il2CppObject* obj, int32_t offset, int vanill
     std::memcpy(arrayData(n), arrayData(old), elemSize * old->length);
     if (a.gc_wbarrier_set_field) a.gc_wbarrier_set_field(obj, reinterpret_cast<void**>(slot), n);
     else *slot = n;
-    if (what) BL_DEBUG("%s aumentada de %d para %d", what, vanillaCount, size);
+    if (what) BL_DEBUG("%s grown from %d to %d", what, vanillaCount, size);
 }
 
 void TypeTables::find(uintptr_t size) {
     auto& a = il2cpp::api();
     if (!a.class_get_fields || !a.field_get_flags) {
-        BL_ERROR("%s: il2cpp sem enumeracao de campos; nao da para achar as tabelas", what_);
+        BL_ERROR("%s: il2cpp has no field enumeration; the tables cannot be found", what_);
         return;
     }
     for (const TableClass& c : classes_) {
@@ -168,7 +168,7 @@ void TypeTables::find(uintptr_t size) {
             tables_.push_back(f);
             ++found;
         }
-        BL_DEBUG("%s: %s.%s%s%s%s%s: %d tabela(s), %d ainda nula(s)", what_, c.ns, c.name,
+        BL_DEBUG("%s: %s.%s%s%s%s%s: %d table(s), %d still null", what_, c.ns, c.name,
                  c.nested[0] ? "." : "", c.nested, c.nested2[0] ? "." : "", c.nested2, found, pending);
     }
 }
@@ -203,7 +203,7 @@ void TypeTables::checkPending(int size) {
         if (!bigger) continue;
         il2cpp::api().field_static_set_value(f, bigger);
         tables_.push_back(f);
-        BL_DEBUG("%s: tabela %s criada pelo jogo; aumentada", what_, fieldName(f));
+        BL_DEBUG("%s: table %s created by the game; grown", what_, fieldName(f));
     }
 }
 
@@ -215,7 +215,7 @@ void TypeTables::watch(int size, Regrown onRegrown) {
         Il2CppArray* bigger = growArray(arr, static_cast<uintptr_t>(size), fill_);
         if (!bigger) continue;
         il2cpp::api().field_static_set_value(f, bigger);
-        BL_DEBUG("%s: tabela %s refeita pelo jogo; aumentada de novo", what_, fieldName(f));
+        BL_DEBUG("%s: table %s rebuilt by the game; grown again", what_, fieldName(f));
         if (onRegrown) onRegrown(f, size);
     }
 }

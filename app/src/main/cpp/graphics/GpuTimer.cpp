@@ -53,7 +53,7 @@ bool init() {
     auto& g = gl();
     const char* ext = reinterpret_cast<const char*>(g.GetString(GL_EXTENSIONS));
     if (!ext || !std::strstr(ext, "GL_EXT_disjoint_timer_query")) {
-        BL_INFO("efeitos de tela: GPU sem GL_EXT_disjoint_timer_query; sem tempo de GPU");
+        BL_INFO("screen effects: GPU without GL_EXT_disjoint_timer_query; no GPU timing");
         return false;
     }
     void* egl = dlopen("libEGL.so", RTLD_NOW);

@@ -29,7 +29,7 @@ constexpr int kPowerCount = static_cast<int>(Power::Count);
 constexpr int kMaxLevel[] = {3, 2, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, kSliderLevels, kSliderLevels, 1,
                              kSliderLevels, 1, 1, 1, 2, 4, 1, 1, 2, 1,
                              1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-static_assert(std::size(kMaxLevel) == kPowerCount, "um nivel maximo por poder");
+static_assert(std::size(kMaxLevel) == kPowerCount, "one maximum level per power");
 
 constexpr float kDamage[] = {1.f, 2.f, 5.f, 10.f};
 constexpr float kRunSpeed[] = {1.f, 2.f, 3.f};
@@ -305,7 +305,7 @@ bool resolveBestiaryRefs(Il2CppClass* main) {
 bool allFound(const char* group, std::initializer_list<const void*> refs) {
     for (const void* r : refs) {
         if (!r) {
-            BL_ERROR("poderes: refs de %s faltando; esse poder fica desligado", group);
+            BL_ERROR("powers: %s references missing; this power stays disabled", group);
             return false;
         }
     }
@@ -323,13 +323,13 @@ void resolveWorldRefs(Il2CppClass* main, Il2CppClass* player) {
 
     W.netMode = findField(main, "netMode");
     W.skipToTime = methodBySignature(main, "void SkipToTime(int timeToSet, bool setIsDayTime)");
-    g_timeRefs = allFound("hora", {W.skipToTime});
+    g_timeRefs = allFound("time", {W.skipToTime});
 
     W.hardMode = findField(main, "hardMode");
     W.getGameMode = a.class_get_method_from_name(main, "get_GameMode", 0);
     W.setGameMode = a.class_get_method_from_name(main, "set_GameMode", 1);
     W.startHardmode = worldGen ? a.class_get_method_from_name(worldGen, "StartHardmode", 0) : nullptr;
-    g_hardmodeRefs = allFound("hardmode/dificuldade",
+    g_hardmodeRefs = allFound("hardmode/difficulty",
                               {W.hardMode, W.netMode, W.getGameMode, W.setGameMode, W.startHardmode});
 
     W.npc = findField(main, "npc");
@@ -337,7 +337,7 @@ void resolveWorldRefs(Il2CppClass* main, Il2CppClass* player) {
     Il2CppClass* spawner = npc ? findNested(npc, "Spawner") : nullptr;
     W.getSpawnRate = spawner ? methodBySignature(spawner,
         "void GetSpawnRate(Player player, out int spawnRate, out int maxSpawns)") : nullptr;
-    if (!W.getSpawnRate) BL_ERROR("poderes: sem NPC.Spawner.GetSpawnRate (a taxa fica so liga/desliga)");
+    if (!W.getSpawnRate) BL_ERROR("powers: no NPC.Spawner.GetSpawnRate (the rate is only on/off)");
     if (npc) {
         W.npcActive = fieldOffset(npc, "active");
         W.npcTown = fieldOffset(npc, "townNPC");
@@ -352,7 +352,7 @@ void resolveWorldRefs(Il2CppClass* main, Il2CppClass* player) {
     W.getMap = a.class_get_method_from_name(main, "get_Map", 0);
     W.setRefreshMap = a.class_get_method_from_name(main, "set_refreshMap", 1);
     W.updateLighting = methodBySignature(worldMap, "bool UpdateLighting(int x, int y, byte light)");
-    g_mapRefs = allFound("mapa", {W.maxTilesX, W.maxTilesY, W.getMap, W.setRefreshMap,
+    g_mapRefs = allFound("map", {W.maxTilesX, W.maxTilesY, W.getMap, W.setRefreshMap,
                                   W.updateLighting});
 
     Il2CppClass* netMessage = findClass({"Terraria", "NetMessage", {}});
@@ -363,7 +363,7 @@ void resolveWorldRefs(Il2CppClass* main, Il2CppClass* player) {
     W.getSectionManager = a.class_get_method_from_name(main, "get_sectionManager", 0);
     W.sectionLoaded = methodBySignature(sections, "bool SectionLoaded(int x, int y)");
     W.playerActive = fieldOffset(player, "active");
-    g_sectionRefs = allFound("revelar no multijogador",
+    g_sectionRefs = allFound("multiplayer reveal",
                              {W.maxSectionsX, W.maxSectionsY, W.sendSection, W.getSectionManager,
                               W.sectionLoaded}) && W.playerActive >= 0;
 
@@ -371,7 +371,7 @@ void resolveWorldRefs(Il2CppClass* main, Il2CppClass* player) {
     W.inventory = fieldOffset(player, "inventory");
     W.favorited = item ? fieldOffset(item, "favorited") : -1;
     W.turnToAir = methodBySignature(item, "void TurnToAir()");
-    g_inventoryRefs = allFound("mochila", {W.player, W.turnToAir}) && W.inventory >= 0 &&
+    g_inventoryRefs = allFound("inventory", {W.player, W.turnToAir}) && W.inventory >= 0 &&
                       W.favorited >= 0;
 
     W.teleport = methodBySignature(player, "void Teleport(Vector2 newPos, int Style, int extraInfo)");
@@ -391,7 +391,7 @@ void resolveWorldRefs(Il2CppClass* main, Il2CppClass* player) {
     W.getUiMouse = runner ? a.class_get_method_from_name(runner, "get__uiMouseState", 0) : nullptr;
     W.uiMouseX = mouseState ? fieldOffset(mouseState, "_mouseX") : -1;
     W.uiMouseY = mouseState ? fieldOffset(mouseState, "_mouseY") : -1;
-    g_teleportRefs = allFound("teleporte no mapa",
+    g_teleportRefs = allFound("map teleport",
                               {W.player, W.teleport, W.solidCollision, W.getMapFullscreen,
                                W.getTouchCount, W.getTouch, W.getDeviceWidth, W.getDeviceHeight,
                                W.getMapPos, W.getMapScale, W.getUiMouse, W.maxTilesX,
@@ -436,7 +436,7 @@ void resolveEventRefs(Il2CppClass* main, Il2CppClass* player) {
     E.stopSandstorm = methodBySignature(sandstorm, "void StopSandstorm()");
     E.stopOldOnesArmy = methodBySignature(oldOnes, "void StopInvasion(bool win)");
     E.statLifeMax = fieldOffset(player, "statLifeMax");
-    g_eventRefs = allFound("eventos",
+    g_eventRefs = allFound("events",
         {E.dayTime, E.bloodMoon, E.eclipse, E.raining, E.slimeRain, E.pumpkinMoon, E.snowMoon,
          E.invasionType, E.invasionSize, E.manualParty, E.genuineParty, E.manualLanterns,
          E.genuineLanterns, E.sandstorm, E.startSlimeRain, E.stopSlimeRain, E.stopRain,
@@ -453,7 +453,7 @@ bool resolveRefs() {
     Il2CppClass* npc = findClass({"Terraria", "NPC", {}});
     Il2CppClass* proj = findClass({"Terraria", "Projectile", {}});
     if (!player || !main || !npc || !proj) {
-        BL_ERROR("poderes: Player/Main/NPC/Projectile nao resolvidos");
+        BL_ERROR("powers: Player/Main/NPC/Projectile not resolved");
         return false;
     }
 
@@ -487,23 +487,23 @@ bool resolveRefs() {
     Il2CppClass* revenge = findClass({"Terraria.GameContent", "CoinLossRevengeSystem", {}});
     g_revengeUpdate = methodBySignature(revenge, "void Update()");
     if (!g_playerUpdate || !g_revengeUpdate) {
-        BL_ERROR("poderes: sem Player.Update/CoinLossRevengeSystem.Update; o Imortal enche a mana");
+        BL_ERROR("powers: no Player.Update/CoinLossRevengeSystem.Update; Immortal fills the mana");
     }
 
     if (!ok || g_npcImmune < 0 || g_projHostile < 0 || g_projFriendly < 0 ||
         !g_getMyPlayer || !M.time || !g_reset || !g_npcUpdate || !g_projUpdate) {
-        BL_ERROR("poderes: refs faltando; os superpoderes ficam desligados");
+        BL_ERROR("powers: references missing; the superpowers stay disabled");
         return false;
     }
 
     if (!(g_flyRefs = resolveFlyRefs(player, main)))
-        BL_ERROR("poderes: refs do voo faltando; Voar fica desligado");
+        BL_ERROR("powers: flight references missing; Fly stays disabled");
     if (!(g_weatherRefs = resolveWeatherRefs(main)))
-        BL_ERROR("poderes: refs de chuva/vento faltando; Chuva e Vento ficam desligados");
+        BL_ERROR("powers: rain/wind references missing; Rain and Wind stay disabled");
     if (!(g_lightRefs = resolveLightRefs()))
-        BL_ERROR("poderes: refs de iluminacao faltando; Raio-X fica desligado");
+        BL_ERROR("powers: lighting references missing; X-Ray stays disabled");
     if (!(g_bestiaryRefs = resolveBestiaryRefs(main)))
-        BL_ERROR("poderes: refs do bestiario faltando; Bestiario fica desligado");
+        BL_ERROR("powers: bestiary references missing; Bestiary stays disabled");
     resolveWorldRefs(main, player);
     resolveEventRefs(main, player);
     return true;
@@ -830,7 +830,7 @@ void unlockBestiary() {
     if (failed > 0) {
         BL_ERROR("poderes: bestiario: %d de %d entradas falharam", failed, found);
     } else {
-        BL_INFO("poderes: bestiario desbloqueado (%d de %d NPCs) em %lld ms", found, total,
+        BL_INFO("powers: bestiary unlocked (%d of %d NPCs) in %lld ms", found, total,
                 static_cast<long long>(ms));
     }
 }
@@ -840,7 +840,7 @@ State installHook(const char* name, const MethodInfo* target, void* fn, void** o
         BL_INFO("poderes: hook em %s", name);
         return State::Ok;
     }
-    BL_ERROR("poderes: falha ao hookar %s", name);
+    BL_ERROR("powers: failed to hook %s", name);
     return State::Failed;
 }
 
@@ -893,7 +893,7 @@ Il2CppObject* biomeSpreadPower() {
     auto* dict = self && !exc ? field<Il2CppObject*>(self, byName) : nullptr;
     const MethodInfo* tryGet = dict ? a.class_get_method_from_name(a.object_get_class(dict), "TryGetValue", 2) : nullptr;
     if (!tryGet) {
-        BL_ERROR("poderes: sem o CreativePowerManager; Parar infeccao fica desligado");
+        BL_ERROR("powers: no CreativePowerManager; Stop infection stays disabled");
         return nullptr;
     }
     Il2CppObject* power = nullptr;
@@ -901,7 +901,7 @@ Il2CppObject* biomeSpreadPower() {
     exc = nullptr;
     const bool found = unboxBool(a.runtime_invoke(tryGet, dict, args, &exc));
     if (!found || exc || !power) {
-        BL_ERROR("poderes: sem o poder biomespread_setfrozen da Jornada; Parar infeccao fica desligado");
+        BL_ERROR("powers: no Journey biomespread_setfrozen power; Stop infection stays disabled");
         return nullptr;
     }
     Il2CppClass* cls = a.object_get_class(power);
@@ -962,7 +962,7 @@ void updateWorldState() {
         g_stateRefs = g_stateHardMode && g_stateGetGameMode && g_stateTime && g_stateDayTime &&
                       g_stateRaining && g_stateMaxRaining && g_stateWindTarget
                           ? State::Ok : State::Failed;
-        if (g_stateRefs == State::Failed) BL_ERROR("poderes: estado do mundo sem refs");
+        if (g_stateRefs == State::Failed) BL_ERROR("powers: world state without references");
     }
     if (g_stateRefs != State::Ok) return;
     g_stateHardmode.store(readStatic<bool>(g_stateHardMode) ? 1 : 0, std::memory_order_relaxed);
@@ -1008,7 +1008,7 @@ void applyTimeOfDay(int request) {
 
 void applyHardmode(int command) {
     if (readStatic<int32_t>(W.netMode) == kNetClient) {
-        BL_INFO("poderes: hardmode so no mundo local");
+        BL_INFO("powers: hardmode only in a local world");
         return;
     }
     const bool now = readStatic<bool>(W.hardMode);
@@ -1031,7 +1031,7 @@ void applyDifficulty(int level) {
     void* args[] = {&mode};
     il2cpp::api().runtime_invoke(W.setGameMode, nullptr, args, &exc);
     if (exc) BL_ERROR("poderes: set_GameMode lancou excecao");
-    else BL_INFO("poderes: modo de jogo -> %d", mode);
+    else BL_INFO("powers: game mode -> %d", mode);
     broadcastWorld(false);
 }
 
@@ -1103,7 +1103,7 @@ void startInvasion(int32_t type) {
     void* args[] = {&type};
     invokeStatic(E.startInvasion, args, "Main.StartInvasion");
     if (lifted) field<int32_t>(lifted, E.statLifeMax) = oldMax;
-    if (readStatic<int32_t>(E.invasionType) != type) BL_INFO("poderes: invasao %d recusada pelo jogo", type);
+    if (readStatic<int32_t>(E.invasionType) != type) BL_INFO("powers: invasion %d refused by the game", type);
 }
 
 void startEvent(Power p) {
@@ -1210,14 +1210,14 @@ void revealStep() {
     g_revealX = revealMapColumns(map, W.updateLighting, g_revealX, maxX, maxY,
                                  Clock::now() + kRevealBudget, &threw);
     if (threw) {
-        BL_ERROR("poderes: revelar o mapa parou na coluna %d de %d (UpdateLighting lancou)",
+        BL_ERROR("powers: revealing the map stopped at column %d of %d (UpdateLighting threw)",
                  g_revealX, maxX);
     } else if (g_revealX < maxX) {
         return;
     } else {
         const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
             Clock::now() - g_revealStart).count();
-        BL_INFO("poderes: mapa revelado (%dx%d) em %d quadros, %lld ms", maxX, maxY,
+        BL_INFO("powers: map revealed (%dx%d) in %d frames, %lld ms", maxX, maxY,
                 g_revealFrames, static_cast<long long>(ms));
     }
     g_revealX = -1;
@@ -1251,7 +1251,7 @@ void streamSections() {
             il2cpp::api().runtime_invoke(W.sendSection, nullptr, args, &exc);
         }
         if (!p || !field<uint8_t>(p, W.playerActive) || s.next >= total) {
-            BL_INFO("poderes: mundo mandado ao jogador %d para revelar o mapa (%d partes)", s.client, total);
+            BL_INFO("powers: world sent to player %d to reveal the map (%d parts)", s.client, total);
             g_streams.erase(g_streams.begin() + static_cast<std::ptrdiff_t>(k));
             continue;
         }
@@ -1294,7 +1294,7 @@ void waitForSections() {
     if (loaded >= 0 && loaded < total && g_waitStall < kSectionStallChecks) return;
 
     if (loaded < total) {
-        BL_INFO("poderes: o servidor mandou %d de %d partes do mundo; revelando o que chegou", loaded, total);
+        BL_INFO("powers: the server sent %d of %d parts of the world; revealing what arrived", loaded, total);
     }
     g_revealWait = -1;
     startReveal();
@@ -1311,7 +1311,7 @@ struct UnityTouch {
     Vec2 position;
     uint8_t rest[0x44 - 12];
 };
-static_assert(sizeof(UnityTouch) == 0x44, "layout do UnityEngine.Touch");
+static_assert(sizeof(UnityTouch) == 0x44, "UnityEngine.Touch layout");
 
 bool touchPoint(int32_t* x, int32_t* y) {
     if (callStatic<int32_t>(W.getTouchCount) != 1) return false;
@@ -1346,7 +1346,7 @@ void teleportToMapPoint(int32_t mx, int32_t my) {
     const int32_t sw = callStatic<int32_t>(W.getDeviceWidth);
     const int32_t sh = callStatic<int32_t>(W.getDeviceHeight);
     if (scale <= 0.f) {
-        BL_ERROR("poderes: teleporte sem escala do mapa (interface x%.3f)", k);
+        BL_ERROR("powers: teleport without a map scale (interface x%.3f)", k);
         return;
     }
     const float tx = center.x + (static_cast<float>(mx) - sw * 0.5f) / scale;
@@ -1375,9 +1375,9 @@ void teleportToMapPoint(int32_t mx, int32_t my) {
     Il2CppObject* exc = nullptr;
     il2cpp::api().runtime_invoke(W.teleport, p, args, &exc);
     if (exc) { BL_ERROR("poderes: Player.Teleport lancou excecao"); return; }
-    BL_INFO("poderes: teleporte: toque (%d,%d) tela %dx%d mapa (%.1f,%.1f) x%.2f (interface "
+    BL_INFO("powers: teleport: touch (%d,%d) screen %dx%d map (%.1f,%.1f) x%.2f (interface "
             "x%.3f) -> tile (%.1f,%.1f) -> (%.0f,%.0f)%s", mx, my, sw, sh, center.x, center.y,
-            scale, k, tx, ty, spot.x, spot.y, found ? "" : " (sem ar por perto)");
+            scale, k, tx, ty, spot.x, spot.y, found ? "" : " (no air nearby)");
 }
 
 void watchMapHold() {

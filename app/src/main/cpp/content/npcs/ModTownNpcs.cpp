@@ -74,7 +74,7 @@ Refs& refs() {
     r.ok = r.npcHead && r.cannotDraw && r.headOrder && r.mainInstance && r.townManager &&
            r.whoHoldsHead >= 0 && r.hasRoom >= 0 && r.headIndex;
     if (!r.ok) {
-        BL_ERROR("moradores de mod: refs faltando (NpcHead=%p HeadListOrder=%p TownManager=%p "
+        BL_ERROR("mod town NPCs: references missing (NpcHead=%p HeadListOrder=%p TownManager=%p "
                  "_hasRoom=%d TypeToDefaultHeadIndex=%p)", (void*)r.npcHead, (void*)r.headOrder,
                  (void*)r.townManager, r.hasRoom, (void*)r.headIndex);
     }
@@ -209,10 +209,10 @@ void prepareTownNpcs(int totalTypes) {
                 : patchMovImmediate(m, kVanillaNpcCount, static_cast<uint32_t>(totalTypes));
         }
         if (patched > 0) {
-            BL_DEBUG("moradores de mod: %s.%s: %d troca(s) de %d para %d", p.cls, p.method, patched,
+            BL_DEBUG("mod town NPCs: %s.%s: %d swap(s) from %d to %d", p.cls, p.method, patched,
                      kVanillaNpcCount, totalTypes);
         } else {
-            BL_ERROR("moradores de mod: %s.%s: %d nao achado no codigo; morador de mod fica sem isso",
+            BL_ERROR("mod town NPCs: %s.%s: %d not found in the code; the mod town NPC goes without it",
                      p.cls, p.method, kVanillaNpcCount);
         }
     }
@@ -231,7 +231,7 @@ void installTownNpcs(int totalTypes) {
     if (il2cpp::api().runtime_class_init && r.headSets) il2cpp::api().runtime_class_init(r.headSets);
     Il2CppArray* heads = readStatic(r.npcHead);
     if (!heads) {
-        BL_ERROR("moradores de mod: TextureAssets.NpcHead nulo; sem cabeca de mod");
+        BL_ERROR("mod town NPCs: TextureAssets.NpcHead is null; no mod heads");
         return;
     }
     std::lock_guard<std::mutex> l(g_mx);
@@ -248,13 +248,13 @@ void installTownNpcs(int totalTypes) {
     }
     g_headTotal = kVanillaHeads + static_cast<int>(g_heads.size());
     if (!hook::install(r.headIndex, hkHeadIndex, &g_origHeadIndex)) {
-        BL_ERROR("moradores de mod: sem hook em NPC.TypeToDefaultHeadIndex; morador de mod sem cabeca");
+        BL_ERROR("mod town NPCs: no hook on NPC.TypeToDefaultHeadIndex; mod town NPCs have no head");
         return;
     }
     if (g_heads.empty()) return;
     applyHeads();
     growHeadTables(g_headTotal);
-    BL_DEBUG("moradores de mod: %zu cabeca(s) em TextureAssets.NpcHead (%d..%d)",
+    BL_DEBUG("mod town NPCs: %zu head(s) in TextureAssets.NpcHead (%d..%d)",
              g_heads.size(), g_vanillaHeads, g_headTotal - 1);
 }
 
@@ -267,7 +267,7 @@ void watchTownNpcs() {
         std::lock_guard<std::mutex> l(g_mx);
         if (heads && heads->length < static_cast<uintptr_t>(total)) {
             applyHeads();
-            BL_DEBUG("moradores de mod: o jogo refez TextureAssets.NpcHead; cabecas de mod devolvidas");
+            BL_DEBUG("mod town NPCs: the game rebuilt TextureAssets.NpcHead; mod heads put back");
         }
         growHeadTables(total);
     }

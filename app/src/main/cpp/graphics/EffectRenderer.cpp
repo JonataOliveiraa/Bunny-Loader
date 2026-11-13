@@ -77,14 +77,14 @@ bool ensureSurface(Surface& s, GLint w, GLint h, const char* what, bool& fresh) 
     g.FramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, s.texture, 0);
     const GLenum status = g.CheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
     if (status != GL_FRAMEBUFFER_COMPLETE) {
-        BL_ERROR("efeitos de tela: FBO de %s incompleto (0x%x) em %dx%d", what, status, w, h);
+        BL_ERROR("screen effects: %s FBO incomplete (0x%x) at %dx%d", what, status, w, h);
         s.w = s.h = 0;
         return false;
     }
     s.w = w;
     s.h = h;
     fresh = true;
-    BL_DEBUG("efeitos de tela: %s em %dx%d", what, w, h);
+    BL_DEBUG("screen effects: %s at %dx%d", what, w, h);
     return true;
 }
 
@@ -96,7 +96,7 @@ void logFirst(const DrawTarget& target) {
     g.GetIntegerv(GL_SAMPLES, &samples);
     const char* version = reinterpret_cast<const char*>(g.GetString(GL_VERSION));
     const char* renderer = reinterpret_cast<const char*>(g.GetString(GL_RENDERER));
-    BL_INFO("efeitos de tela: GL '%s' em '%s'; fbo %d viewport=%d,%d %dx%d samples=%d",
+    BL_INFO("screen effects: GL '%s' in '%s'; fbo %d viewport=%d,%d %dx%d samples=%d",
             version ? version : "?", renderer ? renderer : "?", target.fbo,
             target.viewport[0], target.viewport[1], target.viewport[2], target.viewport[3], samples);
     std::lock_guard<std::mutex> lock(g_statsMutex);
@@ -133,7 +133,7 @@ bool copyScreen(const DrawTarget& t, Surface& dst, const Box& box) {
         const GLenum error = g.GetError();
         if (error == GL_NO_ERROR) return true;
         g_useCopy = true;
-        BL_WARN("efeitos de tela: blit recusado (0x%x); usando copia simples", error);
+        BL_WARN("screen effects: blit refused (0x%x); using a plain copy", error);
         std::lock_guard<std::mutex> lock(g_statsMutex);
         g_local.blitError = static_cast<int32_t>(error);
     }
@@ -170,7 +170,7 @@ public:
 
     bool Prepare() {
         bool fresh = false;
-        if (!ensureSurface(g_res.copy, t_.viewport[2], t_.viewport[3], "copia da tela", fresh)) return false;
+        if (!ensureSurface(g_res.copy, t_.viewport[2], t_.viewport[3], "screen copy", fresh)) return false;
         for (const TargetSpec& spec : frame_.targets) {
             const GLint w = std::max(1, static_cast<GLint>(std::lround(t_.viewport[2] * spec.scale)));
             const GLint h = std::max(1, static_cast<GLint>(std::lround(t_.viewport[3] * spec.scale)));
@@ -247,7 +247,7 @@ public:
 
     void SaveHistory() {
         bool fresh = false;
-        if (!ensureSurface(g_res.history, t_.viewport[2], t_.viewport[3], "quadro anterior", fresh)) return;
+        if (!ensureSurface(g_res.history, t_.viewport[2], t_.viewport[3], "previous frame", fresh)) return;
         g_res.historyValid = copyScreen(t_, g_res.history, {0, 0, t_.viewport[2], t_.viewport[3]});
     }
 
@@ -327,7 +327,7 @@ void EffectRenderer::Execute(const EffectFrame& frame, const DrawTarget& target,
         g.GetIntegerv(GL_SAMPLES, &samples);
         if (samples > 0) {
             g_warnedOffset = true;
-            BL_WARN("efeitos de tela: viewport com origem %d,%d e multisample; a copia pode falhar",
+            BL_WARN("screen effects: viewport with origin %d,%d and multisample; the copy may fail",
                     target.viewport[0], target.viewport[1]);
         }
     }

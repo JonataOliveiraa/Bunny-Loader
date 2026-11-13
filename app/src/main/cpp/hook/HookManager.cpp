@@ -33,13 +33,13 @@ bool install(void* address, void* replacement, void** original) {
         __atomic_store_n(original, __atomic_load_n(last, __ATOMIC_ACQUIRE), __ATOMIC_RELEASE);
         __atomic_store_n(last, replacement, __ATOMIC_RELEASE);
         c.originals.push_back(original);
-        BL_DEBUG("hook encadeado em %p (%zu no mesmo metodo)", address, c.originals.size());
+        BL_DEBUG("chained hook at %p (%zu on the same method)", address, c.originals.size());
         return true;
     }
 
     void* stub = shadowhook_hook_func_addr(address, replacement, original);
     if (!stub) {
-        BL_ERROR("Hook falhou em %p: %s", address,
+        BL_ERROR("Hook failed at %p: %s", address,
                  shadowhook_to_errmsg(shadowhook_get_errno()));
         return false;
     }

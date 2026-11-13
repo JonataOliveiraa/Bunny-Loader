@@ -40,7 +40,7 @@ const Fields& fields() {
         f.wall = findField(data, "TileWall");
         f.ok = f.world && f.width >= 0 && f.height >= 0 && f.lookup && f.type && f.sHeader &&
                f.frameX && f.frameY && f.bHeader && f.bHeader2 && f.bHeader3 && f.wall;
-        if (!f.ok) BL_ERROR("tiles: campos do TileData nao achados; tiles de mod desligados");
+        if (!f.ok) BL_ERROR("tiles: TileData fields not found; mod tiles disabled");
     });
     return f;
 }

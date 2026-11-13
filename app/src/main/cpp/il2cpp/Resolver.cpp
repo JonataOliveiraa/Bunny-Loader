@@ -46,12 +46,12 @@ Il2CppClass* findClass(const TypeRef& ref) {
     if (cls && !ref.nested.empty()) {
         Il2CppClass* inner = findNested(cls, ref.nested);
         if (!inner) {
-            BL_ERROR("classe aninhada nao encontrada: %s.%s.%.*s", ns.c_str(), name.c_str(),
+            BL_ERROR("nested class not found: %s.%s.%.*s", ns.c_str(), name.c_str(),
                      static_cast<int>(ref.nested.size()), ref.nested.data());
         }
         return inner;
     }
-    if (!cls) BL_ERROR("classe nao encontrada: %s.%s", ns.c_str(), name.c_str());
+    if (!cls) BL_ERROR("class not found: %s.%s", ns.c_str(), name.c_str());
     return cls;
 }
 
@@ -72,7 +72,7 @@ FieldInfo* findField(Il2CppClass* cls, std::string_view name) {
 int32_t fieldOffset(Il2CppClass* cls, std::string_view name) {
     FieldInfo* f = findField(cls, name);
     if (!f) {
-        BL_ERROR("campo nao encontrado: %.*s", (int)name.size(), name.data());
+        BL_ERROR("field not found: %.*s", (int)name.size(), name.data());
         return -1;
     }
     return static_cast<int32_t>(api().field_get_offset(f));

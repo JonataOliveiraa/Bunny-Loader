@@ -17,11 +17,11 @@ namespace {
 int missing = 0;
 
 void needOffset(const char* what, int32_t value) {
-    if (value < 0) { BL_ERROR("nao resolvido: %s", what); ++missing; }
+    if (value < 0) { BL_ERROR("not resolved: %s", what); ++missing; }
 }
 
 void needPointer(const char* what, const void* value) {
-    if (!value) { BL_ERROR("nao resolvido: %s", what); ++missing; }
+    if (!value) { BL_ERROR("not resolved: %s", what); ++missing; }
 }
 
 }
@@ -75,7 +75,7 @@ bool resolveGameRefs() {
     needPointer("Projectile.Update(int)", g.proj.update);
 
     if (missing > 0) {
-        BL_ERROR("GameRefs: %d item(ns) nao resolvido(s) — jogo incompativel", missing);
+        BL_ERROR("GameRefs: %d item(s) not resolved; incompatible game", missing);
         return false;
     }
 

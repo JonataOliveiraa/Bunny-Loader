@@ -29,7 +29,7 @@ void installFramePacing() {
     Il2CppClass* app = il2cpp::findClass({"UnityEngine", "Application", {}});
     const MethodInfo* set = app ? a.class_get_method_from_name(app, "set_targetFrameRate", 1) : nullptr;
     if (!set || !hook::install(set, hkSetTargetFrameRate, &g_origSetTarget)) {
-        BL_ERROR("quadros: Application.set_targetFrameRate nao hookado; numa tela de 90 Hz o jogo fica em 45 fps");
+        BL_ERROR("frames: Application.set_targetFrameRate not hooked; on a 90 Hz screen the game runs at 45 fps");
         return;
     }
     Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
@@ -46,7 +46,7 @@ void tickFramePacing() {
     const SetFn set = reinterpret_cast<SetFn>(il2cpp::methodPointer(g_setTarget60));
     set(!target60, g_setTarget60);
     set(target60, g_setTarget60);
-    BL_INFO("quadros: alvo refeito pelo jogo (Setting_Target60FPS = %s; 60 vira 61)", target60 ? "sim" : "nao");
+    BL_INFO("frames: target reset by the game (Setting_Target60FPS = %s; 60 becomes 61)", target60 ? "yes" : "no");
 }
 
 }

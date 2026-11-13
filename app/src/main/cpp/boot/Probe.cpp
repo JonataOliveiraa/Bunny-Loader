@@ -52,7 +52,7 @@ void waitGameContentLoaded() {
     Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
     FieldInfo* done = main ? il2cpp::findField(main, "_isAsyncLoadComplete") : nullptr;
     if (!done) {
-        BL_WARN("sonda: Main._isAsyncLoadComplete nao encontrado; segue sem esperar a carga do jogo");
+        BL_WARN("probe: Main._isAsyncLoadComplete not found; not waiting for the game to load");
         return;
     }
     auto& a = il2cpp::api();
@@ -60,11 +60,11 @@ void waitGameContentLoaded() {
         uint8_t loaded = 0;
         a.field_static_get_value(done, &loaded);
         if (loaded) {
-            if (waited) BL_DEBUG("sonda: carga do jogo concluida (+%d ms de espera)", waited);
+            if (waited) BL_DEBUG("probe: game loaded (+%d ms of waiting)", waited);
             return;
         }
         if (waited >= kLoadWaitMaxMs) {
-            BL_ERROR("sonda: a carga do jogo nao terminou em %d s; mods carregam assim mesmo", kLoadWaitMaxMs / 1000);
+            BL_ERROR("probe: the game did not finish loading in %d s; loading the mods anyway", kLoadWaitMaxMs / 1000);
             return;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(kLoadPollMs));
@@ -75,15 +75,15 @@ void probeThread() {
     struct Finished {
         ~Finished() { markProbeFinished(); }
     } finished;
-    BL_DEBUG("sonda: aguardando o jogo assentar (no maximo %d ms)...", kSettleMs);
+    BL_DEBUG("probe: waiting for the game to settle (at most %d ms)...", kSettleMs);
     waitForGameLoaded(std::chrono::milliseconds(kSettleMs));
 
     for (int i = 0; i < kRetries; ++i) {
         if (il2cppReady()) {
-            BL_DEBUG("sonda: il2cpp pronto; carregando API");
+            BL_DEBUG("probe: il2cpp ready; loading the API");
             auto& a = il2cpp::api();
             if (!a.load()) {
-                BL_ERROR("sonda: Api::load() falhou");
+                BL_ERROR("probe: Api::load() failed");
                 return;
             }
             struct Attached {
@@ -94,7 +94,7 @@ void probeThread() {
                 }
             } attached{a.thread_attach(a.domain_get())};
             if (!resolveGameRefs()) {
-                BL_ERROR("sonda: resolveGameRefs falhou");
+                BL_ERROR("probe: resolveGameRefs failed");
                 return;
             }
             BL_DEBUG("sonda: RESOLUCAO OK");
@@ -107,7 +107,7 @@ void probeThread() {
             mods::loadAll(config().modsDir, config().enabledMods);
             dotnet::host().finishLoading();
             runtime::installNetGuard();
-            BL_INFO("sonda: %zu mod(s) carregado(s)", mods::loadedCount());
+            BL_INFO("probe: %zu mod(s) loaded", mods::loadedCount());
             registerUnloadedPool();
             registerUnloadedWall();
             prepareModNpcs();
@@ -126,7 +126,7 @@ void probeThread() {
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(kRetryGapMs));
     }
-    BL_ERROR("sonda: il2cpp nao ficou pronto a tempo");
+    BL_ERROR("probe: il2cpp was not ready in time");
 }
 
 }

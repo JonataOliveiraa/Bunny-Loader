@@ -35,7 +35,7 @@ const Refs& refs() {
         x.bestiary = main ? il2cpp::findField(main, "BestiaryDB") : nullptr;
         x.numRecipes = recipe ? il2cpp::findField(recipe, "numRecipes") : nullptr;
         x.ok = x.itemDrops && x.bestiary && x.numRecipes;
-        if (!x.ok) BL_ERROR("conteudo de mod: refs de ItemDropsDB/BestiaryDB/numRecipes faltando");
+        if (!x.ok) BL_ERROR("mod content: ItemDropsDB/BestiaryDB/numRecipes references missing");
         return x;
     }();
     return r;
@@ -79,7 +79,7 @@ void tickContentReady() {
             g_finished = true;
             return;
         }
-        BL_INFO("conteudo de mod: pronto (receitas do jogo: %d)", readStatic<int32_t>(r.numRecipes));
+        BL_INFO("mod content: ready (game recipes: %d)", readStatic<int32_t>(r.numRecipes));
     }
     bool more = false;
     for (const auto& slot : g_hooks) {

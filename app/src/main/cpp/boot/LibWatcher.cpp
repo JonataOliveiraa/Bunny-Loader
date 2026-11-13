@@ -33,12 +33,12 @@ bool installWatcher() {
         reinterpret_cast<void**>(&origInit));
 
     if (!initStub && shadowhook_get_errno() != SHADOWHOOK_ERRNO_PENDING) {
-        BL_ERROR("Falha ao registrar hook de il2cpp_init: %s",
+        BL_ERROR("Failed to register the il2cpp_init hook: %s",
                  shadowhook_to_errmsg(shadowhook_get_errno()));
         return false;
     }
     installed = true;
-    BL_DEBUG("watcher de il2cpp_init registrado");
+    BL_DEBUG("il2cpp_init watcher registered");
     return true;
 }
 

@@ -77,7 +77,7 @@ void buildNpcClasses() {
     const int32_t oCatch = npc ? fieldOffset(npc, "catchItem") : -1;
     Il2CppArray* critter = staticArray(sets, "CountsAsCritter");
     if (!dict || oTown < 0 || oBoss < 0 || oFriendly < 0 || oDamage < 0 || oCatch < 0) {
-        BL_WARN("menu: amostras de NPC indisponiveis; os NPCs ficam sem subcategoria");
+        BL_WARN("menu: NPC samples unavailable; the NPCs get no subcategory");
         return;
     }
     g_npcClass.assign(static_cast<size_t>(npcTypeCount()), kNpcOther);
@@ -114,7 +114,7 @@ void buildBuffs() {
     Il2CppClass* main = findClass({"Terraria", "Main", {}});
     Il2CppClass* sets = findClass({"Terraria.ID", "BuffID", "Sets"});
     if (!g_buffNameOf || !main) {
-        BL_WARN("menu: Lang.GetBuffName indisponivel; a aba de buffs fica vazia");
+        BL_WARN("menu: Lang.GetBuffName unavailable; the buffs tab stays empty");
         return;
     }
     Il2CppArray* debuff = staticArray(main, "debuff");

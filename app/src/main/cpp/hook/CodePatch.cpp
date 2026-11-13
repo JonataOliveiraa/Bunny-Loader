@@ -96,9 +96,9 @@ int patchCompareLimit(const MethodInfo* m, uint32_t oldLimit, uint32_t newLimit,
 }
 
 std::string describeMethodCode(const MethodInfo* m) {
-    if (!m) return "metodo nao achado pelo nome";
+    if (!m) return "method not found by name";
     const auto start = reinterpret_cast<uintptr_t>(methodPointerOf(m));
-    if (!start) return "metodo sem codigo (methodPointer nulo)";
+    if (!start) return "method without code (null methodPointer)";
     const uintptr_t end = methodEnd(m, start);
     char where[160];
     Dl_info info{};
@@ -111,15 +111,15 @@ std::string describeMethodCode(const MethodInfo* m) {
     }
     const auto* p = reinterpret_cast<const uint32_t*>(start);
     char out[320];
-    std::snprintf(out, sizeof(out), "metodo em %s, %lu bytes, entrada %08x %08x %08x %08x", where,
+    std::snprintf(out, sizeof(out), "method at %s, %lu bytes, entry %08x %08x %08x %08x", where,
                   static_cast<unsigned long>(end - start), p[0], p[1], p[2], p[3]);
     return out;
 }
 
 std::string describeCompareMiss(const MethodInfo* m, uint32_t oldLimit, uint32_t newLimit, bool belowToo,
                                 bool shifted) {
-    if (!m) return "metodo nao achado pelo nome";
-    if (newLimit > 0xFFF || oldLimit > 0xFFF) return "limite nao cabe no imediato de 12 bits do cmp";
+    if (!m) return "method not found by name";
+    if (newLimit > 0xFFF || oldLimit > 0xFFF) return "limit does not fit the 12-bit cmp immediate";
     const auto start = reinterpret_cast<uintptr_t>(methodPointerOf(m));
     if (!start) return describeMethodCode(m);
     const uintptr_t end = methodEnd(m, start);
@@ -136,17 +136,17 @@ std::string describeCompareMiss(const MethodInfo* m, uint32_t oldLimit, uint32_t
     char why[200];
     if (old > 0) {
         const int err = g_lastWriteErrno.load();
-        std::snprintf(why, sizeof(why), "o cmp #%u esta la (%d vez(es)), mas a escrita foi recusada "
-                      "(%d falha(s) de mprotect, a ultima: %s)", oldLimit, old, g_writeFailures.load(),
+        std::snprintf(why, sizeof(why), "cmp #%u is there (%d time(s)), but the write was refused "
+                      "(%d mprotect failure(s), the last: %s)", oldLimit, old, g_writeFailures.load(),
                       err ? std::strerror(err) : "?");
     } else if (already > 0) {
-        std::snprintf(why, sizeof(why), "ja esta #%u (%d vez(es)): trocado antes, instalacao repetida?",
+        std::snprintf(why, sizeof(why), "already #%u (%d time(s)): swapped before, repeated installation?",
                       newLimit, already);
     } else if (oldOtherBranch > 0) {
-        std::snprintf(why, sizeof(why), "o cmp #%u existe (%d vez(es)), mas sem desvio de ordem logo "
-                      "depois (1a instrucao seguinte: %08x)", oldLimit, oldOtherBranch, otherInsn);
+        std::snprintf(why, sizeof(why), "cmp #%u exists (%d time(s)), but no ordered branch right "
+                      "after it (next instruction: %08x)", oldLimit, oldOtherBranch, otherInsn);
     } else {
-        std::snprintf(why, sizeof(why), "nenhum cmp #%u no metodo", oldLimit);
+        std::snprintf(why, sizeof(why), "no cmp #%u in the method", oldLimit);
     }
     return std::string(why) + "; " + describeMethodCode(m);
 }

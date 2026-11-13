@@ -64,32 +64,32 @@ void run(const Request& r) {
     int type = 0, amount = 0;
     char verb[16] = {};
     if (std::sscanf(r.command.c_str(), "%15s %d %d", verb, &type, &amount) < 2) {
-        BL_WARN("rede: pedido mal formado do jogador %d: '%s'", r.client, r.command.c_str());
+        BL_WARN("network: malformed request from player %d: '%s'", r.client, r.command.c_str());
         return;
     }
     const std::string v = verb;
     if (v == "npc") {
         if (type <= 0 || type >= npcTypeCount()) {
-            BL_WARN("rede: jogador %d pediu NPC %d, fora da tabela", r.client, type);
+            BL_WARN("network: player %d asked for NPC %d, outside the table", r.client, type);
             return;
         }
         spawnNpcs(type, amount, r.client);
     } else if (v == "item") {
         if (type <= 0 || type >= itemTypeCount()) {
-            BL_WARN("rede: jogador %d pediu item %d, fora da tabela", r.client, type);
+            BL_WARN("network: player %d asked for item %d, outside the table", r.client, type);
             return;
         }
         giveItem(type, amount < 1 ? 1 : amount, r.client);
     } else if (v == "power") {
         if (!setWorldPowerFromNet(type, amount)) {
-            BL_WARN("rede: jogador %d pediu poder %d, que nao e de mundo", r.client, type);
+            BL_WARN("network: player %d asked for power %d, which is not a world power", r.client, type);
         }
     } else if (v == "time") {
         setTimeOfDay(type);
     } else if (v == "reveal") {
         revealMapForClient(r.client);
     } else {
-        BL_WARN("rede: pedido desconhecido do jogador %d: '%s'", r.client, r.command.c_str());
+        BL_WARN("network: unknown request from player %d: '%s'", r.client, r.command.c_str());
     }
 }
 
@@ -117,7 +117,7 @@ void sendData(int msgType, int number, float number2, float number3) {
 
 bool sendToServer(const std::string& command) {
     if (!g_chatMessageCtor || !g_sendFromClient) {
-        BL_ERROR("rede: sem refs do chat; pedido '%s' perdido", command.c_str());
+        BL_ERROR("network: no chat references; request '%s' lost", command.c_str());
         return false;
     }
     auto& a = il2cpp::api();
@@ -130,7 +130,7 @@ bool sendToServer(const std::string& command) {
     void* args[1] = { msg };
     a.runtime_invoke(g_sendFromClient, nullptr, args, &exc);
     if (exc) { BL_ERROR("rede: SendChatMessageFromClient lancou excecao"); return false; }
-    BL_INFO("rede: pedido ao servidor: %s", command.c_str());
+    BL_INFO("network: request to the server: %s", command.c_str());
     return true;
 }
 
@@ -141,7 +141,7 @@ void tickNetRequests() {
         batch.swap(g_queue);
     }
     for (const Request& r : batch) {
-        BL_INFO("rede: pedido do jogador %d: %s", r.client, r.command.c_str());
+        BL_INFO("network: request from player %d: %s", r.client, r.command.c_str());
         run(r);
     }
 }
@@ -173,9 +173,9 @@ void installNetRequests() {
     }
     const bool hooked = process && g_textOffset >= 0 &&
                         hook::install(process, hkProcessIncomingMessage, &g_origProcess);
-    BL_DEBUG("rede: netMode=%p SendData=%p chat(ctor=%p envio=%p texto=%d) servidor=%s",
+    BL_DEBUG("network: netMode=%p SendData=%p chat(ctor=%p send=%p text=%d) server=%s",
              (void*)g_netMode, (const void*)g_sendData, (const void*)g_chatMessageCtor,
-             (const void*)g_sendFromClient, g_textOffset, hooked ? "ok" : "SEM GANCHO");
+             (const void*)g_sendFromClient, g_textOffset, hooked ? "ok" : "NO HOOK");
 }
 
 }

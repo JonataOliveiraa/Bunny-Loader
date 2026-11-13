@@ -46,7 +46,7 @@ Refs& refs() {
     r.bossHeads = sets ? findField(sets, "BossHeadTextures") : nullptr;
     r.ok = r.npcHeadBoss && r.bossHeads;
     if (!r.ok) {
-        BL_ERROR("icone de chefe de mod: refs faltando (TextureAssets.NpcHeadBoss=%p NPCID.Sets.BossHeadTextures=%p)",
+        BL_ERROR("mod boss icons: references missing (TextureAssets.NpcHeadBoss=%p NPCID.Sets.BossHeadTextures=%p)",
                  (void*)r.npcHeadBoss, (void*)r.bossHeads);
     }
     return r;
@@ -67,7 +67,7 @@ int vanillaCount() {
         heads = readStatic(r.npcHeadBoss);
     }
     if (!heads) {
-        BL_ERROR("icone de chefe de mod: TextureAssets.NpcHeadBoss nulo; chefe de mod sem barra e sem icone");
+        BL_ERROR("mod boss icons: TextureAssets.NpcHeadBoss is null; mod bosses get no bar and no icon");
         return -1;
     }
     return static_cast<int>(heads->length);
@@ -115,7 +115,7 @@ int loadPending() {
         int w = 0, hgt = 0;
         Il2CppObject* asset = content::loadTextureAsset(h.texture, nullptr, 0, h.assetName, &w, &hgt);
         if (!asset) {
-            BL_ERROR("icone de chefe de mod: nao consegui carregar %s (vaga %d)", h.texture.c_str(), h.slot);
+            BL_ERROR("mod boss icons: could not load %s (slot %d)", h.texture.c_str(), h.slot);
             continue;
         }
         h.asset = il2cpp::api().gchandle_new(asset, false);
@@ -159,12 +159,12 @@ void installBossHeads() {
 
     Il2CppArray* heads = readStatic(refs().npcHeadBoss);
     if (!heads) {
-        BL_ERROR("icone de chefe de mod: TextureAssets.NpcHeadBoss nulo; chefe de mod sem barra e sem icone");
+        BL_ERROR("mod boss icons: TextureAssets.NpcHeadBoss is null; mod bosses get no bar and no icon");
         return;
     }
     if (g_base < 0) g_base = static_cast<int>(heads->length);
     if (heads->length != static_cast<uintptr_t>(g_base)) {
-        BL_ERROR("icone de chefe de mod: o jogo tem %d icones, as vagas foram reservadas a partir de %d",
+        BL_ERROR("mod boss icons: the game has %d icons, the slots were reserved from %d",
                  static_cast<int>(heads->length), g_base);
         if (heads->length > static_cast<uintptr_t>(g_base)) return;
     }
@@ -178,7 +178,7 @@ void installBossHeads() {
     applyTextures();
     applyIndices();
     if (!g_heads.empty()) {
-        BL_DEBUG("icone de chefe de mod: %d de %zu em TextureAssets.NpcHeadBoss (%d..%d)",
+        BL_DEBUG("mod boss icons: %d of %zu in TextureAssets.NpcHeadBoss (%d..%d)",
                  loaded, g_heads.size(), g_base, total() - 1);
     }
 }
@@ -186,9 +186,9 @@ void installBossHeads() {
 void watchBossHeads() {
     std::lock_guard<std::mutex> l(g_mx);
     if (!g_active) return;
-    if (loadPending() > 0) BL_DEBUG("icone de chefe de mod: icones pedidos depois da instalacao carregados");
-    if (applyTextures()) BL_DEBUG("icone de chefe de mod: o jogo refez TextureAssets.NpcHeadBoss; icones devolvidos");
-    if (applyIndices()) BL_DEBUG("icone de chefe de mod: NPCID.Sets.BossHeadTextures refeita; indices devolvidos");
+    if (loadPending() > 0) BL_DEBUG("mod boss icons: icons requested after installation loaded");
+    if (applyTextures()) BL_DEBUG("mod boss icons: the game rebuilt TextureAssets.NpcHeadBoss; icons put back");
+    if (applyIndices()) BL_DEBUG("mod boss icons: NPCID.Sets.BossHeadTextures rebuilt; indices put back");
 }
 
 }

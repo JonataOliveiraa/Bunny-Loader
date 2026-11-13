@@ -51,9 +51,9 @@ Refs& refs() {
     r.ok = r.layerCls && r.layersCls && r.itemCls && r.stringCls && r.whiteLists && r.layerIndex &&
            r.setupWhiteLists && r.itemCtor && r.setDefaults && r.offName >= 0 && r.offMethod >= 0;
     if (!r.ok) {
-        BL_ERROR("ordenacao de itens de mod: refs faltando (ItemSortingLayer=%p ItemSortingLayers=%p "
-                 "_layerWhiteLists=%p _layerIndexForItemType=%p SetupWhiteLists=%p); ordenar o "
-                 "inventario apaga item de mod", (void*)r.layerCls, (void*)r.layersCls,
+        BL_ERROR("mod item sorting: references missing (ItemSortingLayer=%p ItemSortingLayers=%p "
+                 "_layerWhiteLists=%p _layerIndexForItemType=%p SetupWhiteLists=%p); sorting the "
+                 "inventory deletes mod items", (void*)r.layerCls, (void*)r.layersCls,
                  (void*)r.whiteLists, (void*)r.layerIndex, (void*)r.setupWhiteLists);
     }
     return r;
@@ -66,7 +66,7 @@ Il2CppObject* call(Il2CppObject* self, const char* name, int argc, void** args, 
     Il2CppObject* exc = nullptr;
     Il2CppObject* r = m ? a.runtime_invoke(m, self, args, &exc) : nullptr;
     if (!m || exc) {
-        BL_ERROR("ordenacao de itens de mod: %s.%s %s", what, name, m ? "lancou excecao" : "nao achado");
+        BL_ERROR("mod item sorting: %s.%s %s", what, name, m ? "lancou excecao" : "not found");
         *failed = true;
         return nullptr;
     }
@@ -135,7 +135,7 @@ void classify(int from, int to) {
         int type = from + i;
         void* sd[2] = {&type, nullptr};
         if (!exc) a.runtime_invoke(r.setDefaults, item, sd, &exc);
-        if (exc) BL_ERROR("ordenacao de itens de mod: SetDefaults(%d) lancou excecao", type);
+        if (exc) BL_ERROR("mod item sorting: SetDefaults(%d) threw an exception", type);
         a.gc_wbarrier_set_field(reinterpret_cast<Il2CppObject*>(items),
                                 reinterpret_cast<void**>(static_cast<Il2CppObject**>(arrayData(items)) + i), item);
     }
@@ -152,7 +152,7 @@ void classify(int from, int to) {
 
     Il2CppArray* layerIndex = layerIndexTable(to);
     if (!layerIndex) {
-        BL_ERROR("ordenacao de itens de mod: sem _layerIndexForItemType");
+        BL_ERROR("mod item sorting: no _layerIndexForItemType");
         return;
     }
     int32_t* layerOf = static_cast<int32_t*>(arrayData(layerIndex));
@@ -170,7 +170,7 @@ void classify(int from, int to) {
         Il2CppObject* whiteList = call(dict, "get_Item", 1, key, "_layerWhiteLists", &listFailed);
         Il2CppObject* method = layer ? field<Il2CppObject*>(layer, r.offMethod) : nullptr;
         if (!method || !whiteList) {
-            BL_ERROR("ordenacao de itens de mod: camada %d sem objeto ou sem lista", j);
+            BL_ERROR("mod item sorting: layer %d has no object or no list", j);
             continue;
         }
         void* args[3] = {layer, items, indices};
@@ -192,10 +192,10 @@ void classify(int from, int to) {
     a.field_static_set_value(r.whiteLists, dict);
 
     if (placed < n) {
-        BL_ERROR("ordenacao de itens de mod: %d de %d tipo(s) sem camada; ordenar o inventario os apaga",
+        BL_ERROR("mod item sorting: %d of %d type(s) without a layer; sorting the inventory deletes them",
                  n - placed, n);
     } else {
-        BL_DEBUG("ordenacao de itens de mod: %d tipo(s) (%d..%d) nas camadas de ordenacao", n, from, to - 1);
+        BL_DEBUG("mod item sorting: %d type(s) (%d..%d) in the sorting layers", n, from, to - 1);
     }
 }
 
@@ -214,8 +214,8 @@ void installModItemSorting(int from, int to) {
     if (!r.ok) return;
     if (!g_origSetupWhiteLists &&
         !hook::install(r.setupWhiteLists, hkSetupWhiteLists, &g_origSetupWhiteLists)) {
-        BL_ERROR("ordenacao de itens de mod: sem hook em ItemSorting.SetupWhiteLists; se o jogo "
-                 "refizer as listas, ordenar o inventario apaga item de mod");
+        BL_ERROR("mod item sorting: no hook on ItemSorting.SetupWhiteLists; if the game "
+                 "rebuilds the lists, sorting the inventory deletes mod items");
     }
     classify(from, to);
 }

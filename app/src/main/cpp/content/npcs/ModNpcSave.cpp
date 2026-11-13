@@ -176,7 +176,7 @@ std::vector<std::string> readLines(const std::string& path) {
         if (!header) {
             header = true;
             if (s != kHeader) {
-                BL_ERROR("moradores de mod: %s com cabecalho desconhecido; ignorado", path.c_str());
+                BL_ERROR("mod town NPCs: %s has an unknown header; ignored", path.c_str());
                 break;
             }
             continue;
@@ -194,7 +194,7 @@ void writeLines(const std::string& path, const std::vector<std::string>& lines) 
     const std::string tmp = path + ".tmp";
     FILE* f = std::fopen(tmp.c_str(), "wb");
     if (!f) {
-        BL_ERROR("moradores de mod: nao consegui escrever %s", tmp.c_str());
+        BL_ERROR("mod town NPCs: could not write %s", tmp.c_str());
         return;
     }
     std::fprintf(f, "%s\n", kHeader);
@@ -202,7 +202,7 @@ void writeLines(const std::string& path, const std::vector<std::string>& lines) 
     const bool ok = std::fflush(f) == 0;
     std::fclose(f);
     if (!ok || std::rename(tmp.c_str(), path.c_str()) != 0) {
-        BL_ERROR("moradores de mod: falha ao gravar %s", path.c_str());
+        BL_ERROR("mod town NPCs: failed to save %s", path.c_str());
         std::remove(tmp.c_str());
     }
 }
@@ -331,7 +331,7 @@ void hkRoomsSave(Il2CppObject* self, Il2CppObject* writer, const MethodInfo* m) 
     }
     writeLines(path + kSuffix, lines);
     if (!lines.empty()) {
-        BL_INFO("moradores de mod: mundo salvo sem morador de mod no .wld; %zu linha(s) em %s",
+        BL_INFO("mod town NPCs: world saved with no mod town NPC in the .wld; %zu line(s) in %s",
                 lines.size(), (path + kSuffix).c_str());
     }
 }
@@ -448,7 +448,7 @@ void hkLoadNpcs(Il2CppObject* reader, const MethodInfo* m) {
     }
     std::lock_guard<std::mutex> l(g_mx);
     g_kept[path] = kept;
-    if (restored > 0) BL_INFO("moradores de mod: %d reposto(s) do arquivo ao lado", restored);
+    if (restored > 0) BL_INFO("mod town NPCs: %d restored from the companion file", restored);
 }
 
 using RoomsLoadFn = void (*)(Il2CppObject*, Il2CppObject*, const MethodInfo*);
@@ -497,10 +497,10 @@ void installModNpcSave() {
         !hook::install(save, hkSaveNpcs, &g_origSaveNpcs) || !hook::install(load, hkLoadNpcs, &g_origLoadNpcs) ||
         !hook::install(roomsSave, hkRoomsSave, &g_origRoomsSave) ||
         !hook::install(roomsLoad, hkRoomsLoad, &g_origRoomsLoad)) {
-        BL_ERROR("moradores de mod: sem o save do mundo; morador de mod iria para o .wld pelo numero");
+        BL_ERROR("mod town NPCs: no world save hook; a mod town NPC would go into the .wld by number");
         return;
     }
-    BL_DEBUG("moradores de mod: save do mundo pronto (%s)", kSuffix);
+    BL_DEBUG("mod town NPCs: world save ready (%s)", kSuffix);
 }
 
 }

@@ -40,7 +40,7 @@ JavaVM* appJavaVM() {
     if (JavaVM* vm = g_loadedVm.load(std::memory_order_acquire)) return vm;
     static JavaVM* found = [] {
         JavaVM* vm = findJavaVM();
-        if (!vm) BL_ERROR("jni: nenhuma JavaVM (sem JNI_OnLoad e sem JNI_GetCreatedJavaVMs)");
+        if (!vm) BL_ERROR("jni: no JavaVM (no JNI_OnLoad and no JNI_GetCreatedJavaVMs)");
         return vm;
     }();
     return found;

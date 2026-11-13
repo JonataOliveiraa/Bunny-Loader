@@ -33,20 +33,20 @@ void boot() {
     auto& a = il2cpp::api();
 
     if (!a.load()) {
-        BL_ERROR("Falha ao carregar a API do IL2CPP. Mods desativados.");
+        BL_ERROR("Failed to load the IL2CPP API. Mods disabled.");
         return;
     }
     a.thread_attach(a.domain_get());
 
     if (!resolveGameRefs()) {
-        BL_ERROR("Versao do jogo incompativel. Mods desativados.");
+        BL_ERROR("Incompatible game version. Mods disabled.");
         return;
     }
 
     installSplashHook();
     prepareTexturePacks(config().modsDir, config().enabledMods);
 
-    BL_DEBUG("runtime pronto; mods ficam a cargo da sonda");
+    BL_DEBUG("runtime ready; the probe loads the mods");
 }
 
 }

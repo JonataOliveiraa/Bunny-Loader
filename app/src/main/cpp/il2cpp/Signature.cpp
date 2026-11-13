@@ -300,9 +300,9 @@ std::string explainParamNames(const MethodInfo* m, const Signature& sig) {
         const std::string& wrote = sig.paramNames[i];
         if (wrote == real) continue;
         if (!out.empty()) out += "; ";
-        out += "o parametro " + std::to_string(i + 1);
-        out += wrote.empty() ? " esta sem nome (e '" + real + "')"
-                             : " se chama '" + real + "', nao '" + wrote + "'";
+        out += "parameter " + std::to_string(i + 1);
+        out += wrote.empty() ? " has no name (it is '" + real + "')"
+                             : " is named '" + real + "', not '" + wrote + "'";
     }
     return out + ". No jogo: " + describeMethod(m);
 }

@@ -71,7 +71,7 @@ T unbox(Il2CppObject* boxed) {
 }
 
 void logCamera(const char* label, Il2CppObject* camera) {
-    BL_INFO("efeitos de tela: camera %s %p: alvo %p, clearFlags %d, depth %.1f", label, camera,
+    BL_INFO("screen effects: camera %s %p: target %p, clearFlags %d, depth %.1f", label, camera,
             invoke(g_getTargetTexture, camera), unbox<int32_t>(invoke(g_getClearFlags, camera)),
             unbox<float>(invoke(g_getDepth, camera)));
 }
@@ -135,8 +135,8 @@ void setupMarker() {
 
     g_marker.blit = a.class_get_method_from_name(graphics, "Internal_BlitMaterial5", 5);
     if (!target || !source || !copy || !g_marker.blit) {
-        BL_ERROR("efeitos de tela: marcador nao montado (alvo %p, origem %p, material %p, blit %p); "
-                 "o efeito vai no fim do quadro", target, source, copy, g_marker.blit);
+        BL_ERROR("screen effects: marker not set up (target %p, source %p, material %p, blit %p); "
+                 "the effect goes at the end of the frame", target, source, copy, g_marker.blit);
         return;
     }
     g_marker.handles[0] = a.gchandle_new(target, false);
@@ -146,7 +146,7 @@ void setupMarker() {
     g_marker.source = source;
     g_marker.material = copy;
     g_marker.ready = true;
-    BL_INFO("efeitos de tela: marcador montado");
+    BL_INFO("screen effects: marker set up");
 }
 
 bool issueMarker() {
@@ -156,7 +156,7 @@ bool issueMarker() {
         blit(g_marker.source, g_marker.target, g_marker.material, 0, true, g_marker.blit);
     };
     if (il2cpp::guarded(call)) return true;
-    BL_ERROR("efeitos de tela: o Blit do marcador lancou; marcador desligado");
+    BL_ERROR("screen effects: the marker Blit threw; marker disabled");
     g_marker.ready = false;
     return false;
 }
@@ -190,8 +190,8 @@ void hkFireOnPostRender(Il2CppObject* camera, const MethodInfo* method) {
     Il2CppObject* ui = readRef(readRef(r, g_uiSettingsOff), g_uiCameraOff);
     if (!g_camerasLogged && world && ui) {
         g_camerasLogged = true;
-        logCamera("do mundo", world);
-        logCamera("da interface", ui);
+        logCamera("world", world);
+        logCamera("interface", ui);
     }
 
     bool issued = false;
@@ -244,7 +244,7 @@ bool resolveCameras() {
 void installRenderHook() {
     auto& a = il2cpp::api();
     if (!resolveCameras()) {
-        BL_ERROR("efeitos de tela: cameras do XNAUnityRunner nao encontradas");
+        BL_ERROR("screen effects: XNAUnityRunner cameras not found");
         return;
     }
 
@@ -256,7 +256,7 @@ void installRenderHook() {
         g_getDepth = a.class_get_method_from_name(camera, "get_depth", 0);
     }
     const bool hooked = fire && hook::install(fire, hkFireOnPostRender, &g_origFire);
-    if (!hooked) BL_ERROR("efeitos de tela: Camera.FireOnPostRender nao hookado");
+    if (!hooked) BL_ERROR("screen effects: Camera.FireOnPostRender not hooked");
     {
         std::lock_guard<std::mutex> lock(g_statsMutex);
         g_stats.hookInstalled = hooked;

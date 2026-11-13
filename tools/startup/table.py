@@ -14,15 +14,15 @@ def parse(path):
     first = {}
     keys = {
         "content": "startup: game content loaded",
-        "mods0": "carregando mods de",
-        "mods1": "sonda:",
+        "mods0": "loading mods from",
+        "mods1": "probe:",
         "splash": "startup: splash over",
-        "ready": "conteudo de mod: pronto",
+        "ready": "mod content: ready",
         "title": "startup: title on screen",
     }
     for line in lines:
         for key, text in keys.items():
-            if key not in first and text in line and (key != "mods1" or re.search(r"sonda: \d+ mod", line)):
+            if key not in first and text in line and (key != "mods1" or re.search(r"probe: \d+ mod", line)):
                 first[key] = line
     if "title" not in first:
         return None

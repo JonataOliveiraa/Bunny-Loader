@@ -135,7 +135,7 @@ Refs& refs() {
            r.localizedTextCtor && r.unityCtor && r.loadImage && r.gameCtor && r.arrayCopy &&
            r.arraySet && r.offType >= 0 && r.offWidth >= 0 && r.offHeight >= 0 && a.array_new;
     if (!r.ok) {
-        BL_ERROR("itens de mod: refs faltando (TextureAssets.Item=%p Lang._itemNameCache=%p "
+        BL_ERROR("mod items: references missing (TextureAssets.Item=%p Lang._itemNameCache=%p "
                  "ContentSamples=%p ResetStats=%p LocalizedText.ctor=%p LoadImage=%p "
                  "Array.Copy=%p SetValue=%p)", (void*)r.itemTextures, (void*)r.nameCache,
                  (void*)r.itemsByType, (void*)r.resetStats, (void*)r.localizedTextCtor,
@@ -149,7 +149,7 @@ bool invoke(const MethodInfo* m, void* self, void** args, const char* what,
     Il2CppObject* exc = nullptr;
     Il2CppObject* r = il2cpp::api().runtime_invoke(m, self, args, &exc);
     if (exc) {
-        BL_ERROR("itens de mod: %s lancou excecao", what);
+        BL_ERROR("mod items: %s threw an exception", what);
         return false;
     }
     if (ret) *ret = r;
@@ -162,7 +162,7 @@ Il2CppArray* readStatic(FieldInfo* f) {
     return arr;
 }
 
-TypeTables g_tables("itens de mod", kVanillaItemCount, {
+TypeTables g_tables("mod items", kVanillaItemCount, {
     {"Terraria.ID", "ItemID", "Sets"},
     {"Terraria.ID", "ItemID", ""},
     {"Terraria.ID", "AmmoID", "Sets"},
@@ -191,7 +191,7 @@ void applyTooltip(int type, const Entry& reg) {
     void* args[2] = {&id, a.string_new(key.c_str())};
     Il2CppObject* exc = nullptr;
     Il2CppObject* tip = a.runtime_invoke(r.tooltipFromKey, nullptr, args, &exc);
-    if (exc || !tip) { BL_ERROR("itens de mod: FromLanguageKey lancou (%s)", reg.def.name.c_str()); return; }
+    if (exc || !tip) { BL_ERROR("mod items: FromLanguageKey threw (%s)", reg.def.name.c_str()); return; }
     content::setTableElement(r.tooltipCache, type, tip);
 }
 
@@ -248,7 +248,7 @@ void registerSample(int type, const std::string& mod, const std::string& name) {
     invoke(r.itemCtor, item, nullptr, "Item.ctor");
     int t = type;
     void* sd[2] = {&t, nullptr};
-    invoke(r.setDefaults, item, sd, "SetDefaults da amostra");
+    invoke(r.setDefaults, item, sd, "sample SetDefaults");
     setDictionaryEntry(r.itemsByType, &t, item, "ContentSamples.ItemsByType");
     const std::string persistentId = mod + "/" + name;
     Il2CppString* p = a.string_new(persistentId.c_str());
@@ -277,7 +277,7 @@ void hookItemNames() {
     const MethodInfo* m = lang ? il2cpp::findMethodBySignature(
         lang, il2cpp::parseSignature("LocalizedText GetItemName(int id)")) : nullptr;
     if (!m || !hook::install(m, hkGetItemName, &g_origGetItemName)) {
-        BL_ERROR("itens de mod: sem hook em Lang.GetItemName; itens de mod ficam sem nome");
+        BL_ERROR("mod items: no hook on Lang.GetItemName; mod items have no name");
     }
 }
 
@@ -291,11 +291,11 @@ Il2CppArray* hkGroupLookup(const MethodInfo* m) {
     if (!groups || groups->length >= size) return groups;
     Il2CppArray* bigger = TypeTables::growArray(groups, size);
     if (!bigger) {
-        BL_ERROR("itens de mod: falha ao ampliar EmergencyStacking.GroupLookup");
+        BL_ERROR("mod items: failed to grow EmergencyStacking.GroupLookup");
         return groups;
     }
     il2cpp::api().field_static_set_value(g_groupLookup, bigger);
-    BL_DEBUG("itens de mod: EmergencyStacking.GroupLookup ampliada de %zu para %zu antes da consulta",
+    BL_DEBUG("mod items: EmergencyStacking.GroupLookup grown from %zu to %zu before the lookup",
              static_cast<size_t>(groups->length), static_cast<size_t>(size));
     return bigger;
 }
@@ -306,7 +306,7 @@ bool hookEmergencyStacking() {
     g_groupLookup = cls ? il2cpp::findField(cls, "_groupLookup") : nullptr;
     const MethodInfo* getter = cls ? il2cpp::api().class_get_method_from_name(cls, "get_GroupLookup", 0) : nullptr;
     if (!g_groupLookup || !getter || !hook::install(getter, hkGroupLookup, &g_origGroupLookup)) {
-        BL_ERROR("itens de mod: sem protecao em EmergencyStacking.GroupLookup; itens de mod desligados");
+        BL_ERROR("mod items: no guard on EmergencyStacking.GroupLookup; mod items disabled");
         return false;
     }
     return true;
@@ -325,11 +325,11 @@ void patchDropLimits(int total) {
         patched += patchRegisterLimit(m, g_dropLimit, limit);
     }
     if (patched == 0) {
-        BL_ERROR("itens de mod: limite do drop (CommonCode.DropItem*) nao achado no codigo; "
-                 "NPC nenhum solta item de mod");
+        BL_ERROR("mod items: drop limit (CommonCode.DropItem*) not found in the code; "
+                 "no NPC drops a mod item");
         return;
     }
-    BL_DEBUG("itens de mod: drop do jogo aceita ate o id %u (%d metodo(s) do CommonCode)", limit + 1, patched);
+    BL_DEBUG("mod items: game drops accept ids up to %u (%d CommonCode method(s))", limit + 1, patched);
     g_dropLimit = limit;
 }
 
@@ -344,12 +344,12 @@ void patchTouchTagLimits(int total) {
     const int measured = measure ? patchMovImmediate(measure, g_touchTagLimit, limit) : 0;
     const int printed = print ? patchMovImmediate(print, g_touchTagLimit, limit) : 0;
     if (measured != 2 || printed != 2) {
-        BL_ERROR("itens de mod: limite de [ct] parcialmente atualizado (MeasureInline=%d, PrintInline=%d)",
+        BL_ERROR("mod items: [ct] limit partly updated (MeasureInline=%d, PrintInline=%d)",
                  measured, printed);
         return;
     }
     g_touchTagLimit = limit;
-    BL_DEBUG("itens de mod: [ct] aceita IDs ate %u", limit);
+    BL_DEBUG("mod items: [ct] accepts ids up to %u", limit);
 }
 
 uint32_t g_itemTagLimit = kVanillaItemCount - 1;
@@ -367,12 +367,12 @@ void patchItemTagLimits(int total) {
     const int measured = measure ? patchMovImmediate(measure, g_itemTagLimit, limit) : 0;
     const int printed = print ? patchMovImmediate(print, g_itemTagLimit, limit) : 0;
     if (measured != 1 || printed != 1) {
-        BL_ERROR("itens de mod: limite de [i] parcialmente atualizado (MeasureInline=%d, PrintInline=%d)",
+        BL_ERROR("mod items: [i] limit partly updated (MeasureInline=%d, PrintInline=%d)",
                  measured, printed);
         return;
     }
     g_itemTagLimit = limit;
-    BL_DEBUG("itens de mod: [i] aceita IDs ate %u", limit);
+    BL_DEBUG("mod items: [i] accepts ids up to %u", limit);
 }
 
 constexpr uint32_t kTstBlue = 0x72181edf;
@@ -400,11 +400,11 @@ void fixItemTagColorOnce() {
         const bool ok = replaceInstruction(code, i * 4, kTstBlue, kTstRgb) &&
                         replaceInstruction(code, (i + 3) * 4, code[i + 3], kNop) &&
                         replaceInstruction(code, (i + 5) * 4, code[i + 5], kNop);
-        if (ok) BL_DEBUG("[i]: item desenhado em texto de qualquer cor (menos preto)");
-        else BL_ERROR("[i]: troca do teste de cor do PrintInline recusada (mprotect)");
+        if (ok) BL_DEBUG("[i]: item drawn in text of any color (except black)");
+        else BL_ERROR("[i]: swapping the PrintInline color test was refused (mprotect)");
         return;
     }
-    BL_ERROR("[i]: teste de cor do PrintInline nao achado (outra versao do jogo?); %s",
+    BL_ERROR("[i]: PrintInline color test not found (another game version?); %s",
              describeMethodCode(print).c_str());
 }
 
@@ -442,13 +442,13 @@ int32_t g_offMiscFallbackTable = -1;
 void hkDestinationListCtor(Il2CppObject* self, const MethodInfo* m) {
     g_origDestinationListCtor(self, m);
     TypeTables::growInstanceTable(self, g_offFirstEntryForType, kVanillaItemCount, itemTypeCount(),
-                                  "itens de mod: QuickStacking.firstEntryForType");
+                                  "mod items: QuickStacking.firstEntryForType");
 }
 
 void hkMiscFallbackCtor(Il2CppObject* self, Il2CppObject* otherFilters, const MethodInfo* m) {
     g_origMiscFallbackCtor(self, otherFilters, m);
     TypeTables::growInstanceTable(self, g_offMiscFallbackTable, kVanillaItemCount, itemTypeCount(),
-                                  "itens de mod: MiscFallback._fitsFilterByItemType");
+                                  "mod items: MiscFallback._fitsFilterByItemType");
 }
 
 void growInstanceTables(int size) {
@@ -463,14 +463,14 @@ void growInstanceTables(int size) {
     g_offFirstEntryForType = list ? il2cpp::fieldOffset(list, "firstEntryForType") : -1;
     if (!listCtor || g_offFirstEntryForType < 0 ||
         !hook::install(listCtor, hkDestinationListCtor, &g_origDestinationListCtor)) {
-        BL_ERROR("itens de mod: sem hook em QuickStacking.MatchingItemTypeDestinationList; "
-                 "empilhar item de mod escreve fora da tabela");
+        BL_ERROR("mod items: no hook on QuickStacking.MatchingItemTypeDestinationList; "
+                 "stacking a mod item writes past the table");
     }
     if (FieldInfo* scratch = qs ? il2cpp::findField(qs, "matchingItemTypeScratch") : nullptr) {
         Il2CppObject* obj = nullptr;
         a.field_static_get_value(scratch, &obj);
         TypeTables::growInstanceTable(obj, g_offFirstEntryForType, kVanillaItemCount, size,
-                                      "itens de mod: QuickStacking.firstEntryForType");
+                                      "mod items: QuickStacking.firstEntryForType");
     }
 
     Il2CppClass* filters = il2cpp::findClassQuiet("Terraria.GameContent.Creative", "ItemFilters");
@@ -479,8 +479,8 @@ void growInstanceTables(int size) {
     g_offMiscFallbackTable = misc ? il2cpp::fieldOffset(misc, "_fitsFilterByItemType") : -1;
     if (!miscCtor || g_offMiscFallbackTable < 0 ||
         !hook::install(miscCtor, hkMiscFallbackCtor, &g_origMiscFallbackCtor)) {
-        BL_ERROR("itens de mod: sem hook em ItemFilters.MiscFallback; o filtro Diversos "
-                 "escreve fora da tabela com item de mod");
+        BL_ERROR("mod items: no hook on ItemFilters.MiscFallback; the Misc filter "
+                 "writes past the table with a mod item");
     }
 }
 
@@ -540,7 +540,7 @@ void registerUnloadedPool() {
         const int type = registerModItem(std::move(d));
         if (i == 0) g_poolFirst = type;
     }
-    BL_DEBUG("itens de mod: reserva de %d item(ns) \"?\" a partir do id %d", kUnloadedPoolSize, g_poolFirst);
+    BL_DEBUG("mod items: %d \"?\" item(s) reserved from id %d", kUnloadedPoolSize, g_poolFirst);
 }
 
 bool isUnloadedType(int type) {
@@ -559,8 +559,8 @@ int unloadedTypeFor(const std::string& key) {
             if (type < 0 && e.unloadedKey.empty()) type = g_poolFirst + i;
         }
         if (type < 0) {
-            BL_ERROR("itens de mod: reserva \"?\" esgotada (%d itens ausentes distintos); %s "
-                     "fica so no arquivo", kUnloadedPoolSize, key.c_str());
+            BL_ERROR("mod items: \"?\" reserve used up (%d distinct missing items); %s "
+                     "stays only in the file", kUnloadedPoolSize, key.c_str());
             return -1;
         }
         Entry& e = g_regs[static_cast<size_t>(type - kVanillaItemCount)];
@@ -618,7 +618,7 @@ void tickModItems() {
     const int to = kVanillaItemCount + total;
     const int grown = g_tables.grow(from, to);
     if (grown < 0) {
-        BL_ERROR("itens de mod: nenhuma tabela de item achada; itens de mod desligados");
+        BL_ERROR("mod items: no item table found; mod items disabled");
         g_failed = true;
         return;
     }
@@ -651,7 +651,7 @@ void tickModItems() {
     }
     for (const PendingSample& n : pending) registerSample(n.type, n.mod, n.name);
     installModItemSorting(from, to);
-    BL_INFO("itens de mod: %d instalado(s) (ids %d..%d), %d tabela(s) aumentadas de %d para %d",
+    BL_INFO("mod items: %d installed (ids %d..%d), %d table(s) grown from %d to %d",
             total - installed, from, to - 1, grown, from, to);
     for (const auto& slot : g_installedHooks) {
         if (ItemsInstalledHook hook = slot.load(std::memory_order_acquire)) hook(from, to - 1);

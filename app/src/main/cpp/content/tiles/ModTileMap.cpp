@@ -36,7 +36,7 @@ struct MapCell {
     uint8_t light;
     uint8_t extra;
 };
-static_assert(sizeof(MapCell) == 4, "layout do MapTile");
+static_assert(sizeof(MapCell) == 4, "MapTile layout");
 
 struct Entry {
     uint8_t r, g, b;
@@ -129,11 +129,11 @@ bool resolveLegend(Refs& r) {
         }
     }
     if (r.legendArray < 0) {
-        BL_ERROR("tiles de mod: _mapLegendCache (%s) sem array de nomes; tile de mod fora do mapa",
+        BL_ERROR("mod tiles: _mapLegendCache (%s) has no name array; mod tiles stay off the map",
                  cls ? a.class_get_name(cls) : "?");
         return false;
     }
-    BL_DEBUG("tiles de mod: nomes do mapa em %s+%d (Length em %d)", a.class_get_name(cls), r.legendArray,
+    BL_DEBUG("mod tiles: map names at %s+%d (Length at %d)", a.class_get_name(cls), r.legendArray,
              r.legendLength);
     return true;
 }
@@ -162,8 +162,8 @@ Refs& refs() {
     if (r.legend && !resolveLegend(r)) r.legend = nullptr;
     r.ok = r.lookup && r.options && r.colors && r.hell && r.legend && r.getText;
     if (!r.ok) {
-        BL_ERROR("tiles de mod: mapa sem as tabelas (tileLookup=%p colorLookup=%p hellPosition=%p "
-                 "_mapLegendCache=%p Language.GetText=%p); tile de mod fora do mapa",
+        BL_ERROR("mod tiles: map tables missing (tileLookup=%p colorLookup=%p hellPosition=%p "
+                 "_mapLegendCache=%p Language.GetText=%p); mod tiles stay off the map",
                  (void*)r.lookup, (void*)r.colors, (void*)r.hell, (void*)r.legend, (void*)r.getText);
         return r;
     }
@@ -193,8 +193,8 @@ Refs& refs() {
                r.chunkX >= 0 && r.chunkY >= 0 && r.chunkSave && r.chunkLoad &&
                a.monitor_enter && a.monitor_exit;
     if (!r.saveOk) {
-        BL_ERROR("tiles de mod: sem as refs de gravar o mapa (CreateMapTile=%p InternalSaveMapCompressed=%p "
-                 "WorldMap.Load=%p GetChunkTile=%p TryGetMapPath=%p); tile de mod sai do mapa salvo",
+        BL_ERROR("mod tiles: map saving references missing (CreateMapTile=%p InternalSaveMapCompressed=%p "
+                 "WorldMap.Load=%p GetChunkTile=%p TryGetMapPath=%p); mod tiles leave the saved map",
                  (void*)r.createMapTile, (void*)r.saveCompressed, (void*)r.mapLoad, (void*)r.getChunkTile,
                  (void*)r.tryGetMapPath);
     }
@@ -258,7 +258,7 @@ void applyLegend(const Refs& r, uint16_t pos, size_t count, bool force) {
     if (legend == g_legendOurs && legend->length == want && !force) return;
     Il2CppArray* out = legend->length == want ? legend : TypeTables::resizedCopy(legend, want);
     if (!out) {
-        BL_ERROR("tiles de mod: nao deu para aumentar o _mapLegendCache; nome de tile de mod sem texto");
+        BL_ERROR("mod tiles: could not grow _mapLegendCache; mod tile names have no text");
         return;
     }
     auto** slots = static_cast<Il2CppObject**>(arrayData(out));
@@ -350,7 +350,7 @@ void prepareSave(const Refs& r, Il2CppObject* map, uint16_t pos) {
     if (all && width > 0 && !g_alwaysScanAll.load(std::memory_order_relaxed)) {
         g_scanAll.store(false, std::memory_order_relaxed);
     }
-    BL_DEBUG("tiles de mod: mapa: %d pedaco(s) varrido(s), %d com celula de mod", scanned, withMod);
+    BL_DEBUG("mod tiles: map: %d chunk(s) scanned, %d with a mod cell", scanned, withMod);
 }
 
 void writeFile(const std::string& path, const std::vector<SavedCell>& cells, const std::vector<KeptCell>& kept) {
@@ -361,7 +361,7 @@ void writeFile(const std::string& path, const std::vector<SavedCell>& cells, con
     const std::string tmp = path + ".tmp";
     FILE* f = std::fopen(tmp.c_str(), "wb");
     if (!f) {
-        BL_ERROR("tiles de mod: nao deu para gravar %s", tmp.c_str());
+        BL_ERROR("mod tiles: could not save %s", tmp.c_str());
         return;
     }
     std::fprintf(f, "%s\n", kHeader);
@@ -381,11 +381,11 @@ void writeFile(const std::string& path, const std::vector<SavedCell>& cells, con
     }
     const bool ok = std::fclose(f) == 0;
     if (!ok || std::rename(tmp.c_str(), path.c_str()) != 0) {
-        BL_ERROR("tiles de mod: nao deu para gravar %s", path.c_str());
+        BL_ERROR("mod tiles: could not save %s", path.c_str());
         std::remove(tmp.c_str());
         return;
     }
-    BL_DEBUG("tiles de mod: %s: %d celula(s) de mod (%zu de mod ausente)", path.c_str(), written, kept.size());
+    BL_DEBUG("mod tiles: %s: %d mod cell(s) (%zu from a missing mod)", path.c_str(), written, kept.size());
 }
 
 std::vector<KeptCell> readFile(const std::string& path) {
@@ -400,7 +400,7 @@ std::vector<KeptCell> readFile(const std::string& path) {
         if (!header) {
             header = true;
             if (s != kHeader) {
-                BL_ERROR("tiles de mod: %s com cabecalho desconhecido; ignorado", path.c_str());
+                BL_ERROR("mod tiles: %s has an unknown header; ignored", path.c_str());
                 break;
             }
             continue;
@@ -471,12 +471,12 @@ void finishSave(const Refs& r, bool saved) {
         }
     }
     if (!saved) {
-        BL_ERROR("tiles de mod: a gravacao do mapa lancou; o .map.bl ficou como estava");
+        BL_ERROR("mod tiles: saving the map threw; the .map.bl stayed as it was");
     } else if (const std::string path = mapPath(r); !path.empty()) {
         std::lock_guard<std::mutex> l(g_mx);
         writeFile(path + kSuffix, g_save.cells, kept);
     }
-    BL_DEBUG("tiles de mod: mapa gravado, %zu celula(s) de mod fora do .map", g_save.cells.size());
+    BL_DEBUG("mod tiles: map saved, %zu mod cell(s) kept out of the .map", g_save.cells.size());
     g_save.cells.clear();
     g_save.cells.shrink_to_fit();
 }
@@ -532,7 +532,7 @@ void hkChunkSave(Il2CppObject* chunk, const MethodInfo* m) {
     }
     g_origChunkSave(chunk, m);
     if (loading) {
-        if (!cells.empty()) BL_DEBUG("tiles de mod: mapa: %zu indice(s) de mod no .map (gravado com o vazamento antigo) viram nao explorado", cells.size());
+        if (!cells.empty()) BL_DEBUG("mod tiles: map: %zu mod index(es) in the .map (saved with the old leak) become unexplored", cells.size());
         return;
     }
     {
@@ -635,7 +635,7 @@ void hkMapLoad(Il2CppObject* self, const MethodInfo* m) {
         }
     }
     if (lock) il2cpp::api().monitor_exit(lock);
-    BL_DEBUG("tiles de mod: %s%s: %d celula(s) de mod no mapa, %d ja explorada(s) sem o mod, %zu de mod ausente",
+    BL_DEBUG("mod tiles: %s%s: %d mod cell(s) on the map, %d already explored without the mod, %zu from a missing mod",
              path.c_str(), kSuffix, placed, skipped, g_kept.size());
 }
 
@@ -684,7 +684,7 @@ void applyModTileMap(int total, bool rebuilt) {
         lookup->length < static_cast<uintptr_t>(total) || options->length < static_cast<uintptr_t>(total)) {
         static int waited = 0;
         if (++waited == 600) {
-            BL_DEBUG("tiles de mod: mapa ainda sem tabelas (lookup %d, opcoes %d, cores %d, inferno em %d)",
+            BL_DEBUG("mod tiles: map still has no tables (lookup %d, options %d, colors %d, underworld at %d)",
                      lookup ? static_cast<int>(lookup->length) : -1, options ? static_cast<int>(options->length) : -1,
                      colors ? static_cast<int>(colors->length) : -1, hell);
         }
@@ -698,7 +698,7 @@ void applyModTileMap(int total, bool rebuilt) {
     std::lock_guard<std::mutex> l(g_mx);
     const uint16_t pos = fresh ? static_cast<uint16_t>(hell + 1) : g_modPosition.load();
     if (fresh && colors->length != static_cast<uintptr_t>(hell) + 1) {
-        BL_WARN("tiles de mod: colorLookup com %d cores e o inferno em %d; as de mod entram em %d",
+        BL_WARN("mod tiles: colorLookup with %d colors and the underworld at %d; mod colors start at %d",
                 static_cast<int>(colors->length), hell, pos);
     }
     auto* lk = static_cast<uint16_t*>(arrayData(lookup));
@@ -752,7 +752,7 @@ void applyModTileMap(int total, bool rebuilt) {
     const uintptr_t want = static_cast<uintptr_t>(pos) + count;
     Il2CppArray* out = colors->length == want ? colors : TypeTables::resizedCopy(colors, want);
     if (!out) {
-        BL_ERROR("tiles de mod: nao deu para aumentar o colorLookup; tile de mod fora do mapa");
+        BL_ERROR("mod tiles: could not grow colorLookup; mod tiles stay off the map");
         for (int type = kVanillaTileCount; type < total; ++type) { lk[type] = 0; op[type] = 0; }
         g_typeBase.assign(g_typeBase.size(), 0);
         if (wallLookup && wallOptions) {
@@ -770,7 +770,7 @@ void applyModTileMap(int total, bool rebuilt) {
     applyLegend(r, pos, count, true);
     if (fresh) {
         const uint8_t* dirt = col + static_cast<size_t>(lk[0]) * 4;
-        BL_INFO("tiles de mod: mapa: %zu entrada(s) de mod a partir de %d (terra do jogo: %u %u %u %u)",
+        BL_INFO("mod tiles: map: %zu mod entr(ies) from %d (game dirt: %u %u %u %u)",
                 count, pos, dirt[0], dirt[1], dirt[2], dirt[3]);
     }
     g_modPosition.store(pos);
@@ -786,18 +786,18 @@ void installModTileMap() {
         return;
     }
     if (!hook::install(r.createMapTile, hkCreateMapTile, &g_origCreateMapTile)) {
-        BL_ERROR("tiles de mod: sem hook no MapHelper.CreateMapTile; o mapa salvo varre todos os pedacos");
+        BL_ERROR("mod tiles: no hook on MapHelper.CreateMapTile; the saved map scans every chunk");
         g_alwaysScanAll.store(true);
         g_scanAll.store(true);
     }
     if (!hook::install(r.mapLoad, hkMapLoad, &g_origLoad)) {
-        BL_ERROR("tiles de mod: sem hook no WorldMap.Load; tile de mod some do mapa ao voltar ao mundo");
+        BL_ERROR("mod tiles: no hook on WorldMap.Load; mod tiles vanish from the map when returning to the world");
     }
     if (!hook::install(r.chunkSave, hkChunkSave, &g_origChunkSave) ||
         !hook::install(r.chunkLoad, hkChunkLoad, &g_origChunkLoad) ||
         !hook::install(r.saveMap, hkSaveMap, &g_origSaveMap) ||
         !hook::install(r.saveCompressed, hkSaveCompressed, &g_origSave)) {
-        BL_ERROR("tiles de mod: sem hook no MapHelper.SaveMap/InternalSaveMapCompressed/WorldMapChunk.SaveCompressed/LoadTiles; tile de mod fora do mapa");
+        BL_ERROR("mod tiles: no hook on MapHelper.SaveMap/InternalSaveMapCompressed/WorldMapChunk.SaveCompressed/LoadTiles; mod tiles stay off the map");
         g_disabled.store(true);
         std::lock_guard<std::mutex> l(g_mx);
         g_entries.clear();

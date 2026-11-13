@@ -20,14 +20,14 @@ bool setWaterStyleCount(int total) {
     Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
     const MethodInfo* m = main ? a.class_get_method_from_name(main, "DrawWaters", 1) : nullptr;
     if (!m) {
-        BL_ERROR("agua de mod: Main.DrawWaters nao achado");
+        BL_ERROR("mod water: Main.DrawWaters not found");
         return false;
     }
     const auto from = static_cast<uint32_t>(g_count), to = static_cast<uint32_t>(total);
     const int fade = patchLoopEnd(m, from + kHeaderInFloats, to + kHeaderInFloats);
     const int draw = patchLoopEnd(m, from, to, true);
     if (fade != 1 || draw != 1) {
-        BL_ERROR("agua de mod: lacos do Main.DrawWaters nao casaram (fade %d, desenho %d; esperado 1 e 1): %s",
+        BL_ERROR("mod water: Main.DrawWaters loops did not match (fade %d, draw %d; expected 1 and 1): %s",
                  fade, draw, describeMethodCode(m).c_str());
         return false;
     }

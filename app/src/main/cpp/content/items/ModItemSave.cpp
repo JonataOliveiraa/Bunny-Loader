@@ -177,7 +177,7 @@ std::vector<SavedItem> readFile(const std::string& path) {
     std::ifstream f(path, std::ios::binary);
     if (!f) return items;
     if (!item_save::read(f, items)) {
-        BL_ERROR("save de itens de mod: arquivo invalido em %s", path.c_str());
+        BL_ERROR("mod item save: invalid file at %s", path.c_str());
     }
     return items;
 }
@@ -190,7 +190,7 @@ void writeFile(const std::string& path, const std::vector<SavedItem>& items) {
     const std::string tmp = path + ".tmp";
     std::ofstream f(tmp, std::ios::binary | std::ios::trunc);
     if (!f) {
-        BL_ERROR("save de itens de mod: nao consegui escrever %s", tmp.c_str());
+        BL_ERROR("mod item save: could not write %s", tmp.c_str());
         return;
     }
     const bool encoded = item_save::write(f, items);
@@ -198,7 +198,7 @@ void writeFile(const std::string& path, const std::vector<SavedItem>& items) {
     f.close();
     const bool ok = encoded && !f.fail();
     if (!ok || std::rename(tmp.c_str(), path.c_str()) != 0) {
-        BL_ERROR("save de itens de mod: falha ao gravar %s", path.c_str());
+        BL_ERROR("mod item save: failed to save %s", path.c_str());
         std::remove(tmp.c_str());
     }
 }
@@ -247,7 +247,7 @@ void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
             encodePrefix(it, prefix);
             if (prefix == 0) it.prefixKey = pendingPrefixFor(path, c.name, slot, type);
             if (!saveModItemData(item, it.data)) {
-                BL_ERROR("ModItem.SaveData: save complementar do personagem preservado apos falha");
+                BL_ERROR("ModItem.SaveData: the player's companion save was kept after a failure");
                 return;
             }
             items.push_back(std::move(it));
@@ -271,8 +271,8 @@ void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
     }
     writeFile(path + kSuffix, items);
     if (!items.empty()) {
-        BL_INFO("save de itens de mod: o jogo salvou o personagem; %zu item(ns) de mod gravado(s) junto "
-                "(%zu de mod nao carregado)", items.size(), kept);
+        BL_INFO("mod item save: the game saved the player; %zu mod item(s) saved with it "
+                "(%zu from a mod that is not loaded)", items.size(), kept);
     }
 }
 
@@ -424,12 +424,12 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
         else g_pendingPrefix[path] = std::move(pending);
     }
     if (buffCount) {
-        BL_INFO("save de buffs de mod: %zu reposto(s), %zu so no arquivo", buffCount - buffsKept, buffsKept);
+        BL_INFO("mod buff save: %zu restored, %zu only in the file", buffCount - buffsKept, buffsKept);
     }
     if (!saved.empty() || stray) {
-        BL_INFO("save de itens de mod: personagem: %d reposto(s) (%d como \"?\")%s, %d prefixo(s) "
-                "de mod em item do jogo, %zu so no arquivo, %d numero(s) invalido(s) limpo(s)",
-                restored, unloaded, moved ? ", algum fora do lugar" : "", prefixes, kept.size(), stray);
+        BL_INFO("mod item save: player: %d restored (%d as \"?\")%s, %d mod prefix(es) "
+                "on game items, %zu only in the file, %d invalid number(s) cleared",
+                restored, unloaded, moved ? ", some out of place" : "", prefixes, kept.size(), stray);
     }
     return fileData;
 }
@@ -655,7 +655,7 @@ int32_t hkSaveChests(Il2CppObject* writer, const MethodInfo* m) {
         }
         writeFile(path + kSuffix, items);
         if (!items.empty()) {
-            BL_INFO("save de itens de mod: mundo: %zu item(ns) em bau gravado(s) (%zu so no arquivo)",
+            BL_INFO("mod item save: world: %zu item(s) in chests saved (%zu only in the file)",
                     items.size(), kept);
         }
     }
@@ -736,8 +736,8 @@ void hkFixAgainstExploits(const MethodInfo* m) {
         else g_pendingPrefix[path] = std::move(pending);
     }
     if (!saved.empty() || stray) {
-        BL_INFO("save de itens de mod: mundo: %d item(ns) em bau reposto(s) (%d como \"?\"), %d "
-                "prefixo(s) de mod em item do jogo, %zu so no arquivo, %d numero(s) invalido(s) "
+        BL_INFO("mod item save: world: %d item(s) in chests restored (%d as \"?\"), %d "
+                "mod prefix(es) on game items, %zu only in the file, %d invalid number(s) "
                 "limpo(s)", restored, unloaded, prefixes, kept.size(), stray);
     }
     g_origFix(m);
@@ -769,7 +769,7 @@ bool resolveChests() {
     c.ok = c.chests && c.activeWorld && c.items >= 0 && c.x >= 0 && c.y >= 0 && c.stride > 0 &&
            c.type + 2 <= c.stride && c.stack + 2 <= c.stride && c.prefix < c.stride &&
            c.favorited < c.stride;
-    BL_DEBUG("save de itens de mod: ChestItem de %zu bytes (tipo +%zu, pilha +%zu, prefixo +%zu, "
+    BL_DEBUG("mod item save: ChestItem of %zu bytes (type +%zu, stack +%zu, prefix +%zu, "
              "favorito +%zu)", c.stride, c.type, c.stack, c.prefix, c.favorited);
     return c.ok;
 }
@@ -873,7 +873,7 @@ bool storeChestItemData(int chestIndex, int slot, Il2CppObject* item) {
 
 void installModItemSave() {
     if (!resolve()) {
-        BL_ERROR("save de itens de mod: refs faltando; itens de mod somem ao sair do mundo");
+        BL_ERROR("mod item save: references missing; mod items vanish when leaving the world");
         return;
     }
     Il2CppClass* player = il2cpp::findClass({"Terraria", "Player", {}});
@@ -884,13 +884,13 @@ void installModItemSave() {
     const bool okSave = save && hook::install(save, hkInternalSavePlayerFile, &g_origSave);
     const bool okLoad = load && hook::install(load, hkLoadPlayer, &g_origLoad);
     if (!okSave || !okLoad) {
-        BL_ERROR("save de itens de mod: sem hook (save=%d load=%d); itens de mod somem ao sair "
-                 "do mundo", okSave, okLoad);
+        BL_ERROR("mod item save: no hook (save=%d load=%d); mod items vanish when leaving "
+                 "the world", okSave, okLoad);
         return;
     }
 
     if (!hook::install(g_refs.setDefaults, hkSetDefaults, &g_origSetDefaults)) {
-        BL_ERROR("save de itens de mod: sem hook em Item.SetDefaults; item \"?\" nao funciona");
+        BL_ERROR("mod item save: no hook on Item.SetDefaults; the \"?\" item does not work");
     }
     Il2CppClass* itemClass = il2cpp::findClass({"Terraria", "Item", {}});
     const MethodInfo* clone = itemClass ? il2cpp::findMethodBySignature(itemClass, il2cpp::parseSignature("Item Clone()")) : nullptr;
@@ -907,8 +907,8 @@ void installModItemSave() {
                          hook::install(saveChests, hkSaveChests, &g_origSaveChests) &&
                          hook::install(fix, hkFixAgainstExploits, &g_origFix);
     if (!okWorld) {
-        BL_ERROR("save de itens de mod: sem os baus do mundo; item de mod em bau fica pelo "
-                 "numero, e sem o mod o mundo nao abre");
+        BL_ERROR("mod item save: no world chests; a mod item in a chest stays as its "
+                 "number, and the world does not open without the mod");
     }
     Il2CppClass* chestItem = il2cpp::findClass({"Terraria", "ChestItem", {}});
     Il2CppClass* chest = il2cpp::findClass({"Terraria", "Chest", {}});
@@ -927,8 +927,8 @@ void installModItemSave() {
         hook::install(method(chest, "void Resize(int newSize)"), hkResizeChest, &g_origResizeChest) &&
         hook::install(method(chest, "Chest CloneWithSeparateItems()"), hkCloneChest, &g_origCloneChest) &&
         hook::install(method(chest, "void Clear()"), hkClearChests, &g_origClearChests);
-    if (!okData) BL_ERROR("ModItem: hooks de dados de bau incompletos");
-    BL_DEBUG("save de itens de mod: pronto (personagem%s)", okWorld ? " e baus do mundo" : "");
+    if (!okData) BL_ERROR("ModItem: chest data hooks incomplete");
+    BL_DEBUG("mod item save: ready (player%s)", okWorld ? " and world chests" : "");
 }
 
 }

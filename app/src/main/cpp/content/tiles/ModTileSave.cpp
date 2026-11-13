@@ -105,7 +105,7 @@ bool resolve() {
            setter(tile, "set_bTileHeader2", &r.mB2, &r.setB2) &&
            setter(tile, "set_bTileHeader3", &r.mB3, &r.setB3);
     if (!setter(tile, "set_wall", &r.mWall, &r.setWall)) {
-        BL_ERROR("paredes de mod: Tile.set_wall nao achado; paredes de mod nao voltam do arquivo");
+        BL_ERROR("mod walls: Tile.set_wall not found; mod walls do not come back from the file");
     }
     const auto method = [&](const char* name, int args, const MethodInfo** m, auto** fn) {
         *m = il2cpp::api().class_get_method_from_name(tile, name, args);
@@ -117,7 +117,7 @@ bool resolve() {
     method("wallColor", 1, &r.mSetWallColor, &r.setWallColor);
     method("invisibleWall", 1, &r.mSetInvisible, &r.setInvisible);
     method("fullbrightWall", 1, &r.mSetFullbright, &r.setFullbright);
-    if (!r.getWallColor || !r.setWallColor) BL_WARN("paredes de mod: Tile.wallColor nao achado; a tinta de parede de mod nao volta");
+    if (!r.getWallColor || !r.setWallColor) BL_WARN("mod walls: Tile.wallColor not found; mod wall paint does not come back");
     Il2CppClass* framing = findClass({"Terraria", "Framing", {}});
     r.mWallFrame = framing ? il2cpp::api().class_get_method_from_name(framing, "WallFrame", 3) : nullptr;
     if (r.mWallFrame) r.wallFrame = *reinterpret_cast<decltype(r.wallFrame) const*>(r.mWallFrame);
@@ -159,7 +159,7 @@ std::vector<SavedTile> readFile(const std::string& path) {
         if (!header) {
             header = true;
             if (s != kHeader) {
-                BL_ERROR("tiles de mod: %s com cabecalho desconhecido; ignorado", path.c_str());
+                BL_ERROR("mod tiles: %s has an unknown header; ignored", path.c_str());
                 break;
             }
             continue;
@@ -195,7 +195,7 @@ void writeFile(const std::string& path, const std::vector<SavedTile>& tiles) {
     const std::string tmp = path + ".tmp";
     FILE* f = std::fopen(tmp.c_str(), "wb");
     if (!f) {
-        BL_ERROR("tiles de mod: nao consegui escrever %s", tmp.c_str());
+        BL_ERROR("mod tiles: could not write %s", tmp.c_str());
         return;
     }
     std::fprintf(f, "%s\n", kHeader);
@@ -206,7 +206,7 @@ void writeFile(const std::string& path, const std::vector<SavedTile>& tiles) {
     const bool ok = std::fflush(f) == 0;
     std::fclose(f);
     if (!ok || std::rename(tmp.c_str(), path.c_str()) != 0) {
-        BL_ERROR("tiles de mod: falha ao gravar %s", path.c_str());
+        BL_ERROR("mod tiles: failed to save %s", path.c_str());
         std::remove(tmp.c_str());
     }
 }
@@ -225,7 +225,7 @@ std::vector<SavedWall> readWallFile(const std::string& path) {
             if (s == kWallHeaderV1) {
                 v1 = true;
             } else if (s != kWallHeader) {
-                BL_ERROR("paredes de mod: %s com cabecalho desconhecido; ignorado", path.c_str());
+                BL_ERROR("mod walls: %s has an unknown header; ignored", path.c_str());
                 break;
             }
             continue;
@@ -260,7 +260,7 @@ void writeWallFile(const std::string& path, const std::vector<SavedWall>& walls)
     const std::string tmp = path + ".tmp";
     FILE* f = std::fopen(tmp.c_str(), "wb");
     if (!f) {
-        BL_ERROR("paredes de mod: nao consegui escrever %s", tmp.c_str());
+        BL_ERROR("mod walls: could not write %s", tmp.c_str());
         return;
     }
     std::fprintf(f, "%s\n", kWallHeader);
@@ -268,7 +268,7 @@ void writeWallFile(const std::string& path, const std::vector<SavedWall>& walls)
     const bool ok = std::fflush(f) == 0;
     std::fclose(f);
     if (!ok || std::rename(tmp.c_str(), path.c_str()) != 0) {
-        BL_ERROR("paredes de mod: falha ao gravar %s", path.c_str());
+        BL_ERROR("mod walls: failed to save %s", path.c_str());
         std::remove(tmp.c_str());
     }
 }
@@ -376,7 +376,7 @@ void prepareSaveView(const MethodInfo* save) {
     FieldInfo* type = data ? il2cpp::findField(data, "TileType") : nullptr;
     FieldInfo* sHeader = data ? il2cpp::findField(data, "TileSHeader") : nullptr;
     if (!type || !sHeader) {
-        BL_WARN("tiles de mod: TileData sem TileType/TileSHeader; o save tira os tiles de mod do mundo por um instante");
+        BL_WARN("mod tiles: TileData has no TileType/TileSHeader; saving removes the mod tiles from the world for a moment");
         return;
     }
     auto& a = il2cpp::api();
@@ -386,20 +386,20 @@ void prepareSaveView(const MethodInfo* save) {
     FieldInfo* wall = il2cpp::findField(data, "TileWall");
     const size_t wallAt = wall ? a.field_get_offset(wall) : 0;
     if (wall && wallAt + 8 <= kStaticsSize) g_view.wallAt = wallAt;
-    else BL_WARN("paredes de mod: TileData.TileWall fora do esperado (%zu); o save tira as paredes de mod do mundo "
-                 "por um instante", wallAt);
+    else BL_WARN("mod walls: TileData.TileWall is not as expected (%zu); saving removes the mod walls from the world "
+                 "for a moment", wallAt);
     if (g_view.typeAt + 8 > kStaticsSize || g_view.sHeaderAt + 8 > kStaticsSize || !realStatics()) {
-        BL_WARN("tiles de mod: estaticos do TileData fora do esperado (TileType %zu, TileSHeader %zu); "
-                "o save tira os tiles de mod do mundo por um instante", g_view.typeAt, g_view.sHeaderAt);
+        BL_WARN("mod tiles: TileData statics are not as expected (TileType %zu, TileSHeader %zu); "
+                "saving removes the mod tiles from the world for a moment", g_view.typeAt, g_view.sHeaderAt);
         return;
     }
     if (!replaceInstruction(il2cpp::methodPointer(save), kLoadStaticsAt, kLoadStatics, kMovFromX27)) {
-        BL_WARN("tiles de mod: SaveWorldTilesFast diferente do esperado; o save tira os tiles de mod do "
-                "mundo por um instante");
+        BL_WARN("mod tiles: SaveWorldTilesFast differs from the expected; saving removes the mod tiles from the "
+                "world for a moment");
         return;
     }
     g_view.ok = true;
-    BL_DEBUG("tiles de mod: o save do mundo le uma copia das definicoes");
+    BL_DEBUG("mod tiles: the world save reads a copy of the definitions");
 }
 
 std::vector<SavedTile> collectModTiles(const TileArrays& t) {
@@ -526,8 +526,8 @@ int32_t hkSaveWorldTiles(Il2CppObject* writer, const MethodInfo* m) {
         }
         writeFile(path + kSuffix, tiles);
         if (!tiles.empty()) {
-            BL_INFO("tiles de mod: mundo salvo sem tile de mod no .wld; %zu tile(s) em %s (%zu de mod "
-                    "nao carregado)", tiles.size(), (path + kSuffix).c_str(), kept);
+            BL_INFO("mod tiles: world saved with no mod tile in the .wld; %zu tile(s) in %s (%zu from a mod "
+                    "that is not loaded)", tiles.size(), (path + kSuffix).c_str(), kept);
         }
         size_t keptWalls = 0;
         {
@@ -548,8 +548,8 @@ int32_t hkSaveWorldTiles(Il2CppObject* writer, const MethodInfo* m) {
         }
         writeWallFile(path + kWallSuffix, walls);
         if (!walls.empty()) {
-            BL_INFO("paredes de mod: mundo salvo sem parede de mod no .wld; %zu parede(s) em %s (%zu de mod "
-                    "nao carregado)", walls.size(), (path + kWallSuffix).c_str(), keptWalls);
+            BL_INFO("mod walls: world saved with no mod wall in the .wld; %zu wall(s) in %s (%zu from a mod "
+                    "that is not loaded)", walls.size(), (path + kWallSuffix).c_str(), keptWalls);
         }
     }
     return r;
@@ -593,8 +593,8 @@ void restoreModWalls(const std::string& path, const TileArrays* t) {
         else g_keptWalls[path] = kept;
     }
     if (!saved.empty()) {
-        BL_INFO("paredes de mod: %zu parede(s) reposta(s), %zu de mod nao carregado (ficam no arquivo, %d com "
-                "a parede nao carregada no lugar), %d com outra parede no lugar",
+        BL_INFO("mod walls: %zu wall(s) restored, %zu from a mod that is not loaded (kept in the file, %d with "
+                "the unloaded wall in place), %d with another wall in place",
                 placed.size() - static_cast<size_t>(placeholders), kept.size(), placeholders, builtOver);
     }
 }
@@ -722,9 +722,9 @@ void hkLoadWorldTiles(Il2CppObject* reader, Il2CppArray* importance, const Metho
         else g_kept[path] = kept;
     }
     if (!saved.empty()) {
-        BL_INFO("tiles de mod: %d tile(s) reposto(s), %zu guardado(s) no arquivo (%d objeto(s) com algo construido no lugar; "
-                "o resto, de mod nao carregado), %d planta(s) tirada(s) do lugar de objeto, %d celula(s) de objeto pela metade "
-                "refeita(s), %d tile(s) com algo construido no lugar",
+        BL_INFO("mod tiles: %d tile(s) restored, %zu kept in the file (%d object(s) with something built in place; "
+                "the rest from a mod that is not loaded), %d plant(s) removed from object spots, %d half object cell(s) "
+                "rebuilt, %d tile(s) with something built in place",
                 restored, kept.size(), objectsKept, plantsCleared, cellsRebuilt, builtOver);
     }
     restoreModWalls(path, world ? &t : nullptr);
@@ -739,11 +739,11 @@ void installModTileSave() {
     const MethodInfo* load = worldFile ? a.class_get_method_from_name(worldFile, "LoadWorldTiles", 2) : nullptr;
     if (!resolve() || !save || !load || !hook::install(save, hkSaveWorldTiles, &g_origSave) ||
         !hook::install(load, hkLoadWorldTiles, &g_origLoad)) {
-        BL_ERROR("tiles de mod: sem o save do mundo; tile de mod iria para o .wld pelo numero");
+        BL_ERROR("mod tiles: no world save hook; a mod tile would go into the .wld by number");
         return;
     }
     prepareSaveView(save);
-    BL_DEBUG("tiles de mod: save do mundo pronto (%s)", kSuffix);
+    BL_DEBUG("mod tiles: world save ready (%s)", kSuffix);
 }
 
 }

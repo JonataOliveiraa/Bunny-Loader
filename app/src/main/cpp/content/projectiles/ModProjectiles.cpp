@@ -31,7 +31,7 @@ std::atomic<int> g_total{0};
 std::atomic<int> g_installed{0};
 bool g_failed = false;
 
-TypeTables g_tables("projeteis de mod", kVanillaProjectileCount, {
+TypeTables g_tables("mod projectiles", kVanillaProjectileCount, {
     {"Terraria.ID", "ProjectileID", "Sets"},
     {"Terraria", "Main", ""},
     {"Terraria", "Lang", ""},
@@ -80,7 +80,7 @@ Refs& refs() {
            r.height >= 0 && r.active >= 0 && r.scale >= 0 && r.penetrate >= 0 && r.maxPenetrate >= 0 &&
            r.playerCtor;
     if (!r.ok) {
-        BL_ERROR("projeteis de mod: refs faltando (TextureAssets.Projectile=%p "
+        BL_ERROR("mod projectiles: references missing (TextureAssets.Projectile=%p "
                  "Lang._projectileNameCache=%p Main.projFrames=%p Player.ownedProjectileCounts=%d)",
                  (void*)r.textures, (void*)r.names, (void*)r.frames, r.ownedCounts);
     }
@@ -148,8 +148,8 @@ void growPlayers(int size) {
     if (!hooked) {
         hooked = true;
         if (!hook::install(r.playerCtor, hkPlayerCtor, &g_origPlayerCtor)) {
-            BL_ERROR("projeteis de mod: sem hook no construtor de Player; jogador novo escreve "
-                     "fora de ownedProjectileCounts");
+            BL_ERROR("mod projectiles: no hook on the Player constructor; a new player writes "
+                     "past ownedProjectileCounts");
         }
     }
     Il2CppArray* players = readStatic(r.players);
@@ -160,7 +160,7 @@ void growPlayers(int size) {
         TypeTables::growInstanceTable(p, r.ownedCounts, kVanillaProjectileCount, size, nullptr);
         ++grown;
     }
-    BL_DEBUG("projeteis de mod: ownedProjectileCounts aumentada em %d jogador(es)", grown);
+    BL_DEBUG("mod projectiles: ownedProjectileCounts grown in %d player(s)", grown);
 }
 
 struct ArrayBounds {
@@ -179,12 +179,12 @@ void growStaticImmunity(int size) {
     uintptr_t lengths[2] = {static_cast<uintptr_t>(size), bounds[1].length};
     Il2CppArray* n = a.array_new_full(arrayClass, lengths, nullptr);
     if (!n) {
-        BL_ERROR("projeteis de mod: perIDStaticNPCImmunity nao aumentada");
+        BL_ERROR("mod projectiles: perIDStaticNPCImmunity not grown");
         return;
     }
     std::memcpy(arrayData(n), arrayData(old), sizeof(uint32_t) * old->length);
     a.field_static_set_value(f, n);
-    BL_DEBUG("projeteis de mod: perIDStaticNPCImmunity aumentada para [%d, %lu]", size,
+    BL_DEBUG("mod projectiles: perIDStaticNPCImmunity grown to [%d, %lu]", size,
              static_cast<unsigned long>(lengths[1]));
 }
 
@@ -227,7 +227,7 @@ void tickModProjectiles() {
     const int to = kVanillaProjectileCount + total;
     const int grown = g_tables.grow(from, to);
     if (grown < 0) {
-        BL_ERROR("projeteis de mod: nenhuma tabela de projetil achada; projeteis de mod desligados");
+        BL_ERROR("mod projectiles: no projectile table found; mod projectiles disabled");
         g_failed = true;
         return;
     }
@@ -253,7 +253,7 @@ void tickModProjectiles() {
             applyFrames(type, e);
         }
     }
-    BL_INFO("projeteis de mod: %d instalado(s) (ids %d..%d), %d tabela(s) aumentadas de %d para %d",
+    BL_INFO("mod projectiles: %d installed (ids %d..%d), %d table(s) grown from %d to %d",
             total - installed, from, to - 1, grown, from, to);
     std::vector<ProjectilesInstalledHook> hooks;
     {

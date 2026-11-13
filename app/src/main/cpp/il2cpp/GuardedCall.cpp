@@ -113,7 +113,7 @@ bool guardedCall(void (*body)(void*), void* arg, Caught* caught) {
 namespace bl::il2cpp {
 
 std::string describeException(Il2CppObject* exception) {
-    if (!exception) return "excecao sem objeto";
+    if (!exception) return "exception without an object";
     auto& a = api();
     if (a.format_exception) {
         char buf[512];
@@ -123,15 +123,15 @@ std::string describeException(Il2CppObject* exception) {
         if (buf[0]) return buf;
     }
     Il2CppClass* cls = a.object_get_class ? a.object_get_class(exception) : nullptr;
-    if (!cls) return "excecao C#";
+    if (!cls) return "C# exception";
     std::string ns = a.class_get_namespace(cls);
     return (ns.empty() ? "" : ns + ".") + a.class_get_name(cls);
 }
 
 std::string describeCaught(const Caught& c) {
     if (c.exception) return describeException(c.exception);
-    if (c.cppType) return std::string("excecao C++ ") + c.cppType;
-    return "excecao de tipo desconhecido";
+    if (c.cppType) return std::string("C++ exception ") + c.cppType;
+    return "exception of unknown type";
 }
 
 }

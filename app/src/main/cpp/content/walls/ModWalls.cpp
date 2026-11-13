@@ -30,7 +30,7 @@ std::atomic<int> g_installed{0};
 std::atomic<int> g_unloadedType{-1};
 bool g_failed = false;
 
-TypeTables g_tables("paredes de mod", kVanillaWallCount, {
+TypeTables g_tables("mod walls", kVanillaWallCount, {
     {"Terraria", "Main", ""},
     {"Terraria.ID", "WallID", "Sets"},
     {"Terraria.ID", "WallID", "Sets", "Conversion"},
@@ -60,7 +60,7 @@ Refs& refs() {
     r.count = wallId ? findField(wallId, "Count") : nullptr;
     r.ok = r.textures && r.house && r.blend && r.count;
     if (!r.ok) {
-        BL_ERROR("paredes de mod: refs faltando (TextureAssets.Wall=%p Main.wallHouse=%p Main.wallBlend=%p "
+        BL_ERROR("mod walls: references missing (TextureAssets.Wall=%p Main.wallHouse=%p Main.wallBlend=%p "
                  "WallID.Count=%p)", (void*)r.textures, (void*)r.house, (void*)r.blend, (void*)r.count);
     }
     return r;
@@ -153,13 +153,13 @@ void tickModWalls() {
     }
     if (!gameReady(from)) return;
     if (installed > 0) {
-        BL_ERROR("paredes de mod: %d registrada(s) depois da instalacao; ficam sem tabela", total - installed);
+        BL_ERROR("mod walls: %d registered after installation; they get no table", total - installed);
         g_failed = true;
         return;
     }
     const int vanilla = readWallCount();
     if (vanilla != kVanillaWallCount) {
-        BL_ERROR("paredes de mod: WallID.Count do jogo e %d, esperado %d; paredes de mod desligadas",
+        BL_ERROR("mod walls: the game's WallID.Count is %d, expected %d; mod walls disabled",
                  vanilla, kVanillaWallCount);
         g_failed = true;
         return;
@@ -168,7 +168,7 @@ void tickModWalls() {
     const int to = kVanillaWallCount + total;
     const int grown = g_tables.grow(from, to);
     if (grown < 0) {
-        BL_ERROR("paredes de mod: nenhuma tabela de parede achada; paredes de mod desligadas");
+        BL_ERROR("mod walls: no wall table found; mod walls disabled");
         g_failed = true;
         return;
     }
@@ -186,12 +186,12 @@ void tickModWalls() {
             Il2CppObject* asset = content::loadTextureAsset(e.def.texture, e.def.textureData, e.def.textureSize,
                                                             e.def.mod + "/" + e.def.name, &w, &h);
             if (asset) e.asset = il2cpp::api().gchandle_new(asset, false);
-            else BL_ERROR("paredes de mod: %s/%s sem textura (%s)", e.def.mod.c_str(), e.def.name.c_str(),
+            else BL_ERROR("mod walls: %s/%s has no texture (%s)", e.def.mod.c_str(), e.def.name.c_str(),
                           e.def.texture.c_str());
             applyTexture(type, e);
         }
     }
-    BL_INFO("paredes de mod: %d instalada(s) (ids %d..%d), %d tabela(s) aumentadas de %d para %d; "
+    BL_INFO("mod walls: %d installed (ids %d..%d), %d table(s) grown from %d to %d; "
             "WallID.Count = %d", total - installed, from, to - 1, grown, from, to, readWallCount());
     if (WallsInstalledHook hook = g_managedInstalledHook.load(std::memory_order_acquire)) {
         hook(from, to - 1);
@@ -238,7 +238,7 @@ void registerUnloadedWall() {
     d.textureSize = bl_unloaded_wall_png_len;
     const int type = registerModWall(std::move(d));
     g_unloadedType.store(type);
-    BL_DEBUG("paredes de mod: parede nao carregada no id %d", type);
+    BL_DEBUG("mod walls: unloaded wall at id %d", type);
 }
 
 int unloadedWallType() {

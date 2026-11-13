@@ -27,7 +27,7 @@ bool hkCanPauseGame(const MethodInfo* m) {
 }
 
 bool invokeStatic(const MethodInfo* m, void** args, const char* what, Il2CppObject** ret = nullptr) {
-    if (!m) { BL_ERROR("reiniciar: %s nao encontrado", what); return false; }
+    if (!m) { BL_ERROR("restart: %s not found", what); return false; }
     Il2CppObject* exc = nullptr;
     Il2CppObject* r = il2cpp::api().runtime_invoke(m, nullptr, args, &exc);
     if (exc) { BL_ERROR("reiniciar: %s lancou excecao", what); return false; }
@@ -40,7 +40,7 @@ void saveAll() {
     Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
     Il2CppClass* player = il2cpp::findClass({"Terraria", "Player", {}});
     Il2CppClass* worldFile = il2cpp::findClass({"Terraria.IO", "WorldFile", {}});
-    if (!main || !player || !worldFile) { BL_ERROR("reiniciar: classes do save nao encontradas"); return; }
+    if (!main || !player || !worldFile) { BL_ERROR("restart: save classes not found"); return; }
 
     const auto t0 = std::chrono::steady_clock::now();
     Il2CppObject* data = nullptr;
@@ -61,7 +61,7 @@ void saveAll() {
     }
     const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - t0).count();
-    BL_INFO("reiniciar: jogador%s salvos em %lld ms", netMode != 1 ? " e mundo" : "",
+    BL_INFO("restart: player%s saved in %lld ms", netMode != 1 ? " and world" : "",
             static_cast<long long>(ms));
 }
 
@@ -78,13 +78,13 @@ void installDevTools() {
     Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
     const MethodInfo* canPause = main ? il2cpp::api().class_get_method_from_name(main, "CanPauseGame", 0) : nullptr;
     if (!canPause || !hook::install(canPause, hkCanPauseGame, &g_origCanPause)) {
-        BL_ERROR("editor: Main.CanPauseGame nao hookado; a tela cheia nao congela o jogo");
+        BL_ERROR("editor: Main.CanPauseGame not hooked; the full screen does not freeze the game");
     }
 }
 
 void setGameFrozen(bool on) {
     if (g_frozen.exchange(on, std::memory_order_relaxed) != on) {
-        BL_DEBUG("editor: jogo %s", on ? "congelado (tela cheia)" : "de volta");
+        BL_DEBUG("editor: game %s", on ? "frozen (full screen)" : "running again");
     }
 }
 
@@ -92,7 +92,7 @@ void tickRestart() {
     const int request = g_request.exchange(0, std::memory_order_acq_rel);
     if (!request) return;
     if (request == 2 && inWorld()) saveAll();
-    BL_INFO("reiniciando o jogo pelo Mod Menu: os mods sao lidos de novo da pasta");
+    BL_INFO("restarting the game from the Mod Menu: the mods are read again from the folder");
     g_ready.store(true, std::memory_order_release);
 }
 

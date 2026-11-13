@@ -34,7 +34,7 @@ std::atomic<int> g_installed{0};
 std::atomic<bool> g_staticDone{false};
 bool g_failed = false;
 
-TypeTables g_tables("tiles de mod", kVanillaTileCount, {
+TypeTables g_tables("mod tiles", kVanillaTileCount, {
     {"Terraria", "Main", ""},
     {"Terraria.ID", "TileID", "Sets"},
     {"Terraria.ID", "TileID", "Sets", "Conversion"},
@@ -103,7 +103,7 @@ Refs& refs() {
     r.ok = r.textures && r.solid && r.merge && r.players && r.adjTile >= 0 && r.tileCounts >= 0 &&
            r.playerCtor && r.metricsCtor && r.setupMerge;
     if (!r.ok) {
-        BL_ERROR("tiles de mod: refs faltando (TextureAssets.Tile=%p Main.tileMerge=%p "
+        BL_ERROR("mod tiles: references missing (TextureAssets.Tile=%p Main.tileMerge=%p "
                  "Player.adjTile=%d SceneMetrics._tileCounts=%d)",
                  (void*)r.textures, (void*)r.merge, r.adjTile, r.tileCounts);
     }
@@ -144,13 +144,13 @@ bool fixTileMerge(int total) {
         Il2CppArray* n = own ? TypeTables::resizedCopy(row, static_cast<uintptr_t>(total))
                              : a.array_new(boolCls, static_cast<uintptr_t>(total));
         if (!n) {
-            BL_ERROR("tiles de mod: Main.tileMerge: nao deu para criar a linha %d", i);
+            BL_ERROR("mod tiles: Main.tileMerge: could not create row %d", i);
             return false;
         }
         content::setTableElement(r.merge, i, reinterpret_cast<Il2CppObject*>(n));
         ++fixed;
     }
-    if (fixed) BL_DEBUG("tiles de mod: Main.tileMerge: %d linha(s) com %d posicoes", fixed, total);
+    if (fixed) BL_DEBUG("mod tiles: Main.tileMerge: %d row(s) with %d entries", fixed, total);
     return true;
 }
 
@@ -179,7 +179,7 @@ void hkSetupTileMerge(const MethodInfo* m) {
     g_origSetupMerge(m);
     if (mods <= 0) return;
     outer = readStatic(r.merge);
-    BL_DEBUG("tiles de mod: o jogo montou o tileMerge (%d linhas)", outer ? static_cast<int>(outer->length) : -1);
+    BL_DEBUG("mod tiles: the game built tileMerge (%d rows)", outer ? static_cast<int>(outer->length) : -1);
     if (outer && outer->length < static_cast<uintptr_t>(total)) {
         if (Il2CppArray* bigger = TypeTables::resizedCopy(outer, static_cast<uintptr_t>(total))) {
             il2cpp::api().field_static_set_value(r.merge, bigger);
@@ -195,7 +195,7 @@ void hkSetupTileMerge(const MethodInfo* m) {
         std::memcpy(static_cast<uint8_t*>(arrayData(rw[v])) + kVanillaTileCount,
                     &cols[static_cast<size_t>(v) * mods], mods);
     }
-    BL_DEBUG("tiles de mod: o jogo refez o tileMerge; o dos mods foi devolvido");
+    BL_DEBUG("mod tiles: the game rebuilt tileMerge; the mods' entries were put back");
 }
 
 void onTableRegrown(FieldInfo* f, int size) {
@@ -269,14 +269,14 @@ void patchLimits(int total) {
         }
         if (patched > 0) {
             ++methodsOk;
-            BL_DEBUG("tiles de mod: %s.%s: %d limite(s) de %u para %u", p.cls, p.method, patched, p.vanilla, to);
+            BL_DEBUG("mod tiles: %s.%s: %d limit(s) from %u to %u", p.cls, p.method, patched, p.vanilla, to);
         } else {
-            BL_ERROR("tiles de mod: %s.%s: limite %u nao trocado: %s", p.cls, p.method, p.vanilla,
+            BL_ERROR("mod tiles: %s.%s: limit %u not swapped: %s", p.cls, p.method, p.vanilla,
                      describeCompareMiss(last, p.vanilla, to, p.belowToo, p.shifted).c_str());
         }
     }
     const int methods = static_cast<int>(sizeof(kLimitPatches) / sizeof(kLimitPatches[0]));
-    BL_INFO("tiles de mod: limites do codigo trocados em %d de %d metodo(s)", methodsOk, methods);
+    BL_INFO("mod tiles: compiled limits swapped in %d of %d method(s)", methodsOk, methods);
 }
 
 using AllocateFn = void (*)(Il2CppObject*, int32_t, int32_t, const MethodInfo*);
@@ -307,7 +307,7 @@ void hkAllocate(Il2CppObject* self, int32_t x, int32_t y, const MethodInfo* m) {
         g_listsEntries = entries;
     }
     if (!g_lists) {
-        BL_ERROR("tiles de mod: sem memoria para as listas de tile (%zu entradas)", entries);
+        BL_ERROR("mod tiles: out of memory for the tile lists (%zu entries)", entries);
         return;
     }
     uint32_t* old = nullptr;
@@ -316,10 +316,10 @@ void hkAllocate(Il2CppObject* self, int32_t x, int32_t y, const MethodInfo* m) {
     std::memset(g_lists, 0xFF, entries * sizeof(uint32_t));
     if (old) std::memcpy(g_lists, old, vanilla * sizeof(uint32_t));
     if (!setStaticPointer(g_tileLists, g_lists)) {
-        BL_ERROR("tiles de mod: nao deu para trocar TileData.TileLists; tile de mod corrompe o mundo");
+        BL_ERROR("mod tiles: could not swap TileData.TileLists; mod tiles corrupt the world");
         return;
     }
-    BL_DEBUG("tiles de mod: listas de tile do mundo com %zu entradas (%d tipos)", entries, total);
+    BL_DEBUG("mod tiles: world tile lists with %zu entries (%d types)", entries, total);
 }
 
 void hookAllocate() {
@@ -327,7 +327,7 @@ void hookAllocate() {
     const MethodInfo* alloc = data ? il2cpp::api().class_get_method_from_name(data, "Allocate", 2) : nullptr;
     g_tileLists = data ? il2cpp::findField(data, "TileLists") : nullptr;
     if (!alloc || !g_tileLists || !hook::install(alloc, hkAllocate, &g_origAllocate)) {
-        BL_ERROR("tiles de mod: sem hook no TileData.Allocate; tile de mod corrompe o mundo");
+        BL_ERROR("mod tiles: no hook on TileData.Allocate; mod tiles corrupt the world");
     }
 }
 
@@ -361,7 +361,7 @@ void hookMapInitialize() {
     Il2CppClass* map = il2cpp::findClass({"Terraria.Map", "MapHelper", {}});
     const MethodInfo* init = map ? il2cpp::api().class_get_method_from_name(map, "Initialize", 0) : nullptr;
     if (!init || !hook::install(init, hkMapInitialize, &g_origMapInit)) {
-        BL_ERROR("tiles de mod: sem hook no MapHelper.Initialize; o mapa pode ler alem do fim ao entrar no mundo");
+        BL_ERROR("mod tiles: no hook on MapHelper.Initialize; the map may read past the end when entering the world");
     }
 }
 
@@ -379,7 +379,7 @@ ObjectDataRefs& objectDataRefs() {
     r.data = cls ? il2cpp::findField(cls, "_data") : nullptr;
     r.readOnly = cls ? il2cpp::findField(cls, "readOnlyData") : nullptr;
     if (!r.data || !r.readOnly) {
-        BL_ERROR("tiles de mod: TileObjectData sem _data/readOnlyData; moveis de mod nao funcionam");
+        BL_ERROR("mod tiles: TileObjectData has no _data/readOnlyData; mod furniture does not work");
     }
     return r;
 }
@@ -417,7 +417,7 @@ bool padTileObjectData(int total) {
         ++n;
     }
     if (before >= 0 && n > before) {
-        BL_DEBUG("tiles de mod: TileObjectData._data de %d para %d", before, n);
+        BL_DEBUG("mod tiles: TileObjectData._data from %d to %d", before, n);
         int restored = 0;
         for (size_t i = 0; set && i < g_objectData.size(); ++i) {
             Il2CppObject* obj = g_objectData[i] ? a.gchandle_get_target(g_objectData[i]) : nullptr;
@@ -427,7 +427,7 @@ bool padTileObjectData(int total) {
             a.runtime_invoke(set, list, args, &exc);
             if (!exc) ++restored;
         }
-        if (restored) BL_DEBUG("tiles de mod: %d forma(s) de tile de mod devolvida(s) ao TileObjectData", restored);
+        if (restored) BL_DEBUG("mod tiles: %d mod tile shape(s) put back into TileObjectData", restored);
     }
     return true;
 }
@@ -572,9 +572,9 @@ void hookDrawData() {
     }
 
     if (!special || !hook::install(special, hkGetSpecialTileDrawData, &g_origSpecialDrawData))
-        BL_ERROR("tiles de mod: sem hook no GetTileDrawData(Tile); desenho especial indisponivel");
+        BL_ERROR("mod tiles: no hook on GetTileDrawData(Tile); special drawing unavailable");
     if (!target || !hook::install(target, hkGetTileDrawData, &g_origDrawData)) {
-        BL_ERROR("tiles de mod: sem hook no TileDrawing.GetTileDrawData; a ultima linha de um movel de mod sai cortada");
+        BL_ERROR("mod tiles: no hook on TileDrawing.GetTileDrawData; the last row of mod furniture is cut off");
         return;
     }
 }
@@ -599,7 +599,7 @@ void keepObjectData(int first, int last) {
     }
     hookDrawData();
     if (shaped) {
-        BL_DEBUG("tiles de mod: %d tile(s) de mod com TileObjectData (moveis/objetos)", shaped);
+        BL_DEBUG("mod tiles: %d mod tile(s) with TileObjectData (furniture/objects)", shaped);
     }
 }
 
@@ -652,13 +652,13 @@ void growInstances(int size) {
     if (!hooked) {
         hooked = true;
         if (!hook::install(r.playerCtor, hkPlayerCtor, &g_origPlayerCtor)) {
-            BL_ERROR("tiles de mod: sem hook no construtor de Player; jogador novo le fora de adjTile");
+            BL_ERROR("mod tiles: no hook on the Player constructor; a new player reads past adjTile");
         }
         if (!hook::install(r.metricsCtor, hkMetricsCtor, &g_origMetricsCtor)) {
-            BL_ERROR("tiles de mod: sem hook no construtor de SceneMetrics; bioma novo le fora da contagem");
+            BL_ERROR("mod tiles: no hook on the SceneMetrics constructor; a new biome scan reads past the count");
         }
         if (r.craftingCtor && r.oldAdjTile >= 0 && !hook::install(r.craftingCtor, hkCraftingCtor, &g_origCraftingCtor)) {
-            BL_ERROR("tiles de mod: sem hook no construtor de GUICrafting");
+            BL_ERROR("mod tiles: no hook on the GUICrafting constructor");
         }
     }
     int players = 0;
@@ -680,8 +680,8 @@ void growInstances(int size) {
     if (r.guiActive) il2cpp::api().field_static_get_value(r.guiActive, &gui);
     Il2CppObject* crafting = gui && r.guiCrafting >= 0 ? field<Il2CppObject*>(gui, r.guiCrafting) : nullptr;
     if (crafting) TypeTables::growInstanceTable(crafting, r.oldAdjTile, kVanillaTileCount, size, nullptr);
-    BL_DEBUG("tiles de mod: adjTile em %d jogador(es), contagem de bioma em %d, menu de criacao %s",
-             players, metrics, crafting ? "sim" : "ainda nao existe");
+    BL_DEBUG("mod tiles: adjTile in %d player(s), biome count in %d, crafting menu %s",
+             players, metrics, crafting ? "yes" : "does not exist yet");
 }
 
 }
@@ -720,7 +720,7 @@ void tickModTiles() {
         if (!g_staticDone.load(std::memory_order_relaxed)) runStaticDefaults(kVanillaTileCount, from - 1);
         g_tables.checkPending(from);
         fixTileMerge(from);
-        if (fixGlowMask(from)) BL_DEBUG("tiles de mod: tileGlowMask dos tipos de mod em -1");
+        if (fixGlowMask(from)) BL_DEBUG("mod tiles: tileGlowMask of the mod types set to -1");
         applyModTileMap(from, false);
         static bool padded = false;
         static int frame = 0;
@@ -731,14 +731,14 @@ void tickModTiles() {
     }
     if (!gameReady(from)) return;
     if (installed > 0) {
-        BL_ERROR("tiles de mod: %d registrado(s) depois da instalacao; ficam sem tabela", total - installed);
+        BL_ERROR("mod tiles: %d registered after installation; they get no table", total - installed);
         g_failed = true;
         return;
     }
 
     const int to = kVanillaTileCount + total;
     if (!hook::install(refs().setupMerge, hkSetupTileMerge, &g_origSetupMerge)) {
-        BL_ERROR("tiles de mod: sem hook no Main.SetupTileMerge; o tileMerge dos mods se perde quando o jogo o refizer");
+        BL_ERROR("mod tiles: no hook on Main.SetupTileMerge; the mods' tileMerge is lost when the game rebuilds it");
     }
     hookAllocate();
     hookMapInitialize();
@@ -746,12 +746,12 @@ void tickModTiles() {
     const bool mergeMissing = !readStatic(refs().merge);
     const int grown = g_tables.grow(from, to);
     if (grown < 0) {
-        BL_ERROR("tiles de mod: nenhuma tabela de tile achada; tiles de mod desligados");
+        BL_ERROR("mod tiles: no tile table found; mod tiles disabled");
         g_failed = true;
         return;
     }
     g_installed.store(total, std::memory_order_release);
-    BL_DEBUG("tiles de mod: tileMerge na instalacao: %s", mergeMissing ? "ainda nao existe" : "ja existe");
+    BL_DEBUG("mod tiles: tileMerge at installation: %s", mergeMissing ? "does not exist yet" : "ja existe");
     if (mergeMissing) {
         Il2CppObject* exc = nullptr;
         il2cpp::api().runtime_invoke(refs().setupMerge, nullptr, nullptr, &exc);
@@ -774,7 +774,7 @@ void tickModTiles() {
             applyTexture(kVanillaTileCount + i, e);
         }
     }
-    BL_INFO("tiles de mod: %d instalado(s) (ids %d..%d), %d tabela(s) aumentadas de %d para %d",
+    BL_INFO("mod tiles: %d installed (ids %d..%d), %d table(s) grown from %d to %d",
             total - installed, from, to - 1, grown, from, to);
     runStaticDefaults(from, to - 1);
 }

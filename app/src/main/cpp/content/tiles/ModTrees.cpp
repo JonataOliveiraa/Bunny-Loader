@@ -150,7 +150,7 @@ bool installHooks() {
     Il2CppClass* textures = findClass({"Terraria.GameContent", "TextureAssets", {}});
     g_tileAssets = textures ? findField(textures, "Tile") : nullptr;
     if (!g_tileAssets) {
-        BL_ERROR("árvores de mod: TextureAssets.Tile não achado; o tronco sai com a textura do jogo");
+        BL_ERROR("mod trees: TextureAssets.Tile not found; the trunk uses the game's texture");
     } else {
         Il2CppClass* batch = findClass({"Microsoft.Xna.Framework.Graphics", "SpriteBatch", {}});
         const struct { const char* name; uint32_t params; bool (*match)(const MethodInfo*); } draws[] = {
@@ -168,7 +168,7 @@ bool installHooks() {
                     a.method_get_param_count(mi) == draws[k].params && draws[k].match(mi)) found = mi;
             }
             if (!found || !hook::install(found, hooks[k], &g_origDraw[k])) {
-                BL_ERROR("árvores de mod: sem hook no SpriteBatch.%s (%d); parte do tronco sai com a textura do jogo",
+                BL_ERROR("mod trees: no hook on SpriteBatch.%s (%d); part of the trunk uses the game's texture",
                          draws[k].name, k);
             }
         }
@@ -180,11 +180,11 @@ bool installHooks() {
     g_setType = data ? a.class_get_method_from_name(data, "SetType", 2) : nullptr;
     const MethodInfo* check = worldGen ? a.class_get_method_from_name(worldGen, "CheckTree", 2) : nullptr;
     if (!g_setType || !check || !hook::install(check, hkCheckTree, &g_origCheckTree)) {
-        BL_ERROR("árvores de mod: sem hook no WorldGen.CheckTree; a árvore de mod se quebra ao crescer");
+        BL_ERROR("mod trees: no hook on WorldGen.CheckTree; the mod tree breaks while growing");
     }
     const MethodInfo* foliage = worldGen ? a.class_get_method_from_name(worldGen, "GetCommonTreeFoliageData", 8) : nullptr;
     if (!foliage || !hook::install(foliage, hkGetCommonTreeFoliageData, &g_origFoliage)) {
-        BL_ERROR("árvores de mod: sem hook no WorldGen.GetCommonTreeFoliageData; copa e galhos saem como os da floresta");
+        BL_ERROR("mod trees: no hook on WorldGen.GetCommonTreeFoliageData; top and branches look like the forest ones");
     }
     return true;
 }
@@ -205,7 +205,7 @@ void setModTree(int groundType, Il2CppObject* trunk, int topStyle) {
     if (groundType < 0 || static_cast<size_t>(groundType) >= kMaxGroundTypes || !trunk) return;
     const int count = g_treeCount.load(std::memory_order_relaxed);
     if (count >= kMaxTrees) {
-        BL_ERROR("árvores de mod: mais de %d árvores; a de chão %d ficou de fora", kMaxTrees, groundType);
+        BL_ERROR("mod trees: more than %d trees; the one on ground %d was left out", kMaxTrees, groundType);
         return;
     }
     static std::once_flag once;

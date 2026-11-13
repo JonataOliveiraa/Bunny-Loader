@@ -92,7 +92,7 @@ Refs& refs() {
            r.loadImage && r.gameCtor && r.assetCtor && r.assetSubmit && r.localizedTextCtor &&
            r.arraySet && a.array_new;
     if (!r.ok) {
-        BL_ERROR("conteudo de mod: refs faltando (Asset<Texture2D>=%p LoadImage=%p "
+        BL_ERROR("mod content: references missing (Asset<Texture2D>=%p LoadImage=%p "
                  "LocalizedText.ctor=%p SetValue=%p)", (void*)r.assetCls, (void*)r.loadImage,
                  (void*)r.localizedTextCtor, (void*)r.arraySet);
     }
@@ -104,7 +104,7 @@ bool invoke(const MethodInfo* m, void* self, void** args, const char* what,
     Il2CppObject* exc = nullptr;
     Il2CppObject* r = il2cpp::api().runtime_invoke(m, self, args, &exc);
     if (exc) {
-        BL_ERROR("conteudo de mod: %s lancou excecao", what);
+        BL_ERROR("mod content: %s threw an exception", what);
         return false;
     }
     if (ret) *ret = r;
@@ -129,7 +129,7 @@ Il2CppArray* readBytes(const std::string& path, const unsigned char* data, size_
         return bytes;
     }
     FILE* f = std::fopen(path.c_str(), "rb");
-    if (!f) { BL_ERROR("conteudo de mod: textura nao abre: %s", path.c_str()); return nullptr; }
+    if (!f) { BL_ERROR("mod content: texture does not open: %s", path.c_str()); return nullptr; }
     std::fseek(f, 0, SEEK_END);
     const long n = std::ftell(f);
     std::fseek(f, 0, SEEK_SET);
@@ -137,7 +137,7 @@ Il2CppArray* readBytes(const std::string& path, const unsigned char* data, size_
     const size_t got = bytes ? std::fread(arrayData(bytes), 1, static_cast<size_t>(n), f) : 0;
     std::fclose(f);
     if (!bytes || got != static_cast<size_t>(n)) {
-        BL_ERROR("conteudo de mod: textura ilegivel: %s", path.c_str());
+        BL_ERROR("mod content: unreadable texture: %s", path.c_str());
         return nullptr;
     }
     return bytes;
@@ -168,7 +168,7 @@ static Il2CppObject* decodeGameTexture(const std::string& path, const unsigned c
     void* c2[3] = {ut, bytes, &nonReadable};
     Il2CppObject* ok = invokeValue(r.loadImage, nullptr, c2, "ImageConversion.LoadImage");
     if (!ok || !*(reinterpret_cast<uint8_t*>(ok) + sizeof(Il2CppObject))) {
-        BL_ERROR("conteudo de mod: a Unity nao decodificou a textura de %s", what.c_str());
+        BL_ERROR("mod content: Unity did not decode the texture of %s", what.c_str());
         if (r.destroy) { void* args[1] = {ut}; invoke(r.destroy, nullptr, args, "Object.Destroy"); }
         return nullptr;
     }
@@ -186,7 +186,7 @@ static Il2CppObject* decodeGameTexture(const std::string& path, const unsigned c
 
     Il2CppObject* gt = a.object_new(r.gameTex);
     void* c4[1] = {ut};
-    if (!invoke(r.gameCtor, gt, c4, "Texture2D do jogo")) return nullptr;
+    if (!invoke(r.gameCtor, gt, c4, "game Texture2D")) return nullptr;
     return gt;
 }
 

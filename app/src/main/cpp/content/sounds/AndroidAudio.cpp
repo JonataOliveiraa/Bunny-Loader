@@ -91,9 +91,9 @@ bool init() {
         g_jni.musicRegister = env->GetStaticMethodID(cls, "musicRegister", "(Ljava/lang/String;)I");
         g_jni.musicVolume = env->GetStaticMethodID(cls, "musicVolume", "(IF)V");
         g_jni.musicState = env->GetStaticMethodID(cls, "musicState", "(I)I");
-        g_ok = cleared(env, "metodos do ModAudio") && g_jni.load && g_jni.enqueue && g_jni.cancel && g_jni.playbackState &&
+        g_ok = cleared(env, "ModAudio methods") && g_jni.load && g_jni.enqueue && g_jni.cancel && g_jni.playbackState &&
                g_jni.activeSound && g_jni.musicRegister && g_jni.musicVolume && g_jni.musicState;
-        if (!g_ok) BL_ERROR("sons: dev.bunnyloader.game.ModAudio sem os metodos esperados");
+        if (!g_ok) BL_ERROR("sounds: dev.bunnyloader.game.ModAudio lacks the expected methods");
     });
     return g_ok;
 }

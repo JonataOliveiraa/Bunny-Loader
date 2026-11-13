@@ -29,7 +29,7 @@ int readVanillaCount() {
         a.field_static_get_value(f, &count);
     }
     if (count <= 0 || count > kMaxPrefix) {
-        BL_ERROR("prefixos de mod: PrefixID.Count ilegivel (%d); usando %d", count, kFallbackVanillaCount);
+        BL_ERROR("mod prefixes: PrefixID.Count unreadable (%d); using %d", count, kFallbackVanillaCount);
         return kFallbackVanillaCount;
     }
     return count;
@@ -53,7 +53,7 @@ int registerModPrefix(const std::string& mod, const std::string& name) {
     if (g_byKey.count(key)) return -1;
     const int id = vanillaLocked() + static_cast<int>(g_keys.size());
     if (id > kMaxPrefix) {
-        BL_ERROR("prefixos de mod: %s nao cabe (o jogo guarda o prefixo em 1 byte: ate %d)", key.c_str(), kMaxPrefix);
+        BL_ERROR("mod prefixes: %s does not fit (the game keeps the prefix in 1 byte: up to %d)", key.c_str(), kMaxPrefix);
         return -1;
     }
     g_keys.push_back(key);

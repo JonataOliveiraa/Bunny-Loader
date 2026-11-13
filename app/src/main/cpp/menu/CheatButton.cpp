@@ -348,7 +348,7 @@ jobject getAppClassLoader(JNIEnv* env) {
     if (checkExc(env, "currentApplication id") || !mApp) return nullptr;
     jobject app = env->CallStaticObjectMethod(at, mApp);
     if (checkExc(env, "currentApplication()") || !app) {
-        BL_ERROR("botao: Application ainda nula");
+        BL_ERROR("button: Application still null");
         return nullptr;
     }
     jclass ctx = env->FindClass("android/content/Context");
@@ -399,7 +399,7 @@ jobject loadDexFromFile(JNIEnv* env, jobject activity, jobject parent) {
     const bool written = f && std::fwrite(bl_cheatbridge_dex, 1, bl_cheatbridge_dex_len, f) == bl_cheatbridge_dex_len;
     if (f) std::fclose(f);
     if (!written) {
-        BL_ERROR("botao: nao gravou o dex em %s (errno %d)", path.c_str(), errno);
+        BL_ERROR("button: could not write the dex to %s (errno %d)", path.c_str(), errno);
         return nullptr;
     }
 
@@ -410,7 +410,7 @@ jobject loadDexFromFile(JNIEnv* env, jobject activity, jobject parent) {
     jstring jpath = env->NewStringUTF(path.c_str());
     jobject loader = env->NewObject(cls, ctor, jpath, jdir, nullptr, parent);
     if (checkExc(env, "new DexClassLoader")) return nullptr;
-    BL_INFO("botao: dex carregado do arquivo (Android %d)", android_get_device_api_level());
+    BL_INFO("button: dex loaded from the file (Android %d)", android_get_device_api_level());
     return loader;
 }
 
@@ -438,7 +438,7 @@ void installCheatButton() {
     jfieldID fAct = env->GetStaticFieldID(unity, "currentActivity", "Landroid/app/Activity;");
     jobject activity = fAct ? env->GetStaticObjectField(unity, fAct) : nullptr;
     if (checkExc(env, "currentActivity") || !activity) {
-        BL_ERROR("botao: currentActivity nula (jogo ainda nao criou a Activity?)");
+        BL_ERROR("button: currentActivity is null (has the game created the Activity yet?)");
         if (attached) vm->DetachCurrentThread();
         return;
     }
@@ -500,7 +500,7 @@ void installCheatButton() {
     }
     env->CallStaticVoidMethod(bridge, mInstall, activity);
     if (!checkExc(env, "install()")) {
-        BL_DEBUG("botao: instalado na Activity do jogo");
+        BL_DEBUG("button: installed on the game's Activity");
     }
 
     g_bridge = reinterpret_cast<jclass>(env->NewGlobalRef(bridge));
