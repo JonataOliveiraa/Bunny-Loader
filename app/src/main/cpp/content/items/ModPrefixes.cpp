@@ -11,20 +11,14 @@ namespace bl::runtime {
 
 namespace {
 
-// O jogo nao tem mais que isto: Item.prefix e ChestItem.prefix sao byte.
 constexpr int kMaxPrefix = 255;
-// O PrefixID.Count desta versao, se nao der para ler do jogo.
 constexpr int kFallbackVanillaCount = 98;
 
 std::mutex g_mx;
 int g_vanilla = -1;
-std::vector<std::string> g_keys;          // id - vanilla -> "<uid>/<nome>"
+std::vector<std::string> g_keys;
 std::map<std::string, int> g_byKey;
 
-/**
- * Lido UMA vez e guardado: o PrefixLoader sobe o PrefixID.Count depois, e a
- * conta dos numeros de mod tem de continuar partindo do de fabrica.
- */
 int readVanillaCount() {
     auto& a = il2cpp::api();
     Il2CppClass* cls = il2cpp::findClass({"Terraria.ID", "PrefixID", {}});
@@ -46,7 +40,7 @@ int vanillaLocked() {
     return g_vanilla;
 }
 
-} // namespace
+}
 
 int vanillaPrefixCount() {
     std::lock_guard<std::mutex> l(g_mx);
@@ -84,4 +78,4 @@ int modPrefixByKey(const std::string& key) {
     return it == g_byKey.end() ? -1 : it->second;
 }
 
-} // namespace bl::runtime
+}

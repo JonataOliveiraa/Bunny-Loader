@@ -48,7 +48,7 @@ T readStatic(FieldInfo* f) {
     return v;
 }
 
-} // namespace
+}
 
 void addContentReadyHook(ContentReadyHook hook) {
     if (!hook) return;
@@ -63,8 +63,6 @@ bool contentSettled() {
     if (!modItemsSettled() || !modProjectilesSettled() || !modNpcsSettled() || !modBuffsSettled() || !modDustsSettled() ||
         !modTilesSettled() || !modWallsSettled()) return false;
     const Refs& r = refs();
-    // Sem as refs nao ha como saber (o erro ja foi logado): quem espera por
-    // isto nao fica preso para sempre.
     if (!r.ok) return true;
     if (!readStatic<Il2CppObject*>(r.itemDrops) || !readStatic<Il2CppObject*>(r.bestiary)) return false;
     return readStatic<int32_t>(r.numRecipes) > 0;
@@ -94,4 +92,4 @@ bool contentFinished() {
     return g_finished || !g_hooks[0].load(std::memory_order_acquire);
 }
 
-} // namespace bl::runtime
+}

@@ -120,7 +120,7 @@ std::string startMono(const std::string& dir, const std::string& libDir) {
     return "";
 }
 
-} // namespace
+}
 
 extern "C" {
 
@@ -144,4 +144,4 @@ JNIEXPORT jbyteArray JNICALL Java_dev_bunnyloader_compile_CompilerNative_build(J
     return out;
 }
 
-} // extern "C"
+}

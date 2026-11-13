@@ -19,10 +19,8 @@ std::string readString(JNIEnv* env, jobject obj, jclass cls, const char* name) {
     return out;
 }
 
-} // namespace
+}
 
-// O System.loadLibrary("bunny") do NativeBridge entrega a JavaVM aqui: o
-// unico jeito de te-la antes do Android 12 (core/AppJni.cpp).
 extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void*) {
     bl::setAppJavaVM(vm);
     return JNI_VERSION_1_6;

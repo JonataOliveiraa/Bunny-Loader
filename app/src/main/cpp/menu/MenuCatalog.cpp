@@ -29,10 +29,6 @@ bool flagAt(Il2CppArray* t, int i) {
     return t && i >= 0 && static_cast<uintptr_t>(i) < t->length && static_cast<const uint8_t*>(arrayData(t))[i];
 }
 
-/**
- * Cada entrada viva de um Dictionary<int, T> do jogo (ContentSamples), direto
- * no array de entradas — o mesmo caminho da classificacao de item (Cheats.cpp).
- */
 bool forEachSample(Il2CppObject* dict, const std::function<void(int, Il2CppObject*)>& fn) {
     auto& a = il2cpp::api();
     if (!dict) return false;
@@ -51,7 +47,6 @@ bool forEachSample(Il2CppObject* dict, const std::function<void(int, Il2CppObjec
     uint32_t align = 0;
     const size_t stride = static_cast<size_t>(a.class_value_size(ec, &align));
     size_t oKey = a.field_get_offset(fKey), oVal = a.field_get_offset(fVal), oHash = a.field_get_offset(fHash);
-    // Offset de campo de struct pode vir contando o cabecalho de objeto.
     if (oVal + sizeof(void*) > stride) {
         oKey -= sizeof(Il2CppObject);
         oVal -= sizeof(Il2CppObject);
@@ -146,7 +141,7 @@ void buildBuffs() {
     }
 }
 
-} // namespace
+}
 
 void buildMenuCatalogExtras() {
     buildNpcClasses();
@@ -173,4 +168,4 @@ const std::vector<uint8_t>& npcClasses() { return g_npcClass; }
 const std::vector<std::u16string>& buffNames() { return g_buffNames; }
 const std::vector<uint8_t>& buffClasses() { return g_buffClass; }
 
-} // namespace bl::runtime
+}

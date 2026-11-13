@@ -8,7 +8,6 @@ namespace bl {
 
 namespace {
 
-// Remove espacos/CR das pontas.
 std::string trim(const std::string& s) {
     size_t a = s.find_first_not_of(" \t\r\n");
     if (a == std::string::npos) return {};
@@ -29,7 +28,7 @@ void splitCsv(const std::string& value, std::vector<ModSpec>& out) {
     }
 }
 
-} // namespace
+}
 
 ModSpec parseModSpec(const std::string& texto) {
     size_t eq = texto.find('=');
@@ -64,4 +63,4 @@ bool loadConfigFromFile(const char* path) {
     return true;
 }
 
-} // namespace bl
+}

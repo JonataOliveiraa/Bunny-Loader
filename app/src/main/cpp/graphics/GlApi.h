@@ -3,9 +3,6 @@
 
 namespace bl::graphics {
 
-// As funcoes GL que os efeitos de tela usam, pegas por dlsym da libGLESv2 que
-// a Unity ja carregou. Sem link direto: se faltar alguma (aparelho estranho,
-// tradutor do emulador), os efeitos so ficam desligados.
 #define BL_GL_FUNCS(X) \
     X(GetIntegerv) X(GetBooleanv) X(GetString) X(GetError) X(IsEnabled) X(Enable) X(Disable) \
     X(ColorMask) X(Viewport) X(UseProgram) X(ActiveTexture) X(BindTexture) \
@@ -27,10 +24,9 @@ struct GlApi {
 #undef BL_GL_SLOT
     void* (*eglGetCurrentContext)() = nullptr;
 
-    // Uma vez; depois so devolve o resultado.
     bool load();
 };
 
 GlApi& gl();
 
-} // namespace bl::graphics
+}

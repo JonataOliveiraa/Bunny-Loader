@@ -16,10 +16,7 @@ namespace bl::runtime {
 
 namespace {
 
-// Main.dust tem 6001 posicoes; a 6000 e a "nenhuma" que o NewDust devolve
-// quando nao ha vaga, e nunca entra na pilha (SetNotActive a ignora).
 constexpr int kDustSlots = 6000;
-// Sem poeira de mod, a pilha e conferida por inteiro a cada tantos quadros.
 constexpr int kIdleScanEvery = 30;
 
 struct Vec2 { float x, y; };
@@ -28,12 +25,12 @@ struct Color32 { uint32_t packed; };
 
 struct Entry {
     ModDustDef def;
-    uint32_t asset = 0;   // gchandle do Asset<Texture2D> (0 = a folha do jogo)
+    uint32_t asset = 0;
     int updateType = -1;
 };
 
 std::mutex g_mx;
-std::vector<Entry> g_regs;   // indice = type - kVanillaDustCount
+std::vector<Entry> g_regs;
 std::atomic<int> g_total{0};
 std::atomic<int> g_installed{0};
 bool g_failed = false;
@@ -41,12 +38,11 @@ DustCallbacks g_cb;
 DustNativeCallbacks g_native;
 std::vector<DustsInstalledHook> g_installedHooks;
 
-// Por tipo de mod, copiados na instalacao (thread do jogo; leitura nos hooks).
 std::vector<unsigned> g_hooks;
 std::vector<int> g_engine;
 bool g_anyNative = false;
 std::vector<int> g_updateType;
-std::vector<int> g_group;           // 0 = folha do jogo; k = g_groupAssets[k - 1]
+std::vector<int> g_group;
 std::vector<uint32_t> g_groupAssets;
 unsigned g_anyHooks = 0;
 
@@ -57,14 +53,14 @@ TypeTables g_tables("poeiras de mod", kVanillaDustCount, {
 
 struct Refs {
     bool tried = false, ok = false;
-    FieldInfo* mainDust = nullptr;        // Main.dust
-    FieldInfo* maxDustToDraw = nullptr;   // Main.maxDustToDraw
-    FieldInfo* freeDust = nullptr;        // Dust.freeDust
-    FieldInfo* freeDustCount = nullptr;   // Dust.freeDustCount
-    FieldInfo* activeDustCount = nullptr; // Dust.activeDustCount
-    FieldInfo* staticAlpha = nullptr;     // Dust.StaticAlpha
-    FieldInfo* dustCount = nullptr;       // DustID.Count
-    FieldInfo* texture = nullptr;         // TextureAssets.Dust
+    FieldInfo* mainDust = nullptr;
+    FieldInfo* maxDustToDraw = nullptr;
+    FieldInfo* freeDust = nullptr;
+    FieldInfo* freeDustCount = nullptr;
+    FieldInfo* activeDustCount = nullptr;
+    FieldInfo* staticAlpha = nullptr;
+    FieldInfo* dustCount = nullptr;
+    FieldInfo* texture = nullptr;
     int32_t active = -1, type = -1, frame = -1, velocity = -1, fullBright = -1;
     const MethodInfo* newDust = nullptr;
     const MethodInfo* updateDust = nullptr;
@@ -111,7 +107,6 @@ Refs& refs() {
         else if (std::strcmp(n, "UpdateDust") == 0 && params == 0) r.updateDust = m;
         else if (std::strcmp(n, "SetNotActive") == 0 && params == 1) r.setNotActive = m;
         else if (std::strcmp(n, "GetAlpha") == 0 && params == 1) {
-            // GetAlpha(ref Color) e void; GetAlpha(Color) devolve a cor.
             const Il2CppType* ret = a.method_get_return_type(m);
             char* name = ret ? a.type_get_name(ret) : nullptr;
             const bool isVoid = name && std::strcmp(name, "System.Void") == 0;
@@ -194,15 +189,9 @@ void setNotActive(Il2CppObject* d) {
     reinterpret_cast<SetNotActiveFn>(il2cpp::methodPointer(r.setNotActive))(d, r.setNotActive);
 }
 
-// ---- a pilha de poeiras livres ----
-
 std::atomic<int> g_repairs{0};
 DustPoolStats g_lastStats;
 
-/**
- * Refaz Dust.freeDust com toda poeira inativa de Main.dust[0..6000), na ordem
- * do Dust.Reset (o topo e a de menor indice), e acerta os dois contadores.
- */
 void rebuildPool(Il2CppArray* dusts, int active) {
     const Refs& r = refs();
     Il2CppArray* free = readStatic<Il2CppArray*>(r.freeDust);
@@ -228,7 +217,6 @@ void rebuildPool(Il2CppArray* dusts, int active) {
     }
 }
 
-/** A poeira do topo da pilha (a proxima que o NewDust pega) tem de estar livre. */
 bool poolTopBroken() {
     const Refs& r = refs();
     const int count = readStatic<int32_t>(r.freeDustCount);
@@ -240,18 +228,12 @@ bool poolTopBroken() {
     return !top || activeOf(top);
 }
 
-/** Toda poeira ativa e, das de mod abaixo de `limit`, as listas. */
 struct Scan {
     int active = 0;
-    std::vector<Il2CppObject*> all;    // ativas abaixo de `limit`
-    std::vector<Il2CppObject*> mods;   // ativas de mod abaixo de `limit`
+    std::vector<Il2CppObject*> all;
+    std::vector<Il2CppObject*> mods;
 };
 
-// As vagas onde pode haver poeira de mod: o NewDust de tipo de mod marca (de
-// qualquer thread) e a varredura inteira tambem. Ler as 6000 poeiras (uma ida
-// a memoria por objeto) duas vezes por quadro custava ~1,6% da thread do jogo
-// no celular; a de todo quadro passa so pelas marcas, e a inteira fica para a
-// cada kIdleScanEvery quadros (pega a poeira que virou de mod sem o NewDust).
 std::atomic<uint8_t> g_marked[kDustSlots];
 
 void scanDusts(Il2CppArray* dusts, int limit, Scan& out, bool collect) {
@@ -272,7 +254,6 @@ void scanDusts(Il2CppArray* dusts, int limit, Scan& out, bool collect) {
     }
 }
 
-/** As de mod ativas, so pelas vagas marcadas (sem `all` nem `active`). */
 void scanMarked(Il2CppArray* dusts, Scan& out) {
     out.active = -1;
     out.all.clear();
@@ -291,14 +272,9 @@ void checkPool(Il2CppArray* dusts, int active) {
     if (counted != active || poolTopBroken()) rebuildPool(dusts, active);
 }
 
-// Todas as vagas, e nao so as abaixo do Main.maxDustToDraw: o jogo muda esse
-// limite sozinho (com o desempenho), e uma poeira de mod numa vaga alta que o
-// jogo ainda atualiza e desenha ficava sem o Update e com a textura errada.
 int scanLimit() {
     return kDustSlots;
 }
-
-// ---- hooks ----
 
 using NewDustFn = int32_t (*)(Vec2, int32_t, int32_t, int32_t, float, float, int32_t, Color32, float,
                               const MethodInfo*);
@@ -321,8 +297,6 @@ std::vector<Il2CppObject*> g_hidden;
 struct Swapped { Il2CppObject* dust; int realType, updateType; };
 std::vector<Swapped> g_swapped;
 
-// Enquanto o JS roda: o menor freeDustCount visto (o NewDust pega do topo).
-// As vagas de [menor + 1 .. agora] sao as que voltaram a pilha nesse tempo.
 bool g_tracking = false;
 int g_minFree = 0;
 
@@ -333,7 +307,6 @@ int64_t nowNs() {
         std::chrono::steady_clock::now().time_since_epoch()).count();
 }
 
-/** Soma o tempo do bloco em `total` ao sair. */
 struct Timed {
     int64_t& total;
     int64_t start = nowNs();
@@ -347,11 +320,6 @@ void beginKillTracking() {
     g_tracking = true;
 }
 
-/**
- * O padrao do tModLoader e `dust.active = false` dentro do Update: no celular
- * isso deixa a vaga fora da pilha. A poeira de `list` que ficou inativa sem
- * voltar a pilha volta pelo Dust.SetNotActive, como o jogo faria.
- */
 void endKillTracking(const std::vector<Il2CppObject*>& list) {
     g_tracking = false;
     g_jsNs += nowNs();
@@ -372,8 +340,6 @@ void endKillTracking(const std::vector<Il2CppObject*>& list) {
     }
 }
 
-// Como o DustLoader.SetupDust: a moldura no topo da textura propria (o jogo
-// a calculou pela posicao do tipo na folha) e o OnSpawn.
 int32_t hkNewDust(Vec2 pos, int32_t w, int32_t h, int32_t type, float sx, float sy, int32_t alpha,
                   Color32 color, float scale, const MethodInfo* m) {
     const int32_t index = g_origNewDust(pos, w, h, type, sx, sy, alpha, color, scale, m);
@@ -385,7 +351,6 @@ int32_t hkNewDust(Vec2 pos, int32_t w, int32_t h, int32_t type, float sx, float 
     Il2CppArray* dusts = readStatic<Il2CppArray*>(refs().mainDust);
     if (!dusts) return index;
     Il2CppObject* d = dustSlots(dusts)[index];
-    // O ChildSafety pode ter trocado o tipo (16) ou desligado a poeira.
     const int mi = d && activeOf(d) ? modIndex(typeOf(d)) : -1;
     if (mi < 0) return index;
     g_marked[index].store(1, std::memory_order_relaxed);
@@ -426,7 +391,6 @@ void hkUpdateDust(const MethodInfo* m) {
     }
     if (g_scan.mods.empty()) return g_origUpdateDust(m);
 
-    // ModDust.Update: false tira a poeira do laco do jogo neste quadro.
     g_list.clear();
     if (g_anyHooks & kDustUpdate) {
         for (Il2CppObject* d : g_scan.mods) {
@@ -446,9 +410,9 @@ void hkUpdateDust(const MethodInfo* m) {
     for (Il2CppObject* d : g_scan.mods) {
         bool vanilla = true;
         if (next < g_list.size() && g_list[next] == d) vanilla = g_flags[next++];
-        if (!activeOf(d)) continue;                        // o Update a apagou
+        if (!activeOf(d)) continue;
         const int mi = modIndex(typeOf(d));
-        if (mi < 0) continue;                              // o Update trocou o tipo
+        if (mi < 0) continue;
         if (!vanilla) {
             activeOf(d) = false;
             g_hidden.push_back(d);
@@ -468,7 +432,6 @@ void hkUpdateDust(const MethodInfo* m) {
         if (typeOf(s.dust) == s.updateType) typeOf(s.dust) = s.realType;
     }
 
-    // ModDust.MidUpdate: depois do laco do jogo (o tModLoader o chama no meio).
     if (g_anyHooks & kDustMidUpdate) {
         g_list.clear();
         for (Il2CppObject* d : g_scan.mods) {
@@ -485,7 +448,6 @@ void hkUpdateDust(const MethodInfo* m) {
         for (size_t i = 0; i < g_list.size(); ++i) {
             Il2CppObject* d = g_list[i];
             const int mi = modIndex(typeOf(d));
-            // So o caminho comum do jogo freia; o tipo copiado (UpdateType) tem o seu.
             if (g_flags[i] && activeOf(d) && mi >= 0 && g_updateType[mi] < 0) {
                 field<Vec2>(d, refs().velocity).x /= 0.99f;
             }
@@ -508,7 +470,6 @@ void hkDrawDust(Il2CppObject* self, const MethodInfo* m) {
     scanMarked(dusts, scan);
     if (scan.mods.empty()) return g_origDrawDust(self, m);
 
-    // ModDust.PreDraw, antes de tudo (o rastro fica por baixo). O lote e do JS.
     std::vector<Il2CppObject*> skip;
     if (g_anyHooks & kDustPreDraw) {
         g_list.clear();
@@ -530,7 +491,6 @@ void hkDrawDust(Il2CppObject* self, const MethodInfo* m) {
         return false;
     };
 
-    // 1a passada: as do jogo e as de mod na folha do jogo.
     g_hidden.clear();
     size_t groups = 0;
     for (Il2CppObject* d : scan.mods) {
@@ -546,11 +506,7 @@ void hkDrawDust(Il2CppObject* self, const MethodInfo* m) {
     g_origDrawDust(self, m);
     for (Il2CppObject* d : g_hidden) activeOf(d) = true;
 
-    // Uma passada por textura propria: so as poeiras dela ficam ativas, com a
-    // textura dela no lugar da folha do jogo. O jogo desenha, ilumina e apaga
-    // (cor preta) cada uma como faria com as dele.
     if (groups == 0) return;
-    // As passadas escondem toda poeira que nao e da textura: aqui sim, todas.
     scanDusts(dusts, scanLimit(), scan, true);
     Il2CppObject* sheet = readStatic<Il2CppObject*>(refs().texture);
     for (size_t g = 1; g <= groups; ++g) {
@@ -634,7 +590,7 @@ bool gameReady() {
            readStatic<Il2CppObject*>(r.texture);
 }
 
-} // namespace
+}
 
 int registerModDust(ModDustDef def) {
     std::lock_guard<std::mutex> l(g_mx);
@@ -745,7 +701,6 @@ void tickModDusts() {
             g_updateType[static_cast<size_t>(i)] = e.updateType;
             g_anyHooks |= e.def.hooks;
             if (e.def.texture.empty()) continue;
-            // Tipos com o mesmo PNG dividem a passada de desenho.
             size_t k = 0;
             while (k < paths.size() && paths[k] != e.def.texture) ++k;
             if (k == paths.size()) {
@@ -820,4 +775,4 @@ bool repairDustPool() {
     return g_repairs.load() != before;
 }
 
-} // namespace bl::runtime
+}

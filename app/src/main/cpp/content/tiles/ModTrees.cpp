@@ -16,20 +16,19 @@ namespace bl::runtime {
 
 namespace {
 
-constexpr int kTreeType = 5;            // TileID.Trees
+constexpr int kTreeType = 5;
 constexpr size_t kMaxGroundTypes = 65536;
 constexpr int kMaxTrees = 255;
-constexpr int kMaxTrunk = 300;          // altura máxima procurada até o chão
+constexpr int kMaxTrunk = 300;
 
 struct Tree {
-    uint32_t trunk = 0;   // gchandle do Texture2D do tronco
-    int topStyle = -1;    // índice em TextureAssets.TreeTop/TreeBranch
+    uint32_t trunk = 0;
+    int topStyle = -1;
 };
 
-// O chão -> 1 + índice em g_trees (0 = árvore do jogo).
 std::atomic<uint8_t> g_treeOf[kMaxGroundTypes];
 Tree g_trees[kMaxTrees];
-std::atomic<int> g_treeCount{0};   // só a thread do jogo escreve; a árvore vale depois do g_treeOf
+std::atomic<int> g_treeCount{0};
 
 const Tree* treeOfGround(int ground) {
     if (ground < 0 || static_cast<size_t>(ground) >= kMaxGroundTypes) return nullptr;
@@ -43,14 +42,12 @@ int typeAt(const TileArrays& t, int x, int y) {
     return (t.sHeader[def] & kTileActiveBit) ? t.type[def] : -1;
 }
 
-// O chão debaixo do tronco que passa por (x, y), descendo pelo tronco.
 int groundBelow(const TileArrays& t, int x, int y, int* floorY) {
     for (int n = 0; typeAt(t, x, y) == kTreeType && n < kMaxTrunk; ++n) ++y;
     if (floorY) *floorY = y;
     return typeAt(t, x, y);
 }
 
-// Galho e raiz ficam ao lado do tronco: a coluna dele (TileDrawing.GetTreeBiome).
 int trunkColumn(int x, int frameX, int frameY) {
     if (frameX == 66 && frameY <= 45) return x + 1;
     if (frameX == 88 && frameY >= 66 && frameY <= 110) return x - 1;
@@ -64,18 +61,10 @@ int trunkColumn(int x, int frameX, int frameY) {
     return x;
 }
 
-// ---- tronco: GetTileDrawData marca a célula, SpriteBatch.Draw troca a textura ----
-//
-// O DrawTiles lê a textura do tipo (TextureAssets.Tile[5]) e desenha a célula
-// com uma das quatro sobrecargas de SpriteBatch.Draw/Draw_Fast logo depois do
-// GetTileDrawData dela, na mesma thread. A marca vale até o próximo
-// GetTileDrawData desta thread; só a textura do tronco do jogo é trocada.
-
 thread_local Il2CppObject* t_trunk = nullptr;
-FieldInfo* g_tileAssets = nullptr;          // TextureAssets.Tile
-std::atomic<int32_t> g_assetValue{-1};      // Asset<Texture2D>.Value (da classe instanciada)
+FieldInfo* g_tileAssets = nullptr;
+std::atomic<int32_t> g_assetValue{-1};
 
-// O tronco do jogo agora (um pacote de texturas pode trocar o Asset).
 Il2CppObject* vanillaTrunk() {
     Il2CppArray* assets = nullptr;
     il2cpp::api().field_static_get_value(g_tileAssets, &assets);
@@ -91,7 +80,6 @@ Il2CppObject* vanillaTrunk() {
     return field<Il2CppObject*>(asset, offset);
 }
 
-// O tipo do parâmetro `k` de `mi` termina com `suffix` (exato com `exact`).
 bool paramIs(const MethodInfo* mi, int k, const char* text, bool exact) {
     auto& a = il2cpp::api();
     char* name = a.type_get_name(a.method_get_param(mi, k));
@@ -105,8 +93,6 @@ bool paramIs(const MethodInfo* mi, int k, const char* text, bool exact) {
     return ok;
 }
 
-// Os registradores de argumento passam como vieram (os floats nos d0-d7, sem
-// conversão): serve às quatro sobrecargas, que só têm a textura em x1.
 using DrawFn = void (*)(intptr_t, intptr_t, intptr_t, intptr_t, intptr_t, intptr_t, intptr_t, intptr_t,
                         double, double, double, double, double, double, double, double);
 DrawFn g_origDraw[4] = {};
@@ -120,15 +106,8 @@ void hkDraw(intptr_t x0, intptr_t x1, intptr_t x2, intptr_t x3, intptr_t x4, int
     g_origDraw[K](x0, x1, x2, x3, x4, x5, x6, x7, d0, d1, d2, d3, d4, d5, d6, d7);
 }
 
-// ---- o tronco em pé: WorldGen.CheckTree ----
-//
-// O CheckTree só aceita debaixo do tronco os chãos do jogo (compara com uma
-// lista fixa, que vira "2") e quebra o resto. Durante ele, o chão de mod finge
-// ser grama; o TileData.SetType reinterna o tile (escrever o tipo direto na
-// definição mudaria todos os tiles iguais do mundo).
-
 constexpr int kGrass = 2;
-const MethodInfo* g_setType = nullptr;   // TileData.SetType(int tileIndex, ushort newType)
+const MethodInfo* g_setType = nullptr;
 
 void setTypeAt(const TileArrays& t, int x, int y, int type) {
     using Fn = void (*)(int32_t, uint16_t, const MethodInfo*);
@@ -147,8 +126,6 @@ void hkCheckTree(int32_t i, int32_t j, const MethodInfo* m) {
     TileArrays after;
     if (tileArrays(&after) && typeAt(after, i, j + 1) == kGrass) setTypeAt(after, i, j + 1, below);
 }
-
-// ---- copa e galhos: o estilo da árvore de mod ----
 
 using FoliageFn = bool (*)(int32_t, int32_t, int32_t, int32_t*, int32_t*, int32_t*, int32_t*, int32_t*,
                            const MethodInfo*);
@@ -175,10 +152,6 @@ bool installHooks() {
     if (!g_tileAssets) {
         BL_ERROR("árvores de mod: TextureAssets.Tile não achado; o tronco sai com a textura do jogo");
     } else {
-        // As que o TileDrawing.DrawTiles usa (a textura sempre em x1):
-        //   Draw(Texture2D, Vector2, Nullable<Rectangle>, Color, float, Vector2, float, SpriteEffects, float)
-        //   Draw(Texture2D, Vector2, ref Rectangle, Color, float, Vector2, float, SpriteEffects, float)
-        //   Draw_Fast(Texture2D, ref Vector2, ref Rectangle, ref VertexColors | ref Color, SpriteEffects)
         Il2CppClass* batch = findClass({"Microsoft.Xna.Framework.Graphics", "SpriteBatch", {}});
         const struct { const char* name; uint32_t params; bool (*match)(const MethodInfo*); } draws[] = {
             {"Draw", 9, [](const MethodInfo* mi) { return paramIs(mi, 2, "System.Nullable", false) && paramIs(mi, 3, "Graphics.Color", false) && paramIs(mi, 6, "System.Single", true); }},
@@ -216,7 +189,7 @@ bool installHooks() {
     return true;
 }
 
-} // namespace
+}
 
 void noteTreeDrawTile(int x, int y, int type, int frameX, int frameY) {
     if (type != kTreeType || g_treeCount.load(std::memory_order_relaxed) == 0) {
@@ -245,4 +218,4 @@ void setModTree(int groundType, Il2CppObject* trunk, int topStyle) {
     g_treeOf[groundType].store(static_cast<uint8_t>(count + 1), std::memory_order_release);
 }
 
-} // namespace bl::runtime
+}

@@ -10,7 +10,7 @@ GlApi& gl() {
 }
 
 bool GlApi::load() {
-    static int state = 0;   // 0 nao tentou, 1 ok, -1 falhou
+    static int state = 0;
     if (state != 0) return state > 0;
     state = -1;
 
@@ -35,4 +35,4 @@ bool GlApi::load() {
     return true;
 }
 
-} // namespace bl::graphics
+}

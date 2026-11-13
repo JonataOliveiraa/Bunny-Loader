@@ -71,16 +71,10 @@
 #include <map>
 #include <mutex>
 
-
 namespace bl::dotnet {
 
 namespace {
 
-/**
- * O que o C# chama do nativo. A ORDEM e o layout sao contrato com
- * Interop/NativeApi.cs: campo novo entra no fim, e `size` deixa o C# recusar
- * uma tabela mais velha que ele.
- */
 struct NativeApi {
     uint32_t size;
     void (*log)(int32_t level, const char* text);
@@ -237,7 +231,6 @@ struct NativeApi {
     void (*onVisualItemCopy)(runtime::VisualItemCopyHook hook);
 };
 
-// Exportados pela libil2cpp que a il2cpp::Api nao carrega.
 struct Extra {
     Il2CppClass* (*classFromType)(const Il2CppType*) = nullptr;
     void* (*stringNewUtf16)(const uint16_t*, int32_t) = nullptr;
@@ -281,12 +274,6 @@ void* nativeFindMethod(void* cls, const char* name, int32_t argc) {
     return const_cast<MethodInfo*>(a.class_get_method_from_name(static_cast<Il2CppClass*>(cls), name, argc));
 }
 
-/**
- * Instala `replacement` (um ponteiro [UnmanagedCallersOnly] do C#) no metodo
- * e devolve o endereco do `original` dele. O C# le esse endereco a cada
- * chamada: um elo novo na cadeia (HookManager.h) troca o valor la dentro.
- * O espaco vive para sempre, como o hook.
- */
 void** nativeInstallHook(void* method, void* replacement) {
     if (!method || !replacement) return nullptr;
     if (profile::enabled()) return profile::installHook(static_cast<const MethodInfo*>(method), replacement);
@@ -302,7 +289,6 @@ void* nativeMethodPointer(void* method) {
     return method ? il2cpp::methodPointer(static_cast<const MethodInfo*>(method)) : nullptr;
 }
 
-// So aloca, como o il2cpp_object_new: o construtor e chamado a parte.
 void* nativeNewObject(void* cls) {
     return cls ? il2cpp::api().object_new(static_cast<Il2CppClass*>(cls)) : nullptr;
 }
@@ -373,7 +359,6 @@ void* nativeNewParameterObject(void* method, int32_t parameter) {
     return error ? nullptr : value;
 }
 
-/** A assinatura no formato do dump, com os nomes dos parametros (Signature.h). */
 void* nativeFindMethodBySignature(void* cls, const char* signature) {
     if (!cls || !signature) return nullptr;
     il2cpp::Signature sig = il2cpp::parseSignature(signature);
@@ -386,7 +371,6 @@ void* nativeFindMethodBySignature(void* cls, const char* signature) {
     return const_cast<MethodInfo*>(m);
 }
 
-/** O tamanho do valor de um tipo (struct, enum, primitivo); -1 se e referencia. */
 int32_t valueSizeOf(const Il2CppType* t) {
     const Extra& e = extra();
     if (!t || !e.classFromType) return -1;
@@ -397,14 +381,6 @@ int32_t valueSizeOf(const Il2CppType* t) {
     return a.class_value_size(c, &align);
 }
 
-/**
- * Confere os structs da assinatura contra o que o gerador supos. `sizes` tem
- * um por parametro e o ultimo e o retorno; -1 nao confere. O gerador passa o
- * tamanho de cada struct que ele mesmo montou: se o jogo mudou um struct, a
- * chamada e recusada em vez de ler a memoria errada.
- *
- * @return -1 se tudo bate; senao o indice do primeiro que difere.
- */
 int32_t nativeCheckLayout(void* method, const int32_t* sizes, int32_t count) {
     auto& a = il2cpp::api();
     const auto* m = static_cast<const MethodInfo*>(method);
@@ -428,9 +404,6 @@ void* nativeFindField(void* cls, const char* name) {
     return il2cpp::findField(static_cast<Il2CppClass*>(cls), name);
 }
 
-// Il2CppClass::static_fields no Unity 2021.3 (o `ldr x8, [x8, #0xb8]` do
-// SaveWorldTilesFast, content/tiles/ModTileSave.cpp). Conferido uma vez em
-// staticFastPathOk() contra o il2cpp_field_static_get_value.
 constexpr size_t kClassStaticFields = 0xB8;
 constexpr uint32_t kFieldAttributeStatic = 0x10;
 constexpr uint32_t kFieldAttributeLiteral = 0x40;
@@ -447,11 +420,6 @@ void* staticAddressOf(FieldInfo* f) {
     return statics ? statics + offset : nullptr;
 }
 
-/**
- * O 0xB8 vale neste binario? Compara o endereco calculado com a copia do
- * il2cpp num estatico de referencia que nunca e nulo (Main.versionNumber,
- * uma string): ponteiro igual nao e coincidencia.
- */
 bool staticFastPathOk() {
     static const bool ok = [] {
         Il2CppClass* main = il2cpp::findClassQuiet("Terraria", "Main");
@@ -483,9 +451,6 @@ void nativeStaticFieldGet(void* field, void* value) {
     if (field && value) il2cpp::api().field_static_get_value(static_cast<FieldInfo*>(field), value);
 }
 
-// Campo de REFERENCIA recebe o proprio ponteiro; so campo de VALOR recebe o
-// endereco (o mesmo que o il2cpp_field_static_set_value espera). Quem chama
-// (Interop.cs) ja passa assim.
 void nativeStaticFieldSet(void* field, void* value) {
     if (field) il2cpp::api().field_static_set_value(static_cast<FieldInfo*>(field), value);
 }
@@ -531,7 +496,6 @@ const char* nativeClassName(void* cls) {
     return cls ? il2cpp::api().class_get_name(static_cast<Il2CppClass*>(cls)) : "";
 }
 
-/** O metodo que roda de verdade para este objeto (o override, se houver). */
 void* nativeVirtualMethod(void* obj, void* method) {
     const Extra& e = extra();
     if (!obj || !method || !e.objectGetVirtualMethod) return method;
@@ -548,7 +512,6 @@ bool textureExists(const char* path) {
     return path && (runtime::content::isVanillaTexturePath(path) || fileExists(path));
 }
 
-/** O mod no Mod Menu: nome do manifesto e o icone pequeno (ou o icon.png). */
 void noteModForMenu(const std::string& mod) {
     const std::string root = mods::rootOf(mod);
     std::string icon;
@@ -561,10 +524,6 @@ void noteModForMenu(const std::string& mod) {
     runtime::setModMenuInfo(mod, mods::displayName(mod), icon);
 }
 
-/**
- * Texto por cultura que vem do C#: "texto" sozinho vale para qualquer uma;
- * por cultura, "pt-BR\x1Ftexto\x1Een-US\x1Ftexto". Vazio = nenhum.
- */
 std::vector<std::pair<std::string, std::string>> cultureTexts(const char* packed) {
     std::vector<std::pair<std::string, std::string>> out;
     if (!packed || !*packed) return out;
@@ -585,11 +544,6 @@ std::vector<std::pair<std::string, std::string>> cultureTexts(const char* packed
     return out;
 }
 
-/**
- * Um ModItem do C#: o tipo (ItemID.Count + a ordem), -1 se o mod ja tem um
- * item com esse nome, -2 se a textura (caminho absoluto) nao existe. Nome e
- * tooltip no formato do cultureTexts.
- */
 int32_t nativeRegisterItem(const char* mod, const char* name, const char* texture,
                            const char* displayName, const char* tooltip) {
     if (!mod || !name || !texture || !*mod || !*name) return -1;
@@ -616,7 +570,6 @@ void nativeFinishItem(void* item, int32_t type) {
     runtime::finishModItem(static_cast<Il2CppObject*>(item), type);
 }
 
-/** O C# fica sabendo quando o jogo ja conhece os tipos (o SetStaticDefaults). */
 void nativeOnItemsInstalled(void (*callback)(int32_t first, int32_t last)) {
     runtime::addItemsInstalledHook(reinterpret_cast<runtime::ItemsInstalledHook>(callback));
 }
@@ -1274,8 +1227,8 @@ const NativeApi kNativeApi{
     [](runtime::VisualItemCopyHook hook) { runtime::setVisualItemCopyHook(hook ? profile::wrap(hook, "VisualItemCopy") : nullptr); },
 };
 
-} // namespace
+}
 
 const void* nativeApiTable() { return &kNativeApi; }
 
-} // namespace bl::dotnet
+}

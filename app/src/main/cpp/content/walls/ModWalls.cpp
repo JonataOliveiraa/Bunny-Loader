@@ -117,7 +117,7 @@ bool gameReady(int size) {
            house->length == static_cast<uintptr_t>(size);
 }
 
-} // namespace
+}
 
 int registerModWall(ModWallDef def) {
     std::lock_guard<std::mutex> l(g_mx);
@@ -264,4 +264,4 @@ std::vector<ModWallInfo> modWalls() {
     return out;
 }
 
-} // namespace bl::runtime
+}

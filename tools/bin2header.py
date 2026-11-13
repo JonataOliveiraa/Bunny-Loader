@@ -13,7 +13,6 @@ def main():
         data = f.read()
     out = []
     out.append("#pragma once")
-    out.append("// GERADO por tools/bin2header.py — NAO editar a mao.")
     out.append("#include <cstddef>")
     out.append(f"static const unsigned char {sym}[] = {{")
     for i in range(0, len(data), 12):

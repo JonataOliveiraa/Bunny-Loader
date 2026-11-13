@@ -38,15 +38,6 @@ std::string joined(const std::vector<std::string>& parts) {
     return out;
 }
 
-/**
- * Os sinais de parar o mundo do Boehm (o coletor do IL2CPP). O SGen do Mono
- * usa os MESMOS no Android (SIGPWR para suspender, SIGXCPU para retomar), e o
- * manipulador instalado por ultimo ganha: se o do Mono ficasse, a coleta do
- * jogo mandaria o sinal para uma thread que o Mono nao conhece e esperaria a
- * resposta para sempre. Com a suspensao cooperativa (MONO_THREADS_SUSPEND),
- * o Mono nao manda esses sinais; os do Boehm voltam ao lugar depois da
- * inicializacao.
- */
 struct SignalSnapshot {
     int signal;
     struct sigaction action;
@@ -67,15 +58,6 @@ bool sameHandler(const struct sigaction& a, const struct sigaction& b) {
     return a.sa_sigaction == b.sa_sigaction && a.sa_flags == b.sa_flags;
 }
 
-/**
- * A janela da inicializacao do Mono. O mono_jit_init instala os manipuladores
- * dele para SIGPWR/SIGXCPU logo no comeco e so devolve o controle segundos
- * depois (no MuMu, com o houdini): uma coleta do jogo nesse meio manda o
- * sinal para as threads do jogo, o manipulador do Mono nao as conhece e
- * aborta ("mono_thread_info_current: info", 2026-10-26). Entao o coletor do
- * jogo fica parado do comeco ao fim, e os manipuladores do Boehm voltam ANTES
- * de ele ser religado.
- */
 class GameGcPause {
 public:
     GameGcPause() {
@@ -114,7 +96,6 @@ private:
     std::vector<SignalSnapshot> saved_;
 };
 
-/** monovm_initialize + mono_jit_init, com os assemblies de `dir`. */
 MonoDomain* initRuntime(const std::string& dir) {
     auto& m = mono();
     setenv("MONO_THREADS_SUSPEND", "coop", 1);
@@ -148,7 +129,7 @@ MonoDomain* initRuntime(const std::string& dir) {
     return domain;
 }
 
-} // namespace
+}
 
 DotnetHost& host() {
     static DotnetHost instance;
@@ -248,12 +229,10 @@ void DotnetHost::consoleTick() {
 void DotnetHost::finishLoading() {
     if (!start()) return;
     auto& m = mono();
-    // O detach desfaz o registro inteiro, entao a volta ao BLOCKING nao
-    // precisa do par (exit_gc_unsafe).
     void* stackdata = nullptr;
     m.mono_threads_enter_gc_unsafe_region_unbalanced(&stackdata);
     if (MonoThread* thread = m.mono_thread_current()) m.mono_thread_detach(thread);
     BL_DEBUG("dotnet: load thread detached");
 }
 
-} // namespace bl::dotnet
+}

@@ -27,28 +27,17 @@ namespace bl::runtime {
 
 namespace {
 
-// O splash acaba no quadro 620 do cronometro dele (10,3 s a 60 quadros por
-// segundo). Adiantar 11 s passa do fim de qualquer ponto em que ele esteja.
 constexpr int kSkipSeconds = 11;
 constexpr double kSplashSeconds = 620 / 60.0;
-// O fim do splash poe Main.fadeCounter = 120: o titulo sai do preto em 2 s.
-// Com o inicio rapido, um quarto disso.
 constexpr int32_t kTitleFadeFrames = 30;
 constexpr int64_t kHoldFrames = 558;
 constexpr int64_t kQuickSplashHoldFrames = 120;
 constexpr double kHoldLimitSeconds = 300;
 constexpr uint32_t kWhite = 0xFFFFFFFF;
 constexpr uint32_t kBlack = 0xFF000000;
-// Janela de popup do jogo por cima do titulo (menuMode fora de 0): espera
-// ela fechar ate este tempo antes de desistir de entrar sozinho.
 constexpr double kTitleWaitSeconds = 30;
 
-// ------------------------------------------------------------------ tempo
-
-/** Quando o processo do jogo nasceu (o toque em Jogar), em s desde o boot. */
 double processStartSeconds() {
-    // Campo 22 de /proc/self/stat, em tiques desde o boot do aparelho. O
-    // nome (campo 2) pode ter espaco, entao a contagem comeca depois do ')'.
     FILE* f = fopen("/proc/self/stat", "r");
     if (!f) return -1;
     char buf[1024];
@@ -57,7 +46,7 @@ double processStartSeconds() {
     buf[n] = '\0';
     const char* p = strrchr(buf, ')');
     if (!p || p[1] != ' ') return -1;
-    p += 2;   // campo 3
+    p += 2;
     for (int field = 3; field < 22; ++field) {
         p = strchr(p, ' ');
         if (!p) return -1;
@@ -66,7 +55,6 @@ double processStartSeconds() {
     return strtod(p, nullptr) / static_cast<double>(sysconf(_SC_CLK_TCK));
 }
 
-/** Segundos desde o toque em Jogar: e a conta que o dev faz de cabeca. */
 double sinceStart() {
     static const double start = processStartSeconds();
     if (start < 0) return 0;
@@ -75,22 +63,19 @@ double sinceStart() {
     return static_cast<double>(ts.tv_sec) + ts.tv_nsec / 1e9 - start;
 }
 
-// ----------------------------------------------------------------- estado
-
 std::mutex g_loadedMutex;
 std::condition_variable g_loadedCv;
-bool g_gameLoaded = false;              // Main._isAsyncLoadComplete ja foi visto
-std::atomic<bool> g_coreReady{false};   // a sonda carregou os mods e o nucleo
+bool g_gameLoaded = false;
+std::atomic<bool> g_coreReady{false};
 std::atomic<bool> g_probeFinished{false};
 std::atomic<bool> g_splashHooked{false};
 std::atomic<bool> g_splashOver{false};
 
-// Main e o cronometro do splash. Resolvido no install.
 struct IntroRefs {
-    FieldInfo* asyncLoadComplete = nullptr;   // Main._isAsyncLoadComplete
-    FieldInfo* showSplash = nullptr;          // Main.showSplash
-    FieldInfo* splashTimer = nullptr;         // Main.splashTimer (Stopwatch)
-    FieldInfo* fadeCounter = nullptr;         // Main.fadeCounter
+    FieldInfo* asyncLoadComplete = nullptr;
+    FieldInfo* showSplash = nullptr;
+    FieldInfo* splashTimer = nullptr;
+    FieldInfo* fadeCounter = nullptr;
     FieldInfo* spriteBatch = nullptr;
     const MethodInfo* loadingFlower = nullptr;
     int32_t quickSplash = -1;
@@ -103,12 +88,9 @@ bool staticBool(FieldInfo* f) {
     return v != 0;
 }
 
-// ------------------------------------------------------------- o splash
-
 using DrawSplashFn = void (*)(Il2CppObject*, Il2CppObject*, const MethodInfo*);
 DrawSplashFn g_origDrawSplash = nullptr;
 
-// Thread do jogo (so o DrawSplash mexe).
 bool g_splashCut = false;
 bool g_titleHeld = false;
 bool g_titleLogged = false;
@@ -139,23 +121,7 @@ bool readSplashClock(SplashClock& clock) {
     return true;
 }
 
-/**
- * Adianta o cronometro do splash para depois do fim dele.
- *
- * O DrawSplash do celular recalcula o quadro a cada chamada pelo tempo
- * (splashCounter = ms * 60 / 1000, conferido na disassembly) e, passado o
- * quadro 620 com o jogo carregado, roda o fim de sempre: LoadSettings,
- * Initialize_AlmostEverything, PostContentLoadInitialize, showSplash = false.
- * Mexer no relogio e o jeito de chegar nesse fim sem reescrever nada dele.
- *
- * O Stopwatch do Mono guarda o acumulado em `elapsed`, na unidade de
- * Stopwatch.Frequency (tiques por segundo).
- *
- * @return os segundos que o splash ainda ia durar, ou -1 se nao deu.
- */
 double advanceSplashTimer() {
-    // Quanto ja correu, pela conta do proprio jogo: e o que diz quanto o
-    // splash ainda ia durar.
     SplashClock clock;
     if (!readSplashClock(clock)) return -1;
     field<int64_t>(clock.timer, clock.elapsedOffset) += clock.frequency * kSkipSeconds;
@@ -244,8 +210,6 @@ void hkDrawSplash(Il2CppObject* self, Il2CppObject* gameTime, const MethodInfo* 
         return;
     }
 
-    // O jogo marca o fim da carga DENTRO do DrawSplash; aqui ve-se no quadro
-    // seguinte. Com os mods ja carregados, o splash acaba agora.
     if (config().fastBoot && !g_splashCut && staticBool(g_intro.asyncLoadComplete) &&
         g_coreReady.load(std::memory_order_acquire) && !runtime::texturePacksBusy()) {
         const double left = advanceSplashTimer();
@@ -285,11 +249,9 @@ void hkDrawSplash(Il2CppObject* self, Il2CppObject* gameTime, const MethodInfo* 
     }
 }
 
-// ------------------------------------------------------ entrada no mundo
-
-bool g_entryDone = false;       // thread do jogo
-bool g_entered = false;         // pedimos o playWorld: falta ver o mundo
-double g_settledAt = -1;        // quando o conteudo ficou pronto (espera de popup)
+bool g_entryDone = false;
+bool g_entered = false;
+double g_settledAt = -1;
 
 std::u16string toUtf16(const std::string& s) {
     std::u16string out;
@@ -315,7 +277,6 @@ std::u16string toUtf16(const std::string& s) {
     return out;
 }
 
-/** O caminho termina em `/<file>`? A comparacao e pelo nome do arquivo. */
 bool hasFileName(const Il2CppString* path, const std::u16string& file) {
     if (!path || file.empty()) return false;
     const auto n = static_cast<size_t>(path->length);
@@ -325,7 +286,6 @@ bool hasFileName(const Il2CppString* path, const std::u16string& file) {
     return std::equal(file.begin(), file.end(), path->chars + (n - m));
 }
 
-/** O item de uma List<FileData> cujo arquivo e `file`. */
 Il2CppObject* findByFile(Il2CppObject* list, const std::u16string& file, int32_t pathOffset) {
     if (!list) return nullptr;
     const int32_t itemsOffset = il2cpp::fieldOffset(list->klass, "_items");
@@ -353,13 +313,6 @@ bool invoke(const MethodInfo* m, void* self, void** args, const char* what,
     return true;
 }
 
-/**
- * O aviso "Gostaria de editar os controles agora?" que o Player.Spawn abre a
- * cada entrada no mundo enquanto os controles de toque nunca foram
- * configurados (Main.PerformedTouchInputConfig): o "Mais tarde" dele, para
- * esta sessao. O DisableCheck do aviso nao vai para o save; o
- * PerformedTouchInputConfig iria, e por isso fica como esta.
- */
 void skipTouchControlsPrompt() {
     auto& a = il2cpp::api();
     Il2CppClass* gui = il2cpp::findClass({"", "GUIInstance", {}});
@@ -375,23 +328,6 @@ void skipTouchControlsPrompt() {
     BL_DEBUG("inicio rapido: aviso de controles de toque dispensado nesta sessao");
 }
 
-/**
- * O que os botoes "Jogar" das duas listas fazem, em sequencia (conferido na
- * disassembly do GUIPlayerSelectMenu e do GUIWorldSelectMenu):
- *
- *   Main.LoadPlayers()          a lista de personagens, lida do disco
- *   Main.SelectPlayer(dados)    ativo, myPlayer = 0, lista de mundos, menuMode 6
- *   mundo.SetAsActive()
- *   Main.menuMode = 10          a tela de "carregando"
- *   WorldGen.playWorld()        a carga, na thread do jogo para isso
- *
- * Os avisos que as listas dao no caminho (espaco em disco, memoria para
- * mundo grande, versao do save) ficam de fora: e ferramenta de dev.
- */
-/**
- * Os dois primeiros passos: o personagem do arquivo `playerFile` ativo. O
- * Player dele, ou null (o motivo vai para o log).
- */
 Il2CppObject* selectPlayerFile(const std::string& playerFile) {
     auto& a = il2cpp::api();
     Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
@@ -414,8 +350,6 @@ Il2CppObject* selectPlayerFile(const std::string& playerFile) {
         return nullptr;
     }
 
-    // A lista do titulo nasce vazia: quem a enche e a tela de personagens, ao
-    // abrir.
     uint8_t fullRefresh = 0;
     void* loadArgs[1] = {&fullRefresh};
     Il2CppObject* players = nullptr;
@@ -466,8 +400,6 @@ void enterWorld(const std::string& playerFile, const std::string& worldFile) {
     Il2CppObject* who = selectPlayerFile(playerFile);
     if (!who) return;
 
-    // O mundo. O SelectPlayer ja leu a lista; daqui em diante, qualquer
-    // recusa deixa o jogo na lista de mundos, com o personagem escolhido.
     Il2CppObject* worlds = nullptr;
     a.field_static_get_value(worldList, &worlds);
     Il2CppObject* world = findByFile(worlds, toUtf16(worldFile), pathOffset);
@@ -476,8 +408,6 @@ void enterWorld(const std::string& playerFile, const std::string& worldFile) {
                  worldFile.c_str());
         return;
     }
-    // A regra da lista de mundos (UIWorldSelect.CanWorldBeJoinedByActivePlayer):
-    // personagem de Jornada so entra em mundo de Jornada, e vice-versa.
     const bool journeyPlayer = field<uint8_t>(who, difficultyOffset) == 3;
     const bool journeyWorld = field<int32_t>(world, gameModeOffset) == 3;
     if (journeyPlayer != journeyWorld) {
@@ -497,13 +427,6 @@ void enterWorld(const std::string& playerFile, const std::string& worldFile) {
             sinceStart());
 }
 
-/**
- * A volta ao servidor depois da sincronizacao de mods: o personagem, e o que
- * o "Entrar" da tela de Multijogador faz (Main.netMode = 1, a tela de
- * "conectando", Netplay.SetRemoteIP, a porta, a senha e
- * Netplay.StartTcpClient). Senha errada ou servidor fora do ar caem nas telas
- * do proprio jogo.
- */
 void joinServer(const Config& c) {
     auto& a = il2cpp::api();
     Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
@@ -559,7 +482,7 @@ int32_t menuMode() {
     return *reinterpret_cast<int32_t*>(reinterpret_cast<char*>(boxed) + sizeof(Il2CppObject));
 }
 
-} // namespace
+}
 
 void installSplashHook() {
     static std::once_flag once;
@@ -623,7 +546,6 @@ void tickQuickStart() {
         }
         return;
     }
-    // Alguem entrou na mao antes de nos: nao ha o que fazer.
     if (inWorld()) { g_entryDone = true; return; }
     if (g_intro.showSplash && staticBool(g_intro.showSplash)) return;
     if (!contentSettled() || !contentFinished()) return;
@@ -632,8 +554,6 @@ void tickQuickStart() {
     if (g_settledAt < 0) g_settledAt = now;
     const int32_t mode = menuMode();
     if (mode != 0) {
-        // Um popup do jogo por cima do titulo (menuMode de outra tela):
-        // espera fechar em vez de entrar por baixo dele.
         if (now - g_settledAt > kTitleWaitSeconds) {
             g_entryDone = true;
             BL_WARN("inicio rapido: o titulo nao ficou livre (menuMode %d); entrada cancelada", mode);
@@ -641,14 +561,11 @@ void tickQuickStart() {
         return;
     }
     if (join) {
-        // Uma tentativa: daqui o jogo segue nas telas dele (conectando,
-        // senha, erro).
         joinServer(c);
         g_entryDone = true;
         return;
     }
     if (c.quickWorld.empty()) {
-        // Sem mundo escolhido: so a abertura rapida.
         g_entryDone = true;
         return;
     }
@@ -656,4 +573,4 @@ void tickQuickStart() {
     if (!g_entered) g_entryDone = true;
 }
 
-} // namespace bl::runtime
+}

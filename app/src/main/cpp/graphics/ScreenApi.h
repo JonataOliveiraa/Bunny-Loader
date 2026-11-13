@@ -10,4 +10,4 @@ int32_t screenTexture(const char* path, int32_t linear, int32_t repeat, int32_t*
 int32_t screenSaveNeutralLut(const char* path, int32_t size);
 int32_t screenStats(int64_t* out, int32_t capacity);
 
-} // namespace bl::graphics
+}

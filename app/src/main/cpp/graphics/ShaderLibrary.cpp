@@ -9,10 +9,6 @@ namespace bl::graphics {
 
 namespace {
 
-// vUV: a posicao do fragmento em fracao do viewport da camera. O quad cobre
-// so a caixa do passo (uBox, na mesma fracao) e o viewport e ela. Toda
-// textura dos efeitos (a copia da tela, o quadro anterior, os alvos) cobre o
-// viewport inteiro: `texture(uAlgo, vUV)` le o mesmo lugar em qualquer uma.
 const char* kVertex = R"(#version 300 es
 layout(location = 0) in vec2 aPos;
 uniform vec4 uBox;
@@ -250,7 +246,6 @@ const Include* findInclude(const std::string& name) {
     return nullptr;
 }
 
-// `#include <bl/nome>` na linha (com espacos em volta): o nome, ou vazio.
 bool parseInclude(const std::string& line, std::string& name) {
     size_t i = line.find_first_not_of(" \t");
     if (i == std::string::npos || line.compare(i, 8, "#include") != 0) return false;
@@ -265,8 +260,6 @@ bool parseInclude(const std::string& line, std::string& name) {
     return true;
 }
 
-// Os nomes dos includes na ordem em que aparecem (a mesma numeracao de fonte
-// do BuildFragment), sem repetir.
 std::vector<std::string> includesOf(const std::string& source) {
     std::vector<std::string> names;
     std::istringstream in(source);
@@ -280,7 +273,7 @@ std::vector<std::string> includesOf(const std::string& source) {
     return names;
 }
 
-} // namespace
+}
 
 const char* ShaderLibrary::Vertex() {
     return kVertex;
@@ -300,7 +293,6 @@ std::string ShaderLibrary::BuildFragment(const std::string& source, std::string&
     while (std::getline(in, line)) {
         ++number;
         if (!line.empty() && line.back() == '\r') line.pop_back();
-        // O #version do mod sai: o nosso ja esta no topo.
         if (line.compare(0, 8, "#version") == 0) continue;
         if (parseInclude(line, name)) {
             const Include* inc = findInclude(name);
@@ -333,7 +325,6 @@ std::string ShaderLibrary::Describe(const std::string& log, const std::string& n
     std::istringstream in(log);
     std::string line;
     while (std::getline(in, line)) {
-        // "ERROR: 0:12: ..." ou "0:12(5): ..." (o formato muda por driver)
         int sourceNumber = -1, lineNumber = -1, consumed = 0;
         const size_t colon = line.find(':');
         const char* at = line.c_str();
@@ -351,4 +342,4 @@ std::string ShaderLibrary::Describe(const std::string& log, const std::string& n
     return out;
 }
 
-} // namespace bl::graphics
+}

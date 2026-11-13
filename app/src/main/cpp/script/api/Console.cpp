@@ -13,8 +13,6 @@ namespace bl::script {
 
 namespace {
 
-// A saida guarda as ultimas: com o console fechado ela vai enchendo, e quem
-// abre ve o que os mods disseram antes.
 constexpr size_t kMaxEntries = 400;
 
 std::mutex g_mutex;
@@ -29,13 +27,11 @@ void push(char kind, const std::string& text) {
     while (g_out.size() > kMaxEntries) g_out.pop_front();
 }
 
-// Tudo o que vai ao log de sessao (o resumo do nucleo, o bl.log dos mods, os
-// avisos e erros) aparece tambem no console, ao vivo.
 void onLogLine(int level, const char* line) {
     push(level >= ANDROID_LOG_ERROR ? 'e' : level >= ANDROID_LOG_WARN ? 'w' : 'l', line);
 }
 
-} // namespace
+}
 
 void consoleSubmit(std::string code) {
     {
@@ -79,4 +75,4 @@ void tickConsole() {
     }
 }
 
-} // namespace bl::script
+}

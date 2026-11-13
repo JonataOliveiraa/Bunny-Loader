@@ -105,7 +105,7 @@ Il2CppObject* dictionary() {
     return instance ? *reinterpret_cast<Il2CppObject**>(reinterpret_cast<uint8_t*>(instance) + g_dictionary) : nullptr;
 }
 
-} // namespace
+}
 
 bool installTownProfiles(TownProfileCallback callback) {
     g_callback = callback;
@@ -181,4 +181,4 @@ bool setTownProfileCarrier(int32_t type, bool onlyExisting) {
     return true;
 }
 
-} // namespace bl::runtime
+}

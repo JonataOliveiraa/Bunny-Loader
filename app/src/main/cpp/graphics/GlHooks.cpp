@@ -45,19 +45,13 @@ EnumFn g_origEnable = nullptr;
 EnumFn g_origDisable = nullptr;
 ColorMaskFn g_origColorMask = nullptr;
 
-// As nossas proprias chamadas GL (o desenho do efeito) passam pelos mesmos
-// hooks: nao entram no rastro nem mudam o espelho do estado da Unity.
 thread_local bool t_inside = false;
 
-// So a thread de render da Unity conta. O RenderThread do Android (as Views
-// do app, o botao flutuante) chama as mesmas funcoes num OUTRO contexto GL, e
-// estragaria o espelho. Com render multithread a Unity desenha na
-// UnityGfxDeviceW; sem, na UnityMain.
 thread_local int t_unity = -1;
 
 bool unityThread() {
     if (t_unity < 0) {
-        char name[17] = {0};   // PR_GET_NAME: ate 16 bytes (pthread_getname_np so na API 26)
+        char name[17] = {0};
         prctl(PR_GET_NAME, name);
         t_unity = std::strncmp(name, "UnityGfxDevice", 14) == 0 || std::strcmp(name, "UnityMain") == 0;
     }
@@ -68,9 +62,6 @@ bool tracked() {
     return !t_inside && unityThread();
 }
 
-// O espelho do estado da Unity (GlShadow.h) e onde foi o ultimo desenho dela:
-// quando o marcador aparece, o framebuffer ja e o do marcador, e o do mundo e
-// o do desenho anterior.
 GlShadow g_shadow;
 DrawTarget g_lastDraw;
 bool g_synced = false;
@@ -79,8 +70,6 @@ std::atomic<int64_t> g_shadowChecks{0};
 std::atomic<int64_t> g_shadowMismatches{0};
 constexpr int64_t kShadowChecks = 120;
 
-// O estado da Unity agora: o espelho, conferido com o driver nos primeiros
-// usos. Uma diferenca e o espelho deixa de valer (o glGet* volta de vez).
 GlShadow unityState() {
     if (!g_synced) {
         g_shadow = queryGlState();
@@ -107,8 +96,6 @@ void noteDraw() {
     for (int i = 0; i < 4; ++i) g_lastDraw.viewport[i] = g_shadow.viewport[i];
 }
 
-// O rastro: pedido pela thread do jogo, gravado pela de render entre dois
-// eglSwapBuffers.
 std::atomic<bool> g_traceRequested{false};
 bool g_tracing = false;
 std::string g_trace;
@@ -141,8 +128,6 @@ void logTrace() {
     }
 }
 
-// O blit do marcador (RenderHook.cpp) chegou: a camera do mundo acabou e a
-// da interface ainda nao comecou.
 void onMarker() {
     traceEvent("MARCADOR");
     noteMarkerHit();
@@ -270,8 +255,6 @@ EGLBoolean hkSwap(EGLDisplay display, EGLSurface surface) {
         g_trace = "SWAP";
     }
 
-    // A camada Screen (e os do mundo, quando nao ha marcador): no fim do
-    // quadro, por cima da interface.
     EffectFrame effects;
     if (takeScreenEffects(effects)) {
         const GlShadow state = unityState();
@@ -283,8 +266,6 @@ EGLBoolean hkSwap(EGLDisplay display, EGLSurface surface) {
         t_inside = false;
     }
 
-    // O quadro inteiro na GPU, de um swap ao outro, em quadros alternados (os
-    // outros medem o efeito sozinho; consultas de tempo nao se aninham).
     GpuTimer::End(GpuChannel::Frame);
     const EGLBoolean result = g_origSwap(display, surface);
     if (++g_frame % 2 == 0) GpuTimer::Begin(GpuChannel::Frame);
@@ -300,7 +281,7 @@ bool hookGl(const char* name, void* address, Fn replacement, Fn* original) {
     return false;
 }
 
-} // namespace
+}
 
 void installGlHooks() {
     static std::once_flag once;
@@ -337,4 +318,4 @@ void fillGlHookStats(RenderStats& stats) {
     stats.shadowMismatches = g_shadowMismatches.load();
 }
 
-} // namespace bl::graphics
+}

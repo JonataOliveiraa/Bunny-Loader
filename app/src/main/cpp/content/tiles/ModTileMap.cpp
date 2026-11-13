@@ -23,19 +23,18 @@ namespace bl::runtime {
 
 namespace {
 
-constexpr const char* kSuffix = ".bl";   // <mapa>.map.bl
+constexpr const char* kSuffix = ".bl";
 constexpr const char* kHeader = "bunny-map 1";
 constexpr const char* kWallKeyPrefix = "wall:";
-constexpr int kChunkShift = 6;           // WorldMapChunk.MapChunkSize = 64
+constexpr int kChunkShift = 6;
 constexpr int kChunkSize = 1 << kChunkShift;
 constexpr int kChunkCells = kChunkSize * kChunkSize;
 constexpr size_t kMaxChunks = 1 << 16;
 
-/** Terraria.Map.MapTile: 4 bytes. */
 struct MapCell {
     uint16_t type;
     uint8_t light;
-    uint8_t extra;   // cor da tinta e bits de controle
+    uint8_t extra;
 };
 static_assert(sizeof(MapCell) == 4, "layout do MapTile");
 
@@ -45,53 +44,37 @@ struct Entry {
 };
 
 std::mutex g_mx;
-std::vector<std::vector<Entry>> g_entries;   // indice = tipo - kVanillaTileCount
+std::vector<std::vector<Entry>> g_entries;
 std::vector<std::vector<Entry>> g_wallEntries;
 std::atomic<bool> g_dirty{false};
-// Onde as entradas dos mods comecam; 0 = ainda nao aplicadas.
 std::atomic<uint16_t> g_modPosition{0};
-std::vector<int32_t> g_indexType;    // indice - modPosition -> tipo
-std::vector<uint8_t> g_indexOption;  // indice - modPosition -> opcao
-std::vector<int32_t> g_typeBase;     // tipo - kVanillaTileCount -> primeiro indice (0 = sem entrada)
+std::vector<int32_t> g_indexType;
+std::vector<uint8_t> g_indexOption;
+std::vector<int32_t> g_typeBase;
 std::vector<uint8_t> g_indexWall;
 std::vector<int32_t> g_wallBase;
-// Os arrays que ja sao nossos: outro no lugar = o jogo refez. So comparados.
 Il2CppArray* g_colorsOurs = nullptr;
 Il2CppArray* g_legendOurs = nullptr;
 
-// Os pedacos do mapa (64x64) que receberam indice de mod: so eles sao
-// varridos na gravacao, sem descomprimir o mapa inteiro.
 std::atomic<uint8_t> g_marks[kMaxChunks];
 std::atomic<int> g_chunkWidth{0};
 std::atomic<bool> g_scanAll{false};
-std::atomic<bool> g_alwaysScanAll{false};   // sem o hook do CreateMapTile
-// Sem o hook de gravar, o .map levaria indice de mod: tile de mod fica fora do mapa.
+std::atomic<bool> g_alwaysScanAll{false};
 std::atomic<bool> g_disabled{false};
 
-/** Celula de mod cujo mod nao esta carregado: volta ao arquivo enquanto o lugar seguir escuro. */
 struct KeptCell {
     int x, y;
-    MapCell cell;   // type = a opcao
+    MapCell cell;
     std::string key;
 };
-std::vector<KeptCell> g_kept;   // do mundo aberto (sob g_mx)
+std::vector<KeptCell> g_kept;
 
-/**
- * As celulas de mod de um pedaco comprimido. O jogo comprime pedaco fora da
- * gravacao (WorldMap.UnloadChunk e GetTileStorage, que recicla um pedaco
- * quando faltam espacos: com o mapa todo revelado, o tempo todo) e grava esse
- * CompressedData no .map sem comprimir de novo. Com o indice de mod la dentro,
- * o mapa aberto sem o mod lia a tabela de traducao alem do fim: cor de ceu ou
- * cores aleatorias por cima do mapa. Agora toda compressao tira as celulas de
- * mod para ca (o CompressedData nunca tem indice de mod), o LoadTiles as
- * devolve, e a gravacao as leva para o .map.bl.
- */
 struct StashedCell {
-    uint16_t k;      // posicao no pedaco (y * 64 + x)
+    uint16_t k;
     MapCell cell;
 };
 std::mutex g_stashMx;
-std::unordered_map<uint32_t, std::vector<StashedCell>> g_stash;   // pedaco (X << 16 | Y) -> celulas
+std::unordered_map<uint32_t, std::vector<StashedCell>> g_stash;
 
 uint32_t chunkKey(int cx, int cy) {
     return (static_cast<uint32_t>(cx) << 16) | (static_cast<uint32_t>(cy) & 0xFFFFu);
@@ -101,24 +84,22 @@ struct Refs {
     bool tried = false, ok = false, saveOk = false;
     FieldInfo *lookup = nullptr, *options = nullptr, *colors = nullptr, *hell = nullptr, *legend = nullptr;
     FieldInfo *wallLookup = nullptr, *wallOptions = nullptr;
-    // O _mapLegendCache e um MapLegend (o LocalizedText[] fica dentro dele),
-    // e nao o array: -1 aqui = o campo ja e o array.
     int32_t legendArray = -1, legendLength = -1;
-    const MethodInfo* getText = nullptr;       // Language.GetText(string)
+    const MethodInfo* getText = nullptr;
     const MethodInfo* createMapTile = nullptr;
     const MethodInfo* saveCompressed = nullptr;
-    const MethodInfo* saveMap = nullptr;        // MapHelper.SaveMap(bool)
-    const MethodInfo* mapLoad = nullptr;        // WorldMap.Load
-    const MethodInfo* getChunkTile = nullptr;   // WorldMap.GetChunkTile(int, int, out WorldMapChunk)
+    const MethodInfo* saveMap = nullptr;
+    const MethodInfo* mapLoad = nullptr;
+    const MethodInfo* getChunkTile = nullptr;
     const MethodInfo* tryGetMapPath = nullptr;
-    const MethodInfo* getMap = nullptr;         // Main.get_Map
-    const MethodInfo* getPlayerData = nullptr;  // Main.get_ActivePlayerFileData
-    const MethodInfo* chunkSave = nullptr;      // WorldMapChunk.SaveCompressed()
-    const MethodInfo* chunkLoad = nullptr;      // WorldMapChunk.LoadTiles(bool)
-    FieldInfo* worldData = nullptr;             // Main.ActiveWorldFileData
-    int32_t playerPath = -1;                    // FileData._path (o do personagem aberto)
+    const MethodInfo* getMap = nullptr;
+    const MethodInfo* getPlayerData = nullptr;
+    const MethodInfo* chunkSave = nullptr;
+    const MethodInfo* chunkLoad = nullptr;
+    FieldInfo* worldData = nullptr;
+    int32_t playerPath = -1;
     int32_t maxWidth = -1, maxHeight = -1, chunkWidth = -1, lockObject = -1;
-    int32_t tileData = -1, dirty = -1, chunkX = -1, chunkY = -1;   // WorldMapChunk (X, Y: o pedaco, nao o tile)
+    int32_t tileData = -1, dirty = -1, chunkX = -1, chunkY = -1;
 };
 
 bool isArrayType(const Il2CppType* t) {
@@ -130,11 +111,6 @@ bool isArrayType(const Il2CppType* t) {
     return out;
 }
 
-/**
- * Onde ficam os nomes do mapa. O Lang._mapLegendCache do jogo e um MapLegend,
- * com o LocalizedText[] num campo dele (e um Length, se houver): ler o objeto
- * como array escreveria alem do fim dele.
- */
 bool resolveLegend(Refs& r) {
     auto& a = il2cpp::api();
     const Il2CppType* type = a.field_get_type(r.legend);
@@ -142,7 +118,7 @@ bool resolveLegend(Refs& r) {
     Il2CppClass* cls = type ? a.class_from_il2cpp_type(type) : nullptr;
     void* it = nullptr;
     while (FieldInfo* f = cls ? a.class_get_fields(cls, &it) : nullptr) {
-        if (a.field_get_flags(f) & 0x10) continue;   // so de instancia
+        if (a.field_get_flags(f) & 0x10) continue;
         const auto offset = static_cast<int64_t>(a.field_get_offset(f));
         if (offset < static_cast<int64_t>(sizeof(Il2CppObject))) continue;
         const char* name = a.field_get_name(f);
@@ -252,8 +228,6 @@ std::string toUtf8(Il2CppString* s) {
     return out;
 }
 
-// ---- entradas: cores e nomes ----
-
 const Entry& entryAt(size_t k) {
     const int type = g_indexType[k];
     if (g_indexWall[k]) return g_wallEntries[static_cast<size_t>(type - kVanillaWallCount)][g_indexOption[k]];
@@ -261,15 +235,12 @@ const Entry& entryAt(size_t k) {
 }
 
 void writeColor(uint8_t* p, const Entry& e) {
-    // O Color deste jogo fica na memoria como A, B, G, R (o desenho do mapa
-    // escurece os bytes 1..3 pela luz e deixa o 0).
     p[0] = 255;
     p[1] = e.b;
     p[2] = e.g;
     p[3] = e.r;
 }
 
-/** O array de nomes do mapa (o de dentro do MapLegend), ou null antes do jogo montar. */
 Il2CppArray* legendTexts(const Refs& r, Il2CppObject** holder) {
     Il2CppObject* obj = nullptr;
     il2cpp::api().field_static_get_value(r.legend, &obj);
@@ -278,12 +249,11 @@ Il2CppArray* legendTexts(const Refs& r, Il2CppObject** holder) {
     return field<Il2CppArray*>(obj, r.legendArray);
 }
 
-/** Os LocalizedText dos nomes no _mapLegendCache (aumentado se preciso). */
 void applyLegend(const Refs& r, uint16_t pos, size_t count, bool force) {
     auto& a = il2cpp::api();
     Il2CppObject* holder = nullptr;
     Il2CppArray* legend = legendTexts(r, &holder);
-    if (!legend) return;   // o jogo monta no MapHelper.Initialize; o hook dele reaplica
+    if (!legend) return;
     const uintptr_t want = static_cast<uintptr_t>(pos) + count;
     if (legend == g_legendOurs && legend->length == want && !force) return;
     Il2CppArray* out = legend->length == want ? legend : TypeTables::resizedCopy(legend, want);
@@ -294,7 +264,6 @@ void applyLegend(const Refs& r, uint16_t pos, size_t count, bool force) {
     auto** slots = static_cast<Il2CppObject**>(arrayData(out));
     for (size_t k = 0; k < count; ++k) {
         const Entry& e = entryAt(k);
-        // Pela chave do dicionario: a troca de idioma troca o texto do mesmo LocalizedText.
         Il2CppObject* text = call<Il2CppObject*>(r.getText, a.string_new(e.nameKey.c_str()));
         if (text) a.gc_wbarrier_set_field(reinterpret_cast<Il2CppObject*>(out), reinterpret_cast<void**>(&slots[pos + k]), text);
     }
@@ -308,8 +277,6 @@ void applyLegend(const Refs& r, uint16_t pos, size_t count, bool force) {
     }
     g_legendOurs = out;
 }
-
-// ---- pedacos do mapa ----
 
 void markChunk(int x, int y) {
     const int width = g_chunkWidth.load(std::memory_order_relaxed);
@@ -327,7 +294,6 @@ void clearMarks() {
     g_scanAll.store(g_alwaysScanAll.load(std::memory_order_relaxed), std::memory_order_relaxed);
 }
 
-/** A celula (x, y), carregando o pedaco dela. `chunk` recebe o pedaco. */
 MapCell* cellAt(const Refs& r, Il2CppObject* map, int x, int y, Il2CppObject** chunk) {
     *chunk = nullptr;
     if (x < 0 || y < 0 || x >= field<int32_t>(map, r.maxWidth) || y >= field<int32_t>(map, r.maxHeight)) return nullptr;
@@ -338,15 +304,11 @@ void setDirty(const Refs& r, Il2CppObject* chunk) {
     if (chunk) field<uint8_t>(chunk, r.dirty) = 1;
 }
 
-/** O `.map` do jogador e mundo abertos (ele ja existe), ou "". */
 std::string mapPath(const Refs& r) {
     Il2CppObject* player = call<Il2CppObject*>(r.getPlayerData);
     Il2CppObject* world = nullptr;
     il2cpp::api().field_static_get_value(r.worldData, &world);
     if (!player || !world) return {};
-    // O personagem do tutorial vem de Resources e nao tem arquivo (_path nulo):
-    // o TryGetMapPath do jogo estoura NullReferenceException nele. O tutorial
-    // tambem nao tem .map, entao nao ha caminho a procurar.
     Il2CppString* playerPath = r.playerPath >= 0 ? field<Il2CppString*>(player, r.playerPath) : nullptr;
     if (!playerPath || playerPath->length < 4) return {};
     Il2CppString* path = nullptr;
@@ -359,12 +321,6 @@ struct SavedCell {
     MapCell cell;
 };
 
-/**
- * Antes de gravar: os pedacos marcados (ou todos) com celula de mod ficam
- * carregados e sujos, e o jogo os comprime de novo (o hkChunkSave tira as
- * celulas de mod na hora). Um pedaco comprimido antes (descarregado por falta
- * de uso) levaria o indice de mod no CompressedData para o arquivo.
- */
 void prepareSave(const Refs& r, Il2CppObject* map, uint16_t pos) {
     const int width = field<int32_t>(map, r.chunkWidth);
     const int maxW = field<int32_t>(map, r.maxWidth), maxH = field<int32_t>(map, r.maxHeight);
@@ -381,7 +337,6 @@ void prepareSave(const Refs& r, Il2CppObject* map, uint16_t pos) {
             Il2CppObject* chunk = nullptr;
             if (!cellAt(r, map, x0, y0, &chunk) || !chunk) continue;
             ++scanned;
-            // A trava do pedaco, a mesma do jogo ao comprimir (sem outra por fora).
             a.monitor_enter(chunk);
             const auto* data = field<MapCell*>(chunk, r.tileData);
             bool any = false;
@@ -411,7 +366,6 @@ void writeFile(const std::string& path, const std::vector<SavedCell>& cells, con
     }
     std::fprintf(f, "%s\n", kHeader);
     int written = 0;
-    // x \t y \t luz \t extra \t opcao \t chave
     for (const SavedCell& s : cells) {
         const size_t k = static_cast<size_t>(s.cell.type - g_modPosition.load(std::memory_order_relaxed));
         if (k >= g_indexType.size()) continue;
@@ -471,12 +425,9 @@ std::vector<KeptCell> readFile(const std::string& path) {
     return out;
 }
 
-// ---- hooks ----
-
 using CreateMapTileFn = uint32_t (*)(int32_t, int32_t, uint8_t, const MethodInfo*);
 CreateMapTileFn g_origCreateMapTile = nullptr;
 
-/** O MapTile volta em w0 (struct de 4 bytes): Type nos 16 de baixo. */
 uint32_t hkCreateMapTile(int32_t i, int32_t j, uint8_t light, const MethodInfo* m) {
     const uint32_t tile = g_origCreateMapTile(i, j, light, m);
     const uint16_t pos = g_modPosition.load(std::memory_order_relaxed);
@@ -484,41 +435,27 @@ uint32_t hkCreateMapTile(int32_t i, int32_t j, uint8_t light, const MethodInfo* 
     return tile;
 }
 
-// A gravacao em curso. Global, e nao local: se o jogo lancar no meio, o
-// desenrolar passa por aqui sem destrutor (a libbunny nao tem excecoes), e o
-// SaveMap, que pega a excecao, termina o servico.
-//
-// Sem trava nossa: o jogo comprime cada pedaco com a trava DELE
-// (lock(Main.Map.Chunks[i]) no InternalSaveMapCompressed), e o hkChunkSave
-// limpa, comprime e devolve as celulas de mod ali dentro. Antes o hook segurava
-// o LockObject do mapa por fora do save inteiro: com a thread do jogo pegando
-// as duas travas na ordem contraria, o jogo congelava ao entrar no mundo (o
-// save do toon, logo depois de entrar, com o jogo mexendo no mapa).
 struct SaveState {
     bool active = false;
-    std::thread::id thread;         // a thread que grava
+    std::thread::id thread;
     uint16_t pos = 0;
     Il2CppObject* map = nullptr;
-    std::vector<SavedCell> cells;   // as de mod que ficaram fora do .map (vao para o .map.bl)
+    std::vector<SavedCell> cells;
 };
-SaveState g_save;   // so a thread que grava (o SaveMap segura o IOLock do jogo)
+SaveState g_save;
 
-/** Grava o `.map.bl` e encerra a gravacao. */
 void finishSave(const Refs& r, bool saved) {
     if (!g_save.active) return;
     g_save.active = false;
     std::vector<KeptCell> kept;
     {
         std::lock_guard<std::mutex> l(g_mx);
-        // A celula de mod ausente segue no arquivo enquanto o lugar estiver escuro.
         for (const KeptCell& c : g_kept) {
             Il2CppObject* chunk = nullptr;
             const MapCell* p = cellAt(r, g_save.map, c.x, c.y, &chunk);
             if (p && p->type == 0 && p->light == 0) kept.push_back(c);
         }
     }
-    // Os pedacos que estavam comprimidos: o jogo gravou o CompressedData (sem
-    // as de mod), e elas estao no g_stash. Sem repetir as que a gravacao ja pegou.
     {
         std::unordered_set<uint64_t> seen;
         seen.reserve(g_save.cells.size());
@@ -565,20 +502,9 @@ void hkSaveCompressed(const MethodInfo* m) {
     finishSave(r, true);
 }
 
-// O WorldMap.Load em curso (a thread dele): o .map do arquivo e lido e cada
-// pedaco comprimido de novo pelo jogo.
 std::atomic<bool> g_loading{false};
 std::thread::id g_loadingThread;
 
-/**
- * Um pedaco sendo comprimido (o jogo ja esta com a trava dele). Em TODA
- * compressao as celulas de mod viram escuro antes e voltam logo depois:
- *   - na gravacao do mapa, vao para o .map.bl (g_save.cells);
- *   - fora dela (pedaco descarregado ou reciclado), vao para o g_stash, e o
- *     hkChunkLoad as devolve quando o pedaco volta;
- *   - no WorldMap.Load, sao sobra de um .map gravado com o vazamento antigo
- *     (as de verdade vem do .map.bl): ficam como nao explorado.
- */
 using ChunkSaveFn = void (*)(Il2CppObject*, const MethodInfo*);
 ChunkSaveFn g_origChunkSave = nullptr;
 
@@ -587,7 +513,6 @@ void hkChunkSave(Il2CppObject* chunk, const MethodInfo* m) {
     const bool saving = g_save.active && g_save.thread == std::this_thread::get_id();
     const bool loading = g_loading.load(std::memory_order_relaxed) && g_loadingThread == std::this_thread::get_id();
     uint16_t pos = saving ? g_save.pos : g_modPosition.load(std::memory_order_relaxed);
-    // Sem mod nenhum, o que passa da ultima cor do jogo (o inferno) tambem e sobra.
     if (loading && !pos && r.ok) {
         uint16_t hell = 0;
         il2cpp::api().field_static_get_value(r.hell, &hell);
@@ -621,11 +546,9 @@ void hkChunkSave(Il2CppObject* chunk, const MethodInfo* m) {
         data[c.k] = c.cell;
         if (saving) g_save.cells.push_back({x0 + (c.k & (kChunkSize - 1)), y0 + (c.k >> kChunkShift), c.cell});
     }
-    // O CompressedData ficou sem as de mod: sujo, para a proxima compressao passar por aqui com elas.
     setDirty(r, chunk);
 }
 
-/** O pedaco descomprimido: as celulas de mod que a compressao guardou voltam. */
 using ChunkLoadFn = void (*)(Il2CppObject*, bool, const MethodInfo*);
 ChunkLoadFn g_origChunkLoad = nullptr;
 
@@ -654,7 +577,7 @@ SaveMapFn g_origSaveMap = nullptr;
 
 void hkSaveMap(bool forceSave, const MethodInfo* m) {
     g_origSaveMap(forceSave, m);
-    finishSave(refs(), false);   // so faz algo se o InternalSaveMapCompressed lancou
+    finishSave(refs(), false);
 }
 
 using LoadFn = void (*)(Il2CppObject*, const MethodInfo*);
@@ -704,7 +627,6 @@ void hkMapLoad(Il2CppObject* self, const MethodInfo* m) {
             const int option = c.cell.type < count ? c.cell.type : 0;
             Il2CppObject* chunk = nullptr;
             MapCell* p = cellAt(r, self, c.x, c.y, &chunk);
-            // Explorado sem o mod nesse meio tempo: vale o que o jogo viu.
             if (!p || p->type != 0 || p->light != 0) { ++skipped; continue; }
             *p = MapCell{static_cast<uint16_t>(bases[i] + option), c.cell.light, c.cell.extra};
             setDirty(r, chunk);
@@ -717,7 +639,7 @@ void hkMapLoad(Il2CppObject* self, const MethodInfo* m) {
              path.c_str(), kSuffix, placed, skipped, g_kept.size());
 }
 
-} // namespace
+}
 
 int addModWallMapEntry(int type, int r, int g, int b, const std::string& nameKey) {
     if (!isModWall(type) || g_disabled.load()) return -1;
@@ -774,7 +696,6 @@ void applyModTileMap(int total, bool rebuilt) {
     g_dirty.store(false);
 
     std::lock_guard<std::mutex> l(g_mx);
-    // Array do jogo: as nossas vem logo depois da cor do inferno, a ultima dele.
     const uint16_t pos = fresh ? static_cast<uint16_t>(hell + 1) : g_modPosition.load();
     if (fresh && colors->length != static_cast<uintptr_t>(hell) + 1) {
         BL_WARN("tiles de mod: colorLookup com %d cores e o inferno em %d; as de mod entram em %d",
@@ -791,7 +712,7 @@ void applyModTileMap(int total, bool rebuilt) {
         const size_t i = static_cast<size_t>(type - kVanillaTileCount);
         const size_t count = i < g_entries.size() ? g_entries[i].size() : 0;
         if (count == 0 || pos + g_indexType.size() + count > 0xFFFF) {
-            lk[type] = 0;   // sem AddMapEntry: fora do mapa
+            lk[type] = 0;
             op[type] = 0;
             continue;
         }
@@ -844,12 +765,10 @@ void applyModTileMap(int total, bool rebuilt) {
     }
     auto* col = static_cast<uint8_t*>(arrayData(out));
     for (size_t k = 0; k < count; ++k) writeColor(col + (pos + k) * 4, entryAt(k));
-    // Campo de referencia: o objeto, nao o endereco da variavel (que e da pilha).
     if (out != colors) il2cpp::api().field_static_set_value(r.colors, out);
     g_colorsOurs = out;
     applyLegend(r, pos, count, true);
     if (fresh) {
-        // Conferencia da ordem dos bytes: a terra do jogo e (151, 107, 75).
         const uint8_t* dirt = col + static_cast<size_t>(lk[0]) * 4;
         BL_INFO("tiles de mod: mapa: %zu entrada(s) de mod a partir de %d (terra do jogo: %u %u %u %u)",
                 count, pos, dirt[0], dirt[1], dirt[2], dirt[3]);
@@ -871,7 +790,7 @@ bool readMapTile(int x, int y, int* type, int* light, int* paint) {
     if (!p) return false;
     *type = cell.type;
     *light = cell.light;
-    *paint = cell.extra & 0x1F;   // MapTile.Color
+    *paint = cell.extra & 0x1F;
     return true;
 }
 
@@ -892,7 +811,6 @@ void installModTileMap() {
     if (!hook::install(r.mapLoad, hkMapLoad, &g_origLoad)) {
         BL_ERROR("tiles de mod: sem hook no WorldMap.Load; tile de mod some do mapa ao voltar ao mundo");
     }
-    // Sem estes, o .map levaria indice de mod: melhor o tile ficar fora do mapa.
     if (!hook::install(r.chunkSave, hkChunkSave, &g_origChunkSave) ||
         !hook::install(r.chunkLoad, hkChunkLoad, &g_origChunkLoad) ||
         !hook::install(r.saveMap, hkSaveMap, &g_origSaveMap) ||
@@ -905,4 +823,4 @@ void installModTileMap() {
     }
 }
 
-} // namespace bl::runtime
+}

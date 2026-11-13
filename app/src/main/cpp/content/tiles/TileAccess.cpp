@@ -12,7 +12,7 @@ namespace {
 
 struct Fields {
     bool ok = false;
-    FieldInfo* world = nullptr;   // Main.tile (o TileData do mundo)
+    FieldInfo* world = nullptr;
     int32_t width = -1, height = -1;
     FieldInfo *lookup = nullptr, *type = nullptr, *sHeader = nullptr, *frameX = nullptr,
               *frameY = nullptr, *bHeader = nullptr, *bHeader2 = nullptr, *bHeader3 = nullptr, *wall = nullptr;
@@ -52,7 +52,7 @@ T* staticPtr(FieldInfo* f) {
     return static_cast<T*>(p);
 }
 
-} // namespace
+}
 
 bool tileArrays(TileArrays* out) {
     const Fields& f = fields();
@@ -106,4 +106,4 @@ int wallTypeAt(int x, int y) {
     return w ? w : -1;
 }
 
-} // namespace bl::runtime
+}

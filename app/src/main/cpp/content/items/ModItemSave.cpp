@@ -26,19 +26,10 @@ namespace {
 
 constexpr const char* kSuffix = ".bl";
 constexpr const char* kBuffContainer = "buff";
-// Item do JOGO com prefixo de mod: so o prefixo vai no arquivo, na chave
-// "vanilla:<tipo>" (o item em si o .plr/.wld ja guardam).
 constexpr const char* kVanillaPrefix = "vanilla:";
 
-/**
- * Um item de mod guardado: onde estava e o que era. Buff de mod vai no mesmo
- * arquivo, com container "buff": slot na lista, `stack` = tempo restante.
- * Prefixo de mod vai pelo nome (`prefixKey`), e o numero fica 0: o numero
- * muda com os mods instalados.
- */
 using item_save::SavedItem;
 
-/** O prefixo para o arquivo: o de mod vira nome; numero de mod sem dono vira 0. */
 void encodePrefix(SavedItem& it, int prefix) {
     it.prefix = prefix;
     it.prefixKey.clear();
@@ -47,7 +38,6 @@ void encodePrefix(SavedItem& it, int prefix) {
     it.prefix = 0;
 }
 
-/** O numero do prefixo agora; -1 se era de um mod que nao esta carregado. */
 int decodePrefix(const SavedItem& it) {
     return it.prefixKey.empty() ? it.prefix : modPrefixByKey(it.prefixKey);
 }
@@ -69,20 +59,19 @@ SavedItem vanillaPrefixEntry(const std::string& container, int slot, int type, i
     return it;
 }
 
-/** Numero de prefixo de mod que nenhum mod carregado tem (veio de outra sessao). */
 bool isStrayPrefix(int prefix) {
     return prefix >= vanillaPrefixCount() && modPrefixKey(prefix).empty();
 }
 
 struct Refs {
     bool ok = false;
-    int32_t filePath = -1, fileCloud = -1, filePlayer = -1;   // FileData / PlayerFileData
+    int32_t filePath = -1, fileCloud = -1, filePlayer = -1;
     int32_t inventory = -1, armor = -1, dye = -1, miscEquips = -1, miscDyes = -1;
     int32_t trash = -1, loadouts = -1;
     int32_t bank[4] = {-1, -1, -1, -1};
-    int32_t storageItems = -1;                  // InventoryStorage.item
-    int32_t loadoutArmor = -1, loadoutDye = -1;  // EquipmentLoadout
-    int32_t type = -1, stack = -1, prefix = -1, favorited = -1;   // Item
+    int32_t storageItems = -1;
+    int32_t loadoutArmor = -1, loadoutDye = -1;
+    int32_t type = -1, stack = -1, prefix = -1, favorited = -1;
     const MethodInfo* setDefaults = nullptr;
     const MethodInfo* applyPrefix = nullptr;
     const MethodInfo* resetPrefix = nullptr;
@@ -90,15 +79,8 @@ struct Refs {
 Refs g_refs;
 
 std::mutex g_mx;
-// Itens de mod que nao deu para repor ao carregar (mod nao carregado agora),
-// por caminho do personagem. Voltam para o arquivo no proximo save.
 std::map<std::string, std::vector<SavedItem>> g_kept;
 
-/**
- * Item de mod reposto SEM o prefixo dele (o mod do prefixo nao esta; o do item
- * pode estar, ou virou "?"): o nome do prefixo volta para o arquivo enquanto o
- * mesmo item seguir no lugar sem prefixo. Por arquivo, por "<lugar>#<slot>".
- */
 struct PendingPrefix {
     int type = 0;
     std::string key;
@@ -109,7 +91,6 @@ std::string placeKey(const std::string& container, int slot) {
     return container + "#" + std::to_string(slot);
 }
 
-/** O nome do prefixo guardado para o item de `type` nesse lugar, ou "". */
 std::string pendingPrefixFor(const std::string& path, const std::string& container, int slot, int type) {
     std::lock_guard<std::mutex> l(g_mx);
     auto file = g_pendingPrefix.find(path);
@@ -153,7 +134,6 @@ Il2CppObject* objectAt(Il2CppObject* obj, int32_t offset) {
     return obj && offset >= 0 ? field<Il2CppObject*>(obj, offset) : nullptr;
 }
 
-/** Um lugar onde o jogador guarda itens: um array, ou um item so (a lixeira). */
 struct Container {
     std::string name;
     Il2CppArray* items = nullptr;
@@ -166,7 +146,6 @@ struct Container {
     }
 };
 
-/** Tudo o que o save do personagem grava: inventario, equipamento, cofres, conjuntos. */
 std::vector<Container> containersOf(Il2CppObject* player) {
     const Refs& r = g_refs;
     std::vector<Container> v;
@@ -178,7 +157,6 @@ std::vector<Container> containersOf(Il2CppObject* player) {
     add("dye", objectAt(player, r.dye));
     add("misc", objectAt(player, r.miscEquips));
     add("miscdye", objectAt(player, r.miscDyes));
-    // Porquinho, cofre, forja defensora e cofre do vazio.
     const char* bankNames[4] = {"bank", "bank2", "bank3", "bank4"};
     for (int i = 0; i < 4; ++i) {
         add(bankNames[i], objectAt(objectAt(player, r.bank[i]), r.storageItems));
@@ -194,8 +172,6 @@ std::vector<Container> containersOf(Il2CppObject* player) {
     return v;
 }
 
-// ------------------------------ arquivo ------------------------------
-
 std::vector<SavedItem> readFile(const std::string& path) {
     std::vector<SavedItem> items;
     std::ifstream f(path, std::ios::binary);
@@ -206,7 +182,6 @@ std::vector<SavedItem> readFile(const std::string& path) {
     return items;
 }
 
-/** Grava por arquivo temporario + rename: queda no meio nao deixa arquivo pela metade. */
 void writeFile(const std::string& path, const std::vector<SavedItem>& items) {
     if (items.empty()) {
         std::remove(path.c_str());
@@ -228,16 +203,11 @@ void writeFile(const std::string& path, const std::vector<SavedItem>& items) {
     }
 }
 
-/** Caminho do .plr, ou "" para personagem na nuvem (nao ha arquivo local ao lado). */
 std::string localPath(Il2CppObject* fileData) {
     if (!fileData || field<uint8_t>(fileData, g_refs.fileCloud)) return {};
     return toUtf8(reinterpret_cast<Il2CppString*>(objectAt(fileData, g_refs.filePath)));
 }
 
-/**
- * Prefixo de mod ausente num item do jogo: a linha segue no arquivo enquanto o
- * mesmo item estiver no lugar, sem prefixo (o jogo tira o que nao conhece).
- */
 bool stillWaitingForPrefix(const std::vector<Container>& containers, const SavedItem& k) {
     for (const Container& c : containers) {
         if (c.name != k.container) continue;
@@ -248,15 +218,9 @@ bool stillWaitingForPrefix(const std::vector<Container>& containers, const Saved
     return false;
 }
 
-// ------------------------------ salvar ------------------------------
-
 using SaveFn = void (*)(Il2CppObject*, const MethodInfo*);
 SaveFn g_origSave = nullptr;
 
-/**
- * DEPOIS do original: o que conta e o estado que o jogo acabou de gravar (ele
- * guarda o item do cursor no inventario antes de escrever).
- */
 void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
     g_origSave(fileData, m);
     const std::string path = localPath(fileData);
@@ -307,39 +271,23 @@ void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
     }
     writeFile(path + kSuffix, items);
     if (!items.empty()) {
-        // Diz quem mandou salvar: o jogo salva o personagem tambem com a
-        // gravacao automatica desligada (ao morrer, no multijogador, ao sair),
-        // e sem isto parecia que o Bunny Loader salvava por conta propria.
         BL_INFO("save de itens de mod: o jogo salvou o personagem; %zu item(ns) de mod gravado(s) junto "
                 "(%zu de mod nao carregado)", items.size(), kept);
     }
 }
 
-// ------------------------------ carregar ------------------------------
-
-/**
- * O tipo de `key` agora: o item do mod, se ele esta carregado; senao o "?"
- * que o representa. -1 se nem isso (o jogo ainda nao conhece os tipos de mod,
- * ou a reserva de "?" acabou): quem chama guarda a entrada no arquivo.
- */
 int typeForKey(const std::string& key) {
     const int type = modItemTypeByKey(key);
     if (type >= 0) return type < itemTypeCount() ? type : -1;
     return unloadedTypeFor(key);
 }
 
-/**
- * Tipo de mod que NAO veio do nosso arquivo: numero cru do .plr/.wld, que so
- * vale se ainda for um tipo que o jogo conhece e que nao e um "?" sem dono.
- * O resto derrubava o jogo (o bau le ContentSamples[tipo] ao carregar o mundo).
- */
 bool isStrayType(int type) {
     if (type < kVanillaItemCount) return false;
-    if (itemTypeCount() <= kVanillaItemCount) return false;   // tipos de mod ainda nao instalados
+    if (itemTypeCount() <= kVanillaItemCount) return false;
     return type >= itemTypeCount() || (isUnloadedType(type) && modItemKey(type).empty());
 }
 
-/** Vazio para o jogo: sem tipo ou sem pilha. */
 bool isEmpty(Il2CppObject* item) {
     return item && (field<int32_t>(item, g_refs.type) == 0 || field<int32_t>(item, g_refs.stack) <= 0);
 }
@@ -357,7 +305,7 @@ bool restore(Il2CppObject* item, int type, const SavedItem& saved) {
     Il2CppObject* exc = nullptr;
     int t = type;
     void* sd[2] = {&t, nullptr};
-    a.runtime_invoke(r.setDefaults, item, sd, &exc);   // passa pelo setDefaults do mod
+    a.runtime_invoke(r.setDefaults, item, sd, &exc);
     if (exc || field<int32_t>(item, r.type) != type) return false;
     field<int32_t>(item, r.stack) = saved.stack > 0 ? saved.stack : 1;
     const int prefix = decodePrefix(saved);
@@ -371,12 +319,6 @@ bool restore(Il2CppObject* item, int type, const SavedItem& saved) {
     return true;
 }
 
-/**
- * O prefixo de mod de um item do jogo, pelo nome. O .plr trouxe o NUMERO de
- * quando foi salvo, que pode ser hoje outro prefixo (ou nenhum): tira o que
- * veio (ResetPrefix refaz o item) e poe o certo. false: o mod do prefixo nao
- * esta carregado, e a linha fica guardada.
- */
 bool restoreVanillaPrefix(Il2CppObject* item, const SavedItem& saved) {
     auto& a = il2cpp::api();
     const Refs& r = g_refs;
@@ -405,7 +347,6 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
 
     std::vector<SavedItem> saved = readFile(path + kSuffix);
     std::vector<SavedItem> kept;
-    // Os buffs primeiro, e fora da lista de itens (a chave nao e de item).
     std::vector<SavedBuff> buffs;
     for (auto it = saved.begin(); it != saved.end();) {
         if (it->container != kBuffContainer) { ++it; continue; }
@@ -430,7 +371,6 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
                 for (const Container& c : containers) {
                     if (c.name == s.container) slotItem = c.at(s.slot);
                 }
-                // O item mudou de lugar (ou saiu) sem o loader: a linha nao vale mais.
                 if (!slotItem || field<int32_t>(slotItem, g_refs.type) != vanillaPrefixEntryType(s)) continue;
                 if (restoreVanillaPrefix(slotItem, s)) ++prefixes;
                 else kept.push_back(s);
@@ -443,11 +383,6 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
             for (const Container& c : containers) {
                 if (c.name == s.container) slotItem = c.at(s.slot);
             }
-            // O jogo NAO troca tipo desconhecido por nada em todo lugar: os
-            // cofres (porquinho etc.) voltam com o numero cru do .plr. Se ja e
-            // o tipo certo, nada a fazer; se e outro tipo de mod, o numero e que
-            // esta velho (outros mods, outra ordem) e o lugar e nosso. Tratar
-            // como ocupado punha uma copia no inventario.
             const int slotType = slotItem ? field<int32_t>(slotItem, g_refs.type) : 0;
             if (slotItem && slotType == type) {
                 loadModItemData(slotItem, s.data);
@@ -457,8 +392,6 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
             Il2CppObject* target =
                 isEmpty(slotItem) || slotType >= kVanillaItemCount ? slotItem : nullptr;
             if (!target && inventory) {
-                // O lugar foi ocupado (o .plr foi mexido sem o loader): primeira
-                // vaga do inventario principal, sem moedas, municao e cursor.
                 for (int i = 0; i < 50 && !target; ++i) {
                     if (isEmpty(inventory->at(i))) target = inventory->at(i);
                 }
@@ -474,8 +407,6 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
             }
         }
     }
-    // O que sobrou com numero cru invalido (cofre de antes deste arquivo, mod
-    // que mudou) vira nada: o jogo nao sabe desenhar nem empilhar.
     for (const Container& c : containersOf(player)) {
         for (int slot = 0; slot < c.size(); ++slot) {
             Il2CppObject* item = c.at(slot);
@@ -503,19 +434,13 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
     return fileData;
 }
 
-// ------------------------------ mundo ------------------------------
-//
-// Os baus do mundo, com o mesmo arquivo ao lado (`<mundo>.wld.bl`). O bau e
-// identificado pela coordenada, nao pelo indice: o jogo so grava os baus que
-// existem e os renumera ao carregar.
-
 struct ChestLayout {
     bool ok = false;
-    FieldInfo* chests = nullptr;          // Main.chest
-    FieldInfo* activeWorld = nullptr;     // Main.ActiveWorldFileData
-    int32_t items = -1, x = -1, y = -1;   // Chest
-    size_t stride = 0;                    // ChestItem no array
-    size_t type = 0, stack = 0, prefix = 0, favorited = 0;   // dentro do ChestItem
+    FieldInfo* chests = nullptr;
+    FieldInfo* activeWorld = nullptr;
+    int32_t items = -1, x = -1, y = -1;
+    size_t stride = 0;
+    size_t type = 0, stack = 0, prefix = 0, favorited = 0;
 };
 ChestLayout g_chest;
 
@@ -597,7 +522,6 @@ void hkClearChests(const MethodInfo* method) {
     g_origClearChests(method);
 }
 
-/** Um ChestItem dentro do array do bau. */
 struct ChestSlot {
     char* data = nullptr;
 
@@ -667,7 +591,6 @@ std::string chestName(Il2CppObject* chest) {
            std::to_string(field<int32_t>(chest, g_chest.y));
 }
 
-/** Cada bau do mundo e o array de ChestItem dele. */
 template <typename Fn>
 void forEachChest(Fn fn) {
     Il2CppArray* chests = nullptr;
@@ -689,7 +612,6 @@ std::string activeWorldPath() {
 using SaveChestsFn = int32_t (*)(Il2CppObject*, const MethodInfo*);
 SaveChestsFn g_origSaveChests = nullptr;
 
-/** ANTES do original: e exatamente o que ele vai escrever no .wld. */
 int32_t hkSaveChests(Il2CppObject* writer, const MethodInfo* m) {
     const std::string path = activeWorldPath();
     if (!path.empty()) {
@@ -722,7 +644,6 @@ int32_t hkSaveChests(Il2CppObject* writer, const MethodInfo* m) {
                 forEachChest([&](Il2CppObject* chest, Il2CppArray* a) { byName[chestName(chest)] = a; });
                 for (const SavedItem& k : it->second) {
                     if (isVanillaPrefixEntry(k)) {
-                        // Enquanto o mesmo item seguir no lugar, sem prefixo.
                         auto c = byName.find(k.container);
                         const ChestSlot s = c == byName.end() ? ChestSlot{} : slotOf(c->second, k.slot);
                         if (!s.data || s.type() != vanillaPrefixEntryType(k) || s.prefix() != 0) continue;
@@ -744,10 +665,6 @@ int32_t hkSaveChests(Il2CppObject* writer, const MethodInfo* m) {
 using FixFn = void (*)(const MethodInfo*);
 FixFn g_origFix = nullptr;
 
-/**
- * ANTES do original: e ele que le ContentSamples[tipo] de cada item de bau, e
- * lancava KeyNotFound — o mundo nem abria — quando o mod do item nao estava.
- */
 void hkFixAgainstExploits(const MethodInfo* m) {
     const std::string path = activeWorldPath();
     const std::vector<SavedItem> saved =
@@ -758,13 +675,11 @@ void hkFixAgainstExploits(const MethodInfo* m) {
 
     std::map<std::string, Il2CppArray*> byName;
     forEachChest([&](Il2CppObject* chest, Il2CppArray* items) { byName[chestName(chest)] = items; });
-    // Lugares que o arquivo explicou; o resto com tipo de mod e numero cru.
     std::map<std::string, std::vector<bool>> covered;
 
     for (const SavedItem& s : saved) {
         auto it = byName.find(s.container);
         if (isVanillaPrefixEntry(s)) {
-            // Item do jogo com prefixo de mod: o bau so guarda o numero, que e trocado.
             const ChestSlot slot = it == byName.end() ? ChestSlot{} : slotOf(it->second, s.slot);
             if (!slot.data || slot.type() != vanillaPrefixEntryType(s)) continue;
             std::vector<bool>& cov = covered[s.container];
@@ -778,7 +693,6 @@ void hkFixAgainstExploits(const MethodInfo* m) {
         }
         const int type = it == byName.end() ? -1 : typeForKey(s.key);
         const ChestSlot slot = type < 0 ? ChestSlot{} : slotOf(it->second, s.slot);
-        // Item do JOGO no lugar: o bau foi mexido sem o loader, e ele fica.
         const int current = slot.data ? slot.type() : -1;
         if (!slot.data || (current > 0 && current < kVanillaItemCount)) {
             kept.push_back(s);
@@ -809,7 +723,6 @@ void hkFixAgainstExploits(const MethodInfo* m) {
                 s.favorited() = 0;
                 ++stray;
             } else if (!explained && isStrayPrefix(s.prefix())) {
-                // Numero de prefixo de mod sem linha no arquivo: de outra sessao.
                 s.prefix() = 0;
                 ++stray;
             }
@@ -845,7 +758,6 @@ bool resolveChests() {
     c.y = fieldOffset(chest, "y");
     uint32_t align = 0;
     c.stride = static_cast<size_t>(a.class_value_size(chestItem, &align));
-    // Campo de struct: o IL2CPP conta o cabecalho de objeto (a struct em caixa).
     const int32_t header = static_cast<int32_t>(sizeof(Il2CppObject));
     const int32_t t = fieldOffset(chestItem, "type"), s = fieldOffset(chestItem, "stack"),
                   p = fieldOffset(chestItem, "prefix"), f = fieldOffset(chestItem, "favorited");
@@ -862,16 +774,9 @@ bool resolveChests() {
     return c.ok;
 }
 
-// ------------------------------ o "?" ------------------------------
-
 using SetDefaultsFn = void (*)(Il2CppObject*, int32_t, Il2CppObject*, const MethodInfo*);
 SetDefaultsFn g_origSetDefaults = nullptr;
 
-/**
- * O "?" nao tem mod, entao nao passa pelo hook JS dos itens de mod; e o
- * SetDefaults do jogo zera tipo acima de ItemID.Count. Um desvio nativo so
- * para ele, que o resto repassa sem custo.
- */
 void hkSetDefaults(Il2CppObject* self, int32_t type, Il2CppObject* variant, const MethodInfo* m) {
     if (isUnloadedType(type)) {
         setupUnloadedItem(self, type);
@@ -888,7 +793,6 @@ Il2CppObject* hkClone(Il2CppObject* self, const MethodInfo* m) {
     copyUnloadedItemData(self, copy);
     return copy;
 }
-
 
 bool resolve() {
     using namespace il2cpp;
@@ -924,14 +828,12 @@ bool resolve() {
     r.applyPrefix = findMethodBySignature(item, parseSignature("bool Prefix(int prefixWeWant)"));
     r.resetPrefix = findMethodBySignature(item, parseSignature("void ResetPrefix()"));
 
-    // Conjuntos (Loadouts), cofres e prefixo sao opcionais: sem eles, so
-    // aquele lugar fica de fora. O resto e o minimo para nao perder item.
     r.ok = r.filePath >= 0 && r.fileCloud >= 0 && r.filePlayer >= 0 && r.inventory >= 0 &&
            r.type >= 0 && r.stack >= 0 && r.prefix >= 0 && r.favorited >= 0 && r.setDefaults;
     return r.ok;
 }
 
-} // namespace
+}
 
 std::string modChestItemData(Il2CppObject* chest, int slot) {
     if (!g_chest.ok || !chest) return {};
@@ -1050,4 +952,4 @@ void installModItemSave() {
     BL_DEBUG("save de itens de mod: pronto (personagem%s)", okWorld ? " e baus do mundo" : "");
 }
 
-} // namespace bl::runtime
+}

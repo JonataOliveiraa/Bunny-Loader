@@ -13,23 +13,15 @@ InitFn origInit = nullptr;
 void* initStub = nullptr;
 
 int hkInit(const char* domainName) {
-    // Deixa o IL2CPP terminar: só depois existem domínio, classes e metadados.
     int result = origInit(domainName);
     BL_DEBUG("il2cpp_init concluido (domain=%s)", domainName ? domainName : "?");
     runtime::boot();
     return result;
 }
 
-} // namespace
+}
 
 bool installWatcher() {
-    // Idempotente de propósito. Dois caminhos chamam isto:
-    //   - o construtor da libbunny (boot/Entry.cpp), herdado do modelo LD_PRELOAD,
-    //     que roda no System.loadLibrary("bunny");
-    //   - NativeBridge.init(), logo em seguida, vindo do Kotlin.
-    // Sem esta guarda o segundo recebia "Duplicate hook" e devolvia JNI_FALSE,
-    // o que fazia o launcher anunciar "rodando sem mods" com o núcleo
-    // perfeitamente instalado pelo primeiro.
     static bool installed = false;
     if (installed) return true;
 
@@ -50,4 +42,4 @@ bool installWatcher() {
     return true;
 }
 
-} // namespace bl::loader
+}

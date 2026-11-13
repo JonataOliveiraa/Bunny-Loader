@@ -17,20 +17,13 @@ namespace {
 
 constexpr uintptr_t kMaxMethodBytes = 512 * 1024;
 
-// A ultima escrita recusada (errno do mprotect), para o describeCompareMiss
-// separar "nao achei" de "achei e nao consegui escrever".
 std::atomic<int> g_writeFailures{0};
 std::atomic<int> g_lastWriteErrno{0};
 
 void* methodPointerOf(const MethodInfo* m) {
-    return *reinterpret_cast<void* const*>(m);   // primeiro campo do MethodInfo (refs/il2cpp.h)
+    return *reinterpret_cast<void* const*>(m);
 }
 
-/**
- * Onde o metodo termina: o primeiro metodo da MESMA classe que comeca depois
- * dele. O IL2CPP gera os metodos de uma classe em sequencia, entao isso
- * limita a busca ao corpo dele (com um teto, por garantia).
- */
 uintptr_t methodEnd(const MethodInfo* m, uintptr_t start) {
     auto& a = il2cpp::api();
     uintptr_t end = start + kMaxMethodBytes;
@@ -44,48 +37,24 @@ uintptr_t methodEnd(const MethodInfo* m, uintptr_t start) {
     return end;
 }
 
-/**
- * `cmp wN, #imm`: SUBS WZR, Wn, #imm12 (sf=0). `shifted`: a forma
- * `#imm, lsl #12` (sh=1), em que o limite vale imm * 4096.
- */
 bool isCompareImmediate(uint32_t insn, uint32_t imm, bool shifted = false) {
     const uint32_t op = shifted ? 0x7140001Fu : 0x7100001Fu;
     return (insn & 0xFFC0001Fu) == op && ((insn >> 10) & 0xFFFu) == imm;
 }
 
-/**
- * b.cond de ORDEM contra o limite: HI/LS (sem sinal) ou GT/LE (com sinal) —
- * `tipo > limite` sai. Igualdade NAO: `cmp w8, #696; b.ne` e o `if (type ==
- * 696)` do desenho especial de um NPC do jogo (Main.DrawNPCDirect tem dois), e
- * troca-lo mandava o NPC de mod para aquele ramo (ficava invisivel) e tirava
- * o desenho do NPC 696.
- */
 bool isLimitBranch(uint32_t insn, bool belowToo) {
-    if ((insn & 0xFF000010u) != 0x54000000u) return false;   // b.cond: 0101 0100 imm19 0 cond
+    if ((insn & 0xFF000010u) != 0x54000000u) return false;
     const uint32_t cond = insn & 0xFu;
-    if (cond == 0x8 || cond == 0x9 || cond == 0xC || cond == 0xD) return true;   // HI, LS, GT, LE
-    // `tipo < Count` (LO/HS sem sinal, LT/GE com sinal): so quando quem chama
-    // conferiu o metodo — nos NPCs isso nunca foi olhado.
+    if (cond == 0x8 || cond == 0x9 || cond == 0xC || cond == 0xD) return true;
     return belowToo && (cond == 0x2 || cond == 0x3 || cond == 0xA || cond == 0xB);
 }
 
-/**
- * Instrucao que nao mexe nas flags: load/store (op0 = x1x0), extensao/campo
- * de bits (SBFM/UBFM: `sxth`, `uxtb`...) e `mov` de registrador (ORR com o
- * zero). No MessageBuffer.ProcessData: `cmp w8, #696; sxth w21, w21; b.hi`.
- */
 bool keepsFlags(uint32_t insn) {
     if ((insn & 0x0A000000u) == 0x08000000u) return true;
     if ((insn & 0x1F800000u) == 0x13000000u) return true;
     return (insn & 0x7F2003E0u) == 0x2A0003E0u;
 }
 
-/**
- * O desvio de ordem que usa as flags do cmp em `p`: logo depois, ou depois de
- * ate 3 instrucoes que nao mexem nelas (o compilador as vezes zera a pilha no
- * meio, como no WorldGen.PlaceObject: `cmp; stp xzr; str xzr; b.gt`), entao o
- * desvio ainda e o do cmp.
- */
 bool limitBranchAfter(const uint32_t* p, uintptr_t end, bool belowToo) {
     for (int k = 1; k <= 4 && reinterpret_cast<uintptr_t>(p + k) < end; ++k) {
         if (isLimitBranch(p[k], belowToo)) return true;
@@ -105,13 +74,11 @@ bool writeInstruction(uint32_t* at, uint32_t insn) {
     }
     *at = insn;
     mprotect(reinterpret_cast<void*>(page), static_cast<size_t>(pageSize), PROT_READ | PROT_EXEC);
-    // O processador (e o houdini, no emulador) pode ter a instrucao velha em
-    // cache: sem isto a troca pode simplesmente nao valer.
     __builtin___clear_cache(reinterpret_cast<char*>(at), reinterpret_cast<char*>(at + 1));
     return true;
 }
 
-} // namespace
+}
 
 int patchCompareLimit(const MethodInfo* m, uint32_t oldLimit, uint32_t newLimit, bool belowToo,
                       bool shifted) {
@@ -142,8 +109,6 @@ std::string describeMethodCode(const MethodInfo* m) {
     } else {
         std::snprintf(where, sizeof(where), "0x%lx", static_cast<unsigned long>(start));
     }
-    // As 4 primeiras instrucoes: se um hook (ShadowHook) reescreveu a entrada,
-    // aparece aqui um `ldr x17`/`br x17` ou um `b` longe, no lugar do prologo.
     const auto* p = reinterpret_cast<const uint32_t*>(start);
     char out[320];
     std::snprintf(out, sizeof(out), "metodo em %s, %lu bytes, entrada %08x %08x %08x %08x", where,
@@ -193,11 +158,10 @@ int patchLoopEnd(const MethodInfo* m, uint32_t oldEnd, uint32_t newEnd, bool exi
     const uintptr_t end = methodEnd(m, start);
     int patched = 0;
     for (auto* p = reinterpret_cast<uint32_t*>(start); reinterpret_cast<uintptr_t>(p + 1) < end; ++p) {
-        // cmp xN, #imm (SUBS XZR, Xn, #imm12, sf=1) + b.ne/b.lt de volta ao laco
         if ((*p & 0xFFC0001Fu) != 0xF100001Fu || ((*p >> 10) & 0xFFFu) != oldEnd) continue;
         if ((p[1] & 0xFF000010u) != 0x54000000u) continue;
         const uint32_t cond = p[1] & 0xFu;
-        if (exitOnEqual ? cond != 0x0 : cond != 0x1 && cond != 0xB && cond != 0x3) continue;   // EQ | NE, LT, LO
+        if (exitOnEqual ? cond != 0x0 : cond != 0x1 && cond != 0xB && cond != 0x3) continue;
         if (writeInstruction(p, (*p & ~(0xFFFu << 10)) | (newEnd << 10))) ++patched;
     }
     return patched;
@@ -210,11 +174,9 @@ int patchRegisterLimit(const MethodInfo* m, uint32_t oldLimit, uint32_t newLimit
     const uintptr_t end = methodEnd(m, start);
     int patched = 0;
     for (auto* p = reinterpret_cast<uint32_t*>(start); reinterpret_cast<uintptr_t>(p + 4) < end; ++p) {
-        // movz wB, #imm16 (sf=0, hw=0)
         if ((*p & 0xFFE00000u) != 0x52800000u || ((*p >> 5) & 0xFFFFu) != oldLimit) continue;
         const uint32_t reg = *p & 31u;
         for (int k = 1; k <= 3; ++k) {
-            // cmp wA, wB = SUBS WZR, Wa, Wb (registrador sem deslocamento)
             if ((p[k] & 0xFFE0FC1Fu) != 0x6B00001Fu || ((p[k] >> 16) & 31u) != reg) continue;
             if (limitBranchAfter(p + k, end, false) &&
                 writeInstruction(p, (*p & ~(0xFFFFu << 5)) | (newLimit << 5))) {
@@ -233,7 +195,6 @@ int patchMovImmediate(const MethodInfo* m, uint32_t oldValue, uint32_t newValue)
     const uintptr_t end = methodEnd(m, start);
     int patched = 0;
     for (auto* p = reinterpret_cast<uint32_t*>(start); reinterpret_cast<uintptr_t>(p) < end; ++p) {
-        // movz wN, #imm16 (sf=0, hw=0)
         if ((*p & 0xFFE00000u) != 0x52800000u || ((*p >> 5) & 0xFFFFu) != oldValue) continue;
         if (writeInstruction(p, (*p & ~(0xFFFFu << 5)) | (newValue << 5))) ++patched;
     }
@@ -248,4 +209,4 @@ bool replaceInstruction(const void* code, size_t offset, uint32_t expected, uint
     return writeInstruction(at, replacement);
 }
 
-} // namespace bl::runtime
+}

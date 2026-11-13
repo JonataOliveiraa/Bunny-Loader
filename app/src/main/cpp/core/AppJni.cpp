@@ -13,9 +13,6 @@ std::atomic<JavaVM*> g_loadedVm{nullptr};
 JavaVM* g_vm = nullptr;
 pthread_key_t g_detachKey;
 
-// Ate o Android 11 a libnativehelper, a libart e a libandroid_runtime sao
-// privadas do sistema: o dlopen do app falha e nao ha JavaVM por aqui. Era o
-// Mod Menu, o icone de JS, os sons e as imagens de mod sumindo nesses aparelhos.
 JavaVM* findJavaVM() {
     using GetVMs = jint (*)(JavaVM**, jsize, jsize*);
     for (const char* so : {"libnativehelper.so", "libart.so", "libandroid_runtime.so"}) {
@@ -29,13 +26,11 @@ JavaVM* findJavaVM() {
     return nullptr;
 }
 
-// A thread nativa anexada tem de se desanexar antes de acabar, senao o ART
-// aborta o processo.
 void detachOnExit(void*) {
     if (g_vm) g_vm->DetachCurrentThread();
 }
 
-} // namespace
+}
 
 void setAppJavaVM(JavaVM* vm) {
     g_loadedVm.store(vm, std::memory_order_release);
@@ -92,4 +87,4 @@ jclass appJniClass(JNIEnv* env, const char* dotted) {
     return cls;
 }
 
-} // namespace bl
+}

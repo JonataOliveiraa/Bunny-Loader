@@ -23,30 +23,23 @@ namespace {
 
 struct Entry {
     ModNpcDef def;
-    int width = 0, height = 0;   // de UM quadro
-    int textureHeight = 0;       // a tira inteira
+    int width = 0, height = 0;
+    int textureHeight = 0;
     uint32_t asset = 0;
-    // A amostra em ContentSamples.NpcsByNetId (gchandle). E ela que o
-    // retrato do Bestiario desenha; nasce antes do SetStaticDefaults do mod,
-    // entao os quadros definidos la precisam chegar nela depois.
-    uint32_t sample = 0;          // gchandle do Asset<Texture2D>: reaplicado se a tabela for refeita
+    uint32_t sample = 0;
 };
 
 std::mutex g_mx;
-std::vector<Entry> g_regs;               // indice = type - kVanillaNpcCount
+std::vector<Entry> g_regs;
 std::atomic<int> g_total{0};
 std::atomic<int> g_installed{0};
 bool g_failed = false;
 std::mutex g_hooksMx;
 std::vector<NpcsInstalledHook> g_installedHooks;
-bool g_staticDefaultsPending = false;   // instalado, esperando a tabela de drop do jogo
+bool g_staticDefaultsPending = false;
 
-// animationType por tipo de mod, lido a cada quadro por NPC: copia sem trava,
-// montada na instalacao e so lida depois.
 std::vector<int> g_animation;
 
-// Conferida contra toda alocacao de 697 posicoes na libil2cpp (`mov #0x2b9`
-// antes de um new[]); a de Player e por instancia (abaixo).
 TypeTables g_tables("NPCs de mod", kVanillaNpcCount, {
     {"Terraria.ID", "NPCID", "Sets"},
     {"Terraria", "Main", ""},
@@ -59,19 +52,19 @@ TypeTables g_tables("NPCs de mod", kVanillaNpcCount, {
 
 struct Refs {
     bool tried = false, ok = false;
-    FieldInfo* textures = nullptr;       // TextureAssets.Npc
-    FieldInfo* names = nullptr;          // Lang._npcNameCache
-    FieldInfo* frames = nullptr;         // Main.npcFrameCount
-    FieldInfo* players = nullptr;        // Main.player
-    FieldInfo* itemDrops = nullptr;      // Main.ItemDropsDB
-    FieldInfo* samples = nullptr;        // ContentSamples.NpcsByNetId
-    FieldInfo* creditIds = nullptr;      // ContentSamples.NpcBestiaryCreditIdsByNpcNetIds
-    FieldInfo* persistentById = nullptr; // ContentSamples.NpcPersistentIdsByNetIds
-    FieldInfo* idByPersistent = nullptr; // ContentSamples.NpcNetIdsByPersistentIds
-    FieldInfo* rarity = nullptr;         // ContentSamples.NpcBestiaryRarityStars
-    FieldInfo* sorting = nullptr;        // ContentSamples.NpcBestiarySortingId
+    FieldInfo* textures = nullptr;
+    FieldInfo* names = nullptr;
+    FieldInfo* frames = nullptr;
+    FieldInfo* players = nullptr;
+    FieldInfo* itemDrops = nullptr;
+    FieldInfo* samples = nullptr;
+    FieldInfo* creditIds = nullptr;
+    FieldInfo* persistentById = nullptr;
+    FieldInfo* idByPersistent = nullptr;
+    FieldInfo* rarity = nullptr;
+    FieldInfo* sorting = nullptr;
     Il2CppClass* npcCls = nullptr;
-    int32_t noAggro = -1;                // Player.npcTypeNoAggro
+    int32_t noAggro = -1;
     int32_t type = -1, netId = -1, active = -1, width = -1, height = -1, frame = -1;
     int32_t life = -1, lifeMax = -1, damage = -1, defense = -1, defDamage = -1, defDefense = -1, defLifeMax = -1;
     const MethodInfo* npcCtor = nullptr;
@@ -114,7 +107,7 @@ Refs& refs() {
         r.active = fieldOffset(npc, "active");
         r.width = fieldOffset(npc, "width");
         r.height = fieldOffset(npc, "height");
-        r.frame = fieldOffset(npc, "frame");   // Rectangle: X, Y, Width, Height
+        r.frame = fieldOffset(npc, "frame");
         r.life = fieldOffset(npc, "life");
         r.lifeMax = fieldOffset(npc, "lifeMax");
         r.damage = fieldOffset(npc, "damage");
@@ -195,8 +188,6 @@ bool gameReady(int size) {
            textures->length == static_cast<uintptr_t>(size) && names->length >= static_cast<uintptr_t>(size);
 }
 
-// ---- Bestiario e amostras (ContentSamples) ----
-
 void setDictionaryEntry(FieldInfo* f, void* key, void* value, const char* what) {
     auto& a = il2cpp::api();
     if (!f) return;
@@ -209,20 +200,15 @@ void setDictionaryEntry(FieldInfo* f, void* key, void* value, const char* what) 
     invoke(set, d, args, what);
 }
 
-/**
- * A amostra do NPC e as chaves do Bestiario. Matar um NPC credita a morte por
- * NpcBestiaryCreditIdsByNpcNetIds[tipo] (indexador: sem entrada, excecao), e
- * o jogo consulta NpcsByNetId em varios lugares (bestiario, invocacao).
- */
 void registerSample(int type, const std::string& key) {
     auto& a = il2cpp::api();
     const Refs& r = refs();
     Il2CppObject* npc = a.object_new(r.npcCls);
     invoke(r.npcCtor, npc, nullptr, "NPC.ctor");
     int t = type;
-    alignas(8) uint8_t spawnParams[32] = {};   // NPCSpawnParams sem nada: 3 Nullable vazios
+    alignas(8) uint8_t spawnParams[32] = {};
     void* sd[2] = {&t, spawnParams};
-    invoke(r.setDefaults, npc, sd, "SetDefaults da amostra");   // passa pelo hook do mod
+    invoke(r.setDefaults, npc, sd, "SetDefaults da amostra");
     setDictionaryEntry(r.samples, &t, npc, "ContentSamples.NpcsByNetId");
     {
         std::lock_guard<std::mutex> l(g_mx);
@@ -238,21 +224,14 @@ void registerSample(int type, const std::string& key) {
     setDictionaryEntry(r.sorting, &t, &sorting, "ContentSamples.NpcBestiarySortingId");
 }
 
-// ---- limites compilados no codigo ----
-
 struct LimitPatch {
     const char* cls;
     const char* method;
-    int argCount;       // -1: todo overload com esse nome
-    uint32_t vanilla;   // o limite como esta no codigo
-    int offset;         // novo limite = total + offset
+    int argCount;
+    uint32_t vanilla;
+    int offset;
 };
 
-// NPCID.Count - 1 (`type > 696` sai) em quase todos; GetNPCName compara
-// `netID - 1 > 695`. Na rede: o pedido de invocar chefe (mensagem 61, o
-// servidor e o anfitriao recusam o de mod) e o dono do bicho capturavel na 23
-// (quem manda e quem le trocam juntos). Os que ficam de fora (mapa, tiles) so
-// deixam o NPC de mod sem aquele detalhe.
 constexpr LimitPatch kLimitPatches[] = {
     {"Main", "DrawNPCs", 1, kVanillaNpcCount - 1, -1},
     {"NPC", "NPCLoot", 0, kVanillaNpcCount - 1, -1},
@@ -294,26 +273,11 @@ void patchLimits(int total) {
     BL_INFO("NPCs de mod: limites do codigo trocados em %d de %d metodo(s)", methodsOk, methods);
 }
 
-// ---- NPC.FindFrame: animacao emprestada ----
-
 using FindFrameFn = void (*)(Il2CppObject*, const MethodInfo*);
 FindFrameFn g_origFindFrame = nullptr;
 std::mutex g_frameMx;
 std::atomic<int> g_frameState{0};
 
-/**
- * A animacao do jogo e um switch pelo tipo. Com `animationType`, o NPC de mod
- * roda o ramo de um NPC do jogo: o tipo e trocado so durante a chamada (o que
- * o tModLoader faz com AnimationType). Nativo, e nao JS: roda por NPC, por
- * quadro, e para os do jogo custa uma comparacao.
- *
- * So o tipo nao basta: o FindFrame mede a altura do quadro pela textura e
- * pela contagem de quadros do tipo ATUAL (TextureAssets.Npc[tipo].Height() /
- * Main.npcFrameCount[tipo]), e com o tipo trocado mediria a do NPC do jogo —
- * que nem carregada estava (altura 0, o slime parado no quadro 0). Entao a
- * textura e a contagem do NPC de mod vao para o lugar do outro, tambem so
- * durante a chamada. Tudo na thread principal, como o desenho.
- */
 void vanillaFindFrame(Il2CppObject* self, int32_t borrowed, const MethodInfo* m) {
     const Refs& r = refs();
     int32_t& type = field<int32_t>(self, r.type);
@@ -331,8 +295,6 @@ void vanillaFindFrame(Il2CppObject* self, int32_t borrowed, const MethodInfo* m)
     Il2CppObject* savedTex = swap ? tex[borrowed] : nullptr;
     const int32_t savedCount = swap ? count[borrowed] : 0;
     if (swap) {
-        // Ponteiro trocado e devolvido na mesma chamada: o objeto continua
-        // seguro pela nossa tabela (e o coletor nao roda no meio, nesta thread).
         tex[borrowed] = tex[own];
         count[borrowed] = count[own];
     }
@@ -354,11 +316,6 @@ void hkFindFrame(Il2CppObject* self, const MethodInfo* m) {
     if (npcFrameEvent(self)) return;
     vanillaFindFrame(self, borrowedAnimation(self), m);
 }
-
-// ---- Player.npcTypeNoAggro ----
-//
-// bool[NPCID.Count] em CADA jogador, lido quando um NPC escolhe alvo. Os 256
-// de Main.player ja existem na instalacao; os novos passam pelo construtor.
 
 using PlayerCtorFn = void (*)(Il2CppObject*, const MethodInfo*);
 PlayerCtorFn g_origPlayerCtor = nullptr;
@@ -382,7 +339,7 @@ void growPlayers(int size) {
     }
 }
 
-} // namespace
+}
 
 int registerModNpc(ModNpcDef def) {
     std::lock_guard<std::mutex> l(g_mx);
@@ -433,8 +390,6 @@ void setNpcsInstalledHook(NpcsInstalledHook hook) {
 void tickModNpcs() {
     const int total = g_total.load(std::memory_order_acquire);
     if (total == 0 || g_failed) {
-        // Sem NPC de mod, um GlobalNPC ainda pode dar icone de chefe a um
-        // chefe do jogo (Mod.AddBossHeadTexture).
         static int frame = 0;
         if (++frame % 120 == 0 && gameReady(kVanillaNpcCount)) {
             installBossHeads();
@@ -446,10 +401,6 @@ void tickModNpcs() {
     const int from = kVanillaNpcCount + installed;
 
     if (installed == total) {
-        // O setStaticDefaults do mod mexe na tabela de drop, que o jogo cria
-        // (e ja preenche) depois de as tabelas por tipo existirem. Nao nula =
-        // pronta: o Initialize_AlmostEverything so grava o campo depois do
-        // Populate.
         if (g_staticDefaultsPending) {
             Il2CppObject* drops = nullptr;
             if (refs().itemDrops) il2cpp::api().field_static_get_value(refs().itemDrops, &drops);
@@ -477,8 +428,6 @@ void tickModNpcs() {
         return;
     }
     if (installed > 0) {
-        // Os limites no codigo foram trocados para o total da primeira
-        // instalacao; registro depois dela nao e suportado.
         BL_ERROR("NPCs de mod: registro depois da instalacao ignorado");
         g_failed = true;
         return;
@@ -522,7 +471,6 @@ void tickModNpcs() {
     }
     installTownNpcs(to);
     installBossHeads();
-    // FORA da trava: o SetDefaults da amostra entra no JS do mod.
     for (const auto& s : samples) registerSample(s.first, s.second);
     BL_INFO("NPCs de mod: %d instalado(s) (ids %d..%d), %d tabela(s) aumentadas de %d para %d",
             total, from, to - 1, grown, from, to);
@@ -551,8 +499,6 @@ void setModNpcFrames(int type, int frames) {
     if (e.textureHeight > 0) e.height = e.textureHeight / frames;
     if (static_cast<int>(i) < g_installed.load(std::memory_order_relaxed)) applyFrames(type, e);
 
-    // A amostra: o quadro que o Bestiario desenha, e a altura que veio da
-    // textura (so se o mod nao tinha dito a dele).
     const Refs& r = refs();
     Il2CppObject* sample = e.sample ? il2cpp::api().gchandle_get_target(e.sample) : nullptr;
     if (sample && r.frame >= 0 && e.height > 0) {
@@ -567,7 +513,6 @@ void setModNpcAnimation(int type, int animationType) {
     const size_t i = static_cast<size_t>(type - kVanillaNpcCount);
     if (type < kVanillaNpcCount || i >= g_regs.size()) return;
     g_regs[i].def.animationType = animationType;
-    // O FindFrame le sem trava: um int trocado por inteiro, na mesma thread.
     if (i < g_animation.size()) g_animation[i] = animationType;
 }
 
@@ -605,26 +550,19 @@ void finishModNpc(Il2CppObject* npc, int type, void* spawnParams) {
     }
     if (field<int32_t>(npc, r.width) <= 0 && w > 0) field<int32_t>(npc, r.width) = w;
     if (field<int32_t>(npc, r.height) <= 0 && h > 0) field<int32_t>(npc, r.height) = h;
-    // O final do SetDefaults do jogo rodou ANTES do mod preencher os valores:
-    // vida e bases saíram zeradas. De novo, agora com os do mod.
     field<uint8_t>(npc, r.active) = 1;
     field<int32_t>(npc, r.netId) = type;
     field<int32_t>(npc, r.defDamage) = field<int32_t>(npc, r.damage);
     field<int32_t>(npc, r.defDefense) = field<int32_t>(npc, r.defense);
     field<int32_t>(npc, r.life) = field<int32_t>(npc, r.lifeMax);
-    // O ScaleStats sai logo no comeco para NPC friendly ou townNPC e nao
-    // chega a gravar o defLifeMax. Sem isto ele fica 0 e a IA de morador
-    // (AI_007: lifeMax = defLifeMax a cada quadro) zerava a vida maxima: no
-    // multijogador o host mandava a vida em 1 byte (250 virava -6) e o
-    // cliente desligava a moradora a cada pacote.
     field<int32_t>(npc, r.defLifeMax) = field<int32_t>(npc, r.lifeMax);
     if (r.scaleStats) {
         alignas(8) uint8_t players[8] = {}, strength[8] = {};
         auto* params = static_cast<uint8_t*>(spawnParams);
         void* args[2] = {params ? params + 8 : players, params ? params + 16 : strength};
         invoke(r.scaleStats, npc, args, "NPC.ScaleStats");
-        field<int32_t>(npc, r.life) = field<int32_t>(npc, r.lifeMax);   // a escala mexe no lifeMax
+        field<int32_t>(npc, r.life) = field<int32_t>(npc, r.lifeMax);
     }
 }
 
-} // namespace bl::runtime
+}

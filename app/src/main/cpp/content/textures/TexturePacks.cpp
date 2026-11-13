@@ -277,7 +277,7 @@ void finish() {
     g_finished = true;
     drainQueue();
 }
-} // namespace
+}
 
 void prepareTexturePacks(const std::string& root, const std::vector<ModSpec>& enabled) {
     std::lock_guard<std::mutex> lock(g_mutex);
@@ -329,4 +329,4 @@ void tickTexturePacks() {
     if (!g_queue.empty()) drainQueue();
     else sweep();
 }
-} // namespace bl::runtime
+}

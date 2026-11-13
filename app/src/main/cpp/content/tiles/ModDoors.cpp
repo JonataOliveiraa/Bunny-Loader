@@ -16,11 +16,10 @@ namespace bl::runtime {
 
 namespace {
 
-constexpr int kClosedDoor = 10;   // TileID.ClosedDoor
-constexpr int kOpenDoor = 11;     // TileID.OpenDoor
-constexpr size_t kMaxDoorTypes = 8192;   // indice = tipo - kVanillaTileCount
+constexpr int kClosedDoor = 10;
+constexpr int kOpenDoor = 11;
+constexpr size_t kMaxDoorTypes = 8192;
 
-// O par de cada porta de mod (fechada <-> aberta); 0 = nao e porta.
 std::atomic<uint16_t> g_partner[kMaxDoorTypes];
 std::atomic<uint8_t> g_isOpen[kMaxDoorTypes];
 
@@ -30,20 +29,17 @@ int partnerOf(int type) {
     return i < kMaxDoorTypes ? g_partner[i].load(std::memory_order_relaxed) : 0;
 }
 
-// A porta do jogo que a de mod finge ser.
 int vanillaOf(int modDoor) {
     return g_isOpen[modDoor - kVanillaTileCount].load(std::memory_order_relaxed) ? kOpenDoor : kClosedDoor;
 }
 
 struct Refs {
-    int32_t position = -1, width = -1, height = -1;   // Entity
-    const MethodInfo* setType = nullptr;              // TileData.SetType(int tileIndex, ushort newType)
-    const MethodInfo* killTile = nullptr;             // WorldGen.KillTile(int i, int j, bool fail, bool effectOnly, bool noItem)
+    int32_t position = -1, width = -1, height = -1;
+    const MethodInfo* setType = nullptr;
+    const MethodInfo* killTile = nullptr;
 };
 Refs g_refs;
 
-// TileData.SetType reinterna o tile (a definicao e compartilhada entre tiles
-// iguais): escrever TileType[definicao] mudaria todos os tiles iguais do mundo.
 void setType(int32_t index, int type) {
     using Fn = void (*)(int32_t, uint16_t, const MethodInfo*);
     reinterpret_cast<Fn>(il2cpp::methodPointer(g_refs.setType))(index, static_cast<uint16_t>(type), g_refs.setType);
@@ -54,12 +50,6 @@ int typeAtIndex(const TileArrays& t, int32_t index) {
     return (t.sHeader[def] & kTileActiveBit) ? t.type[def] : -1;
 }
 
-/**
- * As portas de mod do retangulo viram 10/11 enquanto o objeto vive. Na volta:
- * a celula da porta que o jogo nao mexeu volta a ser de mod; a que ele abriu
- * ou fechou vira o par; a vizinha (ar antes) que virou a porta do par e onde a
- * porta abriu, e vira o par tambem.
- */
 class Disguise {
 public:
     Disguise(int cx, int cy, int rx, int ry) : prev_(s_active) {
@@ -74,13 +64,11 @@ public:
                 const int32_t index = t.width * y + x;
                 const int type = typeAtIndex(t, index);
                 if (type < 0 || !partnerOf(type)) continue;
-                // A propria celula e as vizinhas da linha: a porta abre para um dos lados.
                 for (int dx = -1; dx <= 1; ++dx) {
                     cells_.push_back({index + dx, typeAtIndex(t, index + dx), static_cast<uint16_t>(type), dx == 0});
                 }
             }
         }
-        // Tudo lido antes de escrever: o SetType pode realocar os arrays do TileData.
         if (!cells_.empty()) dress();
     }
 
@@ -109,7 +97,6 @@ public:
     Disguise(const Disguise&) = delete;
     Disguise& operator=(const Disguise&) = delete;
 
-    /** O disfarce em volta de quem esta rodando agora (thread do jogo), ou nullptr. */
     static Disguise* active() { return s_active; }
 
     bool covers(int x, int y) const {
@@ -120,7 +107,6 @@ public:
         return false;
     }
 
-    // A porta de mod de volta, para o KillTile ver o tipo de verdade.
     void undress() {
         TileArrays t;
         if (!tileArrays(&t)) return;
@@ -131,7 +117,6 @@ public:
         for (const auto& w : writes) setType(w.first, w.second);
     }
 
-    // As celulas que continuam sendo a porta de mod viram a do jogo.
     void dress() {
         TileArrays t;
         if (!tileArrays(&t)) return;
@@ -145,9 +130,9 @@ public:
 private:
     struct Cell {
         int32_t index;
-        int prev;          // o tipo antes do disfarce (-1 = vazio)
-        uint16_t owner;    // a porta de mod que achou esta celula
-        bool own;          // a celula e da porta (senao, vizinha)
+        int prev;
+        uint16_t owner;
+        bool own;
     };
 
     static inline Disguise* s_active = nullptr;
@@ -156,7 +141,6 @@ private:
     std::vector<Cell> cells_;
 };
 
-// O centro de uma Entity (Player, NPC), em tiles.
 void centerOf(Il2CppObject* entity, int* x, int* y) {
     const float px = field<float>(entity, g_refs.position);
     const float py = field<float>(entity, g_refs.position + 4);
@@ -164,8 +148,6 @@ void centerOf(Il2CppObject* entity, int* x, int* y) {
     *y = static_cast<int>((py + field<int32_t>(entity, g_refs.height) / 2.0f) / 16.0f);
 }
 
-// O jogador que encosta: a porta esta a ~2 tiles do centro dele (ao abrir e
-// ao fechar, que o jogo faz assim que ele sai da frente dela).
 using HelperUpdateFn = void (*)(Il2CppObject*, Il2CppObject*, const MethodInfo*);
 HelperUpdateFn g_origHelperUpdate = nullptr;
 
@@ -177,8 +159,6 @@ void hkHelperUpdate(Il2CppObject* self, Il2CppObject* player, const MethodInfo* 
     g_origHelperUpdate(self, player, m);
 }
 
-// As IAs de NPC que abrem e fecham porta. O morador fecha a porta quando ja
-// esta a 2-4 tiles dela (doorX/doorY), entao o raio e 5.
 using AiFn = void (*)(Il2CppObject*, const MethodInfo*);
 AiFn g_origTownAi = nullptr, g_origFighterAi = nullptr, g_origWalkerAi = nullptr;
 
@@ -190,10 +170,6 @@ void hkNpcAi(Il2CppObject* self, const MethodInfo* m) {
     (*Orig)(self, m);
 }
 
-// O zumbi que bate e o goblin que derruba: com a porta disfarcada, o po, o
-// som e o item seriam os da porta do jogo. A porta volta a ser de mod e o
-// KillTile roda de novo pela entrada (os hooks JS do mod veem o tipo certo).
-// Pela MethodInfo guardada: a chamada direta do IL2CPP costuma passar nula.
 using KillTileFn = void (*)(int32_t, int32_t, bool, bool, bool, const MethodInfo*);
 KillTileFn g_origKillTile = nullptr;
 bool g_inKill = false;
@@ -250,7 +226,7 @@ void installHooks() {
     }
 }
 
-} // namespace
+}
 
 void setModDoorPair(int closedType, int openType) {
     if (closedType < kVanillaTileCount || openType < kVanillaTileCount) return;
@@ -266,4 +242,4 @@ void setModDoorPair(int closedType, int openType) {
     std::call_once(once, installHooks);
 }
 
-} // namespace bl::runtime
+}

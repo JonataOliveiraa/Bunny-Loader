@@ -21,9 +21,6 @@ bool bind(void* lib, const char* name, void* slot) {
     return true;
 }
 
-// Simbolo que NAO derruba a carga se faltar. Quem usa checa o ponteiro e cai
-// num caminho pior porem correto. Um simbolo novo no `ok &=` faria o jogo
-// inteiro rodar sem mods por causa de um recurso acessorio.
 void bindSoft(void* lib, const char* name, void* slot) {
     void* sym = dlsym(lib, name);
     if (!sym) {
@@ -124,4 +121,4 @@ bool Api::load() {
     return gameImage && corlibImage;
 }
 
-} // namespace bl::il2cpp
+}

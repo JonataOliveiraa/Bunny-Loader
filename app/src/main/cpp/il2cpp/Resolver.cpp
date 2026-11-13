@@ -6,16 +6,6 @@ namespace bl::il2cpp {
 
 namespace {
 
-/**
- * Procura em TODOS os assemblies carregados, nao so no do jogo e no corlib.
- *
- * `UnityEngine.Texture2D` mora na CoreModule e `ImageConversion` na
- * ImageConversionModule: nenhuma das duas aparecia, e por tabela nada de
- * UnityEngine era alcancavel — nem pelo nucleo, nem por um mod.
- *
- * O jogo e o corlib vem primeiro porque sao a esmagadora maioria das buscas; o
- * resto e varredura, so quando os dois primeiros falham.
- */
 Il2CppClass* procurar(const char* ns, const char* name) {
     auto& a = api();
     if (!a.gameImage) return nullptr;
@@ -36,7 +26,7 @@ Il2CppClass* procurar(const char* ns, const char* name) {
     return nullptr;
 }
 
-} // namespace
+}
 
 Il2CppClass* findNested(Il2CppClass* outer, std::string_view name) {
     auto& a = api();
@@ -88,4 +78,4 @@ int32_t fieldOffset(Il2CppClass* cls, std::string_view name) {
     return static_cast<int32_t>(api().field_get_offset(f));
 }
 
-} // namespace bl::il2cpp
+}

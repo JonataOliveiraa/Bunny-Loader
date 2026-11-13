@@ -26,30 +26,30 @@ namespace {
 struct Entry {
     ModItemDef def;
     int width = 0, height = 0;
-    uint32_t asset = 0;   // gchandle do Asset<Texture2D>: reaplicado se a tabela for refeita
-    uint32_t flameAsset = 0;   // a chama na mao (TextureAssets.ItemFlame)
-    std::string unloadedKey;   // so da reserva "?": a chave do item ausente que ele representa
+    uint32_t asset = 0;
+    uint32_t flameAsset = 0;
+    std::string unloadedKey;
 };
 
 std::mutex g_mx;
-std::vector<Entry> g_regs;          // indice = type - kVanillaItemCount
-std::atomic<int> g_total{0};           // registrados
-std::atomic<int> g_installed{0};      // ja nas tabelas do jogo
+std::vector<Entry> g_regs;
+std::atomic<int> g_total{0};
+std::atomic<int> g_installed{0};
 bool g_failed = false;
-int g_poolFirst = -1;   // primeiro tipo da reserva "?", -1 sem reserva
+int g_poolFirst = -1;
 
 struct Refs {
     bool tried = false, ok = false;
-    FieldInfo* itemTextures = nullptr;        // TextureAssets.Item (Asset<Texture2D>[])
-    FieldInfo* itemFlames = nullptr;          // TextureAssets.ItemFlame (Asset<Texture2D>[])
-    FieldInfo* nameCache = nullptr;      // Lang._itemNameCache (LocalizedText[])
-    FieldInfo* tooltipCache = nullptr;   // Lang._itemTooltipCache (ItemTooltip[])
-    const MethodInfo* tooltipFromKey = nullptr;   // ItemTooltip.FromLanguageKey(short, string)
-    FieldInfo* itemsByType = nullptr;       // ContentSamples.ItemsByType
-    FieldInfo* persistentIdById = nullptr;   // ContentSamples.ItemPersistentIdsByNetIds
-    FieldInfo* idByPersistentId = nullptr;   // ContentSamples.ItemNetIdsByPersistentIds
+    FieldInfo* itemTextures = nullptr;
+    FieldInfo* itemFlames = nullptr;
+    FieldInfo* nameCache = nullptr;
+    FieldInfo* tooltipCache = nullptr;
+    const MethodInfo* tooltipFromKey = nullptr;
+    FieldInfo* itemsByType = nullptr;
+    FieldInfo* persistentIdById = nullptr;
+    FieldInfo* idByPersistentId = nullptr;
     Il2CppClass* itemCls = nullptr;
-    Il2CppClass* localizedTextCls = nullptr;     // LocalizedText
+    Il2CppClass* localizedTextCls = nullptr;
     Il2CppClass* byteCls = nullptr;
     Il2CppClass* unityTex = nullptr;
     Il2CppClass* gameTex = nullptr;
@@ -123,7 +123,6 @@ Refs& refs() {
 
     if (r.itemCls) {
         r.offType = fieldOffset(r.itemCls, "type");
-        // netID nao existe em toda versao; sem ele, fica so o tipo.
         FieldInfo* netId = findField(r.itemCls, "netID");
         r.offNetId = netId ? static_cast<int32_t>(a.field_get_offset(netId)) : -1;
         r.offWidth = fieldOffset(r.itemCls, "width");
@@ -145,11 +144,6 @@ Refs& refs() {
     return r;
 }
 
-/**
- * true se rodou sem excecao; o retorno vai em `ret`. As duas coisas separadas
- * de proposito: metodo `void` devolve nulo do runtime_invoke, e tratar nulo
- * como falha fazia todo construtor e todo Array.Copy "falharem" com sucesso.
- */
 bool invoke(const MethodInfo* m, void* self, void** args, const char* what,
             Il2CppObject** ret = nullptr) {
     Il2CppObject* exc = nullptr;
@@ -162,7 +156,6 @@ bool invoke(const MethodInfo* m, void* self, void** args, const char* what,
     return true;
 }
 
-/** Para quem quer o retorno: nulo tambem quando lancou. */
 Il2CppObject* invokeValue(const MethodInfo* m, void* self, void** args, const char* what) {
     Il2CppObject* r = nullptr;
     return invoke(m, self, args, what, &r) ? r : nullptr;
@@ -177,18 +170,6 @@ Il2CppArray* readStatic(FieldInfo* f) {
     il2cpp::api().field_static_get_value(f, &arr);
     return arr;
 }
-
-// ------------------------------ tabelas ------------------------------
-//
-// Tudo que e indexado por tipo de item nasce com ItemID.Count posicoes; a
-// maquinaria que acha e aumenta esta em TypeTables. Aqui, so ONDE procurar.
-//
-// Esquecer uma classe NAO da erro, le ou escreve alem do fim: foi assim que o
-// tooltip de item de mod sumiu (ArmorSetBonuses.SetsContaining ficou de fora,
-// a leitura pegou lixo nulo e o jogo lancou NullReference a cada quadro). A
-// lista foi conferida contra TODA alocacao de 6196 posicoes na libil2cpp
-// (`mov #0x1834` antes de um new[]); o que nao e campo estatico esta em
-// "tabelas de instancia", mais abaixo.
 
 TypeTables g_tables("itens de mod", kVanillaItemCount, {
     {"Terraria.ID", "ItemID", "Sets"},
@@ -206,21 +187,9 @@ TypeTables g_tables("itens de mod", kVanillaItemCount, {
     {"Terraria.DataStructures", "ArmorSetBonuses", ""},
     {"Terraria.UI", "ItemSorting", ""},
     {"Terraria.UI", "ItemSlot", ""},
-    {"", "VirtualControllerInputState", ""},   // controles de toque
+    {"", "VirtualControllerInputState", ""},
 });
 
-// ------------------------------ conteudo ------------------------------
-
-
-/**
- * O tooltip na cultura atual. Pelo mesmo caminho dos itens do jogo
- * (ItemTooltip.FromLanguageKey): o ItemTooltip guarda o id e passa o texto
- * pelos processadores do celular (Lang.ToopltipProcessor), que trocam os
- * marcadores como `<open>` do CommonItemTooltip.RightClickToOpen pelo texto
- * do controle em uso ("Toque em ... para abrir"). O FromHardcodedText nunca
- * passa por eles. A chave fica fora de ItemTooltip.* para nao cobrir a de um
- * item do jogo com o mesmo nome. Sem tooltip, nao mexe.
- */
 void applyTooltip(int type, const Entry& reg) {
     const Refs& r = refs();
     if (reg.def.tooltips.empty() || !r.tooltipCache || !r.tooltipFromKey) return;
@@ -246,8 +215,6 @@ void applyTexture(int type, const Entry& reg) {
     if (asset) content::setTableElement(refs().itemTextures, type, asset);
 }
 
-// A tabela de chamas cresce com as de item copiando a do tipo 0, um asset que
-// o jogo nunca carrega: a tocha de mod na mao saia com um quadrado branco.
 uint32_t g_emptyFlame = 0;
 
 void applyFlame(int type, const Entry& reg) {
@@ -271,7 +238,6 @@ void loadFlame(Entry& reg) {
     if (flame) reg.flameAsset = a.gchandle_new(flame, false);
 }
 
-/** Chama um metodo de um Dictionary pelo objeto (a classe genérica e a dele). */
 void setDictionaryEntry(FieldInfo* fieldInfo, void* key, void* value, const char* what) {
     auto& a = il2cpp::api();
     if (!fieldInfo) return;
@@ -284,11 +250,6 @@ void setDictionaryEntry(FieldInfo* fieldInfo, void* key, void* value, const char
     invoke(set, d, args, what);
 }
 
-/**
- * A amostra do item em ContentSamples. O jogo consulta ItemsByType[tipo] para
- * tooltip, pesquisa da Jornada e ordenacao — e um dicionario, que estoura com
- * KeyNotFoundException em vez de index fora do array.
- */
 void registerSample(int type, const std::string& mod, const std::string& name) {
     auto& a = il2cpp::api();
     Refs& r = refs();
@@ -296,21 +257,13 @@ void registerSample(int type, const std::string& mod, const std::string& name) {
     invoke(r.itemCtor, item, nullptr, "Item.ctor");
     int t = type;
     void* sd[2] = {&t, nullptr};
-    invoke(r.setDefaults, item, sd, "SetDefaults da amostra");   // passa pelo hook do mod
+    invoke(r.setDefaults, item, sd, "SetDefaults da amostra");
     setDictionaryEntry(r.itemsByType, &t, item, "ContentSamples.ItemsByType");
     const std::string persistentId = mod + "/" + name;
     Il2CppString* p = a.string_new(persistentId.c_str());
     setDictionaryEntry(r.persistentIdById, &t, p, "ContentSamples.ItemPersistentIdsByNetIds");
     setDictionaryEntry(r.idByPersistentId, p, &t, "ContentSamples.ItemNetIdsByPersistentIds");
 }
-
-// ---- Lang.GetItemName ----
-//
-// Converte o id para short e devolve LocalizedText.Empty para qualquer um acima
-// de ItemID.Count — o limite e a constante, nao o tamanho do cache. Todo nome
-// de item passa por aqui (Item.Name, tooltip, a lista do menu), entao item de
-// mod saia sem nome em todo lugar. Para tipo de mod, devolve o que gravamos no
-// cache; para o resto, o original.
 
 using GetNameFn = Il2CppObject* (*)(int32_t, const MethodInfo*);
 GetNameFn g_origGetItemName = nullptr;
@@ -337,8 +290,6 @@ void hookItemNames() {
     }
 }
 
-// O getter cria esta tabela sob demanda e FindBestTransfers a consulta no
-// mesmo quadro. checkPending no quadro seguinte chega tarde para IDs de mod.
 using GroupLookupFn = Il2CppArray* (*)(const MethodInfo*);
 GroupLookupFn g_origGroupLookup = nullptr;
 FieldInfo* g_groupLookup = nullptr;
@@ -370,11 +321,6 @@ bool hookEmergencyStacking() {
     return true;
 }
 
-// O drop do jogo recusa item de mod: os CommonCode.DropItem* comecam com
-// `if (itemId > 0 && itemId < ItemID.Count)`, compilado como
-// `itemId - 1 <= Count - 2` com o limite num registrador (ver
-// patchRegisterLimit). O tModLoader troca o ItemID.Count por
-// ItemLoader.ItemCount nos mesmos metodos.
 uint32_t g_dropLimit = kVanillaItemCount - 2;
 
 void patchDropLimits(int total) {
@@ -396,9 +342,6 @@ void patchDropLimits(int total) {
     g_dropLimit = limit;
 }
 
-// O renderer de [ct:controle,item] limita o segundo numero a 6195 antes de
-// chamar Draw. O Draw ja consulta ContentSamples.ItemsByType, que registramos
-// para itens de mod; e a leitura da tag que precisa aceitar esses IDs.
 uint32_t g_touchTagLimit = kVanillaItemCount - 1;
 
 void patchTouchTagLimits(int total) {
@@ -418,11 +361,6 @@ void patchTouchTagLimits(int total) {
     BL_DEBUG("itens de mod: [ct] aceita IDs ate %u", limit);
 }
 
-// A etiqueta [i:tipo] e desenhada pela fonte: o SpriteBatch.DrawString chama
-// o ItemTagHandler.PrintInline (e a medida, o MeasureInline) a cada '['. Os
-// dois recusam tipo acima de 6195 (`mov wN, #6195`, um so em cada): item de
-// mod virava o texto cru "[i:6278]". As tabelas que o PrintInline le depois
-// (TextureAssets.Item, Main.itemAnimations) ja crescem com os itens de mod.
 uint32_t g_itemTagLimit = kVanillaItemCount - 1;
 
 const MethodInfo* itemTagMethod(const char* name, int args) {
@@ -446,12 +384,12 @@ void patchItemTagLimits(int total) {
     BL_DEBUG("itens de mod: [i] aceita IDs ate %u", limit);
 }
 
-constexpr uint32_t kTstBlue = 0x72181edf;      // tst w22, #0xff00
-constexpr uint32_t kTstRgb = 0x72185edf;       // tst w22, #0xffffff00
-constexpr uint32_t kLsrRed = 0x53187ec8;       // lsr w8, w22, #24
-constexpr uint32_t kAndGreen = 0x12101ec8;     // and w8, w22, #0xff0000
+constexpr uint32_t kTstBlue = 0x72181edf;
+constexpr uint32_t kTstRgb = 0x72185edf;
+constexpr uint32_t kLsrRed = 0x53187ec8;
+constexpr uint32_t kAndGreen = 0x12101ec8;
 constexpr uint32_t kNop = 0xd503201f;
-constexpr size_t kPrintInlineScan = 0x900;    // o metodo tem 0x808 bytes
+constexpr size_t kPrintInlineScan = 0x900;
 
 bool isCbzW8(uint32_t insn) { return (insn & 0xFF00001Fu) == 0x34000008u; }
 
@@ -479,7 +417,6 @@ void fixItemTagColorOnce() {
              describeMethodCode(print).c_str());
 }
 
-/** O jogo ja criou as tabelas de agora? (Sao feitas no carregamento, nao no boot.) */
 bool gameReady(int size) {
     Refs& r = refs();
     if (!r.ok) return false;
@@ -491,7 +428,6 @@ bool gameReady(int size) {
            names->length >= static_cast<uintptr_t>(size);
 }
 
-/** Tabela que o jogo refez (a troca de idioma refaz os caches de nome): reaplica o nosso. */
 void onTableRegrown(FieldInfo* f, int size) {
     Refs& r = refs();
     if (f != r.nameCache && f != r.itemTextures && f != r.tooltipCache && f != r.itemFlames) return;
@@ -504,23 +440,6 @@ void onTableRegrown(FieldInfo* f, int size) {
         if (f == r.tooltipCache) applyTooltip(type, g_regs[i]);
     }
 }
-
-// ---- tabelas de instancia ----
-//
-// Duas tabelas por tipo moram num OBJETO, nao num campo estatico, e a busca
-// acima nao as ve:
-//  - QuickStacking.MatchingItemTypeDestinationList.firstEntryForType (int[]):
-//    o empilhamento rapido ESCREVE nela pelo tipo. Um objeto so, criado no
-//    construtor estatico de QuickStacking, que ainda nao rodou na tela de
-//    titulo.
-//  - ItemFilters.MiscFallback._fitsFilterByItemType (Nullable<bool>[]): cache
-//    do filtro "Diversos" do inventario, tambem escrito pelo tipo. Criado sob
-//    demanda, ja dentro do mundo.
-// As duas: hook no construtor, que aumenta logo depois do original, e o objeto
-// que por acaso ja exista e aumentado na instalacao.
-// As duas sao de tipo de valor e o zero e o "ainda nao sei" de ambas, entao o
-// que cresce nasce zerado, e nao copia do [0] como nas estaticas.
-
 
 using DestinationListCtorFn = void (*)(Il2CppObject*, const MethodInfo*);
 using MiscFallbackCtorFn = void (*)(Il2CppObject*, Il2CppObject*, const MethodInfo*);
@@ -574,7 +493,7 @@ void growInstanceTables(int size) {
     }
 }
 
-} // namespace
+}
 
 int registerModItem(ModItemDef def) {
     std::lock_guard<std::mutex> l(g_mx);
@@ -597,7 +516,6 @@ std::string modItemKey(int type) {
     if (!isModItem(type)) return {};
     std::lock_guard<std::mutex> l(g_mx);
     const Entry& e = g_regs[static_cast<size_t>(type - kVanillaItemCount)];
-    // O "?" responde pelo item que representa; um "?" livre nao e nada.
     if (isUnloadedType(type)) return e.unloadedKey;
     return e.def.mod + "/" + e.def.name;
 }
@@ -616,8 +534,6 @@ int modItemTypeByKey(const std::string& key) {
     }
     return -1;
 }
-
-// ------------------------------ o "?" ------------------------------
 
 constexpr const char* kLoaderMod = "bunnyloader";
 
@@ -658,7 +574,6 @@ int unloadedTypeFor(const std::string& key) {
         }
         Entry& e = g_regs[static_cast<size_t>(type - kVanillaItemCount)];
         e.unloadedKey = key;
-        // O nome diz o que era, ja que o mod nao esta aqui para dizer.
         const std::string name = key.substr(key.find('/') + 1);
         e.def.names = {{"pt-BR", "Item não carregado (" + name + ")"},
                        {"en-US", "Unloaded item (" + name + ")"}};
@@ -672,8 +587,6 @@ void setupUnloadedItem(Il2CppObject* item, int type) {
     Refs& r = refs();
     if (!r.ok || !item) return;
     prepareModItem(item, type);
-    // Nao se usa nem se coloca (o ResetStats ja deixou assim); so a pilha, que
-    // tem de caber a do item original.
     if (r.offMaxStack >= 0) field<int32_t>(item, r.offMaxStack) = 9999;
     finishModItem(item, type);
 }
@@ -685,10 +598,9 @@ int itemTypeCount() {
 namespace {
 constexpr int kMaxInstalledHooks = 4;
 std::atomic<ItemsInstalledHook> g_installedHooks[kMaxInstalledHooks]{};
-} // namespace
+}
 
 void tickModItems() {
-    // Vale para os itens do jogo tambem: roda mesmo sem item de mod.
     fixItemTagColorOnce();
     const int total = g_total.load(std::memory_order_acquire);
     if (total == 0 || g_failed) return;
@@ -696,8 +608,6 @@ void tickModItems() {
     const int from = kVanillaItemCount + installed;
 
     if (installed == total) {
-        // Um quadro a cada ~2 s basta para tabela refeita — menos o cache de
-        // nomes, que a troca de idioma refaz na hora e o inventario le logo.
         g_tables.checkPending(from);
         static int frame = 0;
         if (++frame % 120 == 0) g_tables.watch(from, onTableRegrown);
@@ -748,9 +658,6 @@ void tickModItems() {
             pending.push_back({type, reg.def.mod, reg.def.name});
         }
     }
-    // FORA da trava: o SetDefaults da amostra passa pelo hook, entra no JS do
-    // mod e volta em finishModItem, que pede a mesma trava — segura-la aqui
-    // travaria o jogo no primeiro item.
     for (const PendingSample& n : pending) registerSample(n.type, n.mod, n.name);
     installModItemSorting(from, to);
     BL_INFO("itens de mod: %d instalado(s) (ids %d..%d), %d tabela(s) aumentadas de %d para %d",
@@ -805,17 +712,16 @@ void finishModItem(Il2CppObject* item, int type) {
     if (r.rebuildTooltip) invoke(r.rebuildTooltip, item, nullptr, "Item.RebuildTooltip");
 }
 
-
 std::vector<ModItemInfo> modItems() {
     std::lock_guard<std::mutex> l(g_mx);
     std::vector<ModItemInfo> v;
     v.reserve(g_regs.size());
     for (size_t i = 0; i < g_regs.size(); ++i) {
-        if (isUnloadedType(kVanillaItemCount + static_cast<int>(i))) continue;   // nao vai para o menu
+        if (isUnloadedType(kVanillaItemCount + static_cast<int>(i))) continue;
         v.push_back({kVanillaItemCount + static_cast<int>(i), g_regs[i].def.mod,
                      g_regs[i].def.name, g_regs[i].def.texture});
     }
     return v;
 }
 
-} // namespace bl::runtime
+}

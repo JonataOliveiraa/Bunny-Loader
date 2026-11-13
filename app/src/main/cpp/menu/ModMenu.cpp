@@ -14,9 +14,9 @@ struct ModInfo {
 };
 
 std::mutex g_mx;
-std::vector<ModInfo> g_mods;              // na ordem em que apareceram
-std::vector<ModMenuFolder> g_custom;      // as pastas que os mods criaram
-std::unordered_set<int> g_hidden[3];      // por MenuKind: fora do menu
+std::vector<ModInfo> g_mods;
+std::vector<ModMenuFolder> g_custom;
+std::unordered_set<int> g_hidden[3];
 
 ModInfo& infoOf(const std::string& mod) {
     for (ModInfo& m : g_mods) if (m.mod == mod) return m;
@@ -24,7 +24,7 @@ ModInfo& infoOf(const std::string& mod) {
     return g_mods.back();
 }
 
-} // namespace
+}
 
 void setModMenuInfo(const std::string& mod, const std::string& name, const std::string& icon) {
     std::lock_guard<std::mutex> l(g_mx);
@@ -72,7 +72,6 @@ std::unordered_set<int> hiddenFromModMenu(MenuKind kind) {
 }
 
 std::vector<ModMenuFolder> modMenuFolders() {
-    // Fora da trava: cada uma tem a sua.
     const std::vector<ModItemInfo> items = modItems();
     const std::vector<ModNpcInfo> npcs = modNpcs();
     const std::vector<ModBuffInfo> buffs = modBuffs();
@@ -126,4 +125,4 @@ std::vector<ModMenuFolder> modMenuFolders() {
     return out;
 }
 
-} // namespace bl::runtime
+}

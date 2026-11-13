@@ -16,11 +16,11 @@ struct Entry {
     std::string source;
     ShaderState state = ShaderState::Pending;
     std::string error;
-    CompiledShader compiled;   // so a thread de render mexe
+    CompiledShader compiled;
 };
 
 std::mutex g_mutex;
-std::vector<std::unique_ptr<Entry>> g_entries;   // id = indice + 1
+std::vector<std::unique_ptr<Entry>> g_entries;
 GLuint g_vertex = 0;
 bool g_vertexTried = false;
 
@@ -102,7 +102,7 @@ bool build(Entry& e) {
     return true;
 }
 
-} // namespace
+}
 
 int ShaderRegistry::Register(const std::string& name, const std::string& source) {
     std::lock_guard<std::mutex> lock(g_mutex);
@@ -144,4 +144,4 @@ GLint ShaderRegistry::Uniform(CompiledShader& shader, const std::string& name) {
     return loc;
 }
 
-} // namespace bl::graphics
+}

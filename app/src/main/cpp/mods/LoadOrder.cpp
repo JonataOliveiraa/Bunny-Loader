@@ -26,8 +26,6 @@ struct Sorter {
         return mods[i].id.empty() ? mods[i].uid : mods[i].id;
     }
 
-    // Pelo uid primeiro (e unico); pelo id so se um mod so o usa, como o
-    // ModLoader.TryGetMod.
     size_t resolve(const std::string& ref) const {
         for (size_t i = 0; i < mods.size(); ++i) {
             if (mods[i].uid == ref) return i;
@@ -79,7 +77,6 @@ struct Sorter {
         result.order.push_back(t);
     }
 
-    // Todo mod do ciclo cai, com o ciclo inteiro no motivo: a -> b -> a.
     void markCycle(size_t d) {
         const auto from = std::find(stack.begin(), stack.end(), d);
         std::string path;
@@ -96,4 +93,4 @@ OrderResult sortByDependencies(const std::vector<OrderEntry>& mods) {
     return std::move(sorter.result);
 }
 
-} // namespace bl::mods
+}

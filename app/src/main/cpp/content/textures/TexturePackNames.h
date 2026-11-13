@@ -7,8 +7,6 @@ namespace bl::runtime::textures {
 
 struct Target { std::string table; int index = -1; };
 
-// Somente arquivos diretamente em Images/: NPCs do Bestiario e variantes
-// guardadas em Misc/ nao podem substituir o sprite de um NPC por acidente.
 inline Target targetFor(std::string_view file) {
     if (file.size() < 5 || file.substr(file.size() - 4) != ".png") return {};
     file.remove_suffix(4);
@@ -35,4 +33,4 @@ inline Target targetFor(std::string_view file) {
     return {};
 }
 
-} // namespace bl::runtime::textures
+}

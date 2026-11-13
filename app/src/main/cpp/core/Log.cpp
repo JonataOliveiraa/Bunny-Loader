@@ -12,8 +12,7 @@ namespace bl::log {
 
 namespace {
 constexpr const char* TAG = "BunnyLoader";
-constexpr size_t kMaxErrorChars = 8 * 1024;  // o painel nao serve pra 1 MB
-// O logd corta a linha em ~4 KB; acima disso ela vai ao logcat em pedacos.
+constexpr size_t kMaxErrorChars = 8 * 1024;
 constexpr size_t kLogcatChunk = 4000;
 FILE* g_file = nullptr;
 std::mutex g_mutex;
@@ -24,7 +23,6 @@ int g_errorCount = 0;
 void (*g_onError)(const char*) = nullptr;
 std::atomic<void (*)(int, const char*)> g_onLine{nullptr};
 
-/** Ao logcat, em pedacos que nao cortam um caractere UTF-8 ao meio. */
 void toLogcat(int level, const char* text, size_t len) {
     if (len <= kLogcatChunk) {
         __android_log_write(level, TAG, text);
@@ -49,7 +47,6 @@ void open(const char* path) {
 
 void setVerbose(bool on) { g_verbose.store(on, std::memory_order_relaxed); }
 
-/** A letra do nivel, como no logcat: I, W, E... */
 static char levelLetter(int level) {
     switch (level) {
         case ANDROID_LOG_VERBOSE: return 'V';
@@ -62,8 +59,6 @@ static char levelLetter(int level) {
 }
 
 void write(int level, const char* fmt, ...) {
-    // Quase toda linha cabe aqui; a que nao cabe (um bl.log de objeto grande,
-    // uma pilha de erro de mod) ia cortada em 4 KB. Agora vai inteira.
     char stackBuffer[4096];
     std::string heapBuffer;
     va_list args;
@@ -72,7 +67,7 @@ void write(int level, const char* fmt, ...) {
     va_copy(again, args);
     const int needed = vsnprintf(stackBuffer, sizeof(stackBuffer), fmt, args);
     va_end(args);
-    if (needed < 0) stackBuffer[0] = '\0';   // formato invalido: linha vazia, nao lixo
+    if (needed < 0) stackBuffer[0] = '\0';
     const char* buffer = stackBuffer;
     size_t length = needed > 0 ? static_cast<size_t>(needed) : 0;
     if (length >= sizeof(stackBuffer)) {
@@ -89,7 +84,6 @@ void write(int level, const char* fmt, ...) {
     {
         std::lock_guard<std::mutex> guard(g_mutex);
         if (g_file && (level >= ANDROID_LOG_INFO || g_verbose.load(std::memory_order_relaxed))) {
-            // No arquivo, com hora e nivel: e ele que o modder abre, sem logcat.
             timespec ts{};
             clock_gettime(CLOCK_REALTIME, &ts);
             tm t{};
@@ -100,16 +94,12 @@ void write(int level, const char* fmt, ...) {
         }
         if (level >= ANDROID_LOG_ERROR) {
             ++g_errorCount;
-            // Guarda os PRIMEIROS: o erro que importa e o que comeca a cascata,
-            // e um hook que falha a cada frame afogaria o resto.
-            // A linha agora vem inteira: uma so nao pode passar do teto.
             if (g_errors.size() < kMaxErrorChars) {
                 g_errors.append(buffer, std::min(length, kMaxErrorChars - g_errors.size())).append("\n");
             }
             notify = g_onError;
         }
     }
-    // Fora do lock: quem escuta vai mexer em UI e pode logar de volta.
     if (notify) notify(buffer);
     if (level >= ANDROID_LOG_INFO) {
         if (auto line = g_onLine.load(std::memory_order_acquire)) line(level, buffer);
@@ -137,12 +127,7 @@ void onError(void (*fn)(const char*)) {
         g_onError = fn;
         atrasados = fn && g_errorCount > 0;
     }
-    // O painel so nasce depois que a Activity do jogo existe, e a sonda carrega
-    // os mods ANTES disso. Sem este aviso, o erro mais importante do boot — um
-    // mod que nao carregou — era justamente o unico que nunca chegava a tela.
-    // O ouvinte ignora a linha e mostra log::errorsSoFar(), entao um toque
-    // basta para trazer tudo o que ficou para tras.
     if (atrasados) fn("(errors from before the panel)");
 }
 
-} // namespace bl::log
+}

@@ -16,7 +16,6 @@ namespace bl::graphics {
 
 namespace {
 
-// Uma textura com FBO proprio, do tamanho do viewport (vezes a escala).
 struct Surface {
     GLuint texture = 0, fbo = 0;
     GLint w = 0, h = 0;
@@ -25,21 +24,19 @@ struct Surface {
 struct Resources {
     bool tried = false, ok = false;
     GLuint vao = 0, vbo = 0, sampler = 0;
-    Surface copy;      // a copia da tela (uScreen)
-    Surface history;   // o mundo do quadro anterior
+    Surface copy;
+    Surface history;
     bool historyValid = false;
-    std::unordered_map<std::string, Surface> targets;   // nome@escala -> alvo
+    std::unordered_map<std::string, Surface> targets;
 };
 
 Resources g_res;
 std::mutex g_statsMutex;
-RenderStats g_local;   // so os campos do lado GL
+RenderStats g_local;
 bool g_loggedFirst = false;
 bool g_warnedOffset = false;
-// O glGetError espera a GPU em alguns drivers: so nos primeiros quadros,
-// para descobrir se o blit vale neste aparelho.
 int g_errorChecks = 30;
-bool g_useCopy = false;   // o blit falhou aqui: copia simples
+bool g_useCopy = false;
 
 bool init() {
     if (g_res.tried) return g_res.ok;
@@ -56,8 +53,6 @@ bool init() {
     g.VertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
     g.EnableVertexAttribArray(0);
 
-    // Sampler proprio: as texturas dos efeitos nao dependem do sampler que
-    // estiver na unidade, nem mexem no da Unity.
     g.GenSamplers(1, &g_res.sampler);
     g.SamplerParameteri(g_res.sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     g.SamplerParameteri(g_res.sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -67,7 +62,6 @@ bool init() {
     return true;
 }
 
-// (Re)cria a superficie se o tamanho mudou. true se ela ficou nova (sem conteudo).
 bool ensureSurface(Surface& s, GLint w, GLint h, const char* what, bool& fresh) {
     fresh = false;
     if (s.texture && s.w == w && s.h == h) return true;
@@ -109,7 +103,6 @@ void logFirst(const DrawTarget& target) {
     g_local.samples = samples;
 }
 
-// Pixels relativos a origem do viewport.
 struct Box {
     GLint x = 0, y = 0, w = 0, h = 0;
     bool contains(const Box& o) const {
@@ -117,8 +110,6 @@ struct Box {
     }
 };
 
-// A caixa do passo (fracao do viewport) em pixels de uma superficie de
-// largura x altura, com 2 px de folga para o filtro linear.
 Box pixelBox(const float* box, GLint width, GLint height) {
     const float fw = static_cast<float>(width), fh = static_cast<float>(height);
     const GLint x0 = std::max(0, static_cast<GLint>(std::floor(box[0] * fw)) - 2);
@@ -128,9 +119,6 @@ Box pixelBox(const float* box, GLint width, GLint height) {
     return {x0, y0, std::max(0, x1 - x0), std::max(0, y1 - y0)};
 }
 
-// Copia um pedaco da tela (pixels relativos ao viewport) para uma superficie
-// do tamanho do viewport. O blit resolve multisample; se o driver o recusar
-// nos primeiros quadros, fica a copia simples.
 bool copyScreen(const DrawTarget& t, Surface& dst, const Box& box) {
     auto& g = gl();
     const GLint vx = t.viewport[0], vy = t.viewport[1];
@@ -176,7 +164,6 @@ void setUniform(GLint loc, const UniformValue& u) {
     }
 }
 
-/** O estado de um quadro em execucao. */
 class FrameRun {
 public:
     FrameRun(const EffectFrame& frame, const DrawTarget& target) : frame_(frame), t_(target) {}
@@ -205,7 +192,6 @@ public:
         const Box box = pixelBox(e.box, dw, dh);
         if (box.w <= 0 || box.h <= 0) return false;
 
-        // O que o passo le da tela, na caixa dele em pixels da tela.
         const bool readsScreen = shader->builtin.screen >= 0 || e.source == kTexScreen || readsTexture(e, kTexScreen);
         if (readsScreen && !refreshCopy(pixelBox(e.box, t_.viewport[2], t_.viewport[3]))) return false;
 
@@ -232,7 +218,6 @@ public:
 
         const float vw = static_cast<float>(t_.viewport[2]), vh = static_cast<float>(t_.viewport[3]);
         const BuiltinUniforms& b = shader->builtin;
-        // uBox em fracao do viewport, recalculada dos pixels: o vUV bate com o fragmento.
         if (b.box >= 0) {
             const float fw = static_cast<float>(dw), fh = static_cast<float>(dh);
             g.Uniform4f(b.box, box.x / fw, box.y / fh, (box.x + box.w) / fw, (box.y + box.h) / fh);
@@ -260,7 +245,6 @@ public:
         return true;
     }
 
-    // O mundo com os efeitos, para o History do proximo quadro.
     void SaveHistory() {
         bool fresh = false;
         if (!ensureSurface(g_res.history, t_.viewport[2], t_.viewport[3], "quadro anterior", fresh)) return;
@@ -278,8 +262,6 @@ private:
         GLint w = 1, h = 1;
     };
 
-    // A textura de um kTex*, alvo ou textura do mod; o quadro anterior que
-    // ainda nao existe vira a copia da tela.
     Bound texture(int id) {
         const Surface* s = nullptr;
         if (id == kTexScreen) s = &g_res.copy;
@@ -301,8 +283,6 @@ private:
         return false;
     }
 
-    // A copia so e refeita se a tela mudou desde a ultima ou se a caixa nova
-    // sai da que ja esta copiada.
     bool refreshCopy(const Box& box) {
         if (!screenDirty_ && copied_.contains(box)) return true;
         if (!copyScreen(t_, g_res.copy, box)) return false;
@@ -326,7 +306,7 @@ private:
     bool screenDirty_ = true;
 };
 
-} // namespace
+}
 
 void EffectRenderer::Execute(const EffectFrame& frame, const DrawTarget& target, const GlShadow& state) {
     auto& g = gl();
@@ -399,4 +379,4 @@ void EffectRenderer::FillStats(RenderStats& stats) {
     stats.gpuTimer = GpuTimer::Available();
 }
 
-} // namespace bl::graphics
+}

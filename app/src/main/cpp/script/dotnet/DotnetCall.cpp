@@ -8,10 +8,6 @@ namespace bl::dotnet {
 
 namespace {
 
-// 8 inteiros, 8 doubles e mais 8 inteiros: pelo AAPCS64 isso entrega
-// exatamente x0-x7, d0-d7 e as 8 primeiras casas da pilha (como o runRaw da
-// ponte JS, script/bridge/Abi.cpp). Casas a mais sao inofensivas: no arm64
-// quem CHAMA reserva e limpa a area de argumentos.
 #define BL_CS_PARAMS                                                      \
     intptr_t, intptr_t, intptr_t, intptr_t, intptr_t, intptr_t, intptr_t, \
     intptr_t, double, double, double, double, double, double, double,    \
@@ -27,8 +23,6 @@ struct H1D { double a; };
 struct H2D { double a, b; };
 struct H3D { double a, b, c; };
 struct H4D { double a, b, c, d; };
-// Struct de retorno > 16 bytes: o compilador passa em x8 o endereco deste
-// espaco, e o metodo do jogo escreve so o tamanho dele.
 struct Big { uint8_t b[kMaxIndirectReturn]; };
 
 struct Pending {
@@ -36,7 +30,6 @@ struct Pending {
     CallFrame* frame;
 };
 
-/** Roda dentro da guarda: nada aqui pode ter destrutor. */
 void run(void* p) {
     const Pending& c = *static_cast<const Pending*>(p);
     CallFrame& f = *c.frame;
@@ -78,7 +71,7 @@ void run(void* p) {
 
 thread_local std::string t_lastError;
 
-} // namespace
+}
 
 int32_t callGame(void* fn, CallFrame* frame) {
     if (!fn || !frame) return 0;
@@ -96,4 +89,4 @@ int32_t callGame(void* fn, CallFrame* frame) {
 
 const char* lastCallError() { return t_lastError.c_str(); }
 
-} // namespace bl::dotnet
+}

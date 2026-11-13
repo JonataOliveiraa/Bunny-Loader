@@ -10,13 +10,10 @@ GameRefs& game() {
     return instance;
 }
 
-// Idempotente: o hook (ARM) e a sonda de resolucao (emulador) podem ambos
-// chamar resolveGameRefs; so resolve de fato uma vez.
 namespace { std::atomic<bool> g_resolved{false}; }
 
 namespace {
 
-// Conta quantos itens obrigatórios ficaram sem resolver, logando cada um.
 int missing = 0;
 
 void needOffset(const char* what, int32_t value) {
@@ -27,7 +24,7 @@ void needPointer(const char* what, const void* value) {
     if (!value) { BL_ERROR("nao resolvido: %s", what); ++missing; }
 }
 
-} // namespace
+}
 
 bool resolveGameRefs() {
     if (g_resolved.load()) return true;
@@ -36,7 +33,6 @@ bool resolveGameRefs() {
     auto& a = api();
     missing = 0;
 
-    // --- Terraria.Entity: campos compartilhados ---
     Il2CppClass* entity = findClass({"Terraria", "Entity", {}});
     needPointer("Terraria.Entity", entity);
     if (!entity) return false;
@@ -52,13 +48,10 @@ bool resolveGameRefs() {
     needOffset("Entity.width", g.entity.width);
     needOffset("Entity.height", g.entity.height);
 
-    // --- Terraria.Projectile ---
     g.proj.cls = findClass({"Terraria", "Projectile", {}});
     needPointer("Terraria.Projectile", g.proj.cls);
     if (!g.proj.cls) return false;
 
-    // `active` é declarado em Projectile; findField sobe a hierarquia, então
-    // resolver a partir da subclasse cobre os dois casos.
     g.proj.active   = fieldOffset(g.proj.cls, "active");
     g.proj.rotation = fieldOffset(g.proj.cls, "rotation");
     g.proj.type     = fieldOffset(g.proj.cls, "type");
@@ -86,12 +79,10 @@ bool resolveGameRefs() {
         return false;
     }
 
-    // Confere contra o dump (1.4.5.8.6) para provar que a resolucao bateu com
-    // a realidade: velocity=0x1C, Projectile.type=0x64, active=0x49.
     BL_DEBUG("GameRefs ok | Entity.velocity=0x%X (esp 0x1C) Projectile.type=0x%X (esp 0x64) active=0x%X (esp 0x49)",
              g.entity.velocity, g.proj.type, g.proj.active);
     g_resolved.store(true);
     return true;
 }
 
-} // namespace bl::runtime
+}

@@ -3,60 +3,41 @@
 #include <string>
 #include <vector>
 
-#include "core/Config.h"  // ModSpec
+#include "core/Config.h"
 
 namespace bl::mods {
 
 struct LoadedMod {
-    std::string id;             // o uid: nome da pasta e do modulo no QuickJS
-    std::string internalName;   // o "id" do manifesto: por ele outro mod o acha (ModLoader.TryGetMod)
-    std::string displayName;    // o "name" do manifesto
+    std::string id;
+    std::string internalName;
+    std::string displayName;
     std::string version;
-    std::vector<std::string> dependencies;  // o "dependencies" do manifesto: id ou uid de outro mod
+    std::vector<std::string> dependencies;
     std::string dir;
-    std::string entry;   // ex: "main.js"
+    std::string entry;
     uint32_t errorCount = 0;
     bool enabled = true;
-    bool loaded = false;        // o main.js ja rodou sem erro
+    bool loaded = false;
 };
 
-/**
- * Carrega os mods habilitados de modsDir.
- *
- * Todos entram no registro ANTES de o primeiro main.js rodar: um mod que
- * pergunta por outro (ModLoader.TryGetMod) acha o que ainda vai carregar.
- */
 void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled);
 
-// Quantos mods estão registrados.
 size_t loadedCount();
 
 LoadedMod* get(uint16_t index);
 
-/**
- * Pasta do mod que está sendo carregado agora, ou vazio fora da carga.
- *
- * É o que deixa `bl.loadTexture('icone.png')` achar o arquivo ao lado do
- * main.js sem o autor precisar saber o caminho absoluto do aparelho.
- */
 const std::string& currentDir();
 
-/** Pasta do entry de um mod ja carregado, pelo id. Vazio se nao conhece. */
 const std::string& dirOf(const std::string& id);
 
-/** Id (uid) do mod que esta carregando agora, ou vazio fora da carga. */
 const std::string& currentId();
 
-/** Pasta raiz do pacote (onde mora o manifest.json). Vazio se nao conhece. */
 std::string rootOf(const std::string& id);
 
-/** O "name" do manifesto, para mostrar a gente; o id se nao houver. */
 std::string displayName(const std::string& id);
 
-/** O mod pelo uid, ou nullptr. */
 const LoadedMod* find(const std::string& id);
 
-// Um mod que falha demais é desativado em runtime; falha NUNCA derruba o jogo.
 constexpr uint32_t MaxErrors = 20;
 
-} // namespace bl::mods
+}

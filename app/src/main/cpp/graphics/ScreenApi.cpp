@@ -119,7 +119,7 @@ bool readFrame(Reader& in, EffectFrame& frame) {
     return in.ok();
 }
 
-} // namespace
+}
 
 int32_t screenShader(const char* name, const char* source) {
     if (!source || !*source) return 0;
@@ -180,4 +180,4 @@ int32_t screenStats(int64_t* out, int32_t capacity) {
     return count;
 }
 
-} // namespace bl::graphics
+}

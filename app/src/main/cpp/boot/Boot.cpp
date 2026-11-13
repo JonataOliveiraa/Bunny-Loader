@@ -43,20 +43,10 @@ void boot() {
         return;
     }
 
-    // Os mods NAO sobem aqui — quem faz isso e a sonda (Probe.cpp).
-    //
-    // A sonda tambem espera o jogo assentar antes de tocar no il2cpp, o que
-    // aqui, dentro do proprio il2cpp_init, nao daria para fazer.
-
-    // O hook do splash entra agora, antes do primeiro quadro; e ele que acorda
-    // a sonda quando o jogo termina de carregar. Sem este caminho (watcher sem
-    // hook, como ja foi no MuMu), a sonda instala depois dos 10 s dela, ainda a
-    // tempo de segurar o splash.
     installSplashHook();
     prepareTexturePacks(config().modsDir, config().enabledMods);
 
-    // TODO(Fase 3): installProjectileHooks() e demais hooks de runtime.
     BL_DEBUG("runtime pronto; mods ficam a cargo da sonda");
 }
 
-} // namespace bl::runtime
+}

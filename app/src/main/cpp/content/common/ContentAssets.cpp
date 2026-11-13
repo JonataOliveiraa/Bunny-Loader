@@ -18,7 +18,7 @@ struct Refs {
     Il2CppClass* byteCls = nullptr;
     Il2CppClass* unityTex = nullptr;
     Il2CppClass* gameTex = nullptr;
-    Il2CppClass* assetCls = nullptr;          // Asset<Texture2D>
+    Il2CppClass* assetCls = nullptr;
     Il2CppClass* localizedTextCls = nullptr;
     const MethodInfo* unityCtor = nullptr;
     const MethodInfo* unityCtorNoMips = nullptr;
@@ -60,9 +60,6 @@ Refs& refs() {
     r.gameTex = findClass({"Microsoft.Xna.Framework.Graphics", "Texture2D", {}});
     r.localizedTextCls = findClass({"Terraria.Localization", "LocalizedText", {}});
 
-    // Asset<Texture2D> e generico: a classe fechada sai de uma tabela que o
-    // jogo ja encheu (TextureAssets.Item e um Asset<Texture2D>[]). Chamado na
-    // instalacao do conteudo, quando ela ja existe.
     Il2CppObject* items = nullptr;
     if (FieldInfo* f = textures ? findField(textures, "Item") : nullptr) a.field_static_get_value(f, &items);
     if (items) r.assetCls = a.class_get_element_class(a.object_get_class(items));
@@ -102,11 +99,6 @@ Refs& refs() {
     return r;
 }
 
-/**
- * true se rodou sem excecao; o retorno vai em `ret`. As duas coisas separadas
- * de proposito: metodo `void` devolve nulo do runtime_invoke, e tratar nulo
- * como falha fazia todo construtor "falhar" com sucesso.
- */
 bool invoke(const MethodInfo* m, void* self, void** args, const char* what,
             Il2CppObject** ret = nullptr) {
     Il2CppObject* exc = nullptr;
@@ -151,7 +143,7 @@ Il2CppArray* readBytes(const std::string& path, const unsigned char* data, size_
     return bytes;
 }
 
-} // namespace
+}
 
 static Il2CppObject* decodeGameTexture(const std::string& path, const unsigned char* data, size_t size,
                                        const std::string& what, int filterMode, bool lean, int* width, int* height) {
@@ -161,7 +153,6 @@ static Il2CppObject* decodeGameTexture(const std::string& path, const unsigned c
     Il2CppArray* bytes = readBytes(path, data, size);
     if (!bytes) return nullptr;
 
-    // Texture2D(2,2) nasce com mipmaps: o LoadImage os refaz no tamanho do PNG.
     Il2CppObject* ut = a.object_new(r.unityTex);
     int two = 2;
     if (lean) {
@@ -185,11 +176,8 @@ static Il2CppObject* decodeGameTexture(const std::string& path, const unsigned c
         void* c3[1] = {&filterMode};
         invoke(r.setFilterMode, ut, c3, "Texture.filterMode");
     }
-    // Sem repetir: a Unity nasce em Repeat, e um recorte que passa da borda
-    // (o textureWidth = largura + 20 do ExampleMount) trazia o outro lado da
-    // textura de volta. No PC o jogo desenha com PointClamp.
     if (r.setWrapMode) {
-        int clamp = 1;   // TextureWrapMode.Clamp
+        int clamp = 1;
         void* c3[1] = {&clamp};
         invoke(r.setWrapMode, ut, c3, "Texture.wrapMode");
     }
@@ -233,9 +221,7 @@ Il2CppObject* loadTextureAsset(const std::string& path, const unsigned char* dat
         if (height) *height = h;
         return asset;
     }
-    // Pixel art: vizinho-mais-proximo. A Unity nasce bilinear e a textura
-    // sairia borrada ao lado das do jogo.
-    Il2CppObject* gt = loadGameTexture(path, data, size, assetName, 0 /* FilterMode.Point */, width, height);
+    Il2CppObject* gt = loadGameTexture(path, data, size, assetName, 0, width, height);
     if (!gt) return nullptr;
 
     Il2CppObject* asset = a.object_new(r.assetCls);
@@ -377,9 +363,6 @@ bool textureAssetSize(Il2CppObject* asset, int* width, int* height) {
     auto value = [&] { return *reinterpret_cast<Il2CppObject**>(reinterpret_cast<char*>(asset) + r.valueOffset); };
     Il2CppObject* texture = value();
     if (!texture) {
-        // No mobile, ActionUnityLoad pede o Texture2D logico ao ContentManager:
-        // atlas e SourceAssetEntry fornecem Width/Height. A pagina Unity so e
-        // pedida ao desenhar (UnityBindTexture), nao ao ler essas dimensoes.
         if (!r.assetLoad || !invoke(r.assetLoad, asset, nullptr, "Asset.ActionUnityLoad")) return false;
         texture = value();
     }
@@ -427,12 +410,6 @@ std::string textForCulture(const CultureNames& names, const std::string& fallbac
 
 namespace {
 
-/**
- * O texto tambem vai para o dicionario do idioma (LanguageManager.Instance.
- * _localizedTexts), sob a mesma chave. O jogo guarda o nome de item e de NPC
- * em tabelas por tipo, mas partes dele buscam pela CHAVE: a plaquinha do
- * Bestiario (Language.GetTextValue("NPCName.X")) mostrava a chave crua.
- */
 Il2CppObject* languageDictionary() {
     auto& a = il2cpp::api();
     static FieldInfo* instance = nullptr;
@@ -459,7 +436,7 @@ void registerLanguageKey(Il2CppString* key, Il2CppObject* text) {
     invoke(setItem, dict, args, "LanguageManager._localizedTexts[chave]");
 }
 
-} // namespace
+}
 
 Il2CppObject* makeLocalizedText(const std::string& key, const std::string& text) {
     auto& a = il2cpp::api();
@@ -645,4 +622,4 @@ Il2CppObject* vanillaTextureAsset(const std::string& name, bool* missingOnMobile
     return found;
 }
 
-} // namespace bl::runtime::content
+}

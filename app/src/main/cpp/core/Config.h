@@ -5,19 +5,11 @@
 
 namespace bl {
 
-/**
- * Um mod habilitado: a pasta dele e o arquivo por onde comecar.
- *
- * Os dois vem juntos num par, e nao em duas listas paralelas, porque duas
- * listas alinhadas por indice sao uma dessincronizacao esperando acontecer.
- * Na fronteira (JNI e arquivo) isto viaja como `id=entry`.
- */
 struct ModSpec {
     std::string id;
-    std::string entry;   // relativo a pasta do mod; vazio = descobrir
+    std::string entry;
 };
 
-/** "uid=MyMod.dll" -> {uid, MyMod.dll}. Sem `=`, entry vazio. */
 ModSpec parseModSpec(const std::string& texto);
 
 struct Config {
@@ -25,30 +17,14 @@ struct Config {
     std::string modsDir;
     std::vector<ModSpec> enabledMods;
     std::string logPath;
-    // Arquivo de comando do canal de DEV (adb). Fica na pasta externa do
-    // proprio Bunny Loader; o caminho vem de cima porque o nativo nao conhece
-    // o nome do pacote. Vazio = canal desligado.
     std::string cmdPath;
-    // Painel de erro DENTRO do jogo (Configuracoes). Desligado, um mod que
-    // quebra so deixa rastro no logcat — util para quem grava video.
     bool showErrors = true;
-    // "Log detalhado" (Configuracoes): as linhas BL_DEBUG tambem no arquivo.
     bool verboseLog = false;
     int64_t gameVersion = 0;
-    // Onde o launcher extraiu o runtime .NET (System.Private.CoreLib.dll,
-    // BunnyLoader.dll...). Vazio = mods C# desligados. Ver script/dotnet/.
     std::string dotnetDir;
-    // "Inicio rapido" (Configuracoes > Desenvolvedor): a sonda sobe assim que
-    // o jogo termina de carregar, e o splash acaba ali, sem esperar o tempo
-    // dele. Ver boot/QuickStart.h.
     bool fastBoot = false;
-    // O personagem e o mundo em que o jogo entra sozinho, pelo NOME DO ARQUIVO
-    // (`Bench.plr`, `Interior_Palido.wld`). Vazios = para no titulo.
     std::string quickPlayer;
     std::string quickWorld;
-    // A volta a um servidor depois da sincronizacao de mods (ServerSync.kt):
-    // no titulo, o personagem `joinPlayer` (nome do arquivo) conecta em
-    // joinAddress:joinPort. Vazio = nada. Vale sem o inicio rapido.
     std::string joinAddress;
     int32_t joinPort = 0;
     std::string joinPassword;
@@ -61,26 +37,11 @@ inline Config& config() {
     return instance;
 }
 
-// Caminho B (lançar + injetar): a libbunny.so e pre-carregada no processo do
-// jogo, sem codigo Java nosso la dentro. Entao a config nao vem por JNI — vem
-// de um arquivo texto simples (key=value por linha) que o launcher grava antes
-// de iniciar o jogo. enabledMods e uma lista separada por virgula, cada item
-// no formato `id=entry` (o `=` interno nao atrapalha: a linha e partida no
-// PRIMEIRO `=`, que e o do `enabledMods=`).
-//
-// Retorna false se o arquivo nao existir/nao abrir; nesse caso o chamador
-// deve abortar o boot silenciosamente (o processo pode nem ser o do jogo).
 bool loadConfigFromFile(const char* path);
 
-// Pasta base acordada entre o provisionamento e a lib injetada.
-//
-// Fica na pasta externa DO PROPRIO app do jogo: o processo do jogo (mesmo uid)
-// sempre pode ler a sua getExternalFilesDir sob SELinux Enforcing, sem root, em
-// qualquer Android. O adb push tambem escreve la sem root. (/data/local/tmp so
-// funciona em emulador Permissive ou com root.)
 constexpr const char* kBunnyBaseDir =
     "/sdcard/Android/data/com.and.games505.TerrariaPaid/files/bunny";
 constexpr const char* kDefaultConfigPath =
     "/sdcard/Android/data/com.and.games505.TerrariaPaid/files/bunny/config";
 
-} // namespace bl
+}

@@ -35,7 +35,6 @@ namespace bl::ui {
 
 namespace {
 
-// Loga e limpa uma excecao Java pendente. Retorna true se havia excecao.
 bool checkExc(JNIEnv* env, const char* where) {
     if (!env->ExceptionCheck()) return false;
     BL_ERROR("botao: excecao Java em %s", where);
@@ -44,13 +43,6 @@ bool checkExc(JNIEnv* env, const char* where) {
     return true;
 }
 
-// --- painel de erro ---------------------------------------------------------
-//
-// Aberto a cada erro NOVO, com tudo que ja se acumulou (o Java so atualiza o
-// texto se ele ja estiver na tela). Antes abria uma vez por sessao: fechado o
-// do primeiro erro (um mod que nao carregou), o erro de um metodo de mod mais
-// tarde nao aparecia. A mesma linha de novo (um hook que falha a cada quadro)
-// nao reabre: o texto acumulado ja a traz.
 jclass g_bridge = nullptr;
 jmethodID g_showError = nullptr;
 std::mutex g_errorSeenLock;
@@ -71,8 +63,6 @@ void onNativeError(const char* line) {
         attached = true;
     }
     std::string text = log::errorsSoFar();
-    // O acumulado guarda os primeiros 8 KB: um erro novo depois disso ficaria
-    // de fora do proprio painel que ele abriu.
     if (line && *line && *line != '(' && text.find(line) == std::string::npos) {
         text += "\n(...)\n" + std::string(line) + "\n";
     }
@@ -82,12 +72,6 @@ void onNativeError(const char* line) {
     env->DeleteLocalRef(js);
     if (attached) vm->DetachCurrentThread();
 }
-
-// ---- texto entre o Java (UTF-16) e o nucleo (UTF-8) ----
-//
-// NewStringUTF/GetStringUTFChars falam o UTF-8 MODIFICADO do Java: um emoji
-// (fora do plano basico) num bl.log ou no codigo digitado derrubava o processo
-// com o CheckJNI ligado, ou virava lixo. A conversao e feita aqui, inteira.
 
 std::string fromJava(JNIEnv* env, jstring s) {
     std::string out;
@@ -149,8 +133,6 @@ jstring toJava(JNIEnv* env, const std::string& s) {
     return env->NewString(reinterpret_cast<const jchar*>(u.data()), static_cast<jsize>(u.size()));
 }
 
-// ---- console e reiniciar (DevTools.java) ----
-
 void JNICALL jni_consoleRun(JNIEnv* env, jclass, jstring code) {
     if (bl::runtime::cheatsBlocked()) return;
     bl::script::consoleSubmit(fromJava(env, code));
@@ -182,32 +164,22 @@ jboolean JNICALL jni_restartReady(JNIEnv*, jclass) {
     return bl::runtime::restartReady() ? JNI_TRUE : JNI_FALSE;
 }
 
-// Metodos nativos ligados ao CheatBridge.
 void JNICALL jni_onGive(JNIEnv*, jclass, jint type, jint stack) {
     if (bl::runtime::cheatsBlocked()) return;
     bl::runtime::requestGive(type, stack);
 }
 
-/**
- * As tabelas de nome, do nativo para o dex. null enquanto ainda moem.
- *
- * Uma copia so, quando o menu abre: e String[] de ~6800 posicoes, e o Java
- * segura a referencia depois disso. Passar nome a nome por JNI, por linha
- * visivel, custaria uma travessia por rolagem — e pior, viria da thread de UI,
- * que nao pode tocar no il2cpp.
- */
 jobjectArray toJavaStringArray(JNIEnv* env, const std::vector<std::u16string>& names,
                                runtime::MenuKind kind) {
     if (!runtime::namesReady()) return nullptr;
     const std::unordered_set<int> hidden = runtime::hiddenFromModMenu(kind);
     jclass sc = env->FindClass("java/lang/String");
     if (!sc) return nullptr;
-    // A troca de idioma substitui as tabelas na thread do jogo.
     std::lock_guard<std::mutex> guard(runtime::namesLock());
     jobjectArray out = env->NewObjectArray(static_cast<jsize>(names.size()), sc, nullptr);
     if (!out) return nullptr;
     for (size_t i = 0; i < names.size(); ++i) {
-        if (names[i].empty() || hidden.count(static_cast<int>(i))) continue;   // fica null
+        if (names[i].empty() || hidden.count(static_cast<int>(i))) continue;
         jstring js = env->NewString(reinterpret_cast<const jchar*>(names[i].data()),
                                     static_cast<jsize>(names[i].size()));
         env->SetObjectArrayElement(out, static_cast<jsize>(i), js);
@@ -216,8 +188,6 @@ jobjectArray toJavaStringArray(JNIEnv* env, const std::vector<std::u16string>& n
     return out;
 }
 
-// O menu pula o tipo sem nome: e assim que o escondido (HideFromModMenu,
-// ItemID.Sets.Deprecated...) sai das listas gerais.
 jobjectArray JNICALL jni_itemNames(JNIEnv* env, jclass) {
     return toJavaStringArray(env, runtime::itemNames(), runtime::MenuKind::Item);
 }
@@ -243,7 +213,6 @@ void JNICALL jni_onSpawn(JNIEnv*, jclass, jint type, jint count) {
     bl::runtime::requestSpawn(type, count);
 }
 
-/** Secao de cada item (runtime::ItemClass). null enquanto os nomes moem. */
 jbyteArray JNICALL jni_itemClasses(JNIEnv* env, jclass) {
     if (!runtime::namesReady()) return nullptr;
     const std::vector<uint8_t>& v = runtime::itemClasses();
@@ -266,12 +235,10 @@ jbyteArray toJavaBytes(JNIEnv* env, const std::vector<uint8_t>& v) {
     return out;
 }
 
-/** Subcategoria de cada item dentro da secao (0 = Outros). */
 jbyteArray JNICALL jni_itemSubClasses(JNIEnv* env, jclass) {
     return toJavaBytes(env, runtime::itemSubClasses());
 }
 
-/** Classe de cada NPC (runtime::NpcClass). */
 jbyteArray JNICALL jni_npcClasses(JNIEnv* env, jclass) {
     return toJavaBytes(env, runtime::npcClasses());
 }
@@ -299,10 +266,6 @@ void JNICALL jni_setTimeOfDay(JNIEnv*, jclass, jint which) {
     bl::runtime::setTimeOfDay(which);
 }
 
-/**
- * {hardmode 0/1, modo 0..3, minuto do relogio, chuva 0..100, vento 0..100,
- * infeccao parada 0/1}; -1 fora do mundo.
- */
 jintArray JNICALL jni_worldState(JNIEnv* env, jclass) {
     const jint v[] = {bl::runtime::worldHardmode(), bl::runtime::worldGameMode(),
                       bl::runtime::worldClockMinute(), bl::runtime::worldRainPosition(),
@@ -335,7 +298,6 @@ jobjectArray toJavaStrings(JNIEnv* env, const std::vector<std::string>& v) {
 
 jint JNICALL jni_vanillaItemCount(JNIEnv*, jclass) { return runtime::kVanillaItemCount; }
 
-/** O PNG de cada item de mod, na ordem do tipo (indice = tipo - vanilla). */
 jobjectArray JNICALL jni_modItemTextures(JNIEnv* env, jclass) {
     std::vector<std::string> v;
     for (const auto& i : runtime::modItems()) v.push_back(i.texture);
@@ -346,24 +308,18 @@ jint JNICALL jni_vanillaNpcCount(JNIEnv*, jclass) { return runtime::kVanillaNpcC
 
 jint JNICALL jni_vanillaBuffCount(JNIEnv*, jclass) { return runtime::kVanillaBuffCount; }
 
-/** O PNG de cada buff de mod, na ordem do tipo (indice = tipo - vanilla). */
 jobjectArray JNICALL jni_modBuffTextures(JNIEnv* env, jclass) {
     std::vector<std::string> v;
     for (const auto& b : runtime::modBuffs()) v.push_back(b.texture);
     return toJavaStrings(env, v);
 }
 
-/** O PNG de cada NPC de mod, na ordem do tipo (indice = tipo - vanilla). */
 jobjectArray JNICALL jni_modNpcTextures(JNIEnv* env, jclass) {
     std::vector<std::string> v;
     for (const auto& n : runtime::modNpcs()) v.push_back(n.texture);
     return toJavaStrings(env, v);
 }
 
-/**
- * As pastas do catalogo de mod, achatadas, SEIS textos por pasta: uid do mod,
- * nome do mod, icone do mod, nome da pasta, icone da pasta, "item", "npc" ou "buff".
- */
 jobjectArray JNICALL jni_modCategories(JNIEnv* env, jclass) {
     std::vector<std::string> v;
     for (const auto& f : runtime::modMenuFolders()) {
@@ -386,8 +342,6 @@ jintArray JNICALL jni_modCategoryItems(JNIEnv* env, jclass, jint i) {
     return out;
 }
 
-// Classloader do app (acha classes do app, ao contrario do FindClass de uma
-// thread anexada). Via android.app.ActivityThread.currentApplication().
 jobject getAppClassLoader(JNIEnv* env) {
     jclass at = env->FindClass("android/app/ActivityThread");
     if (checkExc(env, "FindClass ActivityThread") || !at) return nullptr;
@@ -403,10 +357,9 @@ jobject getAppClassLoader(JNIEnv* env) {
     jmethodID mCl = env->GetMethodID(ctx, "getClassLoader", "()Ljava/lang/ClassLoader;");
     jobject loader = env->CallObjectMethod(app, mCl);
     checkExc(env, "getClassLoader");
-    return loader;  // ref local
+    return loader;
 }
 
-// loader.loadClass(name) -> jclass (ref local). name com pontos.
 jclass loadClass(JNIEnv* env, jobject loader, const char* dotted) {
     jclass clCls = env->GetObjectClass(loader);
     jmethodID mLoad = env->GetMethodID(
@@ -418,7 +371,6 @@ jclass loadClass(JNIEnv* env, jobject loader, const char* dotted) {
     return cls;
 }
 
-// Android 8+: o dex direto da memoria, sem arquivo.
 jobject loadDexInMemory(JNIEnv* env, jobject parent) {
     jobject buffer = env->NewDirectByteBuffer(
         const_cast<unsigned char*>(bl_cheatbridge_dex),
@@ -431,9 +383,6 @@ jobject loadDexInMemory(JNIEnv* env, jobject parent) {
     return loader;
 }
 
-// Android 7 nao tem o InMemoryDexClassLoader (API 26): grava o dex no
-// code_cache do app e carrega pelo DexClassLoader, que existe desde sempre.
-// Sem isso o Mod Menu, o icone de JS e o painel de erro nao apareciam.
 jobject loadDexFromFile(JNIEnv* env, jobject activity, jobject parent) {
     jclass ctx = env->FindClass("android/content/Context");
     jmethodID mDir = env->GetMethodID(ctx, "getCodeCacheDir", "()Ljava/io/File;");
@@ -447,7 +396,6 @@ jobject loadDexFromFile(JNIEnv* env, jobject activity, jobject parent) {
     const std::string path = std::string(cdir) + "/bunny_menu.dex";
     env->ReleaseStringUTFChars(jdir, cdir);
 
-    // Sempre regravado: o dex muda a cada versao do app.
     unlink(path.c_str());
     FILE* f = std::fopen(path.c_str(), "wb");
     const bool written = f && std::fwrite(bl_cheatbridge_dex, 1, bl_cheatbridge_dex_len, f) == bl_cheatbridge_dex_len;
@@ -468,7 +416,7 @@ jobject loadDexFromFile(JNIEnv* env, jobject activity, jobject parent) {
     return loader;
 }
 
-} // namespace
+}
 
 void installCheatButton() {
     JavaVM* vm = appJavaVM();
@@ -484,12 +432,9 @@ void installCheatButton() {
         attached = true;
     }
 
-    // 1. Classloader do app.
     jobject appLoader = getAppClassLoader(env);
     if (!appLoader) { if (attached) vm->DetachCurrentThread(); return; }
 
-    // 2. Activity atual do Unity: UnityPlayer.currentActivity (carregada pelo
-    //    classloader do app).
     jclass unity = loadClass(env, appLoader, "com.unity3d.player.UnityPlayer");
     if (!unity) { if (attached) vm->DetachCurrentThread(); return; }
     jfieldID fAct = env->GetStaticFieldID(unity, "currentActivity", "Landroid/app/Activity;");
@@ -500,7 +445,6 @@ void installCheatButton() {
         return;
     }
 
-    // 3. Carrega o dex embutido (CheatBridge) com o classloader do app como pai.
     jobject dexLoader = android_get_device_api_level() >= 26
         ? loadDexInMemory(env, appLoader)
         : loadDexFromFile(env, activity, appLoader);
@@ -512,7 +456,6 @@ void installCheatButton() {
     jclass bridge = loadClass(env, dexLoader, "bunny.CheatBridge");
     if (!bridge) { if (attached) vm->DetachCurrentThread(); return; }
 
-    // 4. Liga o metodo nativo.
     JNINativeMethod nm[] = {
         {"nOnGive", "(II)V", reinterpret_cast<void*>(&jni_onGive)},
         {"nOnSpawn", "(II)V", reinterpret_cast<void*>(&jni_onSpawn)},
@@ -551,7 +494,6 @@ void installCheatButton() {
         return;
     }
 
-    // 5. CheatBridge.install(activity) — monta o botao na UI thread.
     jmethodID mInstall = env->GetStaticMethodID(bridge, "install", "(Landroid/app/Activity;)V");
     if (!mInstall) {
         checkExc(env, "install id");
@@ -563,15 +505,11 @@ void installCheatButton() {
         BL_DEBUG("botao: instalado na Activity do jogo");
     }
 
-    // 6. Painel de erro: guarda a classe e passa a escutar BL_ERROR. A partir
-    // daqui um erro do nucleo aparece DENTRO do jogo, com texto e botao de
-    // copiar — quem joga no celular nao tem logcat.
     g_bridge = reinterpret_cast<jclass>(env->NewGlobalRef(bridge));
     g_showError = env->GetStaticMethodID(g_bridge, "showError", "(Ljava/lang/String;)V");
-    // Desligado nas Configuracoes, o erro fica so no logcat.
     if (g_showError && config().showErrors) log::onError(&onNativeError);
 
     if (attached) vm->DetachCurrentThread();
 }
 
-} // namespace bl::ui
+}

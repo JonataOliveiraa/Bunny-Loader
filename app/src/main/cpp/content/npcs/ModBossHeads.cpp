@@ -16,23 +16,23 @@ namespace {
 struct BossHead {
     std::string texture, assetName;
     int slot = -1;
-    uint32_t asset = 0;   // gchandle do Asset<Texture2D>; 0 = nao carregou
+    uint32_t asset = 0;
     bool tried = false;
 };
 
 std::mutex g_mx;
-std::vector<BossHead> g_heads;   // na ordem das vagas: g_base, g_base + 1...
-std::map<int, int> g_typeSlot;   // tipo do NPC -> vaga do icone padrao
-int g_base = -1;                 // quantos icones o jogo tem (a 1a vaga de mod)
-uint32_t g_fallback = 0;         // icone do jogo para a vaga cujo PNG falhou
+std::vector<BossHead> g_heads;
+std::map<int, int> g_typeSlot;
+int g_base = -1;
+uint32_t g_fallback = 0;
 bool g_installed = false;
-bool g_active = false;           // instalou: o watch reaplica
+bool g_active = false;
 
 struct Refs {
     bool tried = false, ok = false;
-    Il2CppClass* textures = nullptr;    // TextureAssets
-    FieldInfo* npcHeadBoss = nullptr;   // TextureAssets.NpcHeadBoss
-    FieldInfo* bossHeads = nullptr;     // NPCID.Sets.BossHeadTextures (int[NPCID.Count])
+    Il2CppClass* textures = nullptr;
+    FieldInfo* npcHeadBoss = nullptr;
+    FieldInfo* bossHeads = nullptr;
 };
 
 Refs& refs() {
@@ -58,10 +58,6 @@ Il2CppArray* readStatic(FieldInfo* f) {
     return arr;
 }
 
-/**
- * Quantos icones o jogo tem. O mod pede a vaga no registro, que pode vir antes
- * do construtor estatico do TextureAssets (que so aloca os arrays): roda-o.
- */
 int vanillaCount() {
     const Refs& r = refs();
     if (!r.ok) return -1;
@@ -79,7 +75,6 @@ int vanillaCount() {
 
 int total() { return g_base + static_cast<int>(g_heads.size()); }
 
-/** NpcHeadBoss com os icones de mod no fim; true se mexeu. */
 bool applyTextures() {
     const Refs& r = refs();
     Il2CppArray* heads = readStatic(r.npcHeadBoss);
@@ -97,7 +92,6 @@ bool applyTextures() {
     return true;
 }
 
-/** BossHeadTextures[type] = vaga; true se algum estava diferente. */
 bool applyIndices() {
     Il2CppArray* table = readStatic(refs().bossHeads);
     if (!table) return false;
@@ -113,7 +107,6 @@ bool applyIndices() {
     return changed;
 }
 
-/** Carrega os PNGs ainda nao tentados (os pedidos depois da instalacao vem pelo watch). */
 int loadPending() {
     int loaded = 0;
     for (BossHead& h : g_heads) {
@@ -131,7 +124,7 @@ int loadPending() {
     return loaded;
 }
 
-} // namespace
+}
 
 int reserveBossHead(const std::string& texturePath, const std::string& assetName, int npcType) {
     std::lock_guard<std::mutex> l(g_mx);
@@ -169,9 +162,8 @@ void installBossHeads() {
         BL_ERROR("icone de chefe de mod: TextureAssets.NpcHeadBoss nulo; chefe de mod sem barra e sem icone");
         return;
     }
-    if (g_base < 0) g_base = static_cast<int>(heads->length);   // ninguem reservou ainda
+    if (g_base < 0) g_base = static_cast<int>(heads->length);
     if (heads->length != static_cast<uintptr_t>(g_base)) {
-        // As vagas ja foram dadas aos mods: nao da para mudar a base.
         BL_ERROR("icone de chefe de mod: o jogo tem %d icones, as vagas foram reservadas a partir de %d",
                  static_cast<int>(heads->length), g_base);
         if (heads->length > static_cast<uintptr_t>(g_base)) return;
@@ -199,4 +191,4 @@ void watchBossHeads() {
     if (applyIndices()) BL_DEBUG("icone de chefe de mod: NPCID.Sets.BossHeadTextures refeita; indices devolvidos");
 }
 
-} // namespace bl::runtime
+}

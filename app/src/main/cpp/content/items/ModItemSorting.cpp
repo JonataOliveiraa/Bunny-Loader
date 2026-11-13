@@ -14,16 +14,16 @@ namespace bl::runtime {
 
 namespace {
 
-constexpr uint32_t kFieldStatic = 0x0010;  // FIELD_ATTRIBUTE_STATIC
+constexpr uint32_t kFieldStatic = 0x0010;
 
 struct Refs {
     bool tried = false, ok = false;
-    Il2CppClass* layerCls = nullptr;     // ItemSorting.ItemSortingLayer
-    Il2CppClass* layersCls = nullptr;    // ItemSorting.ItemSortingLayers (as camadas, estaticas)
+    Il2CppClass* layerCls = nullptr;
+    Il2CppClass* layersCls = nullptr;
     Il2CppClass* itemCls = nullptr;
     Il2CppClass* stringCls = nullptr;
-    FieldInfo* whiteLists = nullptr;     // ItemSorting._layerWhiteLists (Dictionary<string, List<int>>)
-    FieldInfo* layerIndex = nullptr;     // ItemSorting._layerIndexForItemType (int[])
+    FieldInfo* whiteLists = nullptr;
+    FieldInfo* layerIndex = nullptr;
     const MethodInfo* setupWhiteLists = nullptr;
     const MethodInfo* itemCtor = nullptr;
     const MethodInfo* setDefaults = nullptr;
@@ -59,7 +59,6 @@ Refs& refs() {
     return r;
 }
 
-/** Metodo pelo objeto (as classes genericas sao as dele). Nulo se lancou. */
 Il2CppObject* call(Il2CppObject* self, const char* name, int argc, void** args, const char* what,
                    bool* failed) {
     auto& a = il2cpp::api();
@@ -84,7 +83,6 @@ bool sameString(Il2CppString* x, Il2CppString* y) {
            std::memcmp(x->chars, y->chars, sizeof(char16_t) * static_cast<size_t>(x->length)) == 0;
 }
 
-/** A camada (estatica de ItemSortingLayers) com esse Name. As chaves do dicionario sao o proprio Name. */
 Il2CppObject* layerNamed(Il2CppString* name) {
     auto& a = il2cpp::api();
     const Refs& r = refs();
@@ -99,7 +97,6 @@ Il2CppObject* layerNamed(Il2CppString* name) {
     return nullptr;
 }
 
-/** Garante `_layerIndexForItemType` com `size` posicoes (o SetupWhiteLists o refaz com ItemID.Count). */
 Il2CppArray* layerIndexTable(int size) {
     auto& a = il2cpp::api();
     Il2CppArray* table = nullptr;
@@ -110,14 +107,6 @@ Il2CppArray* layerIndexTable(int size) {
     return bigger;
 }
 
-/**
- * O miolo do SetupWhiteLists para os tipos [from, to): um item de cada, as
- * camadas NA ORDEM do dicionario (cada uma tira da lista o que pegou, e a
- * ultima, "Last - Trash", pega o resto), e o tipo entra na lista branca da
- * camada que o pegou. O Validate das camadas filtra pela propria lista
- * branca; com o dicionario trocado por um vazio durante a conta, ele nao
- * filtra — como no SetupWhiteLists, que limpa o dicionario antes.
- */
 void classify(int from, int to) {
     const Refs& r = refs();
     if (!r.ok || to <= from) return;
@@ -126,7 +115,7 @@ void classify(int from, int to) {
     a.field_static_get_value(r.whiteLists, &dict);
     bool failed = false;
     const int layers = dict ? unboxInt(call(dict, "get_Count", 0, nullptr, "_layerWhiteLists", &failed)) : 0;
-    if (failed || layers <= 0) return;   // SetupWhiteLists ainda nao rodou: o hook faz quando rodar
+    if (failed || layers <= 0) return;
 
     Il2CppArray* keys = a.array_new(r.stringCls, static_cast<uintptr_t>(layers));
     Il2CppObject* keyCollection = call(dict, "get_Keys", 0, nullptr, "_layerWhiteLists", &failed);
@@ -136,7 +125,6 @@ void classify(int from, int to) {
     if (failed || !keys) return;
     Il2CppString** names = static_cast<Il2CppString**>(arrayData(keys));
 
-    // Os itens, e a lista de indices que as camadas vao consumindo.
     const int n = to - from;
     Il2CppArray* items = a.array_new(r.itemCls, static_cast<uintptr_t>(n));
     if (!items) return;
@@ -154,7 +142,7 @@ void classify(int from, int to) {
     void* firstKey[1] = {names[0]};
     Il2CppObject* sample = call(dict, "get_Item", 1, firstKey, "_layerWhiteLists", &failed);
     if (failed || !sample) return;
-    Il2CppObject* indices = a.object_new(a.object_get_class(sample));   // List<int>
+    Il2CppObject* indices = a.object_new(a.object_get_class(sample));
     call(indices, ".ctor", 0, nullptr, "List<int>", &failed);
     for (int i = 0; i < n && !failed; ++i) {
         void* add[1] = {&i};
@@ -219,7 +207,7 @@ void hkSetupWhiteLists(const MethodInfo* m) {
     classify(kVanillaItemCount, itemTypeCount());
 }
 
-} // namespace
+}
 
 void installModItemSorting(int from, int to) {
     const Refs& r = refs();
@@ -232,4 +220,4 @@ void installModItemSorting(int from, int to) {
     classify(from, to);
 }
 
-} // namespace bl::runtime
+}

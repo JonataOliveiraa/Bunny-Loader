@@ -21,4 +21,4 @@ F wrap(F callback, const char* name) {
 
 int32_t read(int32_t index, uint64_t* values, const char** name);
 
-} // namespace bl::dotnet::profile
+}

@@ -76,8 +76,6 @@ inline bool write(std::ostream& stream, const std::vector<SavedItem>& items) {
     stream << "bunnyloader itens 2\n";
 
     for (const auto& item : items) {
-        // JSON escapes tab/newline/NUL. Reject unescaped delimiters rather than
-        // allowing a callback or a damaged file to inject another record.
         for (const auto* text : {&item.container, &item.key, &item.prefixKey, &item.data}) {
             if (text->find_first_of("\t\r\n") != std::string::npos || text->find('\0') != std::string::npos) return false;
         }
@@ -90,4 +88,4 @@ inline bool write(std::ostream& stream, const std::vector<SavedItem>& items) {
     return static_cast<bool>(stream);
 }
 
-} // namespace bl::runtime::item_save
+}

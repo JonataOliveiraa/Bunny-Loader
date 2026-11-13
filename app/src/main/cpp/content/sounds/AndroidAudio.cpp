@@ -36,8 +36,6 @@ std::once_flag g_once;
 bool g_ok = false;
 pthread_key_t g_detachKey;
 
-// A thread nativa anexada tem de se desanexar antes de acabar, senao o ART
-// aborta o processo. O destrutor da chave roda quando ela termina.
 void detachOnExit(void*) {
     if (g_jni.vm) g_jni.vm->DetachCurrentThread();
 }
@@ -58,10 +56,6 @@ bool cleared(JNIEnv* env, const char* where) {
     return false;
 }
 
-/**
- * A classe do app, pelo classloader do app: o FindClass de uma thread anexada
- * so enxerga as classes do sistema.
- */
 jclass appClass(JNIEnv* env, const char* dotted) {
     jclass at = env->FindClass("android/app/ActivityThread");
     if (!cleared(env, "ActivityThread") || !at) return nullptr;
@@ -115,7 +109,7 @@ bool init() {
     return g_ok;
 }
 
-} // namespace
+}
 
 int loadSound(const std::string& path) {
     if (!init()) return 0;
@@ -232,4 +226,4 @@ int musicState(int id) {
     return cleared(env, "ModAudio.musicState") ? s : -1;
 }
 
-} // namespace bl::runtime::content
+}

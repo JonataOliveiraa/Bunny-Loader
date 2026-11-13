@@ -30,9 +30,6 @@ std::string& currentIdSlot() {
     return current;
 }
 
-// id do mod -> pasta do entry. O id e tambem o nome do MODULO no QuickJS, e e
-// assim que bl.loadTexture descobre de qual mod veio a chamada mesmo depois da
-// carga, la dentro de um hook.
 std::map<std::string, std::string>& dirsById() {
     static std::map<std::string, std::string> m;
     return m;
@@ -46,7 +43,6 @@ bool fileExists(const std::string& path) {
 }
 
 void readManifest(LoadedMod* mod) {
-    // Same names and priority as Catalog.MANIFESTS in the launcher.
     FILE* f = nullptr;
     for (const char* name : {"manifest.json", "mod.json"}) {
         const std::string path = mod->dir + "/" + name;
@@ -78,9 +74,6 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
     dirsById().clear();
     BL_INFO("carregando mods de %s (%zu habilitados)", modsDir.c_str(), enabled.size());
 
-    // 1a passada: todos no registro, com manifesto e entry, antes de qualquer
-    // main.js rodar. A ordem de carga vem da lista escolhida no launcher;
-    // sem isto o ModLoader.TryGetMod de um mod dependeria da posicao do outro.
     std::vector<LoadedMod> listed;
     for (const auto& spec : enabled) {
         if (spec.entry == "@texture" || spec.entry == "@font") continue;
@@ -97,15 +90,11 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
             mod.enabled = false;
         } else {
             mod.entry = path.substr(mod.dir.size() + 1);
-            // A pasta do ARQUIVO de entrada: Assets/, Content/, Common/ e
-            // Localization/ ficam ao lado dele.
             dirsById()[id] = path.substr(0, path.rfind('/'));
         }
         listed.push_back(std::move(mod));
     }
 
-    // As dependencias do manifesto carregam antes de quem as pede; o resto
-    // fica na ordem do launcher. Faltou uma, ou ha ciclo: o mod fica de fora.
     std::vector<OrderEntry> entries;
     entries.reserve(listed.size());
     for (const LoadedMod& m : listed) entries.push_back({m.id, m.internalName, m.dependencies, m.enabled});
@@ -121,18 +110,13 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
         }
         registry().push_back(std::move(mod));
     }
-    // As dependencias de cada mod, ja como indices do registro.
     std::vector<std::vector<size_t>> needs(registry().size());
     for (size_t i = 0; i < listed.size(); ++i) {
         for (size_t d : sorted.needs[i]) needs[position[i]].push_back(position[d]);
     }
 
-    // 2a passada: cada mod, na mesma ordem. Por indice: o registro nao muda
-    // durante a carga, mas uma referencia guardada atravessando o loadMod
-    // seria a mesma armadilha do g_frames.back() do JsHook.
     for (size_t i = 0; i < registry().size(); ++i) {
         if (!registry()[i].enabled) continue;
-        // Uma dependencia que lancou erro na carga derruba quem precisa dela.
         const auto broken = std::find_if(needs[i].begin(), needs[i].end(),
             [](size_t d) { return !registry()[d].loaded; });
         if (broken != needs[i].end()) {
@@ -195,4 +179,4 @@ LoadedMod* get(uint16_t index) {
     return &registry()[index];
 }
 
-} // namespace bl::mods
+}

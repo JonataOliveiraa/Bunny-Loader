@@ -14,7 +14,6 @@ namespace bl::runtime {
 
 namespace {
 
-// 0 nada pedido; 1 reiniciar; 2 salvar e reiniciar.
 std::atomic<int> g_request{0};
 std::atomic<bool> g_ready{false};
 std::atomic<bool> g_frozen{false};
@@ -36,12 +35,6 @@ bool invokeStatic(const MethodInfo* m, void** args, const char* what, Il2CppObje
     return true;
 }
 
-/**
- * O que o "Salvar e Sair" do jogo salva: o jogador (com o mapa) e, quem nao e
- * cliente de multijogador, o mundo. Pelos metodos do jogo, entao os saves de
- * conteudo de mod (itens, tiles, moradores, ModPlayer) vao junto, como sempre.
- * Na thread do jogo, de uma vez: o quadro para o tempo do save.
- */
 void saveAll() {
     auto& a = il2cpp::api();
     Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
@@ -59,11 +52,10 @@ void saveAll() {
         invokeStatic(a.class_get_method_from_name(player, "SavePlayer", 3), args, "Player.SavePlayer");
     }
 
-    // netMode e um campo de bits no celular: 1 = cliente (o mundo e do host).
     int32_t netMode = 0;
     if (FieldInfo* f = il2cpp::findField(main, "netMode")) a.field_static_get_value(f, &netMode);
     if (netMode != 1) {
-        int32_t context = 0;   // WorldFile.WorldSaveContext.Normal
+        int32_t context = 0;
         void* args[1] = {&context};
         invokeStatic(a.class_get_method_from_name(worldFile, "SaveWorld", 1), args, "WorldFile.SaveWorld");
     }
@@ -73,7 +65,7 @@ void saveAll() {
             static_cast<long long>(ms));
 }
 
-} // namespace
+}
 
 void requestRestart(bool save) {
     g_ready.store(false, std::memory_order_release);
@@ -104,4 +96,4 @@ void tickRestart() {
     g_ready.store(true, std::memory_order_release);
 }
 
-} // namespace bl::runtime
+}

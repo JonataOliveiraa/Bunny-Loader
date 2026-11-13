@@ -21,7 +21,6 @@ const char* fieldName(FieldInfo* f) {
     return il2cpp::api().field_get_name ? il2cpp::api().field_get_name(f) : "?";
 }
 
-/** true se rodou sem excecao (metodo `void` devolve nulo, e isso nao e falha). */
 bool invoke(const MethodInfo* m, void* self, void** args) {
     if (!m) return false;
     Il2CppObject* exc = nullptr;
@@ -29,17 +28,16 @@ bool invoke(const MethodInfo* m, void* self, void** args) {
     return exc == nullptr;
 }
 
-} // namespace
+}
 
 TypeTables::TypeTables(const char* what, int vanillaCount, std::vector<TableClass> classes, Fill fill)
     : what_(what), vanillaCount_(vanillaCount), fill_(fill), classes_(std::move(classes)) {}
 
 namespace {
 
-/** O indice de um elemento com o valor mais comum (bytes iguais) do array. */
 uintptr_t modeIndex(const char* data, uintptr_t len, size_t elemSize) {
     if (len == 0 || elemSize > 8) return 0;
-    std::unordered_map<uint64_t, std::pair<uintptr_t, uintptr_t>> count;   // valor -> (vezes, primeiro)
+    std::unordered_map<uint64_t, std::pair<uintptr_t, uintptr_t>> count;
     uintptr_t best = 0, bestCount = 0;
     for (uintptr_t i = 0; i < len; ++i) {
         uint64_t v = 0;
@@ -50,7 +48,7 @@ uintptr_t modeIndex(const char* data, uintptr_t len, size_t elemSize) {
     return best;
 }
 
-} // namespace
+}
 
 Il2CppArray* TypeTables::growArray(Il2CppArray* old, uintptr_t newLength, Fill fill) {
     auto& a = il2cpp::api();
@@ -60,8 +58,6 @@ Il2CppArray* TypeTables::growArray(Il2CppArray* old, uintptr_t newLength, Fill f
     const uintptr_t len = old->length;
 
     if (a.class_is_valuetype(elem)) {
-        // Tipo de valor: bytes. O [0] (o "nada") e o valor de quem ainda nao
-        // disse nada — o mesmo que o tipo novo teria se o jogo o conhecesse.
         uint32_t align = 0;
         const size_t elemSize = static_cast<size_t>(a.class_value_size(elem, &align));
         char* d = static_cast<char*>(arrayData(n));
@@ -71,9 +67,6 @@ Il2CppArray* TypeTables::growArray(Il2CppArray* old, uintptr_t newLength, Fill f
         for (uintptr_t i = len; i < newLength; ++i) std::memcpy(d + i * elemSize, model, elemSize);
         return n;
     }
-    // Referencia: pelo proprio runtime (Array.Copy / SetValue), que passa pela
-    // barreira de escrita do coletor. Copiar ponteiro com memcpy num heap com
-    // GC incremental pode deixar o objeto sem ninguem que o marque.
     static const MethodInfo* copy = nullptr;
     static const MethodInfo* set = nullptr;
     if (!copy || !set) {
@@ -100,12 +93,10 @@ Il2CppArray* TypeTables::growArray(Il2CppArray* old, uintptr_t newLength, Fill f
 Il2CppArray* TypeTables::resizedCopy(Il2CppArray* old, uintptr_t newLength) {
     auto& a = il2cpp::api();
     Il2CppClass* elem = a.class_get_element_class(a.object_get_class(reinterpret_cast<Il2CppObject*>(old)));
-    Il2CppArray* n = a.array_new(elem, newLength);   // ja zerado
+    Il2CppArray* n = a.array_new(elem, newLength);
     if (!n) return nullptr;
     int copyLength = static_cast<int>(old->length < newLength ? old->length : newLength);
     if (copyLength == 0) return n;
-    // Pelo Array.Copy do jogo: referencia (ou struct com referencia dentro)
-    // passa pela barreira de escrita do coletor.
     static const MethodInfo* copy = nullptr;
     if (!copy) {
         Il2CppClass* array = il2cpp::findClass({"System", "Array", {}});
@@ -128,7 +119,7 @@ void TypeTables::growInstanceTable(Il2CppObject* obj, int32_t offset, int vanill
     }
     Il2CppClass* elem = a.class_get_element_class(a.object_get_class(reinterpret_cast<Il2CppObject*>(old)));
     if (!a.class_is_valuetype(elem)) return;
-    Il2CppArray* n = a.array_new(elem, static_cast<uintptr_t>(size));   // ja zerado
+    Il2CppArray* n = a.array_new(elem, static_cast<uintptr_t>(size));
     if (!n) return;
     uint32_t align = 0;
     const size_t elemSize = static_cast<size_t>(a.class_value_size(elem, &align));
@@ -145,29 +136,23 @@ void TypeTables::find(uintptr_t size) {
         return;
     }
     for (const TableClass& c : classes_) {
-        // Quieto: classe que nao existe nesta versao so fica de fora.
         Il2CppClass* cls = il2cpp::findClassQuiet(c.ns, c.name);
         if (cls && c.nested[0]) cls = il2cpp::findNested(cls, c.nested);
         if (cls && c.nested2[0]) cls = il2cpp::findNested(cls, c.nested2);
         if (!cls) continue;
-        // O construtor estatico primeiro: sem ele as tabelas da classe ainda
-        // sao nulas (ProjectileID.Sets inteira, na primeira vez), ficam como
-        // "pendentes" e so crescem no quadro seguinte — depois do
-        // SetStaticDefaults do mod, que a esta altura ja leu e escreveu alem
-        // do fim. Com a classe iniciada aqui, elas crescem junto com o resto.
         if (a.runtime_class_init) a.runtime_class_init(cls);
         int found = 0, pending = 0;
         void* it = nullptr;
         while (FieldInfo* f = a.class_get_fields(cls, &it)) {
             const uint32_t flags = a.field_get_flags(f);
-            if (!(flags & 0x10) || (flags & 0x40)) continue;          // so estatico, sem const
+            if (!(flags & 0x10) || (flags & 0x40)) continue;
             if (!c.skip.empty()) {
                 const char* name = fieldName(f);
                 bool skipped = false;
                 for (const std::string& s : c.skip) skipped = skipped || s == name;
                 if (skipped) continue;
             }
-            if (static_cast<int64_t>(a.field_get_offset(f)) == -1) continue;  // thread-static
+            if (static_cast<int64_t>(a.field_get_offset(f)) == -1) continue;
             char* typeName = a.type_get_name(a.field_get_type(f));
             const bool isArray = typeName && std::strlen(typeName) > 2 &&
                                  std::strcmp(typeName + std::strlen(typeName) - 2, "[]") == 0;
@@ -207,16 +192,13 @@ int TypeTables::grow(int from, int to) {
 }
 
 void TypeTables::checkPending(int size) {
-    // A cada quadro, e nao a cada 2 s como o watch: entre a criacao e o
-    // aumento, uma consulta pelo tipo novo le fora do array. Custa uma leitura
-    // de campo estatico por pendente.
     for (size_t i = 0; i < pending_.size();) {
         FieldInfo* f = pending_[i];
         Il2CppArray* arr = readStatic(f);
         if (!arr) { ++i; continue; }
         pending_[i] = pending_.back();
         pending_.pop_back();
-        if (arr->length != static_cast<uintptr_t>(vanillaCount_)) continue;   // nao e deste tipo
+        if (arr->length != static_cast<uintptr_t>(vanillaCount_)) continue;
         Il2CppArray* bigger = growArray(arr, static_cast<uintptr_t>(size), fill_);
         if (!bigger) continue;
         il2cpp::api().field_static_set_value(f, bigger);
@@ -229,7 +211,7 @@ void TypeTables::watch(int size, Regrown onRegrown) {
     for (FieldInfo* f : tables_) {
         Il2CppArray* arr = readStatic(f);
         if (!arr || arr->length >= static_cast<uintptr_t>(size)) continue;
-        if (arr->length != static_cast<uintptr_t>(vanillaCount_)) continue;   // nao e nossa
+        if (arr->length != static_cast<uintptr_t>(vanillaCount_)) continue;
         Il2CppArray* bigger = growArray(arr, static_cast<uintptr_t>(size), fill_);
         if (!bigger) continue;
         il2cpp::api().field_static_set_value(f, bigger);
@@ -238,4 +220,4 @@ void TypeTables::watch(int size, Regrown onRegrown) {
     }
 }
 
-} // namespace bl::runtime
+}

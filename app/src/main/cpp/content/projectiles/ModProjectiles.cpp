@@ -18,23 +18,19 @@ namespace {
 
 struct Entry {
     ModProjectileDef def;
-    int width = 0, height = 0;   // de UM quadro
-    int textureHeight = 0;       // a tira inteira
-    uint32_t asset = 0;          // gchandle do Asset<Texture2D>: reaplicado se a tabela for refeita
+    int width = 0, height = 0;
+    int textureHeight = 0;
+    uint32_t asset = 0;
 };
 
 std::mutex g_mx;
-std::vector<Entry> g_regs;               // indice = type - kVanillaProjectileCount
+std::vector<Entry> g_regs;
 std::mutex g_hooksMx;
 std::vector<ProjectilesInstalledHook> g_installedHooks;
 std::atomic<int> g_total{0};
 std::atomic<int> g_installed{0};
 bool g_failed = false;
 
-// Conferida contra toda alocacao de 1136 posicoes na libil2cpp (`mov #0x470`
-// antes de um new[]): TextureAssets, ProjectileID.Sets, Lang e Main tem as
-// estaticas; a de Player e por instancia, e a de duas dimensoes do Projectile
-// (perIDStaticNPCImmunity) cresce a parte (abaixo).
 TypeTables g_tables("projeteis de mod", kVanillaProjectileCount, {
     {"Terraria.ID", "ProjectileID", "Sets"},
     {"Terraria", "Main", ""},
@@ -45,15 +41,15 @@ TypeTables g_tables("projeteis de mod", kVanillaProjectileCount, {
 
 struct Refs {
     bool tried = false, ok = false;
-    FieldInfo* textures = nullptr;     // TextureAssets.Projectile
-    FieldInfo* names = nullptr;        // Lang._projectileNameCache
-    FieldInfo* frames = nullptr;       // Main.projFrames
-    FieldInfo* players = nullptr;      // Main.player
-    FieldInfo* staticImmunity = nullptr;   // Projectile.perIDStaticNPCImmunity (uint[,])
-    int32_t ownedCounts = -1;          // Player.ownedProjectileCounts
-    int32_t width = -1, height = -1;   // Entity
-    int32_t active = -1;               // Projectile (declarado nele, nao em Entity)
-    int32_t scale = -1, penetrate = -1, maxPenetrate = -1;   // Projectile
+    FieldInfo* textures = nullptr;
+    FieldInfo* names = nullptr;
+    FieldInfo* frames = nullptr;
+    FieldInfo* players = nullptr;
+    FieldInfo* staticImmunity = nullptr;
+    int32_t ownedCounts = -1;
+    int32_t width = -1, height = -1;
+    int32_t active = -1;
+    int32_t scale = -1, penetrate = -1, maxPenetrate = -1;
     const MethodInfo* playerCtor = nullptr;
 };
 
@@ -115,7 +111,6 @@ void applyFrames(int type, const Entry& e) {
     }
 }
 
-/** Tabela que o jogo refez (a troca de idioma refaz os nomes): reaplica o nosso. */
 void onTableRegrown(FieldInfo* f, int size) {
     const Refs& r = refs();
     std::lock_guard<std::mutex> l(g_mx);
@@ -135,13 +130,6 @@ bool gameReady(int size) {
     return textures && names && readStatic(r.frames) &&
            textures->length == static_cast<uintptr_t>(size) && names->length >= static_cast<uintptr_t>(size);
 }
-
-// ---- Player.ownedProjectileCounts ----
-//
-// int[ProjectileID.Count] em CADA jogador, escrito todo quadro pelo tipo de
-// cada projetil vivo dele: sem aumentar, um projetil de mod escreve alem do fim
-// do array. Os 256 de Main.player ja existem na instalacao; os que nascerem
-// depois (carregar personagem, clone para a rede) passam pelo construtor.
 
 using PlayerCtorFn = void (*)(Il2CppObject*, const MethodInfo*);
 PlayerCtorFn g_origPlayerCtor = nullptr;
@@ -175,13 +163,6 @@ void growPlayers(int size) {
     BL_DEBUG("projeteis de mod: ownedProjectileCounts aumentada em %d jogador(es)", grown);
 }
 
-// ---- Projectile.perIDStaticNPCImmunity: uint[ProjectileID.Count, MaxNPCs] ----
-//
-// Desde a 1.4.5.8 o celular tem a do PC: a imunidade dos projeteis com
-// usesIDStaticNPCImmunity e por TIPO, numa tabela de duas dimensoes. O
-// TypeTables so acha `T[]`; esta cresce aqui. As linhas sao contiguas (tipo *
-// MaxNPCs + npc), entao a antiga e o comeco da nova.
-
 struct ArrayBounds {
     uintptr_t length;
     int32_t lowerBound;
@@ -196,7 +177,7 @@ void growStaticImmunity(int size) {
     if (bounds[0].length != static_cast<uintptr_t>(kVanillaProjectileCount)) return;
     Il2CppClass* arrayClass = a.object_get_class(reinterpret_cast<Il2CppObject*>(old));
     uintptr_t lengths[2] = {static_cast<uintptr_t>(size), bounds[1].length};
-    Il2CppArray* n = a.array_new_full(arrayClass, lengths, nullptr);   // ja zerado
+    Il2CppArray* n = a.array_new_full(arrayClass, lengths, nullptr);
     if (!n) {
         BL_ERROR("projeteis de mod: perIDStaticNPCImmunity nao aumentada");
         return;
@@ -207,7 +188,7 @@ void growStaticImmunity(int size) {
              static_cast<unsigned long>(lengths[1]));
 }
 
-} // namespace
+}
 
 int registerModProjectile(ModProjectileDef def) {
     std::lock_guard<std::mutex> l(g_mx);
@@ -279,8 +260,6 @@ void tickModProjectiles() {
     }
     BL_INFO("projeteis de mod: %d instalado(s) (ids %d..%d), %d tabela(s) aumentadas de %d para %d",
             total - installed, from, to - 1, grown, from, to);
-    // FORA da trava: o SetStaticDefaults entra no JS do mod, que pode pedir
-    // setModProjectileFrames.
     std::vector<ProjectilesInstalledHook> hooks;
     {
         std::lock_guard<std::mutex> l(g_hooksMx);
@@ -332,22 +311,14 @@ void finishModProjectile(Il2CppObject* projectile, int type) {
         const size_t i = static_cast<size_t>(type - kVanillaProjectileCount);
         if (i < g_regs.size()) { w = g_regs[i].width; h = g_regs[i].height; }
     }
-    // O SetDefaults do jogo termina todo tipo que nao conhece em `active =
-    // false` (o `else` do switch, visto na disassembly), e o NewProjectile
-    // devolvia um projetil morto. O resto do final dele roda normalmente.
     field<uint8_t>(projectile, r.active) = 1;
     if (field<int32_t>(projectile, r.width) <= 0 && w > 0) field<int32_t>(projectile, r.width) = w;
     if (field<int32_t>(projectile, r.height) <= 0 && h > 0) field<int32_t>(projectile, r.height) = h;
 
-    // O final do SetDefaults do jogo (SetDefaults_End no tModLoader) roda
-    // antes do mod e precisa ser refeito com os valores dele. Sem o
-    // maxPenetrate, todo projétil de mod ficava com 1, o de acerto único, que
-    // o Damage deixa ignorar a imunidade do NPC: o lacaio (penetrate -1)
-    // acertava todo quadro.
     const float scale = field<float>(projectile, r.scale);
     field<int32_t>(projectile, r.width) = static_cast<int32_t>(static_cast<float>(field<int32_t>(projectile, r.width)) * scale);
     field<int32_t>(projectile, r.height) = static_cast<int32_t>(static_cast<float>(field<int32_t>(projectile, r.height)) * scale);
     field<int32_t>(projectile, r.maxPenetrate) = field<int32_t>(projectile, r.penetrate);
 }
 
-} // namespace bl::runtime
+}

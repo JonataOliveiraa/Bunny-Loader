@@ -26,117 +26,66 @@ namespace {
 
 constexpr int kPowerCount = static_cast<int>(Power::Count);
 
-// Quantos niveis cada poder tem, na ordem do enum. Liga/desliga = 1.
 constexpr int kMaxLevel[] = {3, 2, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, kSliderLevels, kSliderLevels, 1,
                              kSliderLevels, 1, 1, 1, 2, 4, 1, 1, 2, 1,
                              1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 static_assert(std::size(kMaxLevel) == kPowerCount, "um nivel maximo por poder");
 
-// Indice 0 = desligado.
 constexpr float kDamage[] = {1.f, 2.f, 5.f, 10.f};
 constexpr float kRunSpeed[] = {1.f, 2.f, 3.f};
-// Somado ao jumpSpeed, que parte de 5,01: +5 e o dobro, +10 o triplo.
 constexpr float kJumpBoost[] = {0.f, 5.f, 10.f};
-// pickSpeed multiplica o tempo de uso da ferramenta: menor e mais rapido.
 constexpr float kToolSpeed = 0.25f;
 
-// Pixels por quadro do voo. A 60 quadros, 10 px sao ~37 blocos por segundo; a
-// corrida das Botas de Hermes fica perto de 6.
 constexpr float kFlySpeed[] = {0.f, 10.f, 22.f};
-// Mais que isto num quadro so nao e voo: e teleporte (espelho, cama, renascer),
-// e o voo deixa acontecer.
 constexpr float kTeleportDistance = 160.f;
-// Distancia minima da borda do mundo, a mesma que o Player.Ghost respeita.
-// Mais perto o jogo le bloco fora da matriz.
 constexpr float kWorldMargin = 640.f;
-// Quadros parado no chao que encerram a carencia de queda de quem desligou o
-// voo sem estar no ar.
 constexpr int kGraceStillFrames = 10;
 
-// Teto de lacaios e sentinelas. O ResetEffects parte de 1 e os acessorios somam.
 constexpr int32_t kUnlimitedMinions = 999;
 
-// As barras (chuva, vento, inimigos): o nivel e a posicao 0..100 mais um.
 float sliderPosition(int level) { return static_cast<float>(level - 1) / 100.f; }
 
-// A barra da chuva e o Main.maxRaining (o ChangeRain do jogo sorteia de 0,2 a
-// 0,9). Do ultimo quarto em diante e tempestade: nuvem >= 0,5 E |vento| >= 0,4
-// (Main.UpdateWindyDayState), entao sem o poder do vento ligado a tempestade
-// garante este minimo de vento.
 constexpr float kStormRain = 0.75f;
 constexpr float kStormWind = 0.6f;
-// O UpdateTime para a chuva quando rainTime zera; mantido acima disto, nunca.
 constexpr int32_t kRainTimeFloor = 3600;
-// O vento da barra vai de -0,8 a 0,8, como o slider da Jornada. O empurrao no
-// jogador (Player.HorizontalMovement) so olha o sinal e um limiar, entao
-// passar de 0,8 so mudaria o desenho.
 constexpr float kMaxWind = 0.8f;
 float windOf(int level) { return (sliderPosition(level) * 2.f - 1.f) * kMaxWind; }
 
-// A taxa de inimigos: a curva do SpawnRateSliderPerPlayerPower da Jornada
-// (meio da barra x1, de x0,1 a x10), e a ponta esquerda sem inimigo nenhum.
 float spawnMultiplierOf(int level) {
     const float t = sliderPosition(level);
     if (t <= 0.f) return 0.f;
     return t < 0.5f ? 0.1f + (t / 0.5f) * 0.9f : 1.f + ((t - 0.5f) / 0.5f) * 9.f;
 }
 
-// Ids de NPC percorridos no bestiario. Os negativos (variantes) descem a -65.
 constexpr int32_t kFirstNpcNetId = -128;
 constexpr int32_t kLastNpcNetId = 4096;
 
-// Os botoes de hora da Jornada: Main.SkipToTime(tempo, dia). O relogio do jogo
-// conta a partir do amanhecer (4:30) de dia e do anoitecer (19:30) de noite.
 struct TimeOfDay { int32_t time; bool day; };
 constexpr TimeOfDay kTimesOfDay[] = {
-    {0, true},        // amanhecer, 4:30
-    {27000, true},    // meio-dia
-    {0, false},       // anoitecer, 19:30
-    {16200, false},   // meia-noite
+    {0, true},
+    {27000, true},
+    {0, false},
+    {16200, false},
 };
 
-// Mochila: os 50 espacos de cima (barra rapida + 40). Moeda e municao vem
-// depois (50..57) e ficam.
 constexpr int kInventorySlots = 50;
 
-// Revelar o mapa: tempo por quadro. O mapa inteiro de um mundo grande sao 20
-// milhoes de tiles; de uma vez so, o jogo travava segundos.
 constexpr auto kRevealBudget = std::chrono::milliseconds(12);
-// Revelar o mapa no cliente: ele so tem os tiles das partes do mundo que o
-// servidor ja mandou (o resto e ar). O servidor manda as que faltam pelo
-// NetMessage.SendSection, o que o jogo faz enquanto se anda, estas por quadro;
-// o cliente revela quando chegam todas, ou quando param de chegar.
 constexpr int kSectionsPerFrame = 10;
-constexpr int kSectionWaitCheck = 30;     // quadros entre as conferencias do cliente
-constexpr int kSectionStallChecks = 10;   // conferencias sem parte nova: revela o que tem
+constexpr int kSectionWaitCheck = 30;
+constexpr int kSectionStallChecks = 10;
 
-// Teleporte no mapa: segurar parado este tempo. "Parado" e dentro de 1/40 da
-// altura da tela — o dedo treme, e arrastar o mapa anda muito mais que isso.
-// 2,5 s ficava comprido na mao, e 2 s ainda demorava (pedido do usuario):
-// 1 s. Arrastar o mapa nao dispara: anda mais que a folga logo de cara.
 constexpr auto kMapHoldTime = std::chrono::milliseconds(1000);
 constexpr int kMapHoldSlopDiv = 40;
-// Bloco livre mais perto do toque: sobe ate isto de tiles, depois desce.
 constexpr int kTeleportSearchTiles = 150;
-// Borda do mundo que o teleporte respeita, em tiles (a mesma margem do voo).
 constexpr int kWorldMarginTiles = 41;
 
-constexpr int32_t kNetClient = 1;      // Main.netMode de quem entrou num servidor
+constexpr int32_t kNetClient = 1;
 
-// Mensagens do jogo usadas para mandar o mundo aos clientes (MessageID).
 constexpr int kMsgWorldData = 7;
 constexpr int kMsgTimeSync = 18;
-// Com poder de mundo segurando algo (tempo parado, chuva, vento), o servidor
-// reenvia o mundo nesse intervalo, em quadros: o cliente simula o relogio e o
-// clima sozinho entre uma sincronizacao e outra.
 constexpr int kWorldResyncFrames = 60;
 
-/**
- * Os poderes que mexem no MUNDO, nao no jogador. No cliente eles valem na
- * tela dele, mas quem manda no mundo e o servidor: o menu do cliente tambem
- * pede a ele (ver forwardWorldPowers).
- */
-/** Os que comecam um evento, de BloodMoon a Sandstorm. */
 bool isEventPower(Power p) { return p >= Power::BloodMoon && p <= Power::Sandstorm; }
 
 bool isWorldPower(Power p) {
@@ -150,10 +99,6 @@ bool isWorldPower(Power p) {
     }
 }
 
-/**
- * Os de mundo que sao pedido, nao estado: rodam uma vez e o nivel volta a 0.
- * No cliente vao ao servidor e sao consumidos ali (forwardWorldPowers).
- */
 bool isWorldCommand(Power p) {
     switch (p) {
     case Power::Hardmode: case Power::Difficulty: case Power::ClearEnemies:
@@ -168,7 +113,6 @@ std::atomic<int> g_level[kPowerCount];
 
 int levelOf(Power p) { return g_level[static_cast<int>(p)].load(std::memory_order_relaxed); }
 
-/** Poderes que vivem no hook do ResetEffects. */
 bool usesResetHook(Power p) {
     switch (p) {
     case Power::TimeStop: case Power::XRay: case Power::Rain: case Power::Wind:
@@ -182,8 +126,6 @@ bool usesResetHook(Power p) {
     }
 }
 
-// ------------------------------ refs ------------------------------
-
 struct Vec2 { float x, y; };
 
 struct PlayerFields {
@@ -194,54 +136,42 @@ struct PlayerFields {
         dangerSense, maxMinions, maxTurrets, dead, respawnTimer;
 } P;
 
-// So o voo usa. Separado para um campo faltando desligar o voo, e nao tudo.
 struct FlyFields {
     int32_t position, velocity, width, height, dead, controlLeft, controlRight,
         controlUp, controlDown, controlJump, fallStart, fallStart2;
 } F;
 
-// Estaticos do Main.
 struct MainStatics {
     FieldInfo *time, *raining, *rainTime, *maxRaining, *cloudAlpha, *windCurrent,
         *windTarget, *leftWorld, *rightWorld, *topWorld, *bottomWorld, *bestiaryTracker;
 } M;
 
-int32_t g_npcImmune = -1;       // NPC.immune (int[], um por jogador)
-int32_t g_projHostile = -1;     // Projectile.hostile
-int32_t g_projFriendly = -1;    // Projectile.friendly
+int32_t g_npcImmune = -1;
+int32_t g_projHostile = -1;
+int32_t g_projFriendly = -1;
 
 const MethodInfo* g_getMyPlayer = nullptr;
 const MethodInfo* g_reset = nullptr;
 const MethodInfo* g_playerUpdate = nullptr;
 const MethodInfo* g_npcUpdate = nullptr;
 const MethodInfo* g_projUpdate = nullptr;
-// CoinLossRevengeSystem.Update: o DoUpdateInWorld do celular o chama logo
-// depois de encher a vida e a mana de quem tem creativeGodMode (ver
-// hkRevengeUpdate), e so ali.
 const MethodInfo* g_revengeUpdate = nullptr;
 
-/**
- * Os dois motores de luz. O jogo usa um de cada vez, conforme o modo de luz
- * das opcoes: LightingEngine para Cor/Branco, LegacyLighting para
- * Retro/Psicodelico. Os dois calculam num mapa de trabalho e o Present troca
- * pelo ativo, que e o que o desenho le.
- */
 struct LightEngine {
     const char* name;
     const MethodInfo* present = nullptr;
-    int32_t activeMap = -1;     // _activeLightMap
+    int32_t activeMap = -1;
 };
 LightEngine g_engines[] = {{"LightingEngine"}, {"LegacyLighting"}};
-int32_t g_mapColors = -1;       // LightMap._colors (Vector3[])
+int32_t g_mapColors = -1;
 
 struct BestiaryRefs {
-    int32_t kills = -1, sights = -1, chats = -1;   // BestiaryUnlocksTracker
-    FieldInfo* creditIds = nullptr;   // ContentSamples.NpcBestiaryCreditIdsByNpcNetIds
+    int32_t kills = -1, sights = -1, chats = -1;
+    FieldInfo* creditIds = nullptr;
     const MethodInfo *killsNeeded = nullptr, *getKills = nullptr, *setKills = nullptr,
         *setSeen = nullptr, *setChatted = nullptr;
 } B;
 
-/** Mundo: hora, hardmode, dificuldade, spawn, mapa, mochila, teleporte. */
 struct WorldRefs {
     FieldInfo *hardMode = nullptr, *netMode = nullptr, *maxTilesX = nullptr, *maxTilesY = nullptr,
         *npc = nullptr, *player = nullptr;
@@ -257,10 +187,9 @@ struct WorldRefs {
     int32_t playerActive = -1;
     int32_t npcActive = -1, npcTown = -1, npcFriendly = -1, npcDamage = -1;
     int32_t inventory = -1, favorited = -1;
-    int32_t uiMouseX = -1, uiMouseY = -1;   // XNAUnityRunner.MouseStateBackup
+    int32_t uiMouseX = -1, uiMouseY = -1;
 } W;
 
-/** Eventos: as flags do Main e dos eventos, e os metodos que o jogo usa para comecar. */
 struct EventRefs {
     FieldInfo *dayTime = nullptr, *bloodMoon = nullptr, *eclipse = nullptr, *raining = nullptr,
         *slimeRain = nullptr, *pumpkinMoon = nullptr, *snowMoon = nullptr,
@@ -271,34 +200,30 @@ struct EventRefs {
         *startInvasion = nullptr, *startPumpkinMoon = nullptr, *startSnowMoon = nullptr,
         *stopMoonEvent = nullptr, *toggleParty = nullptr, *startSandstorm = nullptr,
         *stopSandstorm = nullptr, *stopOldOnesArmy = nullptr;
-    int32_t statLifeMax = -1;   // Player.statLifeMax: a invasao pede alguem com 200
+    int32_t statLifeMax = -1;
 } E;
 
 enum class State { NotTried, Ok, Failed };
 State g_refs = State::NotTried;
-// Refs de cada grupo opcional: faltar uma desliga so aquele poder.
 bool g_flyRefs = false, g_weatherRefs = false, g_lightRefs = false, g_bestiaryRefs = false;
 bool g_timeRefs = false, g_hardmodeRefs = false, g_spawnRefs = false, g_mapRefs = false,
     g_inventoryRefs = false, g_teleportRefs = false, g_sectionRefs = false, g_eventRefs = false;
 State g_spawnHook = State::NotTried;
 State g_playerHook = State::NotTried;
 State g_timeHooks = State::NotTried;
-State g_playerUpdateHook = State::NotTried;   // o voo e a mana do Imortal
+State g_playerUpdateHook = State::NotTried;
 State g_revengeHook = State::NotTried;
 State g_lightHooks = State::NotTried;
 
-// O jogador deste aparelho. -1 fora do mundo. Escrito no DoUpdate, lido nos
-// hooks — todos na thread do jogo, o atomico e so para deixar isso explicito.
 std::atomic<int> g_localPlayer{-1};
 
 struct FieldName { int32_t* dst; const char* name; };
 
-/** Resolve os offsets; loga e devolve false se faltar algum. */
 template <size_t N>
 bool resolveOffsets(Il2CppClass* cls, const FieldName (&fields)[N]) {
     bool ok = true;
     for (const auto& c : fields) {
-        *c.dst = il2cpp::fieldOffset(cls, c.name);   // loga o que faltar
+        *c.dst = il2cpp::fieldOffset(cls, c.name);
         if (*c.dst < 0) ok = false;
     }
     return ok;
@@ -367,8 +292,6 @@ bool resolveBestiaryRefs(Il2CppClass* main) {
     bool ok = resolveOffsets(tracker, fields);
     M.bestiaryTracker = findField(main, "BestiaryTracker");
     B.creditIds = findField(samples, "NpcBestiaryCreditIdsByNpcNetIds");
-    // GetKillCount tem dois overloads de um parametro (NPC e string): pelo nome
-    // so, sairia qualquer um.
     B.killsNeeded = methodBySignature(enemy, "int GetKillCountNeeded(string persistentId)");
     B.getKills = methodBySignature(kills, "int GetKillCount(string persistentId)");
     B.setKills = methodBySignature(kills,
@@ -379,7 +302,6 @@ bool resolveBestiaryRefs(Il2CppClass* main) {
            B.setKills && B.setSeen && B.setChatted;
 }
 
-/** Um grupo opcional: loga o que faltou e diz se o grupo inteiro esta la. */
 bool allFound(const char* group, std::initializer_list<const void*> refs) {
     for (const void* r : refs) {
         if (!r) {
@@ -456,8 +378,6 @@ void resolveWorldRefs(Il2CppClass* main, Il2CppClass* player) {
     W.solidCollision = methodBySignature(collision,
                                          "bool SolidCollision(Vector2 Position, int Width, int Height)");
     W.getMapFullscreen = a.class_get_method_from_name(main, "get_mapFullscreen", 0);
-    // O mapa grande do celular nao passa o dedo para mouseX/mouseLeft (medido:
-    // ficam parados enquanto se segura ou arrasta). O toque vem da Unity.
     Il2CppClass* input = findClass({"UnityEngine", "Input", {}});
     Il2CppClass* screen = findClass({"UnityEngine", "Screen", {}});
     W.getTouchCount = input ? a.class_get_method_from_name(input, "get_touchCount", 0) : nullptr;
@@ -512,7 +432,6 @@ void resolveEventRefs(Il2CppClass* main, Il2CppClass* player) {
     E.startSnowMoon = methodBySignature(main, "void startSnowMoon()");
     E.stopMoonEvent = methodBySignature(main, "void stopMoonEvent()");
     E.toggleParty = methodBySignature(party, "void ToggleManualParty()");
-    // Privados no jogo; o il2cpp chama igual.
     E.startSandstorm = methodBySignature(sandstorm, "void StartSandstorm()");
     E.stopSandstorm = methodBySignature(sandstorm, "void StopSandstorm()");
     E.stopOldOnesArmy = methodBySignature(oldOnes, "void StopInvasion(bool win)");
@@ -610,25 +529,17 @@ void writeStatic(FieldInfo* f, T v) {
     il2cpp::api().field_static_set_value(f, &v);
 }
 
-/**
- * Getter estatico sem argumento, chamado direto pelo ponteiro: os do mapa e do
- * toque rodam todo quadro, e o runtime_invoke encaixotaria o retorno (lixo
- * para o GC a cada quadro).
- */
 template <typename R>
 R callStatic(const MethodInfo* m) {
     return reinterpret_cast<R (*)(const MethodInfo*)>(il2cpp::methodPointer(m))(m);
 }
 
-/** O jogador deste aparelho, ou null. */
 Il2CppObject* localPlayer() {
     const int i = g_localPlayer.load(std::memory_order_relaxed);
     auto* players = readStatic<Il2CppArray*>(W.player);
     if (i < 0 || !players || static_cast<uintptr_t>(i) >= players->length) return nullptr;
     return static_cast<Il2CppObject**>(arrayData(players))[i];
 }
-
-// ------------------------------ jogador ------------------------------
 
 using ResetFn = void (*)(Il2CppObject*, const MethodInfo*);
 ResetFn g_origReset = nullptr;
@@ -645,18 +556,13 @@ void applyPowers(Il2CppObject* p) {
         field<float>(p, P.minionDamage) *= k;
     }
     if ((n = levelOf(Power::Speed)) > 0) {
-        // O Update multiplica maxRunSpeed e runAcceleration por moveSpeed
-        // depois daqui — e o mesmo caminho das Botas de Hermes e da pocao.
         field<float>(p, P.moveSpeed) *= kRunSpeed[n];
     }
     if ((n = levelOf(Power::Jump)) > 0) {
         field<float>(p, P.jumpSpeedBoost) += kJumpBoost[n];
-        // Pulo triplo cai de uma altura que mata. Sem isto o poder e armadilha.
         field<uint8_t>(p, P.noFallDmg) = 1;
     }
     if (levelOf(Power::God) > 0) {
-        // O modo deus da Jornada: Hurt e KillMe olham este campo e desistem.
-        // Nao cobre veneno (sai direto da vida), dai encher a vida tambem.
         field<uint8_t>(p, P.creativeGodMode) = 1;
         int32_t& lifeRef = field<int32_t>(p, P.statLife);
         if (lifeRef < field<int32_t>(p, P.statLifeMax2)) lifeRef = field<int32_t>(p, P.statLifeMax2);
@@ -669,8 +575,6 @@ void applyPowers(Il2CppObject* p) {
         if (mana < field<int32_t>(p, P.statManaMax2)) mana = field<int32_t>(p, P.statManaMax2);
     }
     if (levelOf(Power::InfiniteJump) > 0) {
-        // O pulo da Nuvem na Garrafa, recarregado todo quadro: cada toque no
-        // ar e mais um pulo.
         field<uint8_t>(p, P.hasJumpOption_Cloud) = 1;
         field<uint8_t>(p, P.canJumpAgain_Cloud) = 1;
     }
@@ -684,22 +588,14 @@ void applyPowers(Il2CppObject* p) {
         field<uint8_t>(p, P.dangerSense) = 1;
     }
     if (levelOf(Power::Fly) > 0) {
-        // O voo zera a queda a cada quadro; isto cobre o quadro em que ele
-        // desliga no ar.
         field<uint8_t>(p, P.noFallDmg) = 1;
     }
     if (levelOf(Power::Minions) > 0) {
-        // Os acessorios somam depois daqui (UpdateEquips), por cima do teto.
         field<int32_t>(p, P.maxMinions) = kUnlimitedMinions;
         field<int32_t>(p, P.maxTurrets) = kUnlimitedMinions;
     }
 }
 
-/**
- * Desligar o voo no alto: o jogo mede a queda a partir de onde ela comeca, e
- * ela comeca ali — cair do teto do mundo mataria. Ate pousar, sem dano de
- * queda. Thread do jogo: ligada no tickPowers, encerrada aqui.
- */
 bool g_fallGrace = false;
 bool g_graceFell = false;
 int g_graceStill = 0;
@@ -712,7 +608,6 @@ void holdFallGrace(Il2CppObject* p) {
         g_graceFell = true;
         g_graceStill = 0;
     } else if (vy == 0.f && (g_graceFell || ++g_graceStill >= kGraceStillFrames)) {
-        // Caiu e parou (pousou), ou nunca caiu: desligou o voo no chao.
         g_fallGrace = false;
     }
 }
@@ -720,26 +615,14 @@ void holdFallGrace(Il2CppObject* p) {
 void hkResetEffects(Il2CppObject* self, const MethodInfo* m) {
     g_origReset(self, m);
     if (!g_anyPlayerPower.load(std::memory_order_relaxed)) return;
-    // ResetEffects roda para todo jogador ativo; o poder e so do deste aparelho.
     if (field<int32_t>(self, P.whoAmI) != g_localPlayer.load(std::memory_order_relaxed)) return;
     applyPowers(self);
     if (g_fallGrace) holdFallGrace(self);
 }
 
-// ------------------------------ voo ------------------------------
-
 using PlayerUpdateFn = void (*)(Il2CppObject*, int32_t, const MethodInfo*);
 PlayerUpdateFn g_origPlayerUpdate = nullptr;
 
-/**
- * Voo que atravessa parede: o Update roda inteiro (controles, animacao, uso de
- * item, gravidade, colisao) e depois a posicao volta para onde estava, mais o
- * que o direcional pediu. Tudo o que o Update moveu — gravidade, colisao,
- * empurrao de vento, agua — some junto.
- *
- * Os controles sao os do proprio quadro: o Update os copia do
- * PlayerInput.Triggers no comeco, e no celular e o joystick que os liga.
- */
 void flyUpdate(Il2CppObject* self, int32_t i, const MethodInfo* m, int n) {
     const Vec2 before = field<Vec2>(self, F.position);
     g_origPlayerUpdate(self, i, m);
@@ -767,24 +650,11 @@ void flyUpdate(Il2CppObject* self, int32_t i, const MethodInfo* m, int n) {
 
     pos = next;
     field<Vec2>(self, F.velocity) = Vec2{0.f, 0.f};
-    // Voando, a queda nunca comeca. Desligar no alto e com a carencia
-    // (holdFallGrace).
     const int32_t tileY = static_cast<int32_t>(next.y / 16.f);
     field<int32_t>(self, F.fallStart) = tileY;
     field<int32_t>(self, F.fallStart2) = tileY;
 }
 
-// ------------------------------ mana do imortal ------------------------------
-
-/**
- * O Imortal e o creativeGodMode da Jornada, e com ele o DoUpdateInWorld enche
- * vida, mana e folego do jogador local depois do laco dos jogadores (o
- * UpdateWorld_Players do PC). A mana cheia e da Mana infinita, nao do Imortal:
- * a mana do fim do Player.Update volta no CoinLossRevengeSystem.Update, a
- * chamada seguinte ao enchimento.
- *
- * -1: nada a devolver. Thread do jogo.
- */
 int32_t g_manaBeforeRefill = -1;
 
 bool godKeepsMana() { return levelOf(Power::God) > 0 && levelOf(Power::Mana) == 0; }
@@ -810,21 +680,9 @@ void hkRevengeUpdate(Il2CppObject* self, const MethodInfo* m) {
     g_origRevengeUpdate(self, m);
 }
 
-// ------------------------------ raio-x ------------------------------
-
 using PresentFn = void (*)(Il2CppObject*, const MethodInfo*);
 PresentFn g_origPresent[std::size(g_engines)] = {};
 
-/**
- * Branco no mapa de luz inteiro. No celular o desenho de bloco, parede,
- * liquido, fundo e o preto do escuro (Main.DrawBlack) le o mapa direto
- * (Lighting.GetLightMap), sem passar pelo Lighting.GetColor — hookar so o
- * GetColor clarearia NPC e item e deixaria o mundo escuro.
- *
- * Roda depois do Present, que acabou de trocar o mapa ativo. O de trabalho,
- * o proximo a ser calculado, e reescrito inteiro pelo scan, entao desligar nao
- * deixa luz sobrando.
- */
 void whitenActiveMap(Il2CppObject* engine, int32_t activeMapOffset) {
     auto* map = field<Il2CppObject*>(engine, activeMapOffset);
     if (!map) return;
@@ -839,19 +697,10 @@ void hkPresent(Il2CppObject* self, const MethodInfo* m) {
     if (levelOf(Power::XRay) > 0) whitenActiveMap(self, g_engines[E].activeMap);
 }
 
-// ------------------------------ tempo ------------------------------
-
 using UpdateFn = void (*)(Il2CppObject*, int32_t, const MethodInfo*);
 UpdateFn g_origNpcUpdate = nullptr;
 UpdateFn g_origProjUpdate = nullptr;
 
-/**
- * NPC parado nao anda, nao anima e nao ataca: o UpdateNPC inteiro fica de fora.
- *
- * Menos a imunidade. E no UpdateNPC que ela desconta, e sem descontar o
- * primeiro golpe deixava o NPC imune ao jogador ate o tempo voltar — bater
- * num inimigo parado nao fazia nada depois da primeira vez.
- */
 void hkUpdateNPC(Il2CppObject* self, int32_t i, const MethodInfo* m) {
     if (levelOf(Power::TimeStop) == 0) { g_origNpcUpdate(self, i, m); return; }
     const int localIndex = g_localPlayer.load(std::memory_order_relaxed);
@@ -862,7 +711,6 @@ void hkUpdateNPC(Il2CppObject* self, int32_t i, const MethodInfo* m) {
     }
 }
 
-/** So o projetil inimigo para; o do jogador segue e acerta quem esta parado. */
 void hkProjUpdate(Il2CppObject* self, int32_t i, const MethodInfo* m) {
     if (levelOf(Power::TimeStop) != 0 && field<uint8_t>(self, g_projHostile) &&
         !field<uint8_t>(self, g_projFriendly)) {
@@ -876,7 +724,6 @@ bool g_haveFrozenTime = false;
 
 void holdClock() {
     if (levelOf(Power::TimeStop) == 0) { g_haveFrozenTime = false; return; }
-    // No menu a hora parada nao vale: o proximo mundo tem o relogio dele.
     if (!inWorld()) { g_haveFrozenTime = false; return; }
     if (!g_haveFrozenTime) {
         g_frozenTime = readStatic<double>(M.time);
@@ -886,22 +733,9 @@ void holdClock() {
     }
 }
 
-// ------------------------------ clima ------------------------------
-
-// O que foi aplicado no quadro anterior: desligar precisa de um quadro a mais
-// para desfazer a chuva e esquecer a direcao do vento.
 int g_rainApplied = 0;
 int g_windApplied = 0;
 
-/**
- * Chuva e vento sao estaticos do Main, escritos a cada quadro antes do
- * DoUpdate: o UpdateTime nao consegue parar a chuva nem o sorteio do vento
- * mudar a direcao enquanto o poder estiver ligado.
- *
- * Ligar a chuva e o StartRain(instant) que o slider da Jornada usa, sem o
- * sorteio de chuva de moedas; a nuvem ja entra no tom certo. Desligar e o
- * StopRain sem `instant`: o DoDraw clareia o ceu aos poucos.
- */
 void holdWeather() {
     const bool world = inWorld();
     const int rain = world ? levelOf(Power::Rain) : 0;
@@ -914,14 +748,12 @@ void holdWeather() {
         writeStatic(M.maxRaining, strength);
         writeStatic(M.cloudAlpha, strength);
     } else if (rain > 0 || (g_rainApplied > 0 && world)) {
-        // A ponta esquerda da barra segura o ceu seco; desligar so para a chuva.
         writeStatic<int32_t>(M.rainTime, 0);
         writeStatic<bool>(M.raining, false);
         writeStatic(M.maxRaining, 0.f);
     }
     g_rainApplied = rain;
 
-    // A barra do vento tem o lado: a esquerda sopra para a esquerda.
     float target = NAN;
     if (wind > 0) {
         target = windOf(wind);
@@ -931,22 +763,11 @@ void holdWeather() {
     }
     g_windApplied = wind;
     if (!std::isnan(target)) {
-        // Os dois, como o slider da Jornada: so o alvo, o atual chegaria nele
-        // em segundos.
         writeStatic(M.windTarget, target);
         writeStatic(M.windCurrent, target);
     }
 }
 
-// ------------------------------ bestiario ------------------------------
-
-/**
- * Uma entrada inteira: mortes suficientes para os drops com chance (o numero
- * que o proprio jogo pede, o do estandarte), visto e conversado — criatura,
- * inimigo e morador olham trackers diferentes, e aqui vao os tres.
- *
- * Nunca diminui a contagem de quem ja matou mais.
- */
 bool unlockEntry(Il2CppObject* kills, Il2CppObject* sights, Il2CppObject* chats,
                  Il2CppString* id) {
     auto& a = il2cpp::api();
@@ -967,12 +788,6 @@ bool unlockEntry(Il2CppObject* kills, Il2CppObject* sights, Il2CppObject* chats,
     return !exc;
 }
 
-/**
- * Percorre os NPCs pelo dicionario que o jogo usa para creditar o bestiario
- * (ContentSamples.NpcBestiaryCreditIdsByNpcNetIds: variante credita a entrada
- * da original). Vale para o mundo aberto e sai no save dele, como uma morte
- * normal.
- */
 void unlockBestiary() {
     using Clock = std::chrono::steady_clock;
     const auto start = Clock::now();
@@ -1020,8 +835,6 @@ void unlockBestiary() {
     }
 }
 
-// ------------------------------ instalacao ------------------------------
-
 State installHook(const char* name, const MethodInfo* target, void* fn, void** orig) {
     if (hook::install(target, fn, orig)) {
         BL_INFO("poderes: hook em %s", name);
@@ -1036,7 +849,6 @@ State installHook(const char* name, const MethodInfo* target, Fn fn, Fn* orig) {
     return installHook(name, target, reinterpret_cast<void*>(fn), reinterpret_cast<void**>(orig));
 }
 
-/** Os dois Present. Basta um: o jogo so usa o do modo de luz escolhido. */
 State installLightHooks() {
     void* const hooks[] = {reinterpret_cast<void*>(&hkPresent<0>),
                            reinterpret_cast<void*>(&hkPresent<1>)};
@@ -1053,9 +865,6 @@ State installLightHooks() {
     return any ? State::Ok : State::Failed;
 }
 
-
-// ------------------------------ hora e mundo ------------------------------
-
 std::atomic<int> g_timeRequest{-1};
 std::atomic<int> g_stateHardmode{-1};
 std::atomic<int> g_stateGameMode{-1};
@@ -1064,21 +873,11 @@ std::atomic<int> g_stateRain{-1};
 std::atomic<int> g_stateWind{-1};
 std::atomic<int> g_stateInfection{-1};
 
-// ------------------------------ infeccao ------------------------------
-//
-// Parar a infeccao e o "Parar alastramento de biomas" da Jornada
-// (CreativePowers.StopBiomeSpreadPower): o WorldGen.UpdateWorld le o poder em
-// todo modo de jogo (GetIsUnlocked e sempre true) e desliga o
-// AllowedToSpreadInfections, que corrupcao, carmim e sagrado conferem antes de
-// espalhar. O jogo o salva no mundo, entao o estado e do mundo, como o hardmode.
-
 struct InfectionRefs {
     State state = State::NotTried;
-    // O poder vive o processo inteiro: o CreativePowerManager e unico e o
-    // segura no dicionario.
     Il2CppObject* power = nullptr;
-    int32_t enabled = -1;                  // ASharedTogglePower.<Enabled>k__BackingField
-    const MethodInfo* onJoin = nullptr;    // OnPlayerJoining(int): manda o estado a um cliente
+    int32_t enabled = -1;
+    const MethodInfo* onJoin = nullptr;
 } I;
 
 Il2CppObject* biomeSpreadPower() {
@@ -1114,11 +913,6 @@ Il2CppObject* biomeSpreadPower() {
     return power;
 }
 
-/**
- * 1 para, 2 solta. No servidor, quem ja esta no mundo recebe o estado novo
- * pelo mesmo pacote que o jogo manda a quem entra; quem espalha e o servidor,
- * os clientes so precisam dele para o menu.
- */
 void applyInfection(int command) {
     if (readStatic<int32_t>(W.netMode) == kNetClient) return;
     Il2CppObject* power = biomeSpreadPower();
@@ -1139,8 +933,6 @@ void applyInfection(int command) {
     }
 }
 
-// O estado do mundo sai todo quadro, com poder ligado ou nao: o menu mostra
-// hardmode e dificuldade assim que abre. Refs proprias, e so duas.
 State g_stateRefs = State::NotTried;
 FieldInfo* g_stateHardMode = nullptr;
 const MethodInfo* g_stateGetGameMode = nullptr;
@@ -1176,7 +968,6 @@ void updateWorldState() {
     g_stateHardmode.store(readStatic<bool>(g_stateHardMode) ? 1 : 0, std::memory_order_relaxed);
     g_stateGameMode.store(callStatic<int32_t>(g_stateGetGameMode), std::memory_order_relaxed);
 
-    // A hora no relogio: o inverso do clockToGameTime.
     const int32_t t = static_cast<int32_t>(readStatic<double>(g_stateTime));
     const int32_t s = readStatic<bool>(g_stateDayTime) ? t + 16200 : (t + 70200) % 86400;
     g_stateClock.store(std::clamp(s / 60, 0, 1439), std::memory_order_relaxed);
@@ -1190,23 +981,12 @@ void updateWorldState() {
     g_stateInfection.store(spread ? field<uint8_t>(spread, I.enabled) : -1, std::memory_order_relaxed);
 }
 
-/** O botao de hora: o mesmo SkipToTime dos botoes da Jornada. */
-/**
- * Mundo mudou no servidor: manda o estado aos clientes. A 7 (WorldData) leva
- * hora, dia/noite, chuva, vento, hardmode e modo de jogo; a 18 e a da hora,
- * com a altura do sol e da lua. Sem isto o cliente so ve na proxima rodada
- * de sincronizacao, e o relogio dele segue andando por conta propria.
- */
 void broadcastWorld(bool time) {
     if (!isNetHost()) return;
     sendData(kMsgWorldData, 0);
     if (time) sendData(kMsgTimeSync, 0);
 }
 
-/**
- * O relogio do jogo conta do amanhecer (4:30) de dia e do anoitecer (19:30)
- * de noite: 54000 s de dia e 32400 de noite, um dia de 24 h.
- */
 TimeOfDay clockToGameTime(int minute) {
     constexpr int32_t kDawn = 16200, kDusk = 70200, kDay = 86400;
     const int32_t s = minute * 60;
@@ -1221,17 +1001,11 @@ void applyTimeOfDay(int request) {
     void* args[] = {&t.time, &t.day};
     il2cpp::api().runtime_invoke(W.skipToTime, nullptr, args, &exc);
     if (exc) { BL_ERROR("poderes: SkipToTime lancou excecao"); return; }
-    // Com o tempo parado, e a hora nova que fica parada.
     g_haveFrozenTime = false;
     broadcastWorld(true);
     BL_INFO("poderes: hora -> %d (%s)", t.time, t.day ? "dia" : "noite");
 }
 
-/**
- * 1 liga do jeito do jogo — WorldGen.StartHardmode, o mesmo de matar a Parede
- * de Carne: mensagem, e o sagrado e a corrupcao abrindo o V no mapa. 2 so
- * desliga a flag; o que o hardmode espalhou fica.
- */
 void applyHardmode(int command) {
     if (readStatic<int32_t>(W.netMode) == kNetClient) {
         BL_INFO("poderes: hardmode so no mundo local");
@@ -1250,11 +1024,6 @@ void applyHardmode(int command) {
     broadcastWorld(false);
 }
 
-/**
- * Main.GameMode e o do arquivo do mundo (ActiveWorldFileData.GameMode): vale
- * na hora — expertMode e masterMode sao lidos dele — e sai no save. Os quatro
- * da criacao de mundo: Classico, Expert, Mestre e Jornada.
- */
 void applyDifficulty(int level) {
     if (readStatic<int32_t>(W.netMode) == kNetClient) return;
     int32_t mode = level - 1;
@@ -1266,23 +1035,15 @@ void applyDifficulty(int level) {
     broadcastWorld(false);
 }
 
-// ------------------------------ spawn ------------------------------
-
 using StaticVoidFn = void (*)(const MethodInfo*);
 StaticVoidFn g_origSpawnNpc = nullptr;
 
-/** NPC.SpawnNPC e o spawn natural inteiro; chefe invocado e evento nao passam por ele. */
 void hkSpawnNPC(const MethodInfo* m) {
     const int level = levelOf(Power::NoSpawns);
     if (level > 0 && spawnMultiplierOf(level) <= 0.f) return;
     g_origSpawnNpc(m);
 }
 
-/**
- * A taxa no meio do calculo do jogo, onde a Jornada aplica a dela: o
- * NPC.Spawner.GetSpawnRate devolve o intervalo (menor = mais vezes) e o teto
- * de inimigos por jogador; a taxa divide o primeiro e multiplica o segundo.
- */
 using SpawnRateFn = void (*)(Il2CppObject*, Il2CppObject*, int32_t*, int32_t*, const MethodInfo*);
 SpawnRateFn g_origSpawnRate = nullptr;
 State g_spawnRateHook = State::NotTried;
@@ -1297,10 +1058,6 @@ void hkGetSpawnRate(Il2CppObject* self, Il2CppObject* player, int32_t* rate, int
     *max = std::max<int32_t>(1, static_cast<int32_t>(*max * mult));
 }
 
-/**
- * Nivel 2: some com o que ja existe — tudo que machuca e nao e morador nem
- * amigo, chefe e invocado inclusive. Sem morte: nada de drop nem estandarte.
- */
 void clearHostiles() {
     if (readStatic<int32_t>(W.netMode) == kNetClient) return;
     auto* npcs = readStatic<Il2CppArray*>(W.npc);
@@ -1314,15 +1071,10 @@ void clearHostiles() {
             continue;
         }
         field<uint8_t>(n, W.npcActive) = 0;
-        // Desligado so aqui, o cliente seguia vendo o NPC: a mensagem 23 de
-        // um NPC inativo leva vida 0, e o cliente o desliga ao receber.
         if (isNetHost()) sendData(23, static_cast<int>(i));
     }
 }
 
-// ------------------------------ eventos ------------------------------
-
-// A vida maxima que o Main.StartInvasion pede de pelo menos um jogador.
 constexpr int32_t kInvasionLife = 200;
 
 bool invokeStatic(const MethodInfo* method, void** args, const char* name) {
@@ -1332,16 +1084,10 @@ bool invokeStatic(const MethodInfo* method, void** args, const char* name) {
     return !exc;
 }
 
-/** As luas sao de noite e o eclipse e de dia: o relogio vai la antes, como o botao de hora. */
 void ensureDayTime(bool day) {
-    if (readStatic<bool>(E.dayTime) != day) applyTimeOfDay(day ? 0 : 2);   // amanhecer, anoitecer
+    if (readStatic<bool>(E.dayTime) != day) applyTimeOfDay(day ? 0 : 2);
 }
 
-/**
- * O Main.StartInvasion nao comeca sem alguem de 200 de vida maxima (o jogo nao
- * manda goblin em quem acabou de nascer). Pelo menu comeca: sem ninguem assim,
- * o primeiro jogador ativo tem 200 so durante a chamada.
- */
 void startInvasion(int32_t type) {
     auto* players = readStatic<Il2CppArray*>(W.player);
     auto** all = players ? static_cast<Il2CppObject**>(arrayData(players)) : nullptr;
@@ -1357,14 +1103,9 @@ void startInvasion(int32_t type) {
     void* args[] = {&type};
     invokeStatic(E.startInvasion, args, "Main.StartInvasion");
     if (lifted) field<int32_t>(lifted, E.statLifeMax) = oldMax;
-    // Outra invasao em andamento: o jogo recusa.
     if (readStatic<int32_t>(E.invasionType) != type) BL_INFO("poderes: invasao %d recusada pelo jogo", type);
 }
 
-/**
- * Comeca o evento pelo metodo que o item que o invoca chama, com o aviso do
- * jogo. Lua de Sangue e eclipse nao tem metodo: sao a flag do Main.
- */
 void startEvent(Power p) {
     if (readStatic<int32_t>(W.netMode) == kNetClient) return;
     bool yes = true;
@@ -1379,7 +1120,6 @@ void startEvent(Power p) {
         writeStatic<bool>(E.eclipse, true);
         break;
     case Power::SlimeRain:
-        // O Main.StartSlimeRain nao comeca com chuva.
         if (readStatic<bool>(E.raining)) invokeStatic(E.stopRain, flag, "Main.StopRain");
         invokeStatic(E.startSlimeRain, flag, "Main.StartSlimeRain");
         break;
@@ -1410,11 +1150,6 @@ void startEvent(Power p) {
     BL_INFO("poderes: evento %d comecado", static_cast<int>(p));
 }
 
-/**
- * Acaba com tudo que esta acontecendo. A invasao sai pelas flags, sem o fim do
- * jogo: chegar ao fim conta como vitoria (o NPC.downedGoblins e companhia). Os
- * inimigos que ja vieram ficam; o "Sumir com inimigos" leva.
- */
 void stopEvents() {
     if (readStatic<int32_t>(W.netMode) == kNetClient) return;
     bool announce = true, win = false;
@@ -1436,9 +1171,6 @@ void stopEvents() {
     BL_INFO("poderes: eventos parados");
 }
 
-// ------------------------------ mochila ------------------------------
-
-/** Esvazia os 50 espacos de cima; favorito fica, como no "depositar tudo". */
 void clearInventory() {
     Il2CppObject* p = localPlayer();
     auto* inv = p ? field<Il2CppArray*>(p, W.inventory) : nullptr;
@@ -1456,9 +1188,7 @@ void clearInventory() {
     BL_INFO("poderes: mochila limpa (%d espacos)", cleared);
 }
 
-// ------------------------------ mapa ------------------------------
-
-int g_revealX = -1;      // proxima coluna a revelar; -1 = parado
+int g_revealX = -1;
 int g_revealFrames = 0;
 std::chrono::steady_clock::time_point g_revealStart;
 
@@ -1469,7 +1199,6 @@ void startReveal() {
     g_revealStart = std::chrono::steady_clock::now();
 }
 
-/** Um pedaco por quadro (kRevealBudget); no fim, o mapa redesenha. */
 void revealStep() {
     using Clock = std::chrono::steady_clock;
     Il2CppObject* map = callStatic<Il2CppObject*>(W.getMap);
@@ -1496,19 +1225,16 @@ void revealStep() {
         true, W.setRefreshMap);
 }
 
-// ------------------------------ revelar no multijogador ------------------------------
-
 struct SectionStream {
     int client;
-    int next;   // a proxima parte, y * maxSectionsX + x
+    int next;
 };
-std::vector<SectionStream> g_streams;   // servidor: quem pediu o mundo inteiro
+std::vector<SectionStream> g_streams;
 
-int g_revealWait = -1;    // cliente: quadros esperando as partes; -1 = parado
-int g_waitLoaded = -1;    // partes carregadas na ultima conferencia
-int g_waitStall = 0;      // conferencias seguidas sem parte nova
+int g_revealWait = -1;
+int g_waitLoaded = -1;
+int g_waitStall = 0;
 
-/** Servidor: kSectionsPerFrame partes por quadro a cada cliente que pediu. */
 void streamSections() {
     const int sx = readStatic<int32_t>(W.maxSectionsX);
     const int sy = readStatic<int32_t>(W.maxSectionsY);
@@ -1518,7 +1244,6 @@ void streamSections() {
         SectionStream& s = g_streams[k];
         auto* p = players && static_cast<uintptr_t>(s.client) < players->length
             ? static_cast<Il2CppObject**>(arrayData(players))[s.client] : nullptr;
-        // O SendSection pula a parte que o cliente ja tem.
         for (int n = 0; p && field<uint8_t>(p, W.playerActive) && n < kSectionsPerFrame && s.next < total; ++n, ++s.next) {
             int32_t client = s.client, x = s.next % sx, y = s.next / sx;
             void* args[3] = {&client, &x, &y};
@@ -1548,7 +1273,6 @@ int loadedSections() {
     return count;
 }
 
-/** Cliente: pede o mundo ao servidor e revela quando ele chegar. */
 void requestRevealFromServer() {
     if (g_revealWait >= 0 || g_revealX >= 0) return;
     if (!sendToServer("reveal 0")) {
@@ -1576,26 +1300,19 @@ void waitForSections() {
     startReveal();
 }
 
-// ------------------------------ teleporte no mapa ------------------------------
-
 struct MapHold {
     bool down = false, fired = false;
     int32_t x = 0, y = 0;
     std::chrono::steady_clock::time_point since;
 } g_hold;
 
-/** UnityEngine.Touch (0x44 bytes: volta pela memoria de retorno, x8, como no C#). */
 struct UnityTouch {
     int32_t fingerId;
-    Vec2 position;   // pixels do aparelho, a partir do canto de BAIXO
+    Vec2 position;
     uint8_t rest[0x44 - 12];
 };
 static_assert(sizeof(UnityTouch) == 0x44, "layout do UnityEngine.Touch");
 
-/**
- * O dedo, em pixels do aparelho a partir do canto de cima. false sem
- * exatamente um dedo na tela — dois e pinca de zoom.
- */
 bool touchPoint(int32_t* x, int32_t* y) {
     if (callStatic<int32_t>(W.getTouchCount) != 1) return false;
     int32_t index = 0;
@@ -1613,15 +1330,6 @@ bool solidAt(Vec2 pos, int32_t w, int32_t h) {
     return exc || unboxBool(r);
 }
 
-/**
- * Pixels do aparelho por pixel da interface do celular: o mapa grande
- * (GUIMap.DrawMap) desenha e le o dedo nas coordenadas da interface, e
- * mapFullscreenScale e em pixels DELA. O fator vem da configuracao de escala
- * da interface; em vez de reproduzir a conta, e medido no proprio toque: o
- * mouse da interface (XNAUnityRunner._uiMouseState) e o dedo da Unity sao o
- * mesmo ponto, e a relacao e linear, sem deslocamento (MuMu: 1250,470 no
- * aparelho = 796,299 na interface, 1,571 nos dois eixos).
- */
 float uiToDevice(int32_t devX, int32_t devY) {
     Il2CppObject* ui = callStatic<Il2CppObject*>(W.getUiMouse);
     if (!ui) return 0.f;
@@ -1629,10 +1337,6 @@ float uiToDevice(int32_t devX, int32_t devY) {
     return sum > 0 ? static_cast<float>(devX + devY) / static_cast<float>(sum) : 0.f;
 }
 
-/**
- * O tile sob o dedo no mapa grande: mapFullscreenPos (em tiles) fica no centro
- * da tela, e cada tile ocupa mapFullscreenScale pixels de interface.
- */
 void teleportToMapPoint(int32_t mx, int32_t my) {
     Il2CppObject* p = localPlayer();
     if (!p) return;
@@ -1654,10 +1358,8 @@ void teleportToMapPoint(int32_t mx, int32_t my) {
     const float maxY = static_cast<float>(readStatic<int32_t>(W.maxTilesY) - kWorldMarginTiles);
     const float clampedX = std::max<float>(kWorldMarginTiles, std::min(tx, maxX));
     const float clampedY = std::max<float>(kWorldMarginTiles, std::min(ty, maxY));
-    // Os pes no tile tocado.
     Vec2 target{clampedX * 16.f - w * 0.5f, (clampedY + 1.f) * 16.f - h};
 
-    // Dentro de bloco o jogador fica preso: procura ar, primeiro subindo.
     Vec2 spot = target;
     bool found = !solidAt(spot, w, h);
     for (int i = 1; !found && i <= kTeleportSearchTiles; ++i) {
@@ -1678,7 +1380,6 @@ void teleportToMapPoint(int32_t mx, int32_t my) {
             scale, k, tx, ty, spot.x, spot.y, found ? "" : " (sem ar por perto)");
 }
 
-/** Mapa grande aberto e o dedo parado no mesmo lugar por kMapHoldTime: vai. */
 void watchMapHold() {
     using Clock = std::chrono::steady_clock;
     int32_t mx = 0, my = 0;
@@ -1693,11 +1394,10 @@ void watchMapHold() {
         return;
     }
     if (g_hold.fired || now - g_hold.since < kMapHoldTime) return;
-    g_hold.fired = true;   // um teleporte por toque: segurar mais nao repete
+    g_hold.fired = true;
     teleportToMapPoint(g_hold.x, g_hold.y);
 }
 
-/** O que precisa do mundo aberto: comandos do menu e os poderes de mundo. */
 void tickWorldPowers() {
     const int time = g_timeRequest.exchange(-1, std::memory_order_relaxed);
     const bool clearInv = g_level[static_cast<int>(Power::ClearInventory)].exchange(0) > 0;
@@ -1743,7 +1443,6 @@ void tickWorldPowers() {
     }
     if (clearEnemies && g_spawnRefs) clearHostiles();
     if (infection > 0) applyInfection(infection);
-    // Parar vem antes: os dois no mesmo quadro deixam o evento novo.
     if (stopAll && g_eventRefs) stopEvents();
     for (int i = 0; i < kPowerCount; ++i) {
         if (events[i] && g_eventRefs) startEvent(static_cast<Power>(i));
@@ -1752,24 +1451,17 @@ void tickWorldPowers() {
     else g_hold.down = false;
 }
 
-// O nivel de cada poder de mundo que o servidor ja conhece (-1 = nunca mandado).
 int g_sentLevel[kPowerCount];
 bool g_sentInit = false;
-int g_heldLevel[kPowerCount];   // no servidor: o nivel do quadro anterior
+int g_heldLevel[kPowerCount];
 int g_resyncFrame = 0;
 
-/**
- * Cliente: o que mexe no mundo vira pedido ao servidor. Estado (tempo parado,
- * chuva, vento, sem inimigos) vai quando muda; comando (hora, hardmode,
- * dificuldade) vai e e consumido aqui, porque aplicado no cliente nao faz nada.
- */
 void forwardWorldPowers() {
     if (!g_sentInit) {
         for (int& v : g_sentLevel) v = -1;
         g_sentInit = true;
     }
     if (!inWorld()) {
-        // Ao entrar de novo num servidor, o que estiver ligado vai de novo.
         for (int& v : g_sentLevel) v = -1;
         return;
     }
@@ -1784,7 +1476,6 @@ void forwardWorldPowers() {
         const int i = static_cast<int>(p);
         const int v = levelOf(p);
         if (v == g_sentLevel[i]) continue;
-        // Desligado e nunca mandado: nada a pedir.
         if (!(v == 0 && g_sentLevel[i] < 0)) {
             sendToServer("power " + std::to_string(i) + " " + std::to_string(v));
         }
@@ -1792,10 +1483,6 @@ void forwardWorldPowers() {
     }
 }
 
-/**
- * Servidor: poder de mundo mudou, ou segue segurando algo, manda o mundo aos
- * clientes. Vale para o que veio do menu dele e do pedido de um cliente.
- */
 void resyncWorldFromHost() {
     if (!isNetHost() || !inWorld()) return;
     bool changed = false, holding = false;
@@ -1812,7 +1499,7 @@ void resyncWorldFromHost() {
     }
 }
 
-} // namespace
+}
 
 void revealMapForClient(int client) {
     if (!isNetHost() || client < 0 || client >= 255) return;
@@ -1865,7 +1552,7 @@ void tickPowers() {
     }
     const bool flying = levelOf(Power::Fly) > 0 && inWorld();
     if (g_wasFlying && !flying) {
-        g_fallGrace = inWorld() && g_flyRefs;   // le a velocidade pelas refs do voo
+        g_fallGrace = inWorld() && g_flyRefs;
         g_graceFell = false;
         g_graceStill = 0;
     }
@@ -1887,9 +1574,6 @@ void tickPowers() {
     const int localIndex = unboxInt(il2cpp::api().runtime_invoke(g_getMyPlayer, nullptr, nullptr, &exc));
     g_localPlayer.store(exc ? -1 : localIndex, std::memory_order_relaxed);
 
-    // Instalados aqui, na thread do jogo e entre quadros: nenhum deles esta
-    // rodando agora (o Present roda dentro do DoUpdate, que ainda nao comecou),
-    // entao reescrever o comeco deles e seguro.
     if (resetHook && g_playerHook == State::NotTried) {
         g_playerHook = installHook("Player.ResetEffects", g_reset, &hkResetEffects, &g_origReset);
     }
@@ -1916,8 +1600,6 @@ void tickPowers() {
     holdClock();
     if (g_weatherRefs) holdWeather();
 
-    // Reviver rapido: o UpdateDead conta o respawnTimer ate 0 e so entao chama
-    // o Spawn. Zerado aqui, antes do quadro, o jogador volta neste quadro.
     if (levelOf(Power::FastRespawn) > 0 && inWorld()) {
         Il2CppObject* p = localPlayer();
         if (p && field<uint8_t>(p, P.dead) && field<int32_t>(p, P.respawnTimer) > 0) {
@@ -1925,7 +1607,6 @@ void tickPowers() {
         }
     }
 
-    // Acao, nao estado: roda uma vez e o nivel volta a 0 sozinho.
     if (g_level[static_cast<int>(Power::Bestiary)].exchange(0) > 0 && inWorld() &&
         g_bestiaryRefs) {
         unlockBestiary();
@@ -1933,4 +1614,4 @@ void tickPowers() {
     tickWorldPowers();
 }
 
-} // namespace bl::runtime
+}

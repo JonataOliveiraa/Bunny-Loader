@@ -8,7 +8,6 @@ size_t skipSpace(const std::string& txt, size_t i) {
     return i;
 }
 
-// Le a string que comeca nas aspas de `i`; devolve o indice depois dela.
 size_t readString(const std::string& txt, size_t i, std::string* out) {
     for (++i; i < txt.size() && txt[i] != '"'; ++i) {
         if (txt[i] == '\\' && i + 1 < txt.size()) ++i;
@@ -17,16 +16,6 @@ size_t readString(const std::string& txt, size_t i, std::string* out) {
     return i + 1;
 }
 
-/**
- * Onde comeca o valor de uma chave do manifesto ("id", "name"...), ou npos.
- * Lido a mao: sao poucos campos, e puxar um parser de JSON para o nucleo por
- * causa deles nao se paga.
- *
- * So valem as chaves do objeto de FORA. `authors` tem um "name" por autor, e
- * um manifesto que lista os autores antes do nome do mod fazia o jogo chamar o
- * mod pelo nome do primeiro autor. Texto entre aspas (chave ou valor) nunca
- * conta como chave ou chave/colchete.
- */
 size_t manifestValue(const std::string& txt, const char* key) {
     int depth = 0;
     for (size_t i = 0; i < txt.size();) {
@@ -75,4 +64,4 @@ std::vector<std::string> manifestStrings(const std::string& txt, const char* key
     return out;
 }
 
-} // namespace bl::mods
+}

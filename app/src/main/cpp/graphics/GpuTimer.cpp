@@ -10,10 +10,10 @@ namespace bl::graphics {
 
 namespace {
 
-constexpr GLenum kTimeElapsed = 0x88BF;        // GL_TIME_ELAPSED_EXT
-constexpr GLenum kQueryResult = 0x8866;        // GL_QUERY_RESULT_EXT
-constexpr GLenum kQueryAvailable = 0x8867;     // GL_QUERY_RESULT_AVAILABLE_EXT
-constexpr GLenum kGpuDisjoint = 0x8FBB;        // GL_GPU_DISJOINT_EXT
+constexpr GLenum kTimeElapsed = 0x88BF;
+constexpr GLenum kQueryResult = 0x8866;
+constexpr GLenum kQueryAvailable = 0x8867;
+constexpr GLenum kGpuDisjoint = 0x8FBB;
 
 using GenQueriesFn = void (*)(GLsizei, GLuint*);
 using BeginQueryFn = void (*)(GLenum, GLuint);
@@ -40,8 +40,8 @@ struct Channel {
 
 Channel g_channels[2];
 std::atomic<bool> g_enabled{false};
-bool g_open = false;   // uma consulta de tempo aberta (de qualquer canal)
-int g_state = 0;       // 0 nao tentou, 1 ok, -1 sem extensao
+bool g_open = false;
+int g_state = 0;
 
 Channel& channel(GpuChannel c) {
     return g_channels[c == GpuChannel::Effect ? 0 : 1];
@@ -81,14 +81,13 @@ void collect(Channel& c) {
         uint64_t ns = 0;
         g_getui64v(c.queries[i], kQueryResult, &ns);
         c.pending[i] = false;
-        // Disjunto (troca de frequencia, preempcao): a medida nao vale.
         if (disjoint) continue;
         c.totalNs += static_cast<int64_t>(ns);
         c.samples++;
     }
 }
 
-} // namespace
+}
 
 void GpuTimer::Enable() {
     g_enabled.store(true);
@@ -98,7 +97,7 @@ bool GpuTimer::Begin(GpuChannel which) {
     if (!g_enabled.load(std::memory_order_relaxed) || g_open || !init()) return false;
     Channel& c = channel(which);
     collect(c);
-    if (c.pending[c.next]) return false;   // o slot ainda nao voltou: pula
+    if (c.pending[c.next]) return false;
     c.running = c.next;
     c.next = (c.next + 1) % kSlots;
     g_begin(kTimeElapsed, c.queries[c.running]);
@@ -125,4 +124,4 @@ void GpuTimer::Totals(GpuChannel which, int64_t& totalNs, int64_t& samples) {
     samples = c.samples.load();
 }
 
-} // namespace bl::graphics
+}

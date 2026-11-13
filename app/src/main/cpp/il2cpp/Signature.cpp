@@ -16,12 +16,6 @@ std::string trim(std::string_view s) {
     return std::string(s.substr(a, b - a + 1));
 }
 
-/**
- * Palavra-chave C# -> nome que o IL2CPP reporta.
- *
- * O modder escreve o que está no dump ("int", "float"); o
- * `il2cpp_type_get_name` devolve o nome do tipo do CLR ("System.Int32").
- */
 const char* keywordToClr(const std::string& kw) {
     struct Pair { const char* cs; const char* clr; };
     static const Pair kMap[] = {
@@ -42,13 +36,6 @@ const char* keywordToClr(const std::string& kw) {
 
 std::vector<std::string> splitParams(std::string_view inner);
 
-/**
- * Um nome de tipo genérico, separado: "System.Nullable`1<System.Single>" ->
- * base "System.Nullable", argumentos {"System.Single"}. A aridade (`1) sai
- * da base porque ninguém a escreve ao ler o dump, e o TL a escreve sem os
- * argumentos. Aceita <...> e [...] (os dois formatos do runtime); "[]" de
- * array não é genérico.
- */
 struct Generic {
     std::string base;
     std::vector<std::string> args;
@@ -78,7 +65,6 @@ Generic splitGeneric(const std::string& name) {
     return g;
 }
 
-/** "SpriteFont.Glyph" casa com "Microsoft.Xna.Framework.Graphics.SpriteFont/Glyph". */
 bool nameEndsWith(std::string got, const std::string& want) {
     for (char& c : got) if (c == '/' || c == '+') c = '.';
     if (got == want) return true;
@@ -88,11 +74,6 @@ bool nameEndsWith(std::string got, const std::string& want) {
 
 bool typeMatches(const std::string& want, const char* got);
 
-/**
- * Tipo genérico: `Nullable\`1` (como o TL escreve), `Nullable<float>` e
- * `float?` casam com o Nullable<Single> do runtime. Sem argumentos, a base
- * basta; com argumentos, cada um é conferido.
- */
 bool genericMatches(const std::string& want, const std::string& got) {
     Generic g = splitGeneric(got);
     if (!g.hasArgs) return false;
@@ -113,22 +94,8 @@ bool genericMatches(const std::string& want, const std::string& got) {
     return true;
 }
 
-/**
- * O tipo escrito pelo modder casa com o que o IL2CPP reporta?
- *
- * Três formas aceitas, da mais estrita para a mais frouxa:
- *   1. igual              ("System.Int32" == "System.Int32")
- *   2. palavra-chave C#   ("int"          -> "System.Int32")
- *   3. só o nome curto    ("ItemVariant"  -> "Terraria.ItemVariant")
- *   4. genérico           ("Nullable`1", "Nullable<float>", "float?"
- *                          -> Nullable<Single>; ver genericMatches)
- *
- * A terceira existe porque ninguém escreve o namespace inteiro ao ler o dump,
- * e é segura o bastante: o conjunto candidato já está limitado aos overloads
- * de um método de uma classe.
- */
 bool typeMatches(const std::string& want, const char* got) {
-    if (want.empty() || !got) return true;  // não especificado = não verifica
+    if (want.empty() || !got) return true;
     if (want == got) return true;
 
     if (const char* clr = keywordToClr(want)) {
@@ -137,15 +104,9 @@ bool typeMatches(const std::string& want, const char* got) {
 
     if (genericMatches(want, got)) return true;
 
-    // Sufixo após o último ponto, preservando "[]"/"&" que vierem junto — e
-    // tipo aninhado, que o runtime separa com '/'.
     std::string g(got);
     if (nameEndsWith(g, want)) return true;
 
-    // Apelido DENTRO de um array ou de um ref: `byte[]` tem de casar com
-    // `System.Byte[]`, e não casava — a tabela só conhecia o nome cru. Quem
-    // escrevesse `int[]` numa assinatura não achava o método e não recebia
-    // pista do porquê.
     size_t fim = want.size();
     while (fim > 0 && (want[fim - 1] == '&' || want[fim - 1] == ']' || want[fim - 1] == '[')) {
         --fim;
@@ -156,7 +117,6 @@ bool typeMatches(const std::string& want, const char* got) {
     return (std::string(clr) + want.substr(fim)) == got;
 }
 
-/** Nome do tipo (malloc do il2cpp) como std::string, já liberado. */
 std::string typeName(const Il2CppType* t) {
     if (!t) return {};
     auto& a = api();
@@ -167,7 +127,6 @@ std::string typeName(const Il2CppType* t) {
     return s;
 }
 
-/** Separa por vírgula no nível 0, para não quebrar List<int, string>. */
 std::vector<std::string> splitParams(std::string_view inner) {
     std::vector<std::string> out;
     int depth = 0;
@@ -180,7 +139,6 @@ std::vector<std::string> splitParams(std::string_view inner) {
         } else if (inner[i] == '<' || inner[i] == '[') {
             ++depth;
         } else if (inner[i] == '>' || inner[i] == ']') {
-            // "int[]" fecha logo depois de abrir; depth nunca fica negativo.
             if (depth > 0) --depth;
         }
     }
@@ -189,20 +147,14 @@ std::vector<std::string> splitParams(std::string_view inner) {
 
 struct ParamDecl {
     std::string type;
-    std::string name;  // "" = so o tipo
+    std::string name;
 };
 
-/**
- * "int Type" -> {"int", "Type"}. O nome tem de ser o do jogo, letra por
- * letra: e ele que diz que o modder leu o metodo certo.
- */
 ParamDecl paramOf(const std::string& decl) {
-    // Corta um valor default, se o modder esqueceu de tirar ("int a = 0").
     std::string d = decl;
     size_t eq = d.find('=');
     if (eq != std::string::npos) d = trim(d.substr(0, eq));
 
-    // `ref int x` / `out Vector2 pos` / `in T x`: o runtime chama de "Int32&".
     std::string suffix;
     for (const char* kw : {"ref ", "out ", "in "}) {
         const size_t n = std::strlen(kw);
@@ -214,20 +166,17 @@ ParamDecl paramOf(const std::string& decl) {
     }
 
     size_t sp = d.find_last_of(" \t");
-    if (sp == std::string::npos) return {d + suffix, {}};  // só o tipo, sem nome
+    if (sp == std::string::npos) return {d + suffix, {}};
     return {trim(d.substr(0, sp)) + suffix, trim(d.substr(sp + 1))};
 }
 
-/** O nome do parametro `i` de `m` no jogo; "" se o runtime nao diz. */
 std::string paramName(const MethodInfo* m, uint32_t i) {
     auto& a = api();
     const char* n = a.method_get_param_name ? a.method_get_param_name(m, i) : nullptr;
     return n ? n : "";
 }
 
-/** Os nomes escritos sao os do jogo, exatos? */
 bool namesMatch(const MethodInfo* m, const Signature& sig) {
-    // Sem il2cpp_method_get_param_name nao ha com o que comparar: fica o tipo.
     if (!api().method_get_param_name) return true;
     for (size_t i = 0; i < sig.paramNames.size(); ++i) {
         if (sig.paramNames[i] != paramName(m, static_cast<uint32_t>(i))) return false;
@@ -235,7 +184,6 @@ bool namesMatch(const MethodInfo* m, const Signature& sig) {
     return true;
 }
 
-/** "System.Int32" -> "int", "Terraria.DataStructures.PlayerDrawSet" -> "PlayerDrawSet". */
 std::string displayType(std::string t) {
     std::string prefix, suffix;
     if (!t.empty() && t.back() == '&') {
@@ -246,8 +194,6 @@ std::string displayType(std::string t) {
         suffix += "[]";
         t.resize(t.size() - 2);
     }
-    // Generico fica inteiro: o nome completo casa, e encurtar os argumentos
-    // um a um nao vale o risco de escrever algo que nao casa.
     if (t.find_first_of("<[`") == std::string::npos) {
         static const struct { const char* clr; const char* cs; } kMap[] = {
             {"System.Void", "void"},       {"System.Boolean", "bool"},  {"System.Byte", "byte"},
@@ -262,7 +208,6 @@ std::string displayType(std::string t) {
             if (t == k.clr) { t = k.cs; keyword = true; break; }
         }
         if (!keyword) {
-            // Aninhado: "Microsoft.Xna.Framework.Graphics.SpriteFont/Glyph" -> "SpriteFont.Glyph".
             const size_t slash = t.find('/');
             const size_t dot = t.rfind('.', slash == std::string::npos ? std::string::npos : slash);
             if (dot != std::string::npos) t.erase(0, dot + 1);
@@ -272,7 +217,7 @@ std::string displayType(std::string t) {
     return prefix + t + suffix;
 }
 
-} // namespace
+}
 
 Signature parseSignature(std::string_view text) {
     Signature sig;
@@ -285,7 +230,7 @@ Signature parseSignature(std::string_view text) {
     std::string head = trim(text.substr(0, open));
     size_t sp = head.find_last_of(" \t");
     if (sp == std::string::npos) {
-        sig.name = head;  // "Nome(...)" sem tipo de retorno
+        sig.name = head;
     } else {
         sig.returnType = trim(head.substr(0, sp));
         sig.name = trim(head.substr(sp + 1));
@@ -326,9 +271,6 @@ const MethodInfo* findMethodBySignature(Il2CppClass* cls, const Signature& sig,
                 }
             }
             if (!ok) continue;
-            // Os tipos casaram; o nome de cada parametro tambem tem de casar.
-            // Nao desempata nada (dois overloads nunca tem os mesmos tipos):
-            // so recusa o que foi escrito diferente do jogo.
             if (!namesMatch(m, sig)) {
                 if (!almost) almost = m;
                 continue;
@@ -339,14 +281,12 @@ const MethodInfo* findMethodBySignature(Il2CppClass* cls, const Signature& sig,
             }
             found = m;
         }
-        if (found) break;  // classe derivada ganha da base
+        if (found) break;
     }
     if (!found && almost) {
         if (nameMismatch) {
             *nameMismatch = almost;
         } else {
-            // Busca interna (C++): quem chamou so ve nullptr, entao o motivo
-            // vai ao log — e o que muda quando o jogo renomeia um parametro.
             BL_WARN("assinatura '%s': %s", sig.name.c_str(), explainParamNames(almost, sig).c_str());
         }
     }
@@ -400,4 +340,4 @@ std::string describeMethod(const MethodInfo* m) {
     return s;
 }
 
-} // namespace bl::il2cpp
+}

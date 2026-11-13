@@ -53,4 +53,4 @@ int compareGlState(const GlShadow& a, const GlShadow& b, char* diff, size_t size
     return count;
 }
 
-} // namespace bl::graphics
+}

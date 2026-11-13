@@ -16,23 +16,8 @@
 #include <sys/stat.h>
 #include <vector>
 
-// Fontes de pacote: Fonts/<Fonte>.json + paginas PNG trocam as
-// fontes do jogo (FontAssets). O SpriteFont do celular indexa por uma tabela
-// direta char -> glifo (ushort[65535]), entao o pacote substitui os glifos que
-// o jogo ja tem e acrescenta os novos; o que o pacote nao traz continua com a
-// fonte original. A troca e feita NO PROPRIO objeto SpriteFont: a interface
-// do celular guarda a referencia (GetFont() dos modelos) e veria a antiga se
-// so o Asset.Value mudasse.
-//
-// Nitidez: o SpriteBatch tira a UV de TexelWidth/TexelHeight (1/Width logico)
-// e o tamanho na tela do retangulo do glifo. Uma pagina com "scale": N e N
-// vezes maior que o retangulo logico; com TexelWidth = N/largura, o glifo
-// sai no tamanho do jogo com N vezes mais pixels, filtrado (trilinear).
-
 namespace bl::runtime {
 namespace {
-
-// ---- JSON minimo (objeto, lista, texto, numero, true/false/null) ----
 
 struct Json {
     enum Kind { Null, Bool, Number, String, Array, Object } kind = Null;
@@ -168,13 +153,11 @@ bool readFile(const std::string& path, std::string& out) {
     return true;
 }
 
-// ---- Fontes do jogo ----
-
 struct Target {
-    const char* label;     // no log
-    const char* field;     // FontAssets.<field>
-    int index;             // -1: campo direto; senao FontAssets.CombatText[index]
-    const char* file;      // nome do arquivo sem extensao, ja canonico (Mouse_Text e MouseText -> mousetext)
+    const char* label;
+    const char* field;
+    int index;
+    const char* file;
 };
 
 constexpr Target kTargets[] = {
@@ -185,7 +168,6 @@ constexpr Target kTargets[] = {
     {"CombatText[1]", "CombatText", 1, "combatcrit"},
 };
 
-// SpriteFont.Glyph no celular (dump 1.4.5.8.6): 0x38 bytes.
 constexpr size_t kGlyphSize = 0x38;
 constexpr size_t kCharacter = 0x0, kBounds = 0x4, kCropping = 0x14, kLeft = 0x24, kRight = 0x28,
                  kWidth = 0x2C, kWidthWithBearings = 0x30, kTextureIndex = 0x34;
@@ -194,14 +176,14 @@ constexpr uint16_t kNoGlyph = 0xFFFF;
 struct Pack { std::string uid, fonts; };
 
 struct Patched {
-    uint32_t font = 0, glyphs = 0, table = 0, textures = 0;   // gchandles: o SpriteFont e os arrays originais
-    std::vector<uint32_t> pages;                              // texturas criadas pelo pacote
+    uint32_t font = 0, glyphs = 0, table = 0, textures = 0;
+    std::vector<uint32_t> pages;
 };
 
 std::mutex g_mutex;
 std::vector<Pack> g_pending;
 std::atomic<bool> g_dirty{false};
-std::vector<Patched> g_patched; // So a thread do jogo acessa.
+std::vector<Patched> g_patched;
 
 struct Refs {
     bool tried = false, ok = false;
@@ -229,7 +211,6 @@ Refs& refs() {
         r.textures = il2cpp::fieldOffset(font, "_textures");
         r.lineSpacing = il2cpp::fieldOffset(font, "<LineSpacing>k__BackingField");
         r.spacing = il2cpp::fieldOffset(font, "<Spacing>k__BackingField");
-        // O ultimo campo (Vector2 tagSize): ate onde copiar numa fonte nova.
         const int32_t tag = il2cpp::fieldOffset(font, "tagSize");
         r.end = tag >= 0 ? tag + 8 : -1;
     }
@@ -283,7 +264,6 @@ bool directory(const std::string& path) {
     return lstat(path.c_str(), &st) == 0 && S_ISDIR(st.st_mode);
 }
 
-/** Fonts/<arquivo>.json do alvo, ou "" (aceita Mouse_Text.json e MouseText.json). */
 std::string fontFile(const std::string& fonts, const Target& t) {
     DIR* dir = opendir(fonts.c_str());
     if (!dir) return {};
@@ -302,7 +282,6 @@ std::string parentOf(const std::string& path) {
     return slash == std::string::npos ? std::string(".") : path.substr(0, slash);
 }
 
-/** O arquivo da pagina, sem sair da pasta Fonts do pacote. */
 bool safeRelative(const std::string& name) {
     if (name.empty() || name[0] == '/' || name.find('\\') != std::string::npos) return false;
     size_t start = 0;
@@ -348,11 +327,6 @@ struct Record {
     float left, width, right;
 };
 
-/**
- * Aplica um arquivo de fonte a um SpriteFont. false (com log, prefixado por
- * `owner`) deixa a fonte como estava. `metrics` tambem troca LineSpacing/Spacing pelos do arquivo
- * (fonte nova de mod; nas do jogo o layout das telas fica como esta).
- */
 bool applyFont(const std::string& owner, const char* label, const std::string& path, Il2CppObject* font,
                Patched& patch, bool metrics) {
     const Refs& r = refs();
@@ -383,7 +357,6 @@ bool applyFont(const std::string& owner, const char* label, const std::string& p
         return false;
     }
 
-    // Os arrays do jogo.
     auto* oldGlyphs = at<Il2CppArray*>(font, r.glyphs);
     auto* oldTable = at<Il2CppArray*>(font, r.table);
     auto* oldTextures = at<Il2CppArray*>(font, r.textures);
@@ -394,7 +367,6 @@ bool applyFont(const std::string& owner, const char* label, const std::string& p
     const size_t count = oldGlyphs->length;
     auto* glyphBytes = static_cast<uint8_t*>(arrayData(oldGlyphs));
     auto* table = static_cast<uint16_t*>(arrayData(oldTable));
-    // Confere o passo de 0x38: cada glifo do jogo esta na tabela pelo proprio char.
     for (size_t i = 0; i < count && i < 64; ++i) {
         const uint16_t c = *reinterpret_cast<uint16_t*>(glyphBytes + i * kGlyphSize + kCharacter);
         if (table[c] != i) {
@@ -404,7 +376,6 @@ bool applyFont(const std::string& owner, const char* label, const std::string& p
     }
     const size_t oldPages = oldTextures->length;
 
-    // Paginas: PNG com `scale` vezes o tamanho logico.
     patch = {};
     std::vector<Il2CppObject*> pages;
     std::vector<std::pair<int, int>> logical;
@@ -418,7 +389,7 @@ bool applyFont(const std::string& owner, const char* label, const std::string& p
         }
         int w = 0, h = 0;
         Il2CppObject* page = content::loadGameTexture(folder + "/" + name, nullptr, 0, name,
-                                                      scale > 1 ? 2 /* Trilinear */ : 1 /* Bilinear */, &w, &h);
+                                                      scale > 1 ? 2 : 1, &w, &h);
         uint32_t handle = page ? a.gchandle_new(page, false) : 0;
         if (!handle) {
             BL_WARN("%s: cannot load page %s", owner.c_str(), name.c_str());
@@ -430,7 +401,6 @@ bool applyFont(const std::string& owner, const char* label, const std::string& p
         if (w <= 0 || h <= 0 || w % scale || h % scale)
             BL_WARN("%s: page %s is %dx%d, not a multiple of scale %d", owner.c_str(), name.c_str(), w, h, scale);
         const int lw = std::max(1, w / scale), lh = std::max(1, h / scale);
-        // O SpriteBatch so le TexelWidth/Height para a UV; Width/Height logicos para quem medir a pagina.
         at<int32_t>(page, r.width) = lw;
         at<int32_t>(page, r.height) = lh;
         at<float>(page, r.texelWidth) = static_cast<float>(scale) / static_cast<float>(std::max(1, w));
@@ -444,7 +414,6 @@ bool applyFont(const std::string& owner, const char* label, const std::string& p
         return false;
     }
 
-    // Glifos: [code, page, bx, by, bw, bh, cx, cy, cw, ch, left, width, right] em unidades logicas.
     std::vector<Record> records;
     std::vector<int32_t> slot(0x10000, -1);
     size_t skipped = 0;
@@ -463,7 +432,7 @@ bool applyFont(const std::string& owner, const char* label, const std::string& p
         const auto [lw, lh] = logical[page];
         if (rec.bounds[0] < 0 || rec.bounds[1] < 0 || rec.bounds[2] < 0 || rec.bounds[3] < 0 ||
             rec.bounds[0] + rec.bounds[2] > lw || rec.bounds[1] + rec.bounds[3] > lh) { ++skipped; continue; }
-        if (slot[code] >= 0) { ++skipped; continue; }   // char repetido: vale o primeiro
+        if (slot[code] >= 0) { ++skipped; continue; }
         slot[code] = static_cast<int32_t>(records.size());
         records.push_back(rec);
     }
@@ -473,7 +442,6 @@ bool applyFont(const std::string& owner, const char* label, const std::string& p
         return false;
     }
 
-    // Quem o jogo ja tem e trocado no lugar; o resto vai no fim.
     size_t appended = 0;
     for (const auto& rec : records) {
         const uint16_t index = table[rec.code];
@@ -553,7 +521,7 @@ bool applyFont(const std::string& owner, const char* label, const std::string& p
     return true;
 }
 
-} // namespace
+}
 
 void configureFontPacks(const std::string& root, const std::vector<ModSpec>& enabled) {
     std::lock_guard<std::mutex> lock(g_mutex);
@@ -567,7 +535,6 @@ void configureFontPacks(const std::string& root, const std::vector<ModSpec>& ena
 }
 
 void tickFontPacks() {
-    // As refs de textura do conteudo (TextureAssets) so ficam prontas com o conteudo assentado.
     if (!g_dirty.load(std::memory_order_acquire) || !contentSettled()) return;
     std::vector<Pack> packs;
     {
@@ -581,7 +548,6 @@ void tickFontPacks() {
     for (const auto& target : kTargets) {
         Il2CppObject* font = gameFont(target);
         if (!font) { if (!packs.empty()) BL_WARN("Font packs: FontAssets.%s is not loaded", target.label); continue; }
-        // O de cima na lista ganha; arquivo que falha deixa o de baixo tentar.
         for (const auto& pack : packs) {
             const std::string path = fontFile(pack.fonts, target);
             Patched patch;
@@ -594,10 +560,9 @@ void tickFontPacks() {
 }
 
 Il2CppObject* loadModFont(const std::string& path) {
-    static std::map<std::string, Patched> fonts;   // So a thread do jogo acessa.
+    static std::map<std::string, Patched> fonts;
     auto& a = il2cpp::api();
     auto it = fonts.find(path);
-    // Um arquivo que falhou nao tenta de novo (o mod pode pedir a cada quadro).
     if (it != fonts.end()) return it->second.font ? a.gchandle_get_target(it->second.font) : nullptr;
     if (!contentSettled() || !refs().ok) return nullptr;
     const Refs& r = refs();
@@ -607,8 +572,6 @@ Il2CppObject* loadModFont(const std::string& path) {
         return nullptr;
     }
 
-    // Os arrays da MouseText do jogo, nao os de um pacote de fonte: os dele
-    // somem quando o pacote e desligado.
     auto* glyphs = at<Il2CppObject*>(base, r.glyphs);
     auto* table = at<Il2CppObject*>(base, r.table);
     auto* textures = at<Il2CppObject*>(base, r.textures);
@@ -638,4 +601,4 @@ Il2CppObject* loadModFont(const std::string& path) {
     return result;
 }
 
-} // namespace bl::runtime
+}

@@ -15,15 +15,14 @@ namespace {
 struct Entry {
     std::string path;
     bool linear = true, repeat = false;
-    std::vector<uint8_t> pixels;   // ate o envio; depois vazio
+    std::vector<uint8_t> pixels;
     LoadedTexture gl;
     bool uploaded = false, failed = false;
 };
 
 std::mutex g_mutex;
-std::vector<std::unique_ptr<Entry>> g_entries;   // id = kFirstModTexture - indice
+std::vector<std::unique_ptr<Entry>> g_entries;
 
-// [largura, altura] + RGBA de cima para baixo, pelo ModImages.decodeRgba.
 bool decode(const std::string& path, std::vector<uint8_t>& out, int& width, int& height) {
     JNIEnv* env = appJniEnv();
     jclass cls = env ? appJniClass(env, "dev.bunnyloader.game.ModImages") : nullptr;
@@ -48,7 +47,6 @@ bool decode(const std::string& path, std::vector<uint8_t>& out, int& width, int&
         height = header[1];
         const size_t row = static_cast<size_t>(width) * 4;
         if (width > 0 && height > 0 && static_cast<size_t>(length) == 8 + row * height) {
-            // Linhas de baixo para cima: no GL, v = 0 e o pe da imagem.
             out.resize(row * height);
             for (int y = 0; y < height; ++y) {
                 env->GetByteArrayRegion(bytes, static_cast<jsize>(8 + row * y), static_cast<jsize>(row),
@@ -68,8 +66,6 @@ bool upload(Entry& e) {
     g.BindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
     g.ActiveTexture(kScreenUnit);
     g.BindTexture(GL_TEXTURE_2D, e.gl.texture);
-    // O desempacotamento e da Unity (ela guarda em cache): zera o que o envio
-    // precisa e devolve depois.
     const GLenum unpack[4] = {GL_UNPACK_ALIGNMENT, GL_UNPACK_ROW_LENGTH, GL_UNPACK_SKIP_ROWS, GL_UNPACK_SKIP_PIXELS};
     GLint previous[4] = {4, 0, 0, 0};
     for (int i = 0; i < 4; ++i) g.GetIntegerv(unpack[i], &previous[i]);
@@ -90,7 +86,7 @@ bool upload(Entry& e) {
     return true;
 }
 
-} // namespace
+}
 
 int TextureRegistry::Load(const std::string& path, bool linear, bool repeat, int* width, int* height) {
     {
@@ -133,8 +129,6 @@ const LoadedTexture* TextureRegistry::Use(int id) {
         if (e->failed) return nullptr;
         if (e->uploaded) return &e->gl;
     }
-    // O envio e da thread de render e so ela muda `uploaded`; os pixels nao
-    // mudam mais depois do Load.
     e->uploaded = upload(*e);
     return e->uploaded ? &e->gl : nullptr;
 }
@@ -154,4 +148,4 @@ bool TextureRegistry::SaveNeutralLut(const std::string& path, int size) {
     return appJniCleared(env, "saveNeutralLut") && ok;
 }
 
-} // namespace bl::graphics
+}

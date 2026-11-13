@@ -44,7 +44,7 @@ struct Stage {
 extern Stage stages[bl::runtime::kSystemStageCount];
 std::mutex g_mx;
 
-} // namespace
+}
 
 extern "C" __attribute__((visibility("hidden"))) void blSystemStageDispatch(unsigned index, RegisterFrame* frame) {
     if (index >= bl::runtime::kSystemStageCount) return;
@@ -169,7 +169,7 @@ Stage stages[bl::runtime::kSystemStageCount] = {
     {"ClockAdvance", "void UpdateTime()", 0xb8c, {0x1e602960, 0xfd024500, 0x97efb85d, 0xf94002e0}, bridge8, &g_blSystemOriginal8},
 };
 
-} // namespace
+}
 
 namespace bl::runtime {
 
@@ -206,7 +206,7 @@ bool installSystemStage(int32_t index, int32_t client, SystemStageFn fn) {
     return true;
 }
 
-} // namespace bl::runtime
+}
 #else
 namespace bl::runtime {
 int32_t systemStageIndex(const char*) { return -1; }

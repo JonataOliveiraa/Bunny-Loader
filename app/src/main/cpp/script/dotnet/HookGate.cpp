@@ -21,7 +21,7 @@ static_assert(sizeof(Gate) == 32, "HookGate.S reads 32-byte gate entries");
 constexpr int kGates = 64;
 constexpr int kThunkBytes = 8;
 
-} // namespace bl::dotnet::gate
+}
 
 extern "C" {
 __attribute__((visibility("hidden"), aligned(16))) bl::dotnet::gate::Gate bl_gate_data[bl::dotnet::gate::kGates];
@@ -43,7 +43,7 @@ void** ungated(const MethodInfo* method, void* replacement) {
     return nullptr;
 }
 
-} // namespace
+}
 
 void** installHook(const MethodInfo* method, void* replacement, int32_t arg, int32_t pointerOffset, int32_t fieldOffset, int32_t fieldSize) {
     if (!method || !replacement) return nullptr;
@@ -78,4 +78,4 @@ void** installHook(const MethodInfo* method, void* replacement, int32_t arg, int
 #endif
 }
 
-} // namespace bl::dotnet::gate
+}

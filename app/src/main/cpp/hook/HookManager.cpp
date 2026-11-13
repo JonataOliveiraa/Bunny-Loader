@@ -8,27 +8,10 @@ namespace bl::hook {
 
 namespace {
 
-/**
- * Todos os hooks de UM endereco.
- *
- * O ShadowHook roda em modo UNIQUE: um endereco aceita uma substituicao so, e
- * o segundo pedido e recusado. Era o que acontecia com Vida Cheia + Sem Queda,
- * os dois em Player.Update — o segundo mod ligado simplesmente nao carregava.
- *
- * Em vez de pedir de novo ao ShadowHook, o segundo hook entra NA CADEIA: ele
- * passa a ser o "original" do anterior, e o original dele e a funcao real.
- *
- *     jogo -> prologo patcheado -> R1 -> R2 -> ... -> Rn -> funcao real
- *
- * Todos os Ri hookam a mesma funcao, entao tem a mesma ABI e qualquer um pode
- * chamar o proximo como se fosse o original. Acrescentar um elo e trocar UM
- * ponteiro (o `original` de Rn-1): nada e desinstalado, nenhum trampolim do
- * ShadowHook e liberado com alguem possivelmente executando dentro dele.
- */
 struct Chain {
     void* address = nullptr;
-    void* stub = nullptr;             // o que o shadowhook_unhook quer
-    std::vector<void**> originals;    // o `original` de cada elo, de fora pra dentro
+    void* stub = nullptr;
+    std::vector<void**> originals;
 };
 
 std::mutex g_mutex;
@@ -38,7 +21,7 @@ std::vector<Chain>& chains() {
     return list;
 }
 
-} // namespace
+}
 
 bool install(void* address, void* replacement, void** original) {
     if (!address || !replacement || !original) return false;
@@ -46,9 +29,6 @@ bool install(void* address, void* replacement, void** original) {
 
     for (Chain& c : chains()) {
         if (c.address != address) continue;
-        // O novo elo aponta para onde o ultimo apontava (a funcao real, via
-        // trampolim) ANTES de ser publicado: quem ler o ponteiro do ultimo elo
-        // a partir de agora ja encontra um elo pronto para seguir.
         void** last = c.originals.back();
         __atomic_store_n(original, __atomic_load_n(last, __ATOMIC_ACQUIRE), __ATOMIC_RELEASE);
         __atomic_store_n(last, replacement, __ATOMIC_RELEASE);
@@ -72,4 +52,4 @@ bool install(const MethodInfo* method, void* replacement, void** original) {
     return install(il2cpp::methodPointer(method), replacement, original);
 }
 
-} // namespace bl::hook
+}

@@ -115,7 +115,6 @@ void threaded(void *self, Float2 screen, Float2 offset, int32_t firstX, int32_t 
     g_threaded(self, screen, offset, firstX, firstY, lastX, lastY, solid, targets, intoTargets, water, method);
     t_drawInfo = previous;
 }
-//chris vagabundo
 bool highlight(int kind, int type, void *player, bool result, int32_t offset)
 {
     if (!(flagsOf(type) & (1u << kind)) || offset < 0) return result;

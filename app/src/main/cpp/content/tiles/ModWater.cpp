@@ -8,13 +8,11 @@ namespace bl::runtime {
 
 namespace {
 
-// O primeiro laco anda pelo endereco do elemento em floats: o indice + 8
-// (os 32 bytes do cabecalho do array).
 constexpr int kHeaderInFloats = 8;
 
 int g_count = kVanillaWaterStyleCount;
 
-} // namespace
+}
 
 bool setWaterStyleCount(int total) {
     if (total <= g_count) return true;
@@ -27,7 +25,7 @@ bool setWaterStyleCount(int total) {
     }
     const auto from = static_cast<uint32_t>(g_count), to = static_cast<uint32_t>(total);
     const int fade = patchLoopEnd(m, from + kHeaderInFloats, to + kHeaderInFloats);
-    const int draw = patchLoopEnd(m, from, to, /*exitOnEqual*/ true);
+    const int draw = patchLoopEnd(m, from, to, true);
     if (fade != 1 || draw != 1) {
         BL_ERROR("agua de mod: lacos do Main.DrawWaters nao casaram (fade %d, desenho %d; esperado 1 e 1): %s",
                  fade, draw, describeMethodCode(m).c_str());
@@ -38,4 +36,4 @@ bool setWaterStyleCount(int total) {
     return true;
 }
 
-} // namespace bl::runtime
+}

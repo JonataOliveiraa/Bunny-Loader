@@ -157,7 +157,7 @@ void calibrate() {
     g_biasPs = s.calls ? static_cast<int64_t>(s.selfNs * 1000 / s.calls) : 0;
 }
 
-} // namespace
+}
 
 extern "C" void* bl_hp_enter_pre(uintptr_t thunk, uint64_t* token, uintptr_t sp) {
     const int slot = slotOf(bl_hp_enter_thunks, thunk);
@@ -269,4 +269,4 @@ int32_t read(int32_t index, uint64_t* values, const char** name) {
     return used;
 }
 
-} // namespace bl::dotnet::profile
+}
