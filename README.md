@@ -47,8 +47,8 @@ there, and the other way around.
   the host's mods offered to download.
 - **Made for touch**: mod buttons on screen, menus that work with your
   fingers.
-- **Make mods anywhere**: on the phone with BL Editor, or on a PC with Visual
-  Studio, with tModLoader's classes and the whole game available to your code.
+- **Make your own mods**: right on your phone with BL Editor, or on a
+  computer, the same way mods are made for tModLoader.
 
 ## Getting started
 
@@ -60,18 +60,16 @@ walks you through every step, with pictures.
 
 To make mods, start at
 [Making mods](https://github.com/JonataOliveiraa/Bunny-Loader/wiki/Making-Mods).
-A whole mod can be this small:
-
-<p align="center"><img src="https://raw.githubusercontent.com/wiki/JonataOliveiraa/Bunny-Loader/images/code/double-damage.png" alt="DoubleDamage.cs: a mod class and a GlobalItem that doubles the damage of every weapon" width="538"></p>
+It shows the two ways to work, on the phone with BL Editor or on a computer,
+and then walks you through your first mod, a sword, one step at a time. No
+experience is needed to begin.
 
 ## Documentation
 
 Everything else lives in the **[wiki](https://github.com/JonataOliveiraa/Bunny-Loader/wiki)**:
-playing with mods, making them on the phone or on a PC, every class of the
-API side by side with tModLoader, and how Bunny Loader works inside, from
-[building it from source](https://github.com/JonataOliveiraa/Bunny-Loader/wiki/Building-From-Source)
-to its native core. What changed in each version is in
-[`changelogs/`](changelogs/).
+installing and playing, making mods step by step, and, for those who want to
+help build Bunny Loader itself, how it works inside. What changed in each
+version is in [changelogs](changelogs/).
 
 ## Community
 
@@ -84,7 +82,7 @@ to its native core. What changed in each version is in
 ## Acknowledgments
 
 - The **tModLoader Team**, for the design of the mod classes and the original
-  ExampleMod that our [`ExampleModCSharp`](samples/ExampleModCSharp) ports.
+  ExampleMod that our [Example Mod](samples/ExampleModCSharp) ports.
 - **GST378** and **Animatak_**, authors of ExMod, the community port of
   tModLoader's ExampleMod to mobile, which helped shape our first examples.
 - **TL Pro**, whose publicly documented scripting API (`NativeClass`,
@@ -105,8 +103,8 @@ locking features behind payment needs written permission.
 - [LICENSING.md](LICENSING.md): what applies to each part, what counts as
   commercial use, and the clause that keeps mods under their authors' own
   licenses.
-- [TRADEMARKS.md](TRADEMARKS.md): forks need their own name, icon and
-  `applicationId`.
+- [TRADEMARKS.md](TRADEMARKS.md): forks need their own name, icon and app
+  ID.
 - [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md): ShadowHook, the .NET
   runtime (Mono), Roslyn, tModLoader, AndroidX and the parts this license does
   not cover (Terraria, Unity, the Andy font).
