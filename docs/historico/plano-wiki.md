@@ -16,7 +16,7 @@ the basics, for players.
 | 5. Intermediate and Advanced | The rest of the guides, rewritten | ported; World Generation rewritten, stale claims fixed, test-pack mentions moved out of the modder pages |
 | 6. Playing | Player guides, FAQ, troubleshooting | all ten pages and the FAQ written (2026-11-14) |
 | 7. Reference and Contributing | Manifest reference, log messages; the native core rewritten | API pages generated; Manifest Reference and Log Messages written from the code; Contributing ported |
-| Go-live | Push the wiki, then the repository changes below | waiting for the go-ahead |
+| Go-live | Push the wiki, then the repository changes below | done 2026-11-14: wiki `4c3b1ea`, repository `8e436df4`; restricting wiki edits to collaborators is a setting the owner changes |
 
 ## Go-live checklist
 
