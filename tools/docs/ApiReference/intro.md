@@ -1,7 +1,5 @@
-# API reference
-
 Every public class a mod can use in Bunny Loader, member by member, side by side
-with tModLoader. Use the [guides](../README.md) to learn how something works and
+with tModLoader. Use the [guides](Making-Mods) to learn how something works and
 this reference to look up what exists.
 
 {{START}}
@@ -18,7 +16,7 @@ this reference to look up what exists.
 The game's own members, such as `Item.damage` or `Main.dayTime`, come from the
 mobile game and are not listed: only what Bunny Loader adds to those classes is.
 The `On_` classes are generated for each game method, as
-[guide 2](../02-hooks.md) explains.
+[Hooks](Hooks) explains.
 
 These pages are generated from the code by `tools/docs/ApiReference`. Descriptions
 of members that tModLoader also has come from its documentation (MIT license); the

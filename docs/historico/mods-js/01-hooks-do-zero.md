@@ -507,7 +507,7 @@ costs is JS running on every call (see the [cost guide](03-custo-e-desempenho.md
   4 floats): also refused, stating the type and size.
 
 How all of this works inside (the slots, the chain, the dispatcher) is in
-[hooks under the hood](../../nucleo/hooks.md).
+[hooks under the hood](https://github.com/JonataOliveiraa/Bunny-Loader/blob/1713bd66b1dfbe08db545f4580205c2310ad9d62/docs/nucleo/hooks.md).
 
 ## Textures and drawing
 

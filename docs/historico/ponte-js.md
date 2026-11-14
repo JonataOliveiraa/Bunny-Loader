@@ -1,6 +1,6 @@
 # The JS ↔ game bridge
 
-> Part of the core documentation ([overview](../nucleo/README.md)). The mod author's
+> Part of the core documentation ([overview](https://github.com/JonataOliveiraa/Bunny-Loader/blob/1713bd66b1dfbe08db545f4580205c2310ad9d62/docs/nucleo/README.md)). The mod author's
 > side is in [guide 1](mods-js/01-hooks-do-zero.md) and in the
 > [bridge reference](referencia-js/ponte-e-bl.md).
 
@@ -180,7 +180,7 @@ indexer falls back to the game's `get_Item`/`set_Item`.
 paths:
 
 1. **Direct call** (the normal one): it fills the registers using the same ABI
-   plan the hook uses ([hooks](../nucleo/hooks.md#the-abi-plan)) and jumps to
+   plan the hook uses ([hooks](https://github.com/JonataOliveiraa/Bunny-Loader/blob/1713bd66b1dfbe08db545f4580205c2310ad9d62/docs/nucleo/hooks.md#the-abi-plan)) and jumps to
    `methodPointer`, the same address the game uses. On a hooked method, the
    hook answers, as with a call from the game.
 2. **`il2cpp_runtime_invoke`**: the runtime's generic path. It builds a vector

@@ -11,11 +11,17 @@ welcome.
   Do not commit Terraria files (`.so`, `global-metadata.dat`, `data.unity3d`,
   dumps from `refs/`), the Unity classes, the Andy font, keystores or tokens.
   `.gitignore` already blocks the usual paths.
-- Mods belong in the catalog, not in this repository; see
-  [docs/mods/README.md](docs/mods/README.md).
-- Code style: identifiers in English; comments, docs and UI text in
-  Portuguese (pt-BR); messages shown to modders in the error panel in English.
-  Commit messages in English.
+- The guides live in the [wiki](https://github.com/JonataOliveiraa/Bunny-Loader/wiki), in English: making mods, the API
+  reference, and, under [Contributing](https://github.com/JonataOliveiraa/Bunny-Loader/wiki/Contributing), how the native
+  core, the C# runtime and the tests work. Only collaborators edit the wiki;
+  to fix a page, open an issue with the page and the change.
+- Mods do not go in this repository, apart from the samples in `samples/`.
+  Share yours as a package
+  ([Sharing your mod](https://github.com/JonataOliveiraa/Bunny-Loader/wiki/Sharing-Your-Mod)).
+- Code style: identifiers in English; comments in Portuguese (pt-BR); app
+  text through the translation files in `app/src/main/assets/localization/`
+  ([Translating the app](https://github.com/JonataOliveiraa/Bunny-Loader/wiki/Translating-the-App)); logs and messages shown
+  to modders in English. Commit messages in English.
 
 ## Contributor License Agreement (CLA)
 

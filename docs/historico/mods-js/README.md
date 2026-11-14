@@ -43,7 +43,7 @@ Packages without code: [Texture packs](14-pacotes-de-textura.md) and [Font packs
 Mods can also be written in **C#**, compiled on a PC: typed, with
 autocomplete, tModLoader-style `On_` hooks and much faster code. Today C# has
 hooks and full access to the game, but not the content classes below. See
-[Making mods in C#](../../mods-em-csharp/README.md).
+[Making mods in C#](https://github.com/JonataOliveiraa/Bunny-Loader/blob/1713bd66b1dfbe08db545f4580205c2310ad9d62/docs/mods-em-csharp/README.md).
 
 Read them in order; each one builds on the previous.
 
@@ -382,4 +382,4 @@ Mods run on each device: the host's and the one joining. The rules:
 
 How Bunny Loader gets into the game, intercepts methods, shares the engine
 between threads and puts new content in the tables is in the
-[core documentation](../../nucleo/README.md).
+[core documentation](https://github.com/JonataOliveiraa/Bunny-Loader/blob/1713bd66b1dfbe08db545f4580205c2310ad9d62/docs/nucleo/README.md).

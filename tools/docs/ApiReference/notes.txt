@@ -79,8 +79,8 @@ Terraria.GameContent.ITownNPCProfile|Chooses a town NPC's texture, head, name an
 Terraria.ModLoader.InvasionEnemy|An enemy of an invasion wave: its NPC type, how often it spawns and the points it gives.
 Terraria.ModLoader.InvasionLoader|Runs invasions: `Start`, `Stop`, `AddPoints`, and reads the wave and progress. Keeps the host and clients in sync.
 Terraria.ModLoader.InvasionWave|One wave of an invasion: the points to clear it and its enemies.
-Terraria.ModLoader.ModInvasion|A wave-based event that uses the game's progress bar. See [guide 23](../23-invasoes.md). Your subclass lists the waves.
-Terraria.ModLoader.ModSubworld|A dimension: a separate world the player travels to, with its own size, generation and save file. See [guide 24](../24-dimensoes.md).
+Terraria.ModLoader.ModInvasion|A wave-based event that uses the game's progress bar. See [Invasions](Invasions). Your subclass lists the waves.
+Terraria.ModLoader.ModSubworld|A dimension: a separate world the player travels to, with its own size, generation and save file. See [Dimensions](Dimensions).
 Terraria.ModLoader.SubworldLoader|Travels between the main world and the dimensions: `Enter`, `Exit`, `Current`. In multiplayer the host asks every player first.
 Terraria.NPC|What Bunny Loader adds to the game's NPC.
 Terraria.NPC.Spawner|Spawns a boss or event the way the game does, through the phone's `NPC.Spawner`.
@@ -194,8 +194,8 @@ Terraria.Graphics.Shaders.HairShaderDataSet|`GameShaders.Hair`: binds a hair dye
 Terraria.ModLoader.KeybindLoader|Registers a `ModKeybind`. On the phone it gives a `ModTouchButton`.
 Terraria.UI.LegacyGameInterfaceLayer|A layer that draws with a method of yours. The usual way to add one.
 Terraria.ModLoader.MenuLoader|Runs the mod title menus.
-Terraria.ModLoader.ModTouchButton|A button on the screen, placed by the player in the game's controls editor. A `ModKeybind` on the phone. See [guide 19](../19-botoes-de-toque.md).
-Terraria.ModLoader.ModTouchJoystick|A button the player drags to aim. See [guide 19](../19-botoes-de-toque.md).
+Terraria.ModLoader.ModTouchButton|A button on the screen, placed by the player in the game's controls editor. A `ModKeybind` on the phone. See [Touch buttons](Touch-Buttons).
+Terraria.ModLoader.ModTouchJoystick|A button the player drags to aim. See [Touch buttons](Touch-Buttons).
 Terraria.ModLoader.MusicLoader|Registers mod music and music boxes. `GetMusicSlot` gives a track's number.
 Terraria.GameContent.ItemDropRules.ShowItemDropInUI|Whether a drop shows in the bestiary.
 Terraria.Audio.SoundEngine|Plays sounds. `PlaySound` takes a `SoundStyle`.
@@ -203,7 +203,7 @@ Terraria.Audio.SoundLimitBehavior|What happens when too many of a sound play tog
 Terraria.Audio.SoundUpdateCallback|Runs each frame for a playing sound, to change it or stop it.
 Terraria.ModLoader.TouchButtonLoader|Registers touch buttons and joysticks: `RegisterButton`, `RegisterJoystick`.
 Terraria.ModLoader.UI.UICommon|Common colors and text of the mod menus.
-Terraria.UI.UIElement|The base of every UI piece: position and size in `StyleDimension`, children, events, drawing. See [guide 20](../20-interface.md).
+Terraria.UI.UIElement|The base of every UI piece: position and size in `StyleDimension`, children, events, drawing. See [User interface](User-Interface).
 Terraria.UI.UIEvent|An event of an element.
 Terraria.GameContent.UI.Elements.UIImage|Shows a texture.
 Terraria.GameContent.UI.Elements.UIImageButton|A texture that responds to a touch.

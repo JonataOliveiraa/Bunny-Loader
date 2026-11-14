@@ -6,7 +6,7 @@ Loader's own API, written from the PC source and the phone dump.
 ## Status (2026-11-10)
 
 Phases 1 to 3 are written and pass on MuMu and on the phone. The guide for
-modders is [24-dimensoes.md](../mods-em-csharp/24-dimensoes.md).
+modders is [Dimensions](https://github.com/JonataOliveiraa/Bunny-Loader/wiki/Dimensions).
 
 | Pack | Covers | Result |
 |---|---|---|

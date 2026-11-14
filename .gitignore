@@ -106,3 +106,6 @@ tools/mods/csbuild/obj/
 tools/docs/ApiReference/bin/
 tools/docs/ApiReference/obj/
 tools/docs/ApiReference/missing.txt
+
+# Clone da wiki do GitHub (fonte dos guias, repositório próprio).
+/wiki/

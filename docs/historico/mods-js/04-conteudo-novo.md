@@ -187,7 +187,7 @@ is the `Mod` class.
    only those).
 
 The game only learns about the new type a bit later, on the title screen,
-when its tables exist ([how](../../nucleo/conteudo.md)). That is why each class
+when its tables exist ([how](https://github.com/JonataOliveiraa/Bunny-Loader/blob/1713bd66b1dfbe08db545f4580205c2310ad9d62/docs/nucleo/conteudo.md)). That is why each class
 has the right moment for each thing:
 
 | Moment | Method | What for |
@@ -531,7 +531,7 @@ save. The game's file never carries a mod type. So:
 - the world and the character **open in Terraria without Bunny Loader**;
 - the mod order can change freely: content comes back by name, not by number.
 
-Details of each save in [content under the hood](../../nucleo/conteudo.md#saves-the-world-opens-without-the-mod).
+Details of each save in [content under the hood](https://github.com/JonataOliveiraa/Bunny-Loader/blob/1713bd66b1dfbe08db545f4580205c2310ad9d62/docs/nucleo/conteudo.md#saves-the-world-opens-without-the-mod).
 
 ## Game arrays
 

@@ -1,6 +1,6 @@
 # Threads and the JS engine
 
-> Part of the core documentation ([overview](../nucleo/README.md)). For the mod author's
+> Part of the core documentation ([overview](https://github.com/JonataOliveiraa/Bunny-Loader/blob/1713bd66b1dfbe08db545f4580205c2310ad9d62/docs/nucleo/README.md)). For the mod author's
 > side, what matters from here is summarized in the [cost
 > guide](mods-js/03-custo-e-desempenho.md#when-the-engine-is-busy-ifbusy).
 
@@ -230,7 +230,7 @@ hook that waited avoids the wait.
 ## Exceptions between the layers
 
 - **An error in a hook's JS**: logged with the JS stack, and the original runs
-  if the callback did not call it ([hooks](../nucleo/hooks.md#the-dispatcher-step-by-step)).
+  if the callback did not call it ([hooks](https://github.com/JonataOliveiraa/Bunny-Loader/blob/1713bd66b1dfbe08db545f4580205c2310ad9d62/docs/nucleo/hooks.md#the-dispatcher-step-by-step)).
 - **A C# exception in a method the mod called** (a `NullReferenceException`
   in there, for example): becomes an `InternalError` in JS (`'MethodName'
   lancou excecao no jogo`, "threw an exception in the game"), which the mod

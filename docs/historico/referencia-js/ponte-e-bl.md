@@ -168,8 +168,8 @@ The mod classes use these underneath; a mod rarely needs them directly.
 | `bl.tiles.addLights([i, j, r, g, b, ...])` | Each tile's `Lighting.AddLight` in a native loop (one trip to the bridge for all of them). |
 | `bl.tiles.setAnimationFrameHeight(type, height)`, `bl.tiles.onDrawData(fn)` | `AnimationFrameHeight` and the drawing hook (`ModTile` uses them). |
 | `bl.tiles.setDoor(closed, open)` | A mod door's pair, for the player who walks into it and for NPCs to open it (`ModTile` calls it through `OpenDoorID`/`CloseDoorID`). |
-| `bl.hookMarks.set(name, type[, on])`, `bl.hookMarks.has(name, type)` | The marks for the hooks' `marks` filter ([core](../../nucleo/hooks.md#native-filters)). |
-| `bl.hookFlags.set(name, on)`, `bl.hookFlags.get(name)` | The switch for the hooks' `flag` filter: off (the start), the method runs without entering JS ([core](../../nucleo/hooks.md#native-filters)). |
+| `bl.hookMarks.set(name, type[, on])`, `bl.hookMarks.has(name, type)` | The marks for the hooks' `marks` filter ([core](https://github.com/JonataOliveiraa/Bunny-Loader/blob/1713bd66b1dfbe08db545f4580205c2310ad9d62/docs/nucleo/hooks.md#native-filters)). |
+| `bl.hookFlags.set(name, on)`, `bl.hookFlags.get(name)` | The switch for the hooks' `flag` filter: off (the start), the method runs without entering JS ([core](https://github.com/JonataOliveiraa/Bunny-Loader/blob/1713bd66b1dfbe08db545f4580205c2310ad9d62/docs/nucleo/hooks.md#native-filters)). |
 | `bl.hookStats()` | Each installed JS hook: `{ name, calls, js, jsMs }` since installation. `calls` counts every call that went through the dispatch (including the ones the filter handed back to the game), `js` the ones that reached the callback and `jsMs` the time inside it without `original()`. For measuring: `tools/tests/frametime` uses it. |
 | `bl.gc()`, `bl.gcThreshold()` | Runs a QuickJS cycle collection and returns how long it took (ms); the memory threshold for the next collection (it changes on each one: counting the changes gives the collections). For measuring only. |
 | `bl.items.register`, `bl.npcs.register`... | The native registration. Use the classes (`ModItem.register`). |

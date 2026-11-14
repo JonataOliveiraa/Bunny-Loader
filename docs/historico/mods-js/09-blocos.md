@@ -140,7 +140,7 @@ game only accepted its own dresser (type 88) for both.
 `ModTile` hooks only enter JS for **mod tiles** (a native filter that reads
 the type straight from the world), and the per-frame ones (light, drawing,
 animation) only for the types that **override** that method: the
-[core](../../nucleo/hooks.md#native-filters) markers.
+[core](https://github.com/JonataOliveiraa/Bunny-Loader/blob/1713bd66b1dfbe08db545f4580205c2310ad9d62/docs/nucleo/hooks.md#native-filters) markers.
 
 ## Furniture (TileObjectData)
 
@@ -588,7 +588,7 @@ across threads, with no per-cell call.
 ## Under the hood
 
 What Bunny Loader does so the new tile does not break the game (details in
-[content under the hood](../../nucleo/conteudo.md)):
+[content under the hood](https://github.com/JonataOliveiraa/Bunny-Loader/blob/1713bd66b1dfbe08db545f4580205c2310ad9d62/docs/nucleo/conteudo.md)):
 
 - grows the game's ~220 tile tables (`Main.tile*`, `TileID.Sets` and the
   nested ones, textures, map, recipes, materials), with the new type at each

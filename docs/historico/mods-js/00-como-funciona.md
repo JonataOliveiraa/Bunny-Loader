@@ -340,7 +340,7 @@ sequenceDiagram
 - An error in the mod's `UseItem` becomes a log line (`Safe.Run`): the game
   carries on.
 
-The details of each piece are in [hooks under the hood](../../nucleo/hooks.md) and
+The details of each piece are in [hooks under the hood](https://github.com/JonataOliveiraa/Bunny-Loader/blob/1713bd66b1dfbe08db545f4580205c2310ad9d62/docs/nucleo/hooks.md) and
 [threads and the JS engine](../threads-e-motor-js.md).
 
 ### Saving
