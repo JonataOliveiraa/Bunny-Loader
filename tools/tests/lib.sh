@@ -162,7 +162,7 @@ enter_client() {
 wait_mods() {
     local dev="$1" seconds="${2:-180}"
     for _ in $(seq 1 "$seconds"); do
-        adb -s "$dev" logcat -d | grep -qE 'probe: [0-9]+ mod[(]s[)] loaded' && return 0
+        adb -s "$dev" logcat -d | grep -qE 'sonda: [0-9]+ mod[(]s[)] carregado[(]s[)]' && return 0
         adb -s "$dev" logcat -d | grep -qE "Forwarding signal|FATAL" && break
         sleep 1
     done
@@ -185,7 +185,7 @@ wait_end() {
 
 results() {
     local dev="$1" test="$2"
-    echo "==> $test on $dev $(adb -s "$dev" logcat -d | grep -o '([0-9]* enabled)' | tail -1)"
+    echo "==> $test on $dev $(adb -s "$dev" logcat -d | grep -o '([0-9]* habilitados)' | tail -1)"
     adb -s "$dev" logcat -d | grep -E "BunnyLoader: \[mod\]" | grep -E " $test END( |$)|: FAIL|threw|error" | cut -c50-300 | tail -8
     adb -s "$dev" logcat -d | grep -E "Forwarding signal|FATAL" | head -3
 }
