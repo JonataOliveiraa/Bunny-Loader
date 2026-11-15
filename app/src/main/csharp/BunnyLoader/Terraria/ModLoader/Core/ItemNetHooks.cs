@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System;
+using BunnyLoader.Hooks;
 using BunnyLoader.Interop;
 using BunnyLoader;
 using Terraria.ID;
@@ -62,7 +63,8 @@ internal static unsafe class ItemNetHooks
             On_Player.Update += (orig, self, i) =>
             {
                 orig(self, i);
-                if (i == Main.myPlayer) AfterJoin();
+                if (Main.netMode != 1) inWorld = 0;
+                else if (i == Main.myPlayer) AfterJoin();
             };
         });
     }
@@ -75,9 +77,10 @@ internal static unsafe class ItemNetHooks
 
     internal static void WantSendData() => ItemHooks.Once("NetSendData", () =>
     {
-        sendData = ItemHooks.Raw("Terraria", "NetMessage",
+        sendData = ItemHooks.Gated(NetMessage.Class,
             "void SendData(int msgType, int remoteClient, int ignoreClient, NetworkText text, int number, float number2, float number3, float number4, int number5, int number6, int number7)",
-            (IntPtr)(delegate* unmanaged<int, int, int, IntPtr, int, float, float, float, int, int, int, IntPtr, void>)&SendData);
+            (IntPtr)(delegate* unmanaged<int, int, int, IntPtr, int, float, float, float, int, int, int, IntPtr, void>)&SendData,
+            static () => HookGates.Static(Main.Class, "netMode"));
     });
 
     internal static void WantProcessData() => ItemHooks.Once("NetProcess", () =>
@@ -236,7 +239,7 @@ internal static unsafe class ItemNetHooks
 
     static void AfterJoin()
     {
-        if (ModNet.NetMode != 1 || Main.gameMenu)
+        if (Main.netMode != 1 || Main.gameMenu)
         {
             inWorld = 0;
             return;
@@ -264,11 +267,12 @@ internal static unsafe class ItemNetHooks
 
     static void BeforeSend(int packet, int remote, int ignore, int index, int slot)
     {
-        if (ModNet.NetMode == 0) return;
+        int netMode = Main.netMode;
+        if (netMode == 0) return;
         if (packet != 5 && packet != 32) slot = 0;
         Item item = ItemFor(packet, index, slot);
         if (item.IsNull || item.type <= 0 || item.stack <= 0) return;
-        if (ModNet.NetMode == 1 && (Main.gameMenu || inWorld < 60))
+        if (netMode == 1 && (Main.gameMenu || inWorld < 60))
         {
             if (packet == 5 && index == Main.myPlayer && (ItemLoader.Get(item.type) != null || globalWanted))
                 lock (Gate)
@@ -349,7 +353,7 @@ internal static unsafe class ItemNetHooks
         e.Slot = slot;
         if (!IsItemPacket(e.Packet) || e.Index < 0 || e.Index >= 8000 || e.Slot < 0 || e.Slot > 65535 || e.Key.Length == 0) return;
         if ((e.Packet == 5 && e.Index > 255) || ((e.Packet == 21 || e.Packet == 90) && e.Index > 400)) return;
-        if (ModNet.NetMode != 1 && e.Packet == 5 && e.Index != from) return;
+        if (Main.netMode != 1 && e.Packet == 5 && e.Index != from) return;
         e.Time = Stopwatch.GetTimestamp();
         lock (Gate)
         {
@@ -367,8 +371,9 @@ internal static unsafe class ItemNetHooks
         lock (Gate)
         {
             if (!Pending.TryGetValue(from, out List<Envelope>? queue) || queue.Count == 0) return null;
+            bool server = Main.netMode != 1;
             int at = queue.FindIndex(e => !Expired(e) && e.Packet == packet &&
-                (e.Index == index || (packet == 21 && index == 400 && ModNet.NetMode != 1)) &&
+                (e.Index == index || (packet == 21 && index == 400 && server)) &&
                 ((packet != 5 && packet != 32) || e.Slot == slot));
             if (at < 0) return null;
             Envelope found = queue[at];
@@ -393,9 +398,10 @@ internal static unsafe class ItemNetHooks
         Hook? hook = processData;
         if (hook == null) return;
         GameArray<byte> replacement = default;
+        int netMode = ModNet.NetMode;
         try
         {
-            int sender = ModNet.NetMode == 1 ? 256 : new MessageBuffer(self).whoAmI;
+            int sender = netMode == 1 ? 256 : new MessageBuffer(self).whoAmI;
             if (SystemNetHooks.HijackGet(sender, data, length, typeOut, out replacement)) return;
         }
         catch (Exception e) { ItemHooks.Report("HijackGetData", e); }
@@ -416,14 +422,14 @@ internal static unsafe class ItemNetHooks
             {
                 byte* b = (byte*)(data + 0x20);
                 packet = b[0];
-                if (packet == ItemPvpHooks.HurtPacket) pvp = ItemPvpHooks.Take(ModNet.NetMode == 1 ? 256 : new MessageBuffer(self).whoAmI, b[1]);
+                if (packet == ItemPvpHooks.HurtPacket) pvp = ItemPvpHooks.Take(netMode == 1 ? 256 : new MessageBuffer(self).whoAmI, b[1]);
                 if (packet == 27 && length >= 5)
-                    projectile = ProjectileNetHooks.Take(ModNet.NetMode == 1 ? 256 : new MessageBuffer(self).whoAmI, *(uint*)(b + 1));
-                if (packet == 23 && ModNet.NetMode == 1)
+                    projectile = ProjectileNetHooks.Take(netMode == 1 ? 256 : new MessageBuffer(self).whoAmI, *(uint*)(b + 1));
+                if (packet == 23 && netMode == 1)
                     npc = NPCNetHooks.Take(256, b[1]);
                 if (IsItemPacket(packet) && !((packet == 5 || packet == 32) && length < 4) && AnyPending())
                 {
-                    int from = ModNet.NetMode == 1 ? 256 : new MessageBuffer(self).whoAmI;
+                    int from = netMode == 1 ? 256 : new MessageBuffer(self).whoAmI;
                     index = packet == 5 ? b[1] : b[1] | (b[2] << 8);
                     slot = packet == 5 ? b[2] | (b[3] << 8) : packet == 32 ? b[3] : 0;
                     Envelope? envelope = Take(from, packet, index, slot);
@@ -487,7 +493,7 @@ internal static unsafe class ItemNetHooks
         if (hook == null) return;
         try
         {
-            int from = ModNet.NetMode == 1 ? 256 : new MessageBuffer(self).whoAmI;
+            int from = Main.netMode == 1 ? 256 : new MessageBuffer(self).whoAmI;
             lock (Gate) Pending.Remove(from);
             ItemPvpHooks.Forget(from);
             ProjectileNetHooks.Forget(from);

@@ -38,6 +38,7 @@ public static class SceneEffectLoader
 
     static readonly List<ModSceneEffect> Effects = new();
     static readonly SceneEffectInstance[] Scenes = new SceneEffectInstance[256];
+    static readonly SceneEffectInstance?[] Spares = new SceneEffectInstance?[256];
     static readonly SceneEffectInstance Empty = new();
     static readonly List<(float Weight, int Order, ModSceneEffect Effect)> Ranked = new();
     static readonly Comparison<(float Weight, int Order, ModSceneEffect Effect)> ByWeight =
@@ -67,9 +68,21 @@ public static class SceneEffectLoader
         if ((uint)who < (uint)Scenes.Length) Scenes[who] = null!;
     }
 
+    static SceneEffectInstance Fresh(int who)
+    {
+        if ((uint)who >= (uint)Spares.Length || Spares[who] is not SceneEffectInstance spare) return new SceneEffectInstance();
+        spare.anyActive = false;
+        spare.waterStyle = spare.undergroundBackground = spare.surfaceBackground = spare.music = SceneEffectInstance.PrioritizedPair.Default;
+        spare.biomeTorchItemType = spare.biomeCampfireItemType = SceneEffectInstance.PrioritizedPair.Default;
+        spare.mapBackground = null;
+        spare.mapBackgroundSceneEffect = null;
+        spare.tileColorStyle = default;
+        return spare;
+    }
+
     public static void UpdateSceneEffect(Player player)
     {
-        var result = new SceneEffectInstance();
+        var result = Fresh(player.whoAmI);
         Ranked.Clear();
         for (int i = 0; i < Effects.Count; i++)
         {
@@ -104,8 +117,23 @@ public static class SceneEffectLoader
             }
         }
         int who = player.whoAmI;
-        if ((uint)who < (uint)Scenes.Length) Scenes[who] = result;
+        if ((uint)who >= (uint)Scenes.Length) return;
+        if (Scenes[who] is SceneEffectInstance current && Same(current, result))
+        {
+            Spares[who] = result;
+            return;
+        }
+        Spares[who] = null;
+        Scenes[who] = result;
     }
+
+    static bool Same(SceneEffectInstance a, SceneEffectInstance b) =>
+        a.anyActive == b.anyActive && Same(a.waterStyle, b.waterStyle) && Same(a.undergroundBackground, b.undergroundBackground) &&
+        Same(a.surfaceBackground, b.surfaceBackground) && Same(a.music, b.music) && Same(a.biomeTorchItemType, b.biomeTorchItemType) &&
+        Same(a.biomeCampfireItemType, b.biomeCampfireItemType) && a.tileColorStyle == b.tileColorStyle &&
+        string.Equals(a.mapBackground, b.mapBackground, StringComparison.Ordinal) && ReferenceEquals(a.mapBackgroundSceneEffect, b.mapBackgroundSceneEffect);
+
+    static bool Same(SceneEffectInstance.PrioritizedPair a, SceneEffectInstance.PrioritizedPair b) => a.value == b.value && a.priority == b.priority;
 
     static void Fill(SceneEffectInstance result, ModSceneEffect effect)
     {

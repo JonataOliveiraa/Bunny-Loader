@@ -1,6 +1,8 @@
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using BunnyLoader;
+using BunnyLoader.Hooks;
 using BunnyLoader.Interop;
 using Terraria.IO;
 using Terraria.Utilities;
@@ -9,12 +11,22 @@ namespace Terraria.ModLoader.Core;
 
 internal static unsafe class SubworldWorldHooks
 {
+    const int ActiveFlag = 0, UnderworldFlag = 1;
+
+    static readonly int* Flags = (int*)NativeMemory.AllocZeroed((nuint)(2 * sizeof(int)));
     static ModSubworld? active;
     static bool hideUnderworld, hideOcean, randomTileUpdates, savePlayerChanges = true, underworldPatched, oceanPatched, framePatched;
 
+    static GateSpec Flag(int index) =>
+        new() { Arg = HookGates.AbsoluteArg, PointerOffset = -1, FieldOffset = index * sizeof(int), FieldSize = 4, Address = (IntPtr)Flags };
+
     internal static void Install()
     {
+        HookGates.Define<On_WorldGen.hook_UpdateWorld>(() => Flag(ActiveFlag));
+        HookGates.Want<On_WorldGen.hook_UpdateWorld>();
         On_WorldGen.UpdateWorld += UpdateWorld;
+        HookGates.Define<On_Main.hook_DrawUnderworldBackground>(() => Flag(UnderworldFlag));
+        HookGates.Want<On_Main.hook_DrawUnderworldBackground>();
         On_Main.DrawUnderworldBackground += DrawUnderworldBackground;
         On_Player.SavePlayer += SavePlayer;
         On_Main.EraseWorld += EraseWorld;
@@ -25,7 +37,9 @@ internal static unsafe class SubworldWorldHooks
     internal static void Apply(ModSubworld? subworld)
     {
         active = subworld;
+        Flags[ActiveFlag] = subworld != null ? 1 : 0;
         hideUnderworld = subworld != null && Read(subworld, nameof(ModSubworld.HideUnderworld), () => subworld.HideUnderworld, true);
+        Flags[UnderworldFlag] = hideUnderworld ? 1 : 0;
         hideOcean = subworld != null && Read(subworld, nameof(ModSubworld.HideOcean), () => subworld.HideOcean, true);
         randomTileUpdates = subworld != null && Read(subworld, nameof(ModSubworld.RandomTileUpdates), () => subworld.RandomTileUpdates, false);
         savePlayerChanges = subworld == null || Read(subworld, nameof(ModSubworld.SavePlayerChanges), () => subworld.SavePlayerChanges, true);

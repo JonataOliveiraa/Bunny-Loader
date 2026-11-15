@@ -17,6 +17,7 @@ internal static unsafe class SoundHooks
     sealed class Sound
     {
         public int[] Ids = Array.Empty<int>();
+        public int[] Variants = Array.Empty<int>();
         public float Volume, Pitch, PitchVariance;
         public int MaxInstances;
         public bool IgnoreNew;
@@ -25,20 +26,41 @@ internal static unsafe class SoundHooks
         public GameHandle? Marker;
     }
 
+    readonly record struct StyleKey(string Path, int Variants, float Volume, float Pitch, float PitchVariance, int MaxInstances, SoundLimitBehavior Limit, SoundType Type);
+
     static readonly List<Sound> Sounds = new();
     static readonly Dictionary<string, int> ByKey = new(StringComparer.Ordinal);
+    static readonly Dictionary<StyleKey, int> ByStyle = new();
     static readonly Dictionary<string, int> Files = new(StringComparer.Ordinal);
     static readonly Random Random = new();
+
+    static int VariantsHash(ReadOnlySpan<int> variants)
+    {
+        int hash = variants.Length;
+        foreach (int variant in variants) hash = hash * 31 + variant;
+        return hash;
+    }
 
     static int Index(in SoundStyle style)
     {
         string path = style.SoundPath ?? "";
-        string key = $"{path}|{string.Join(",", style.Variants.ToArray())}|{style.Volume}|{style.Pitch}|{style.PitchVariance}|{style.MaxInstances}|{style.SoundLimitBehavior}|{style.Type}";
+        ReadOnlySpan<int> variants = style.Variants;
+        var fast = new StyleKey(path, VariantsHash(variants), style.Volume, style.Pitch, style.PitchVariance, style.MaxInstances, style.SoundLimitBehavior, style.Type);
         lock (Sounds)
         {
-            if (ByKey.TryGetValue(key, out int known)) return known;
+            if (ByStyle.TryGetValue(fast, out int cached) && variants.SequenceEqual(Sounds[cached].Variants)) return cached;
+        }
+        string key = $"{path}|{string.Join(",", variants.ToArray())}|{style.Volume}|{style.Pitch}|{style.PitchVariance}|{style.MaxInstances}|{style.SoundLimitBehavior}|{style.Type}";
+        lock (Sounds)
+        {
+            if (ByKey.TryGetValue(key, out int known))
+            {
+                ByStyle[fast] = known;
+                return known;
+            }
             var sound = new Sound
             {
+                Variants = variants.ToArray(),
                 Volume = style.Volume,
                 Pitch = style.Pitch,
                 PitchVariance = style.PitchVariance,
@@ -55,6 +77,7 @@ internal static unsafe class SoundHooks
             int index = Sounds.Count;
             Sounds.Add(sound);
             ByKey[key] = index;
+            ByStyle[fast] = index;
             ItemHooks.Once("Sounds", () => On_LegacySoundPlayer.PlaySound += PlaySound);
             return index;
         }

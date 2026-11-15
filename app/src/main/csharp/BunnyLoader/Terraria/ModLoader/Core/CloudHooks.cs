@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using BunnyLoader.Hooks;
 using BunnyLoader.Interop;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -11,6 +12,8 @@ namespace Terraria.ModLoader.Core;
 
 internal static class CloudHooks
 {
+    const int CloudArg = 1;
+
     static readonly HashSet<Type> Drawers = new();
     static readonly List<DrawData> Cache = new();
 
@@ -26,8 +29,15 @@ internal static class CloudHooks
         });
         if (!ItemHooks.Overrides(type, typeof(ModCloud), nameof(ModCloud.Draw))) return;
         lock (Drawers) Drawers.Add(type);
-        ItemHooks.Once("CloudDraw", () => On_NextHorizonRenderer.DrawCloud += DrawCloud);
+        ItemHooks.Once("CloudDraw", () =>
+        {
+            HookGates.Table<On_NextHorizonRenderer.hook_DrawCloud>(() => HookGates.Field(CloudArg, Cloud.Class, "type"), () => CloudLoader.CloudCount);
+            HookGates.Want<On_NextHorizonRenderer.hook_DrawCloud>(Draws);
+            On_NextHorizonRenderer.DrawCloud += DrawCloud;
+        });
     }
+
+    static bool Draws(int type) => CloudLoader.GetModCloud(type) is ModCloud cloud && Drawers.Contains(cloud.GetType());
 
     static int FreeSlot()
     {
@@ -90,9 +100,7 @@ internal static class CloudHooks
     static void DrawCloud(On_NextHorizonRenderer.orig_DrawCloud orig, NextHorizonRenderer self, float globalCloudAlpha, Cloud theCloud, int cloudPass, float cY)
     {
         ModCloud? modCloud = CloudLoader.GetModCloud(theCloud.type);
-        bool drawer;
-        lock (Drawers) drawer = modCloud != null && Drawers.Contains(modCloud.GetType());
-        if (!drawer)
+        if (modCloud == null || !Drawers.Contains(modCloud.GetType()))
         {
             orig(self, globalCloudAlpha, theCloud, cloudPass, cY);
             return;

@@ -80,15 +80,23 @@ public static partial class NPCLoader
         }
     }
 
-    public static void DrawEffects(NPC npc, ref Color drawColor)
+    internal static bool Any(GlobalNPC?[] globals, NPCMethod methods)
     {
-        ModNPC? own = InstanceOf(npc);
+        foreach (GlobalNPC? global in globals)
+            if (Has(global, methods)) return true;
+        return false;
+    }
+
+    public static void DrawEffects(NPC npc, ref Color drawColor) => DrawEffects(npc, InstanceOf(npc), Slots(npc), ref drawColor);
+
+    internal static void DrawEffects(NPC npc, ModNPC? own, GlobalNPC?[] globals, ref Color drawColor)
+    {
         if (Has(own, NPCMethod.DrawEffects))
         {
             try { own!.DrawEffects(ref drawColor); }
             catch (Exception e) { ItemHooks.Report($"{own!.FullName}.DrawEffects", e); }
         }
-        foreach (GlobalNPC? global in Slots(npc))
+        foreach (GlobalNPC? global in globals)
         {
             if (!Has(global, NPCMethod.DrawEffects)) continue;
             try { global!.DrawEffects(npc, ref drawColor); }
@@ -96,16 +104,22 @@ public static partial class NPCLoader
         }
     }
 
-    public static bool PreDraw(NPC npc, SpriteBatch spriteBatch, Vector2 screenPos, Color drawColor)
+    public static bool PreDraw(NPC npc, SpriteBatch spriteBatch, Vector2 screenPos, Color drawColor) =>
+        PreDraw(npc, null, Slots(npc), spriteBatch, screenPos, drawColor, true);
+
+    internal static bool PreDraw(NPC npc, ModNPC? own, GlobalNPC?[] globals, SpriteBatch spriteBatch, Vector2 screenPos, Color drawColor) =>
+        PreDraw(npc, own, globals, spriteBatch, screenPos, drawColor, false);
+
+    static bool PreDraw(NPC npc, ModNPC? own, GlobalNPC?[] globals, SpriteBatch spriteBatch, Vector2 screenPos, Color drawColor, bool resolve)
     {
         bool result = true;
-        foreach (GlobalNPC? global in Slots(npc))
+        foreach (GlobalNPC? global in globals)
         {
             if (!Has(global, NPCMethod.PreDraw)) continue;
             try { result &= global!.PreDraw(npc, spriteBatch, screenPos, drawColor); }
             catch (Exception e) { ItemHooks.Report($"{global!.FullName}.PreDraw", e); }
         }
-        ModNPC? own = InstanceOf(npc);
+        if (resolve) own = InstanceOf(npc);
         if (!result || !Has(own, NPCMethod.PreDraw)) return result;
         try { return own!.PreDraw(spriteBatch, screenPos, drawColor); }
         catch (Exception e)

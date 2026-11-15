@@ -43,6 +43,8 @@ struct Stage {
 
 extern Stage stages[bl::runtime::kSystemStageCount];
 std::mutex g_mx;
+alignas(8) double g_clockRate = 1.0;
+std::atomic<bool> g_clockPublished{false};
 
 }
 
@@ -53,7 +55,9 @@ extern "C" __attribute__((visibility("hidden"))) void blSystemStageDispatch(unsi
     double value = 0;
     if (clock) std::memcpy(&value, frame->vectors[0], sizeof(value));
     const double before = value;
-    if (bl::runtime::SystemStageFn fn = stage.callback.load(std::memory_order_acquire)) {
+    if (clock && g_clockPublished.load(std::memory_order_acquire)) {
+        __atomic_load(&g_clockRate, &value, __ATOMIC_RELAXED);
+    } else if (bl::runtime::SystemStageFn fn = stage.callback.load(std::memory_order_acquire)) {
         fn(static_cast<int32_t>(index), clock ? &value : nullptr);
     }
     if (clock && value != before && std::isfinite(value) && value >= 0) std::memcpy(frame->vectors[0], &value, sizeof(value));
@@ -175,22 +179,32 @@ namespace bl::runtime {
 
 bool installSystemStage(int32_t index, SystemStageFn fn) {
     if (index < 0 || index >= kSystemStageCount || !fn) return false;
-    std::lock_guard<std::mutex> lock(g_mx);
-    Stage& stage = stages[index];
-    if (!*stage.original) {
-        auto* main = il2cpp::findClass({"Terraria", "Main", ""});
-        const MethodInfo* method = main ? il2cpp::findMethodBySignature(main, il2cpp::parseSignature(stage.signature)) : nullptr;
-        const auto* entry = method ? static_cast<const uint8_t*>(il2cpp::methodPointer(method)) : nullptr;
-        if (!entry || std::memcmp(entry + stage.offset, stage.expected, sizeof(stage.expected)) != 0) {
-            BL_ERROR("system stage %s: the native body does not match", stage.name);
-            return false;
+    {
+        std::lock_guard<std::mutex> lock(g_mx);
+        Stage& stage = stages[index];
+        if (!*stage.original) {
+            auto* main = il2cpp::findClass({"Terraria", "Main", ""});
+            const MethodInfo* method = main ? il2cpp::findMethodBySignature(main, il2cpp::parseSignature(stage.signature)) : nullptr;
+            const auto* entry = method ? static_cast<const uint8_t*>(il2cpp::methodPointer(method)) : nullptr;
+            if (!entry || std::memcmp(entry + stage.offset, stage.expected, sizeof(stage.expected)) != 0) {
+                BL_ERROR("system stage %s: the native body does not match", stage.name);
+                return false;
+            }
+            if (!hook::install(const_cast<uint8_t*>(entry + stage.offset), reinterpret_cast<void*>(stage.bridge), stage.original)) {
+                BL_ERROR("system stage %s: the native hook was refused", stage.name);
+                return false;
+            }
         }
-        if (!hook::install(const_cast<uint8_t*>(entry + stage.offset), reinterpret_cast<void*>(stage.bridge), stage.original)) {
-            BL_ERROR("system stage %s: the native hook was refused", stage.name);
-            return false;
-        }
+        stage.callback.store(fn, std::memory_order_release);
     }
-    stage.callback.store(fn, std::memory_order_release);
+    if (index == kStageClockAdvance && !g_clockPublished.load(std::memory_order_acquire)) {
+        double probe = NAN;
+        __atomic_store(&g_clockRate, &probe, __ATOMIC_RELAXED);
+        fn(kStageClockRateSlot, &g_clockRate);
+        double published = NAN;
+        __atomic_load(&g_clockRate, &published, __ATOMIC_RELAXED);
+        g_clockPublished.store(std::isfinite(published), std::memory_order_release);
+    }
     return true;
 }
 

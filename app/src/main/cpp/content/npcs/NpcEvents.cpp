@@ -49,6 +49,7 @@ struct RegenState {
 };
 
 thread_local RegenState* t_regen = nullptr;
+std::atomic<int32_t> g_regenDepth{0};
 
 bool wants(Il2CppObject* npc, uint32_t event) {
     if (!npc || g_type < 0) return false;
@@ -75,7 +76,8 @@ void dots(Il2CppObject* npc, const MethodInfo* method) {
         return;
     }
     RegenState state{npc, -1, t_regen};
-    struct Restore { RegenState* outer; ~Restore() { t_regen = outer; } } restore{t_regen};
+    g_regenDepth.fetch_add(1, std::memory_order_relaxed);
+    struct Restore { RegenState* outer; ~Restore() { t_regen = outer; g_regenDepth.fetch_sub(1, std::memory_order_relaxed); } } restore{t_regen};
     t_regen = &state;
     g_dots(npc, method);
 }
@@ -93,7 +95,7 @@ bool entry(const char* signature, void* replacement, void** original, const Meth
 extern "C" __attribute__((visibility("hidden"))) void blNpcRegenStage(RegisterFrame* frame) {
     auto* npc = reinterpret_cast<Il2CppObject*>(frame->general[19]);
     auto callback = g_callback.load(std::memory_order_acquire);
-    if (callback && t_regen && t_regen->npc == npc) {
+    if (callback && g_regenDepth.load(std::memory_order_relaxed) > 0 && t_regen && t_regen->npc == npc) {
         const int32_t expected = *reinterpret_cast<int32_t*>(reinterpret_cast<uint8_t*>(frame + 1) + 0x60);
         t_regen->damage = expected == 0 ? -1 : expected;
         callback(4, npc, &t_regen->damage);
@@ -101,7 +103,8 @@ extern "C" __attribute__((visibility("hidden"))) void blNpcRegenStage(RegisterFr
 }
 
 extern "C" __attribute__((visibility("hidden"))) void blNpcRegenDamageStage(RegisterFrame* frame) {
-    if (t_regen && t_regen->npc == reinterpret_cast<Il2CppObject*>(frame->general[19]))
+    auto* npc = reinterpret_cast<Il2CppObject*>(frame->general[19]);
+    if (g_regenDepth.load(std::memory_order_relaxed) > 0 && t_regen && t_regen->npc == npc)
         frame->general[20] = static_cast<uint32_t>(t_regen->damage);
 }
 

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 namespace BunnyLoader.Interop;
@@ -13,7 +14,7 @@ public static unsafe class GameDelegates
     }
 
     static readonly object Gate = new();
-    static readonly Dictionary<IntPtr, Delegate> ByTarget = new();
+    static readonly ConcurrentDictionary<IntPtr, Delegate> ByTarget = new();
     static readonly Dictionary<(string Event, IntPtr Owner), List<Entry>> ByEvent = new();
     static readonly HashSet<string> Reported = new();
     static readonly Dictionary<IntPtr, uint> Loose = new();
@@ -26,10 +27,7 @@ public static unsafe class GameDelegates
         if (first) Log.Error($"{what} threw: {e}");
     }
 
-    public static T? Get<T>(IntPtr target) where T : Delegate
-    {
-        lock (Gate) return ByTarget.TryGetValue(target, out Delegate? handler) ? handler as T : null;
-    }
+    public static T? Get<T>(IntPtr target) where T : Delegate => ByTarget.TryGetValue(target, out Delegate? handler) ? handler as T : null;
 
     public static IntPtr ParamClass(IntPtr method, int parameter) => Host.Native()->ParamClass(method, parameter);
 
@@ -66,7 +64,7 @@ public static unsafe class GameDelegates
         {
             Host.Native()->GcHandleFree(Loose[target]);
             Loose.Remove(target);
-            ByTarget.Remove(target);
+            ByTarget.TryRemove(target, out _);
         }
     }
 
@@ -111,7 +109,7 @@ public static unsafe class GameDelegates
     {
         lock (Gate)
         {
-            ByTarget.Remove(entry.Target);
+            ByTarget.TryRemove(entry.Target, out _);
             if (ByEvent.TryGetValue((name, owner), out List<Entry>? list))
             {
                 list.Remove(entry);

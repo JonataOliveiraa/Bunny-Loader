@@ -7,6 +7,8 @@ namespace Terraria.ModLoader.Core;
 
 internal static class ItemHeldDrawHooks
 {
+    [ThreadStatic] static DrawData[]? spare;
+
     internal static void Install(Func<string, bool> has)
     {
         if (has(nameof(ModItem.HoldoutOrigin)) || has(nameof(ModItem.ModifyItemDraw)) || has(nameof(GlobalItem.PreModifyItemDraw)) || has(nameof(GlobalItem.PostModifyItemDraw)))
@@ -47,13 +49,22 @@ internal static class ItemHeldDrawHooks
             if (next < before + added)
                 glow = cache[next++];
             int rest = before + added - next;
-            var extras = new DrawData[rest];
-            for (int k = 0; k < rest; k++)
-                extras[k] = cache[next + k];
+            DrawData[]? extras = null;
+            if (rest > 0)
+            {
+                extras = spare != null && spare.Length >= rest ? spare : new DrawData[rest];
+                spare = null;
+                for (int k = 0; k < rest; k++)
+                    extras[k] = cache[next + k];
+            }
             drawInfo.DrawDataCacheCount = before;
             ItemLoader.ModifyItemDraw(item, drawInfo, normal, colored, glow);
-            foreach (DrawData extra in extras)
-                cache.Add(extra);
+            if (extras != null)
+            {
+                for (int k = 0; k < rest; k++)
+                    cache.Add(extras[k]);
+                spare = extras;
+            }
         }
         catch (Exception e)
         {

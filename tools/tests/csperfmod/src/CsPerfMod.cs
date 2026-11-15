@@ -12,6 +12,7 @@ public sealed class CsPerfModMod : Mod
     const int Projectiles = 60, Npcs = 15;
 
     static int frames, projType, npcType;
+    static Vector2 cave;
 
     public override void Load()
     {
@@ -36,7 +37,13 @@ public sealed class CsPerfModMod : Mod
 
     static void Step(Player p, int f)
     {
-        if (f >= 420 && projType > 0) KeepProjectiles(p);
+        if (f >= 420 && f < 840 && projType > 0) KeepProjectiles(p);
+        if (f > 1200 && cave != Vector2.Zero)
+        {
+            p.position = cave;
+            p.velocity = Vector2.Zero;
+            p.fallStart = (int)(cave.Y / 16f);
+        }
         switch (f)
         {
             case 60:
@@ -72,6 +79,22 @@ public sealed class CsPerfModMod : Mod
                     if (n.active && n.type == npcType) { liveNpcs++; n.active = false; }
                 }
                 Measure.Info($"alive at the end: {liveProjectiles} projectiles, {liveNpcs} NPCs, system hook calls {PerfSystem.Calls}");
+                Main.playerInventory = true;
+                break;
+            case 900:
+                Measure.Begin("inventory open");
+                break;
+            case 1200:
+                Measure.End();
+                Main.playerInventory = false;
+                cave = new Vector2(Main.spawnTileX * 16f, (float)(Main.rockLayer + 60) * 16f);
+                Measure.Info($"underground at {cave.X / 16:0},{cave.Y / 16:0} of {Main.maxTilesX}x{Main.maxTilesY}");
+                break;
+            case 1260:
+                Measure.Begin("underground");
+                break;
+            case 1560:
+                Measure.End();
                 Measure.Info("END");
                 break;
         }

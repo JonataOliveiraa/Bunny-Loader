@@ -14,11 +14,14 @@ public static unsafe class BuffLoader
     static readonly object Gate = new();
     static ModBuff?[] buffs = Array.Empty<ModBuff?>();
     static GlobalBuff[] globals = Array.Empty<GlobalBuff>();
+    static GlobalBuffHooks globalHooks = GlobalBuffHooks.Empty;
     static bool hooked;
 
     public static int BuffCount => BuffID.Count + Volatile.Read(ref buffs).Length;
 
     internal static GlobalBuff[] Globals => Volatile.Read(ref globals);
+
+    internal static GlobalBuffHooks GlobalHooks => Volatile.Read(ref globalHooks);
 
     public static ModBuff? GetBuff(int type)
     {
@@ -34,6 +37,7 @@ public static unsafe class BuffLoader
         if (type == -1) throw new InvalidOperationException($"{buff.FullName}: the mod already has a buff named '{buff.Name}'");
         if (type < 0) throw new InvalidOperationException($"{buff.FullName}: registration failed ({type})");
         buff.Type = type;
+        buff.HookFlags = BuffHooks.FlagsOf(buff.GetType(), typeof(ModBuff));
         lock (Gate)
         {
             EnsureHooked();
@@ -48,19 +52,21 @@ public static unsafe class BuffLoader
             all[index] = buff;
             Volatile.Write(ref buffs, all);
         }
-        BuffHooks.Install(buff.GetType(), typeof(ModBuff));
+        BuffHooks.Install(buff.HookFlags);
     }
 
     internal static void RegisterGlobal(GlobalBuff global)
     {
+        global.HookFlags = BuffHooks.FlagsOf(global.GetType(), typeof(GlobalBuff));
         lock (Gate)
         {
             var grown = new GlobalBuff[globals.Length + 1];
             Array.Copy(globals, grown, globals.Length);
             grown[^1] = global;
             Volatile.Write(ref globals, grown);
+            Volatile.Write(ref globalHooks, new GlobalBuffHooks(grown));
         }
-        BuffHooks.Install(global.GetType(), typeof(GlobalBuff));
+        BuffHooks.Install(global.HookFlags);
     }
 
     static void EnsureHooked()

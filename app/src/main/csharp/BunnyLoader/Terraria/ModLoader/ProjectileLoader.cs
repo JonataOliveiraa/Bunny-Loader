@@ -24,10 +24,13 @@ public static unsafe class ProjectileLoader
     static readonly List<GameHandle> TemplatePins = new();
     internal static readonly GlobalList<Projectile, GlobalProjectile> Globals = new();
     static bool hooked, installed;
+    static int generation;
     static readonly Dictionary<int, (GameHandle Pin, Projectile Sample)> Samples = new();
     [ThreadStatic] static (IntPtr Pointer, ModProjectile? Instance) borrowed;
 
     public static int ProjectileCount => VanillaCount + Volatile.Read(ref projectiles).Length;
+
+    internal static int Generation => Volatile.Read(ref generation);
 
     public static ModProjectile? GetProjectile(int type)
     {
@@ -67,7 +70,9 @@ public static unsafe class ProjectileLoader
     {
         ModProjectile instance = template.NewInstance(projectile);
         instance.Type = template.Type;
+        instance.Hooks = template.Hooks;
         Instances.Set(projectile.Pointer, instance);
+        if (instance.HasDrawOffset) ProjectileHooks.WantDrawOffset(instance);
         return instance;
     }
 
@@ -88,6 +93,7 @@ public static unsafe class ProjectileLoader
         if (type == -1) throw new InvalidOperationException($"{projectile.FullName}: the mod already has a projectile named '{projectile.Name}'");
         if (type < 0) throw new InvalidOperationException($"{projectile.FullName}: registration failed ({type})");
         projectile.Type = type;
+        projectile.Hooks = ProjectileHooks.Methods(projectile.GetType(), typeof(ModProjectile));
         lock (Gate)
         {
             int index = type - VanillaCount;
@@ -107,14 +113,14 @@ public static unsafe class ProjectileLoader
                 Host.Native()->OnProjectilesInstalled(&Installed);
             }
         }
-        ProjectileHooks.Install(projectile.GetType(), typeof(ModProjectile));
+        ProjectileHooks.Install(projectile.GetType(), typeof(ModProjectile), projectile.Hooks);
     }
 
     internal static void RegisterGlobal(GlobalProjectile global)
     {
         Globals.Add(global);
         lock (Gate) EnsureHooked();
-        ProjectileHooks.Install(global.GetType(), typeof(GlobalProjectile));
+        ProjectileHooks.Install(global.GetType(), typeof(GlobalProjectile), ProjectileHooks.Methods(global.GetType(), typeof(GlobalProjectile)));
     }
 
     static void EnsureHooked()
@@ -136,6 +142,7 @@ public static unsafe class ProjectileLoader
 
     static void SetDefaults(On_Projectile.orig_SetDefaults orig, Projectile self, int Type)
     {
+        Interlocked.Increment(ref generation);
         WhipHooks.Reset(self);
         orig(self, Type);
         ModProjectile? template = GetProjectile(Type);
@@ -177,6 +184,52 @@ public static unsafe class ProjectileLoader
 
     static void Report(ModType owner, string method, Exception e) => ItemHooks.Report($"{owner.FullName}.{method}", e);
 
+    sealed class GlobalHook(string method)
+    {
+        sealed class Snapshot(GlobalProjectile[] templates, short[] indices)
+        {
+            public readonly GlobalProjectile[] Templates = templates;
+            public readonly short[] Indices = indices;
+        }
+
+        Snapshot? snapshot;
+
+        public short[] Indices
+        {
+            get
+            {
+                GlobalProjectile[] templates = Globals.Templates;
+                Snapshot? current = Volatile.Read(ref snapshot);
+                if (current != null && current.Templates == templates) return current.Indices;
+                current = new Snapshot(templates, Globals.Overriding(method));
+                Volatile.Write(ref snapshot, current);
+                return current.Indices;
+            }
+        }
+    }
+
+    static readonly GlobalHook HookPreAI = new(nameof(GlobalProjectile.PreAI));
+    static readonly GlobalHook HookAI = new(nameof(GlobalProjectile.AI));
+    static readonly GlobalHook HookPostAI = new(nameof(GlobalProjectile.PostAI));
+    static readonly GlobalHook HookShouldUpdatePosition = new(nameof(GlobalProjectile.ShouldUpdatePosition));
+    static readonly GlobalHook HookTileCollideStyle = new(nameof(GlobalProjectile.TileCollideStyle));
+    static readonly GlobalHook HookOnTileCollide = new(nameof(GlobalProjectile.OnTileCollide));
+    static readonly GlobalHook HookCanCutTiles = new(nameof(GlobalProjectile.CanCutTiles));
+    static readonly GlobalHook HookCutTiles = new(nameof(GlobalProjectile.CutTiles));
+    static readonly GlobalHook HookPreKill = new(nameof(GlobalProjectile.PreKill));
+    static readonly GlobalHook HookOnKill = new(nameof(GlobalProjectile.OnKill));
+    static readonly GlobalHook HookCanDamage = new(nameof(GlobalProjectile.CanDamage));
+    static readonly GlobalHook HookMinionContactDamage = new(nameof(GlobalProjectile.MinionContactDamage));
+    static readonly GlobalHook HookModifyDamageHitbox = new(nameof(GlobalProjectile.ModifyDamageHitbox));
+    static readonly GlobalHook HookCanHitNPC = new(nameof(GlobalProjectile.CanHitNPC));
+    static readonly GlobalHook HookColliding = new(nameof(GlobalProjectile.Colliding));
+    static readonly GlobalHook HookGetAlpha = new(nameof(GlobalProjectile.GetAlpha));
+    static readonly GlobalHook HookPreDrawExtras = new(nameof(GlobalProjectile.PreDrawExtras));
+    static readonly GlobalHook HookPreDraw = new(nameof(GlobalProjectile.PreDraw));
+    static readonly GlobalHook HookPostDraw = new(nameof(GlobalProjectile.PostDraw));
+
+    static GlobalProjectile? At(GlobalProjectile?[] slots, short index) => (uint)index < (uint)slots.Length ? slots[index] : null;
+
     internal static void OnSpawn(Projectile projectile, IEntitySource source)
     {
         if (InstanceOf(projectile) is ModProjectile m)
@@ -192,16 +245,23 @@ public static unsafe class ProjectileLoader
         }
     }
 
-    public static bool PreAI(Projectile projectile)
+    public static bool PreAI(Projectile projectile) => PreAI(projectile, InstanceOf(projectile), Globals.Slots(projectile));
+
+    internal static bool PreAI(Projectile projectile, ModProjectile? m, GlobalProjectile?[]? slots)
     {
         bool result = true;
-        foreach (GlobalProjectile? g in GlobalsOf(projectile))
+        if (slots != null)
         {
-            if (g == null) continue;
-            try { result &= g.PreAI(projectile); }
-            catch (Exception e) { Report(g, nameof(GlobalProjectile.PreAI), e); }
+            int type = projectile.type, defaults = Generation;
+            foreach (short i in HookPreAI.Indices)
+            {
+                if (At(slots, i) is not GlobalProjectile g) continue;
+                try { result &= g.PreAI(projectile); }
+                catch (Exception e) { Report(g, nameof(GlobalProjectile.PreAI), e); }
+            }
+            if (projectile.type != type || Generation != defaults) m = InstanceOf(projectile);
         }
-        if (result && InstanceOf(projectile) is ModProjectile m)
+        if (result && m != null)
         {
             try { return m.PreAI(); }
             catch (Exception e) { Report(m, nameof(ModProjectile.PreAI), e); }
@@ -209,39 +269,51 @@ public static unsafe class ProjectileLoader
         return result;
     }
 
-    public static void AI(Projectile projectile)
+    public static void AI(Projectile projectile) => AI(projectile, InstanceOf(projectile), Globals.Slots(projectile));
+
+    internal static void AI(Projectile projectile, ModProjectile? m, GlobalProjectile?[]? slots)
     {
-        if (InstanceOf(projectile) is ModProjectile m)
+        if (m != null)
         {
+            int type = projectile.type, defaults = Generation;
             try { m.AI(); }
             catch (Exception e) { Report(m, nameof(ModProjectile.AI), e); }
+            if (projectile.type != type || Generation != defaults) slots = Globals.Slots(projectile);
         }
-        foreach (GlobalProjectile? g in GlobalsOf(projectile))
+        if (slots == null) return;
+        foreach (short i in HookAI.Indices)
         {
-            if (g == null) continue;
+            if (At(slots, i) is not GlobalProjectile g) continue;
             try { g.AI(projectile); }
             catch (Exception e) { Report(g, nameof(GlobalProjectile.AI), e); }
         }
     }
 
-    public static void PostAI(Projectile projectile)
+    public static void PostAI(Projectile projectile) => PostAI(projectile, InstanceOf(projectile), Globals.Slots(projectile));
+
+    internal static void PostAI(Projectile projectile, ModProjectile? m, GlobalProjectile?[]? slots)
     {
-        if (InstanceOf(projectile) is ModProjectile m)
+        if (m != null)
         {
+            int type = projectile.type, defaults = Generation;
             try { m.PostAI(); }
             catch (Exception e) { Report(m, nameof(ModProjectile.PostAI), e); }
+            if (projectile.type != type || Generation != defaults) slots = Globals.Slots(projectile);
         }
-        foreach (GlobalProjectile? g in GlobalsOf(projectile))
+        if (slots == null) return;
+        foreach (short i in HookPostAI.Indices)
         {
-            if (g == null) continue;
+            if (At(slots, i) is not GlobalProjectile g) continue;
             try { g.PostAI(projectile); }
             catch (Exception e) { Report(g, nameof(GlobalProjectile.PostAI), e); }
         }
     }
 
-    public static bool ShouldUpdatePosition(Projectile projectile)
+    public static bool ShouldUpdatePosition(Projectile projectile) => ShouldUpdatePosition(projectile, InstanceOf(projectile), Globals.Slots(projectile));
+
+    internal static bool ShouldUpdatePosition(Projectile projectile, ModProjectile? m, GlobalProjectile?[]? slots)
     {
-        if (InstanceOf(projectile) is ModProjectile m)
+        if (m != null)
         {
             try
             {
@@ -249,9 +321,10 @@ public static unsafe class ProjectileLoader
             }
             catch (Exception e) { Report(m, nameof(ModProjectile.ShouldUpdatePosition), e); }
         }
-        foreach (GlobalProjectile? g in GlobalsOf(projectile))
+        if (slots == null) return true;
+        foreach (short i in HookShouldUpdatePosition.Indices)
         {
-            if (g == null) continue;
+            if (At(slots, i) is not GlobalProjectile g) continue;
             try
             {
                 if (!g.ShouldUpdatePosition(projectile)) return false;
@@ -338,9 +411,13 @@ public static unsafe class ProjectileLoader
         }
     }
 
-    public static bool TileCollideStyle(Projectile projectile, ref int width, ref int height, ref bool fallThrough, ref Vector2 hitboxCenterFrac)
+    public static bool TileCollideStyle(Projectile projectile, ref int width, ref int height, ref bool fallThrough, ref Vector2 hitboxCenterFrac) =>
+        TileCollideStyle(projectile, ref width, ref height, ref fallThrough, ref hitboxCenterFrac, InstanceOf(projectile), Globals.Slots(projectile));
+
+    internal static bool TileCollideStyle(Projectile projectile, ref int width, ref int height, ref bool fallThrough, ref Vector2 hitboxCenterFrac,
+        ModProjectile? m, GlobalProjectile?[]? slots)
     {
-        if (InstanceOf(projectile) is ModProjectile m)
+        if (m != null)
         {
             try
             {
@@ -348,9 +425,10 @@ public static unsafe class ProjectileLoader
             }
             catch (Exception e) { Report(m, nameof(ModProjectile.TileCollideStyle), e); }
         }
-        foreach (GlobalProjectile? g in GlobalsOf(projectile))
+        if (slots == null) return true;
+        foreach (short i in HookTileCollideStyle.Indices)
         {
-            if (g == null) continue;
+            if (At(slots, i) is not GlobalProjectile g) continue;
             try
             {
                 if (!g.TileCollideStyle(projectile, ref width, ref height, ref fallThrough, ref hitboxCenterFrac)) return false;
@@ -360,18 +438,23 @@ public static unsafe class ProjectileLoader
         return true;
     }
 
-    public static bool? CanCutTiles(Projectile projectile)
+    public static bool? CanCutTiles(Projectile projectile) => CanCutTiles(projectile, InstanceOf(projectile), Globals.Slots(projectile));
+
+    internal static bool? CanCutTiles(Projectile projectile, ModProjectile? m, GlobalProjectile?[]? slots)
     {
-        foreach (GlobalProjectile? g in GlobalsOf(projectile))
+        if (slots != null)
         {
-            if (g == null) continue;
-            try
+            foreach (short i in HookCanCutTiles.Indices)
             {
-                if (g.CanCutTiles(projectile) is bool result) return result;
+                if (At(slots, i) is not GlobalProjectile g) continue;
+                try
+                {
+                    if (g.CanCutTiles(projectile) is bool result) return result;
+                }
+                catch (Exception e) { Report(g, nameof(GlobalProjectile.CanCutTiles), e); }
             }
-            catch (Exception e) { Report(g, nameof(GlobalProjectile.CanCutTiles), e); }
         }
-        if (InstanceOf(projectile) is ModProjectile m)
+        if (m != null)
         {
             try { return m.CanCutTiles(); }
             catch (Exception e) { Report(m, nameof(ModProjectile.CanCutTiles), e); }
@@ -379,31 +462,41 @@ public static unsafe class ProjectileLoader
         return null;
     }
 
-    public static void CutTiles(Projectile projectile)
+    public static void CutTiles(Projectile projectile) => CutTiles(projectile, InstanceOf(projectile), Globals.Slots(projectile));
+
+    internal static void CutTiles(Projectile projectile, ModProjectile? m, GlobalProjectile?[]? slots)
     {
-        foreach (GlobalProjectile? g in GlobalsOf(projectile))
+        if (slots != null)
         {
-            if (g == null) continue;
-            try { g.CutTiles(projectile); }
-            catch (Exception e) { Report(g, nameof(GlobalProjectile.CutTiles), e); }
+            foreach (short i in HookCutTiles.Indices)
+            {
+                if (At(slots, i) is not GlobalProjectile g) continue;
+                try { g.CutTiles(projectile); }
+                catch (Exception e) { Report(g, nameof(GlobalProjectile.CutTiles), e); }
+            }
         }
-        if (InstanceOf(projectile) is ModProjectile m)
+        if (m != null)
         {
             try { m.CutTiles(); }
             catch (Exception e) { Report(m, nameof(ModProjectile.CutTiles), e); }
         }
     }
 
-    public static bool OnTileCollide(Projectile projectile, Vector2 oldVelocity)
+    public static bool OnTileCollide(Projectile projectile, Vector2 oldVelocity) => OnTileCollide(projectile, oldVelocity, InstanceOf(projectile), Globals.Slots(projectile));
+
+    internal static bool OnTileCollide(Projectile projectile, Vector2 oldVelocity, ModProjectile? m, GlobalProjectile?[]? slots)
     {
         bool result = true;
-        foreach (GlobalProjectile? g in GlobalsOf(projectile))
+        if (slots != null)
         {
-            if (g == null) continue;
-            try { result &= g.OnTileCollide(projectile, oldVelocity); }
-            catch (Exception e) { Report(g, nameof(GlobalProjectile.OnTileCollide), e); }
+            foreach (short i in HookOnTileCollide.Indices)
+            {
+                if (At(slots, i) is not GlobalProjectile g) continue;
+                try { result &= g.OnTileCollide(projectile, oldVelocity); }
+                catch (Exception e) { Report(g, nameof(GlobalProjectile.OnTileCollide), e); }
+            }
         }
-        if (result && InstanceOf(projectile) is ModProjectile m)
+        if (result && m != null)
         {
             try { return m.OnTileCollide(oldVelocity); }
             catch (Exception e) { Report(m, nameof(ModProjectile.OnTileCollide), e); }
@@ -411,16 +504,21 @@ public static unsafe class ProjectileLoader
         return result;
     }
 
-    public static bool PreKill(Projectile projectile, int timeLeft)
+    public static bool PreKill(Projectile projectile, int timeLeft) => PreKill(projectile, timeLeft, InstanceOf(projectile), Globals.Slots(projectile));
+
+    internal static bool PreKill(Projectile projectile, int timeLeft, ModProjectile? m, GlobalProjectile?[]? slots)
     {
         bool result = true;
-        foreach (GlobalProjectile? g in GlobalsOf(projectile))
+        if (slots != null)
         {
-            if (g == null) continue;
-            try { result &= g.PreKill(projectile, timeLeft); }
-            catch (Exception e) { Report(g, nameof(GlobalProjectile.PreKill), e); }
+            foreach (short i in HookPreKill.Indices)
+            {
+                if (At(slots, i) is not GlobalProjectile g) continue;
+                try { result &= g.PreKill(projectile, timeLeft); }
+                catch (Exception e) { Report(g, nameof(GlobalProjectile.PreKill), e); }
+            }
         }
-        if (result && InstanceOf(projectile) is ModProjectile m)
+        if (result && m != null)
         {
             try { return m.PreKill(timeLeft); }
             catch (Exception e) { Report(m, nameof(ModProjectile.PreKill), e); }
@@ -428,42 +526,52 @@ public static unsafe class ProjectileLoader
         return result;
     }
 
-    public static void OnKill(Projectile projectile, int timeLeft)
+    public static void OnKill(Projectile projectile, int timeLeft) => OnKill(projectile, timeLeft, InstanceOf(projectile), Globals.Slots(projectile));
+
+    internal static void OnKill(Projectile projectile, int timeLeft, ModProjectile? m, GlobalProjectile?[]? slots)
     {
-        if (InstanceOf(projectile) is ModProjectile m)
+        if (m != null)
         {
             try { m.OnKill(timeLeft); }
             catch (Exception e) { Report(m, nameof(ModProjectile.OnKill), e); }
         }
-        foreach (GlobalProjectile? g in GlobalsOf(projectile))
+        if (slots == null) return;
+        foreach (short i in HookOnKill.Indices)
         {
-            if (g == null) continue;
+            if (At(slots, i) is not GlobalProjectile g) continue;
             try { g.OnKill(projectile, timeLeft); }
             catch (Exception e) { Report(g, nameof(GlobalProjectile.OnKill), e); }
         }
     }
 
-    public static bool? CanDamage(Projectile projectile)
+    public static bool? CanDamage(Projectile projectile) => CanDamage(projectile, InstanceOf(projectile), Globals.Slots(projectile));
+
+    internal static bool? CanDamage(Projectile projectile, ModProjectile? m, GlobalProjectile?[]? slots)
     {
         bool? result = null;
-        foreach (GlobalProjectile? g in GlobalsOf(projectile))
+        if (slots != null)
         {
-            if (g == null) continue;
-            bool? canDamage = null;
-            try { canDamage = g.CanDamage(projectile); }
-            catch (Exception e) { Report(g, nameof(GlobalProjectile.CanDamage), e); }
-            if (canDamage == false) return false;
-            if (canDamage == true) result = true;
+            foreach (short i in HookCanDamage.Indices)
+            {
+                if (At(slots, i) is not GlobalProjectile g) continue;
+                bool? canDamage = null;
+                try { canDamage = g.CanDamage(projectile); }
+                catch (Exception e) { Report(g, nameof(GlobalProjectile.CanDamage), e); }
+                if (canDamage == false) return false;
+                if (canDamage == true) result = true;
+            }
         }
-        if (result.HasValue || InstanceOf(projectile) is not ModProjectile m) return result;
+        if (result.HasValue || m == null) return result;
         try { return m.CanDamage(); }
         catch (Exception e) { Report(m, nameof(ModProjectile.CanDamage), e); }
         return null;
     }
 
-    public static bool MinionContactDamage(Projectile projectile)
+    public static bool MinionContactDamage(Projectile projectile) => MinionContactDamage(projectile, InstanceOf(projectile), Globals.Slots(projectile));
+
+    internal static bool MinionContactDamage(Projectile projectile, ModProjectile? m, GlobalProjectile?[]? slots)
     {
-        if (InstanceOf(projectile) is ModProjectile m)
+        if (m != null)
         {
             try
             {
@@ -471,9 +579,10 @@ public static unsafe class ProjectileLoader
             }
             catch (Exception e) { Report(m, nameof(ModProjectile.MinionContactDamage), e); }
         }
-        foreach (GlobalProjectile? g in GlobalsOf(projectile))
+        if (slots == null) return false;
+        foreach (short i in HookMinionContactDamage.Indices)
         {
-            if (g == null) continue;
+            if (At(slots, i) is not GlobalProjectile g) continue;
             try
             {
                 if (g.MinionContactDamage(projectile)) return true;
@@ -483,34 +592,42 @@ public static unsafe class ProjectileLoader
         return false;
     }
 
-    public static void ModifyDamageHitbox(Projectile projectile, ref Rectangle hitbox)
+    public static void ModifyDamageHitbox(Projectile projectile, ref Rectangle hitbox) => ModifyDamageHitbox(projectile, ref hitbox, InstanceOf(projectile), Globals.Slots(projectile));
+
+    internal static void ModifyDamageHitbox(Projectile projectile, ref Rectangle hitbox, ModProjectile? m, GlobalProjectile?[]? slots)
     {
-        if (InstanceOf(projectile) is ModProjectile m)
+        if (m != null)
         {
             try { m.ModifyDamageHitbox(ref hitbox); }
             catch (Exception e) { Report(m, nameof(ModProjectile.ModifyDamageHitbox), e); }
         }
-        foreach (GlobalProjectile? g in GlobalsOf(projectile))
+        if (slots == null) return;
+        foreach (short i in HookModifyDamageHitbox.Indices)
         {
-            if (g == null) continue;
+            if (At(slots, i) is not GlobalProjectile g) continue;
             try { g.ModifyDamageHitbox(projectile, ref hitbox); }
             catch (Exception e) { Report(g, nameof(GlobalProjectile.ModifyDamageHitbox), e); }
         }
     }
 
-    public static bool? CanHitNPC(Projectile projectile, NPC target)
+    public static bool? CanHitNPC(Projectile projectile, NPC target) => CanHitNPC(projectile, target, InstanceOf(projectile), Globals.Slots(projectile));
+
+    internal static bool? CanHitNPC(Projectile projectile, NPC target, ModProjectile? m, GlobalProjectile?[]? slots)
     {
         bool? flag = null;
-        foreach (GlobalProjectile? g in GlobalsOf(projectile))
+        if (slots != null)
         {
-            if (g == null) continue;
-            bool? canHit = null;
-            try { canHit = g.CanHitNPC(projectile, target); }
-            catch (Exception e) { Report(g, nameof(GlobalProjectile.CanHitNPC), e); }
-            if (canHit == false) return false;
-            if (canHit.HasValue) flag = canHit.Value;
+            foreach (short i in HookCanHitNPC.Indices)
+            {
+                if (At(slots, i) is not GlobalProjectile g) continue;
+                bool? canHit = null;
+                try { canHit = g.CanHitNPC(projectile, target); }
+                catch (Exception e) { Report(g, nameof(GlobalProjectile.CanHitNPC), e); }
+                if (canHit == false) return false;
+                if (canHit.HasValue) flag = canHit.Value;
+            }
         }
-        if (InstanceOf(projectile) is ModProjectile m)
+        if (m != null)
         {
             bool? canHit = null;
             try { canHit = m.CanHitNPC(target); }
@@ -615,48 +732,64 @@ public static unsafe class ProjectileLoader
         }
     }
 
-    public static bool? Colliding(Projectile projectile, Rectangle projHitbox, Rectangle targetHitbox)
+    public static bool? Colliding(Projectile projectile, Rectangle projHitbox, Rectangle targetHitbox) =>
+        Colliding(projectile, projHitbox, targetHitbox, InstanceOf(projectile), Globals.Slots(projectile));
+
+    internal static bool? Colliding(Projectile projectile, Rectangle projHitbox, Rectangle targetHitbox, ModProjectile? m, GlobalProjectile?[]? slots)
     {
-        foreach (GlobalProjectile? g in GlobalsOf(projectile))
+        if (slots != null)
         {
-            if (g == null) continue;
-            bool? colliding = null;
-            try { colliding = g.Colliding(projectile, projHitbox, targetHitbox); }
-            catch (Exception e) { Report(g, nameof(GlobalProjectile.Colliding), e); }
-            if (colliding.HasValue) return colliding.Value;
+            foreach (short i in HookColliding.Indices)
+            {
+                if (At(slots, i) is not GlobalProjectile g) continue;
+                bool? colliding = null;
+                try { colliding = g.Colliding(projectile, projHitbox, targetHitbox); }
+                catch (Exception e) { Report(g, nameof(GlobalProjectile.Colliding), e); }
+                if (colliding.HasValue) return colliding.Value;
+            }
         }
-        if (InstanceOf(projectile) is not ModProjectile m) return null;
+        if (m == null) return null;
         try { return m.Colliding(projHitbox, targetHitbox); }
         catch (Exception e) { Report(m, nameof(ModProjectile.Colliding), e); }
         return null;
     }
 
-    public static Color? GetAlpha(Projectile projectile, Color lightColor)
+    public static Color? GetAlpha(Projectile projectile, Color lightColor) => GetAlpha(projectile, lightColor, InstanceOf(projectile), Globals.Slots(projectile));
+
+    internal static Color? GetAlpha(Projectile projectile, Color lightColor, ModProjectile? m, GlobalProjectile?[]? slots)
     {
-        foreach (GlobalProjectile? g in GlobalsOf(projectile))
+        if (slots != null)
         {
-            if (g == null) continue;
-            Color? color = null;
-            try { color = g.GetAlpha(projectile, lightColor); }
-            catch (Exception e) { Report(g, nameof(GlobalProjectile.GetAlpha), e); }
-            if (color.HasValue) return color;
+            foreach (short i in HookGetAlpha.Indices)
+            {
+                if (At(slots, i) is not GlobalProjectile g) continue;
+                Color? color = null;
+                try { color = g.GetAlpha(projectile, lightColor); }
+                catch (Exception e) { Report(g, nameof(GlobalProjectile.GetAlpha), e); }
+                if (color.HasValue) return color;
+            }
         }
-        if (InstanceOf(projectile) is not ModProjectile m) return null;
+        if (m == null) return null;
         try { return m.GetAlpha(lightColor); }
         catch (Exception e) { Report(m, nameof(ModProjectile.GetAlpha), e); }
         return null;
     }
 
-    public static bool PreDrawExtras(Projectile projectile, Player player)
+    public static bool PreDrawExtras(Projectile projectile, Player player) => PreDrawExtras(projectile, player, InstanceOf(projectile), Globals.Slots(projectile));
+
+    internal static bool PreDrawExtras(Projectile projectile, Player player, ModProjectile? m, GlobalProjectile?[]? slots)
     {
         bool result = true;
-        foreach (GlobalProjectile? g in GlobalsOf(projectile))
+        if (slots != null)
         {
-            if (g == null) continue;
-            try { result &= g.PreDrawExtras(projectile, player); }
-            catch (Exception e) { Report(g, nameof(GlobalProjectile.PreDrawExtras), e); }
+            foreach (short i in HookPreDrawExtras.Indices)
+            {
+                if (At(slots, i) is not GlobalProjectile g) continue;
+                try { result &= g.PreDrawExtras(projectile, player); }
+                catch (Exception e) { Report(g, nameof(GlobalProjectile.PreDrawExtras), e); }
+            }
         }
-        if (result && InstanceOf(projectile) is ModProjectile m)
+        if (result && m != null)
         {
             try { return m.PreDrawExtras(player); }
             catch (Exception e) { Report(m, nameof(ModProjectile.PreDrawExtras), e); }
@@ -664,16 +797,21 @@ public static unsafe class ProjectileLoader
         return result;
     }
 
-    public static bool PreDraw(Projectile projectile, Player player, ref Color lightColor)
+    public static bool PreDraw(Projectile projectile, Player player, ref Color lightColor) => PreDraw(projectile, player, ref lightColor, InstanceOf(projectile), Globals.Slots(projectile));
+
+    internal static bool PreDraw(Projectile projectile, Player player, ref Color lightColor, ModProjectile? m, GlobalProjectile?[]? slots)
     {
         bool result = true;
-        foreach (GlobalProjectile? g in GlobalsOf(projectile))
+        if (slots != null)
         {
-            if (g == null) continue;
-            try { result &= g.PreDraw(projectile, player, ref lightColor); }
-            catch (Exception e) { Report(g, nameof(GlobalProjectile.PreDraw), e); }
+            foreach (short i in HookPreDraw.Indices)
+            {
+                if (At(slots, i) is not GlobalProjectile g) continue;
+                try { result &= g.PreDraw(projectile, player, ref lightColor); }
+                catch (Exception e) { Report(g, nameof(GlobalProjectile.PreDraw), e); }
+            }
         }
-        if (result && InstanceOf(projectile) is ModProjectile m)
+        if (result && m != null)
         {
             try { return m.PreDraw(player, ref lightColor); }
             catch (Exception e) { Report(m, nameof(ModProjectile.PreDraw), e); }
@@ -681,16 +819,19 @@ public static unsafe class ProjectileLoader
         return result;
     }
 
-    public static void PostDraw(Projectile projectile, Player player, Color lightColor)
+    public static void PostDraw(Projectile projectile, Player player, Color lightColor) => PostDraw(projectile, player, lightColor, InstanceOf(projectile), Globals.Slots(projectile));
+
+    internal static void PostDraw(Projectile projectile, Player player, Color lightColor, ModProjectile? m, GlobalProjectile?[]? slots)
     {
-        if (InstanceOf(projectile) is ModProjectile m)
+        if (m != null)
         {
             try { m.PostDraw(player, lightColor); }
             catch (Exception e) { Report(m, nameof(ModProjectile.PostDraw), e); }
         }
-        foreach (GlobalProjectile? g in GlobalsOf(projectile))
+        if (slots == null) return;
+        foreach (short i in HookPostDraw.Indices)
         {
-            if (g == null) continue;
+            if (At(slots, i) is not GlobalProjectile g) continue;
             try { g.PostDraw(projectile, player, lightColor); }
             catch (Exception e) { Report(g, nameof(GlobalProjectile.PostDraw), e); }
         }

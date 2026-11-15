@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json.Nodes;
 using BunnyLoader;
+using BunnyLoader.Hooks;
 using BunnyLoader.Interop;
 using Terraria.GameContent;
 using Terraria.ID;
@@ -23,6 +24,8 @@ internal static class HairHooks
     {
         On_HairstyleUnlocksHelper.ListWarrantsRemake += ListWarrantsRemake;
         On_HairstyleUnlocksHelper.RebuildList += RebuildList;
+        HookGates.Table<On_Player.hook_GetHairSettings>(() => HookGates.Field(0, Player.Class, "hair"), () => HairLoader.Count);
+        HookGates.Want<On_Player.hook_GetHairSettings>(RewritesBackHair);
         On_Player.GetHairSettings += GetHairSettings;
         On_Player.InternalSavePlayerFile += InternalSavePlayerFile;
         On_Player.LoadPlayer += LoadPlayer;
@@ -67,6 +70,18 @@ internal static class HairHooks
             bool available = Unlocked.TryGetValue(hair.Type, out bool known) ? known : Available(hair, creation);
             if (available && !list.Contains(hair.Type)) list.Add(hair.Type);
         }
+    }
+
+    static bool VanillaBackHair(int hair) =>
+        (hair is 133 or 134 or 146 or 162 or 6) ||
+        (hair > 50 && (hair < 56 || hair > 63) && (hair < 74 || hair > 77) && (hair < 88 || hair > 89) &&
+         hair != 94 && hair != 100 && hair != 104 && hair != 112 && hair < 116);
+
+    static bool RewritesBackHair(int hair)
+    {
+        if (hair < 0 || hair >= HairID.Count) return true;
+        bool[] set = HairID.Sets.DrawBackHair;
+        return hair >= set.Length || set[hair] != VanillaBackHair(hair);
     }
 
     static void GetHairSettings(On_Player.orig_GetHairSettings orig, Player self, out bool fullHair, out bool hatHair, out bool hideHair, out bool backHairDraw, out bool drawsBackHairWithoutHeadgear)

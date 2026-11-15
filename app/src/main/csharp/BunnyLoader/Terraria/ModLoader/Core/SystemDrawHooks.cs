@@ -13,6 +13,8 @@ internal static class SystemDrawHooks
     static bool preMapIcons, postFullscreenMap;
     static readonly HashSet<nint> HiddenLayers = new();
     static readonly List<IMapLayer> Layers = new();
+    static readonly Func<nint, bool> HiddenLayer = static layer => HiddenLayers.Contains(layer);
+    static IntPtr[] items = new IntPtr[16];
 
     internal static void Install(Func<string, bool> has)
     {
@@ -88,14 +90,19 @@ internal static class SystemDrawHooks
             orig(self, mapPosition, mapOffset, clippingRect, mapScale, drawScale, alpha, ref text);
             return;
         }
-        var list = new GameList(self._layers);
+        IntPtr pointer = self._layers.Pointer;
+        var list = new GameList(pointer);
+        int count = MapLayerLoader.Snapshot(pointer, ref items);
         int firstHidden = -1;
+        MapOverlayDrawContext context = default;
+        bool built = false;
         if (preMapIcons && !list.IsNull)
         {
             HiddenLayers.Clear();
             Layers.Clear();
-            for (int i = 0; i < list.Count; i++) Layers.Add(new IMapLayer(list[i]));
-            var context = MapOverlayDrawContext.New(mapPosition, mapOffset, clippingRect, mapScale, drawScale, alpha / 255f);
+            for (int i = 0; i < count; i++) Layers.Add(new IMapLayer(items[i]));
+            context = MapOverlayDrawContext.New(mapPosition, mapOffset, clippingRect, mapScale, drawScale, alpha / 255f);
+            built = true;
             SystemLoader.PreDrawMapIconOverlay(Layers, context);
             if (HiddenLayers.Count > 0)
                 for (int i = 0; i < Layers.Count && firstHidden < 0; i++)
@@ -103,8 +110,14 @@ internal static class SystemDrawHooks
         }
         if (MapLayerLoader.Any && !list.IsNull)
         {
-            var context = MapOverlayDrawContext.New(mapPosition, mapOffset, clippingRect, mapScale, drawScale, alpha / 255f);
-            MapLayerLoader.Draw(list, ref context, ref text, static layer => HiddenLayers.Contains(layer.Pointer));
+            if (!built) context = MapOverlayDrawContext.New(mapPosition, mapOffset, clippingRect, mapScale, drawScale, alpha / 255f);
+            if (HiddenLayers.Count == 0 && MapLayerLoader.OnlyAtEnds(items, count))
+            {
+                MapLayerLoader.DrawSlot(0, ref context, ref text);
+                orig(self, mapPosition, mapOffset, clippingRect, mapScale, drawScale, alpha, ref text);
+                MapLayerLoader.DrawSlot(count, ref context, ref text);
+            }
+            else MapLayerLoader.Draw(items, count, ref context, ref text, HiddenLayer);
         }
         else if (firstHidden < 0)
         {

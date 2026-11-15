@@ -18,6 +18,7 @@ public static class TouchButtonLoader
     static readonly List<ModTouchButton> buttons = new();
     static readonly Dictionary<string, ModTouchButton> byKey = new();
     static readonly Dictionary<ModKeybind, Texture2D> textures = new();
+    static readonly string[] LabelCategories = { "TouchButtons", "Keybinds" };
     static ModTouchButton[] snapshot = Array.Empty<ModTouchButton>();
     static uint tick = uint.MaxValue;
 
@@ -32,6 +33,8 @@ public static class TouchButtonLoader
     public static int Count => Volatile.Read(ref snapshot).Length;
 
     public static IReadOnlyList<ModTouchButton> Buttons => Volatile.Read(ref snapshot);
+
+    internal static ModTouchButton[] Snapshot => Volatile.Read(ref snapshot);
 
     public static ModTouchButton RegisterButton(Mod mod, string name) => Register(mod, name, "");
 
@@ -54,6 +57,7 @@ public static class TouchButtonLoader
             Volatile.Write(ref snapshot, buttons.ToArray());
         }
         TouchButtonHooks.Install();
+        if (joystick) TouchJoystickHooks.Enable();
         return button;
     }
 
@@ -98,7 +102,7 @@ public static class TouchButtonLoader
             }
             catch (Exception e) { ItemHooks.Report($"{keybind.FullName}.Label", e); }
         }
-        foreach (string category in new[] { "TouchButtons", "Keybinds" })
+        foreach (string category in LabelCategories)
         {
             string textKey = $"Mods.{keybind.Mod.Name}.{category}.{keybind.Name}.DisplayName";
             if (Language.Exists(textKey)) return Language.GetTextValue(textKey);

@@ -42,15 +42,19 @@ internal static class AccessorySlotNet
         var hash = new HashCode();
         for (int i = 0; i < slots.LoadedSlotCount; i++)
         {
-            foreach (Item item in new[] { slots.exAccessorySlot[i], slots.exAccessorySlot[i + slots.SlotCount], slots.exDyesAccessory[i] })
-            {
-                hash.Add(item.type);
-                hash.Add(item.prefix);
-                hash.Add(item.stack);
-            }
+            Mix(ref hash, slots.exAccessorySlot[i]);
+            Mix(ref hash, slots.exAccessorySlot[i + slots.SlotCount]);
+            Mix(ref hash, slots.exDyesAccessory[i]);
             hash.Add(slots.exHideAccessory[i]);
         }
         return hash.ToHashCode() | 1L << 40;
+    }
+
+    static void Mix(ref HashCode hash, Item item)
+    {
+        hash.Add(item.type);
+        hash.Add(item.prefix);
+        hash.Add(item.stack);
     }
 
     static void Send(int index, int remote, int ignore)

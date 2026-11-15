@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System;
+using BunnyLoader.Hooks;
 using BunnyLoader.Interop;
 using BunnyLoader;
 using Microsoft.Xna.Framework.Graphics;
@@ -18,9 +19,19 @@ internal static unsafe class ItemTooltipDraw
 
     static readonly Regex Tag = new(@"\[c/([0-9a-fA-F]{6}):([^\]]*)\]");
 
+    static readonly GameClass StringClass = new("System", "String"), BoolClass = new("System", "Boolean");
+
+    static readonly int* StringsActive = (int*)NativeMemory.AllocZeroed(sizeof(int));
+
     static Hook? drawString, measure, tooltip;
 
     static Drawing? drawing;
+
+    static GameArray<GameString> scratchTexts;
+
+    static GameArray<bool> scratchPrefix, scratchBad;
+
+    static GameHandle[]? scratchPins;
 
     static string? recolorText;
 
@@ -63,20 +74,21 @@ internal static unsafe class ItemTooltipDraw
     {
         Hook? hook = tooltip;
         if (hook == null) return;
-        void Original()
-        {
-            var call = GameCall.Returning(RetKind.Int);
-            call.Arg(self);
-            call.Arg(info);
-            call.Arg(rare);
-            call.Arg(diff);
-            call.Arg(x);
-            call.Arg(y);
-            call.Arg(method);
-            ItemHooks.Original(ref call, hook, "Main.MouseText_DrawItemTooltip");
-        }
-        try { Draw(Original, rare, x, y); }
+        try { Draw(hook, self, info, rare, diff, x, y, method); }
         catch (Exception e) { ItemHooks.Report("tooltip drawing", e); }
+    }
+
+    static void Original(Hook hook, IntPtr self, IntPtr info, int rare, byte diff, int x, int y, IntPtr method)
+    {
+        var call = GameCall.Returning(RetKind.Int);
+        call.Arg(self);
+        call.Arg(info);
+        call.Arg(rare);
+        call.Arg(diff);
+        call.Arg(x);
+        call.Arg(y);
+        call.Arg(method);
+        ItemHooks.Original(ref call, hook, "Main.MouseText_DrawItemTooltip");
     }
 
     internal static void Recolor(string text, Color color)
@@ -85,16 +97,25 @@ internal static unsafe class ItemTooltipDraw
         recolorText = text;
         recolorColor = color;
         recolorCount = 0;
+        SyncStrings();
     }
 
-    internal static void EndRecolor() => recolorText = null;
+    internal static void EndRecolor()
+    {
+        recolorText = null;
+        SyncStrings();
+    }
+
+    static void SyncStrings() => *StringsActive = drawing != null || recolorText != null ? 1 : 0;
+
+    static GateSpec StringsGate() => new() { Arg = HookGates.AbsoluteArg, PointerOffset = -1, FieldOffset = 0, FieldSize = 4, Address = (IntPtr)StringsActive };
 
     static void EnsureStringHooks() => ItemHooks.Once("TooltipStrings", () =>
     {
-        measure = ItemHooks.Raw("Microsoft.Xna.Framework.Graphics", "SpriteFont", "Vector2 MeasureString(string text)",
-            (IntPtr)(delegate* unmanaged<IntPtr, IntPtr, IntPtr, Vector2>)&MeasureString);
-        drawString = ItemHooks.Raw("Microsoft.Xna.Framework.Graphics", "SpriteBatch", DrawStringSignature,
-            (IntPtr)(delegate* unmanaged<IntPtr, IntPtr, IntPtr, float, float, uint, float, float, float, float, int, float, IntPtr, void>)&DrawString);
+        measure = ItemHooks.Gated(SpriteFont.Class, "Vector2 MeasureString(string text)",
+            (IntPtr)(delegate* unmanaged<IntPtr, IntPtr, IntPtr, Vector2>)&MeasureString, StringsGate);
+        drawString = ItemHooks.Gated(SpriteBatch.Class, DrawStringSignature,
+            (IntPtr)(delegate* unmanaged<IntPtr, IntPtr, IntPtr, float, float, uint, float, float, float, float, int, float, IntPtr, void>)&DrawString, StringsGate);
     });
 
     static bool HasTags(string? text) => text != null && text.Contains("[c/", StringComparison.Ordinal);
@@ -103,25 +124,46 @@ internal static unsafe class ItemTooltipDraw
 
     static bool DrawHooks(Item item)
     {
-        if (ItemHooks.ModItemOf(item) is ModItem m)
+        string[] names = ItemTooltipHooks.HookNames;
+        if (ItemLoader.Get(item.type) is ModItem m)
         {
-            for (int i = 1; i < ItemTooltipHooks.HookNames.Length; i++)
-                if (ItemTooltipHooks.Has(m, ItemTooltipHooks.HookNames[i])) return true;
+            for (int i = 1; i < names.Length; i++)
+                if (ItemTooltipHooks.Has(m, names[i])) return true;
         }
-        foreach (GlobalItem? g in ItemHooks.GlobalsOf(item))
+        GlobalItem?[]? slots = null;
+        for (int i = 1; i < names.Length; i++)
         {
-            if (g == null) continue;
-            for (int i = 1; i < ItemTooltipHooks.HookNames.Length; i++)
-                if (ItemHooks.Overrides(g.GetType(), typeof(GlobalItem), ItemTooltipHooks.HookNames[i])) return true;
+            short[] overriding = ItemLoader.Globals.Overriding(names[i]);
+            if (overriding.Length == 0) continue;
+            slots ??= ItemLoader.Globals.Slots(item);
+            if (slots == null) return false;
+            foreach (short index in overriding)
+                if (ItemHooks.Applied(slots, index) != null) return true;
         }
         return false;
     }
 
     static List<TooltipLine>? Prepare(Item item)
     {
-        var texts = GameArray<GameString>.New(new GameClass("System", "String"), 64);
-        var prefix = GameArray<bool>.New(new GameClass("System", "Boolean"), 64);
-        var bad = GameArray<bool>.New(new GameClass("System", "Boolean"), 64);
+        if (scratchPins == null)
+        {
+            var newTexts = GameArray<GameString>.New(StringClass, 64);
+            var textsPin = new GameHandle(newTexts.Pointer);
+            var newPrefix = GameArray<bool>.New(BoolClass, 64);
+            var prefixPin = new GameHandle(newPrefix.Pointer);
+            var newBad = GameArray<bool>.New(BoolClass, 64);
+            var badPin = new GameHandle(newBad.Pointer);
+            scratchTexts = newTexts;
+            scratchPrefix = newPrefix;
+            scratchBad = newBad;
+            scratchPins = new[] { textsPin, prefixPin, badPin };
+        }
+        var texts = scratchTexts;
+        var prefix = scratchPrefix;
+        var bad = scratchBad;
+        texts.AsSpan().Clear();
+        prefix.AsSpan().Clear();
+        bad.AsSpan().Clear();
         int yoyo = -1, research = -1, materials = -1, count = 1, setBonus = -1, shared = -1;
         Color setColor = new(255, 255, 255, 255);
         ItemTooltipHooks.Last = null;
@@ -130,7 +172,7 @@ internal static unsafe class ItemTooltipDraw
         return ItemTooltipHooks.Last;
     }
 
-    static void Draw(Action orig, int rare, int x, int y)
+    static void Draw(Hook hook, IntPtr self, IntPtr info, int rare, byte diff, int x, int y, IntPtr method)
     {
         Item item = default;
         Drawing? state = null;
@@ -149,6 +191,7 @@ internal static unsafe class ItemTooltipDraw
                 else state = null;
                 ItemTooltipHooks.PreparedItem = item.Pointer;
                 ItemTooltipHooks.Prepared = lines;
+                ItemTooltipHooks.PreparedTexts = scratchTexts;
             }
         }
         catch (Exception e)
@@ -163,15 +206,18 @@ internal static unsafe class ItemTooltipDraw
         }
         catch (Exception e) { ItemHooks.Report("RarityColor (tooltip)", e); }
         drawing = state;
+        SyncStrings();
         if (state != null) state.NameColor = rarity;
         else if (rarity is Color c && !item.IsNull && item.HoverName is string name) Recolor(name, c);
-        try { orig(); }
+        try { Original(hook, self, info, rare, diff, x, y, method); }
         finally
         {
             drawing = null;
+            SyncStrings();
             if (state == null && rarity != null) EndRecolor();
             ItemTooltipHooks.Prepared = null;
             ItemTooltipHooks.PreparedItem = IntPtr.Zero;
+            ItemTooltipHooks.PreparedTexts = default;
         }
         if (state == null) return;
         try

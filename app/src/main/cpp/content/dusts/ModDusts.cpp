@@ -262,6 +262,7 @@ Scan g_scan;
 std::vector<Il2CppObject*> g_list;
 std::vector<uint8_t> g_flags;
 std::vector<Il2CppObject*> g_hidden;
+std::vector<Il2CppObject*> g_skip;
 struct Swapped { Il2CppObject* dust; int realType, updateType; };
 std::vector<Swapped> g_swapped;
 
@@ -412,9 +413,8 @@ void hkDrawDust(Il2CppObject* self, const MethodInfo* m) {
     scanMarked(dusts, scan);
     if (scan.mods.empty()) return g_origDrawDust(self, m);
 
-    std::vector<Il2CppObject*> skip;
+    g_list.clear();
     if (g_anyHooks & kDustPreDraw) {
-        g_list.clear();
         for (Il2CppObject* d : scan.mods) {
             if (g_hooks[modIndex(typeOf(d))] & kDustPreDraw) g_list.push_back(d);
         }
@@ -424,22 +424,20 @@ void hkDrawDust(Il2CppObject* self, const MethodInfo* m) {
             dispatch(g_list, g_flags, g_native.preDraw);
             endKillTracking(g_list);
         }
-        for (size_t i = 0; i < g_list.size(); ++i) {
-            if (!g_flags[i]) skip.push_back(g_list[i]);
-        }
     }
-    auto skipped = [&skip](Il2CppObject* d) {
-        for (Il2CppObject* s : skip) if (s == d) return true;
-        return false;
-    };
 
     g_hidden.clear();
+    g_skip.clear();
     size_t groups = 0;
+    size_t next = 0;
     for (Il2CppObject* d : scan.mods) {
+        bool skipped = false;
+        if (next < g_list.size() && g_list[next] == d) skipped = g_flags[next++] == 0;
         if (!activeOf(d)) continue;
         const int mi = modIndex(typeOf(d));
         if (mi < 0) continue;
-        if (g_group[mi] != 0 || skipped(d)) {
+        if (skipped) g_skip.push_back(d);
+        if (g_group[mi] != 0 || skipped) {
             activeOf(d) = false;
             g_hidden.push_back(d);
             if (g_group[mi] > static_cast<int>(groups)) groups = static_cast<size_t>(g_group[mi]);
@@ -449,6 +447,7 @@ void hkDrawDust(Il2CppObject* self, const MethodInfo* m) {
     for (Il2CppObject* d : g_hidden) activeOf(d) = true;
 
     if (groups == 0) return;
+    for (Il2CppObject* d : g_skip) activeOf(d) = false;
     scanDusts(dusts, kDustSlots, scan, true);
     Il2CppObject* sheet = readStatic<Il2CppObject*>(refs().texture);
     for (size_t g = 1; g <= groups; ++g) {
@@ -459,7 +458,7 @@ void hkDrawDust(Il2CppObject* self, const MethodInfo* m) {
         for (Il2CppObject* d : scan.all) {
             if (!activeOf(d)) continue;
             const int mi = modIndex(typeOf(d));
-            const bool mine = mi >= 0 && g_group[mi] == static_cast<int>(g) && !skipped(d);
+            const bool mine = mi >= 0 && g_group[mi] == static_cast<int>(g);
             if (mine) { any = true; continue; }
             activeOf(d) = false;
             g_hidden.push_back(d);
@@ -471,6 +470,7 @@ void hkDrawDust(Il2CppObject* self, const MethodInfo* m) {
         }
         for (Il2CppObject* d : g_hidden) activeOf(d) = true;
     }
+    for (Il2CppObject* d : g_skip) activeOf(d) = true;
 }
 
 bool wantsAlpha(Il2CppObject* self) {

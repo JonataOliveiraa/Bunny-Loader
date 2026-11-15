@@ -158,6 +158,22 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<int, int> HideOcean;
     public delegate* unmanaged<int, int> HideMapFrame;
     public delegate* unmanaged<delegate* unmanaged<IntPtr, IntPtr, void>, void> OnVisualItemCopy;
+    public delegate* unmanaged<IntPtr, IntPtr, GateSpec*, int*, IntPtr*> InstallGateHook;
+    public delegate* unmanaged<int, int, int> SetGateAlways;
+    public delegate* unmanaged<delegate* unmanaged<int*, int, void>, int> TileRandomBatch;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct GateSpec
+{
+    public int Arg;
+    public int PointerOffset;
+    public int FieldOffset;
+    public int FieldSize;
+    public IntPtr Bitmap;
+    public int BitmapBits;
+    public int Flags;
+    public IntPtr Address;
 }
 
 [StructLayout(LayoutKind.Sequential)]

@@ -367,6 +367,11 @@ public static unsafe partial class ItemLoader
             orig(self, type, variant);
             if (Instances.Count > 0) Instances.Set(self.Pointer, null);
             if (Globals.Count == 0) return;
+            if (self.type == 0)
+            {
+                Globals.Clear(self);
+                return;
+            }
             Globals.Finish(self, Globals.Begin(self));
             IntPtr previous = DamageClassLoader.Defaulting;
             DamageClassLoader.Defaulting = self.Pointer;

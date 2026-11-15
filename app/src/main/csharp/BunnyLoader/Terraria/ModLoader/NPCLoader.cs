@@ -71,6 +71,7 @@ public static unsafe partial class NPCLoader
         npc.Hooks = NPCEventHooks.Install(npc.GetType(), typeof(ModNPC), type);
         npc.Extra = NPCExtraHooks.Install(npc.GetType(), typeof(ModNPC));
         NPCHappinessHooks.Want(npc.GetType(), typeof(ModNPC));
+        if (npc.DrawOffsetY != 0) NPCDrawOffsetHooks.Want(type);
         ReserveBossHead(npc);
         NPCHeadLoader.Register(npc);
         lock (Gate)
@@ -93,6 +94,7 @@ public static unsafe partial class NPCLoader
     {
         Globals.Add(global);
         global.Hooks = NPCEventHooks.Install(global.GetType(), typeof(GlobalNPC), -1);
+        global.Events = NPCEventHooks.Events(global.Hooks) & NPCEventHooks.PerType;
         global.Extra = NPCExtraHooks.Install(global.GetType(), typeof(GlobalNPC));
         NPCHappinessHooks.Want(global.GetType(), typeof(GlobalNPC));
         NPCEventHooks.Want(-1, 64);
@@ -135,6 +137,7 @@ public static unsafe partial class NPCLoader
         ModNPC? instance = null;
         if (template != null) instance = Bind(template, npc);
         else if (Instances.Count > 0) Instances.Set(npc.Pointer, null);
+        BossBarLoader.Forget(npc);
         if (npc.type <= 0)
         {
             Globals.Clear(npc);
@@ -172,8 +175,21 @@ public static unsafe partial class NPCLoader
                 SetGlobalDefaults(npc, global);
             }
         }
+        WantEvents(npc, slots);
         if (instance?.AIType is > 0) NPCEventHooks.Want(npc.type, 1);
         if (instance?.AnimationType is > 0) NPCEventHooks.Want(npc.type, 2);
+    }
+
+    static void WantEvents(NPC npc, GlobalNPC?[]? slots)
+    {
+        if (slots == null) return;
+        GlobalNPC[] templates = Globals.Templates;
+        uint events = 0;
+        for (int i = 0; i < slots.Length && i < templates.Length; i++)
+            if (slots[i] != null) events |= templates[i].Events;
+        if (events == 0) return;
+        try { NPCEventHooks.Want(npc.type, events); }
+        catch (Exception e) { ItemHooks.Report("NPC events", e); }
     }
 
     static void SetGlobalDefaults(NPC npc, GlobalNPC global)

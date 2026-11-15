@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using BunnyLoader;
 using Terraria.GameInput;
@@ -8,22 +7,25 @@ namespace Terraria.ModLoader.Core;
 
 internal static unsafe class PlayerUpdateHooks
 {
-    static readonly HashSet<IntPtr> Moved = new();
+    static readonly PlayerHook HookPostUpdateMiscEffects = PlayerLoader.Hook(nameof(ModPlayer.PostUpdateMiscEffects));
+    static readonly PlayerHook HookPostUpdateRunSpeeds = PlayerLoader.Hook(nameof(ModPlayer.PostUpdateRunSpeeds));
+    static readonly PlayerHook HookPreUpdateMovement = PlayerLoader.Hook(nameof(ModPlayer.PreUpdateMovement));
+    static readonly PlayerHook HookNaturalLifeRegen = PlayerLoader.Hook(nameof(ModPlayer.NaturalLifeRegen));
+    static readonly PlayerHook HookProcessTriggers = PlayerLoader.Hook(nameof(ModPlayer.ProcessTriggers));
+    static readonly PlayerHook HookSetControls = PlayerLoader.Hook(nameof(ModPlayer.SetControls));
+    static readonly PlayerHook HookResetInfoAccessories = PlayerLoader.Hook(nameof(ModPlayer.ResetInfoAccessories));
+    static readonly PlayerHook HookArmorSetBonusActivated = PlayerLoader.Hook(nameof(ModPlayer.ArmorSetBonusActivated));
+    static readonly PlayerHook HookArmorSetBonusHeld = PlayerLoader.Hook(nameof(ModPlayer.ArmorSetBonusHeld));
+    static readonly PlayerHook HookUpdateDyes = PlayerLoader.Hook(nameof(ModPlayer.UpdateDyes));
+    static readonly PlayerHook HookUpdateVisibleAccessories = PlayerLoader.Hook(nameof(ModPlayer.UpdateVisibleAccessories));
+    static readonly PlayerHook HookUpdateVisibleVanityAccessories = PlayerLoader.Hook(nameof(ModPlayer.UpdateVisibleVanityAccessories));
 
     internal static void Install(Func<string, bool> has)
     {
         PlayerExampleHooks.Install(has);
         if (has(nameof(ModPlayer.PostUpdateMiscEffects))) ItemHooks.Once("PlayerMiscEffects", () => On_Player.CapAttackSpeeds += CapAttackSpeeds);
         if (has(nameof(ModPlayer.PostUpdateRunSpeeds))) WantRunSpeeds();
-        if (has(nameof(ModPlayer.PreUpdateMovement)))
-            ItemHooks.Once("PlayerPreMovement", () =>
-            {
-                On_Player.Update += Update;
-                On_Player.WetCollision += WetCollision;
-                On_Player.DryCollision += DryCollision;
-                On_Player.SlopingCollision += SlopingCollision;
-                On_Player.BordersMovement += BordersMovement;
-            });
+        if (has(nameof(ModPlayer.PreUpdateMovement))) ItemHooks.Once("PlayerPreMovement", () => On_Player.UpdateNetOffset += UpdateNetOffset);
         if (has(nameof(ModPlayer.NaturalLifeRegen)))
             ItemHooks.Once("PlayerNaturalRegen", () =>
             {
@@ -44,7 +46,7 @@ internal static unsafe class PlayerUpdateHooks
     static void CapAttackSpeeds(On_Player.orig_CapAttackSpeeds orig, Player self)
     {
         orig(self);
-        PlayerLoader.Each(self, nameof(ModPlayer.PostUpdateMiscEffects), m => m.PostUpdateMiscEffects());
+        PlayerLoader.Each(self, HookPostUpdateMiscEffects, static m => m.PostUpdateMiscEffects());
     }
 
     internal static void WantRunSpeeds() => ItemHooks.Once("PlayerRunSpeeds", () => On_Player.HorizontalMovement += HorizontalMovement);
@@ -52,45 +54,14 @@ internal static unsafe class PlayerUpdateHooks
     static void HorizontalMovement(On_Player.orig_HorizontalMovement orig, Player self)
     {
         ExtraJumpLoader.UpdateHorizontalSpeeds(self);
-        PlayerLoader.Each(self, nameof(ModPlayer.PostUpdateRunSpeeds), m => m.PostUpdateRunSpeeds());
+        PlayerLoader.Each(self, HookPostUpdateRunSpeeds, static m => m.PostUpdateRunSpeeds());
         orig(self);
     }
 
-    static void Update(On_Player.orig_Update orig, Player self, int i)
+    static void UpdateNetOffset(On_Player.orig_UpdateNetOffset orig, Player self, bool fallThrough, bool ignorePlats)
     {
-        Moved.Remove(self.Pointer);
-        try { orig(self, i); }
-        finally { Moved.Remove(self.Pointer); }
-    }
-
-    static void BeforeMovement(Player self)
-    {
-        if (self.dead || !Moved.Add(self.Pointer)) return;
-        PlayerLoader.Each(self, nameof(ModPlayer.PreUpdateMovement), m => m.PreUpdateMovement());
-    }
-
-    static void WetCollision(On_Player.orig_WetCollision orig, Player self, bool fallThrough, bool ignorePlats, float movementSpeed)
-    {
-        BeforeMovement(self);
-        orig(self, fallThrough, ignorePlats, movementSpeed);
-    }
-
-    static void DryCollision(On_Player.orig_DryCollision orig, Player self, bool fallThrough, bool ignorePlats)
-    {
-        BeforeMovement(self);
+        if (!self.ghost) PlayerLoader.Each(self, HookPreUpdateMovement, static m => m.PreUpdateMovement());
         orig(self, fallThrough, ignorePlats);
-    }
-
-    static void SlopingCollision(On_Player.orig_SlopingCollision orig, Player self, bool fallThrough, bool ignorePlats)
-    {
-        BeforeMovement(self);
-        orig(self, fallThrough, ignorePlats);
-    }
-
-    static void BordersMovement(On_Player.orig_BordersMovement orig, Player self)
-    {
-        BeforeMovement(self);
-        orig(self);
     }
 
     [UnmanagedCallersOnly]
@@ -99,7 +70,7 @@ internal static unsafe class PlayerUpdateHooks
         try
         {
             float value = regen;
-            PlayerLoader.Each(new Player(player), nameof(ModPlayer.NaturalLifeRegen), 0, ref value, static (m, _, ref r) => m.NaturalLifeRegen(ref r));
+            PlayerLoader.Each(new Player(player), HookNaturalLifeRegen, 0, ref value, static (m, _, ref r) => m.NaturalLifeRegen(ref r));
             return float.IsFinite(value) ? value : regen;
         }
         catch (Exception e)
@@ -121,13 +92,13 @@ internal static unsafe class PlayerUpdateHooks
     {
         orig(self, p);
         if (p.whoAmI != Main.myPlayer) return;
-        PlayerLoader.Each(p, nameof(ModPlayer.ProcessTriggers), self, static (m, t) => m.ProcessTriggers(t));
-        PlayerLoader.Each(p, nameof(ModPlayer.SetControls), m => m.SetControls());
+        PlayerLoader.Each(p, HookProcessTriggers, self, static (m, t) => m.ProcessTriggers(t));
+        PlayerLoader.Each(p, HookSetControls, static m => m.SetControls());
     }
 
     static void RefreshInfoAccs(On_Player.orig_RefreshInfoAccs orig, Player self)
     {
-        PlayerLoader.Each(self, nameof(ModPlayer.ResetInfoAccessories), m => m.ResetInfoAccessories());
+        PlayerLoader.Each(self, HookResetInfoAccessories, static m => m.ResetInfoAccessories());
         orig(self);
     }
 
@@ -136,13 +107,13 @@ internal static unsafe class PlayerUpdateHooks
     static void KeyDoubleTap(On_Player.orig_KeyDoubleTap orig, Player self, int keyDir)
     {
         orig(self, keyDir);
-        if (keyDir == SetBonusKey) PlayerLoader.Each(self, nameof(ModPlayer.ArmorSetBonusActivated), m => m.ArmorSetBonusActivated());
+        if (keyDir == SetBonusKey) PlayerLoader.Each(self, HookArmorSetBonusActivated, static m => m.ArmorSetBonusActivated());
     }
 
     static void KeyHoldDown(On_Player.orig_KeyHoldDown orig, Player self, int keyDir, int holdTime)
     {
         orig(self, keyDir, holdTime);
-        if (keyDir == SetBonusKey) PlayerLoader.Each(self, nameof(ModPlayer.ArmorSetBonusHeld), holdTime, static (m, t) => m.ArmorSetBonusHeld(t));
+        if (keyDir == SetBonusKey) PlayerLoader.Each(self, HookArmorSetBonusHeld, holdTime, static (m, t) => m.ArmorSetBonusHeld(t));
     }
 
     static void TrySwitchingLoadout(On_Player.orig_TrySwitchingLoadout orig, Player self, int loadoutIndex)
@@ -157,13 +128,13 @@ internal static unsafe class PlayerUpdateHooks
     static void UpdateDyes(On_Player.orig_UpdateDyes orig, Player self)
     {
         orig(self);
-        PlayerLoader.Each(self, nameof(ModPlayer.UpdateDyes), m => m.UpdateDyes());
+        PlayerLoader.Each(self, HookUpdateDyes, static m => m.UpdateDyes());
     }
 
     static void UpdateVisibleAccessories(On_Player.orig_UpdateVisibleAccessories orig, Player self)
     {
         orig(self);
-        PlayerLoader.Each(self, nameof(ModPlayer.UpdateVisibleAccessories), m => m.UpdateVisibleAccessories());
-        PlayerLoader.Each(self, nameof(ModPlayer.UpdateVisibleVanityAccessories), m => m.UpdateVisibleVanityAccessories());
+        PlayerLoader.Each(self, HookUpdateVisibleAccessories, static m => m.UpdateVisibleAccessories());
+        PlayerLoader.Each(self, HookUpdateVisibleVanityAccessories, static m => m.UpdateVisibleVanityAccessories());
     }
 }

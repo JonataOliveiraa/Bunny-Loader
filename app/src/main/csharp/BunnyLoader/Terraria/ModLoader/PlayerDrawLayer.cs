@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Terraria.DataStructures;
@@ -24,6 +25,45 @@ public abstract class PlayerDrawLayer : ModType
         {
             PostDraw(ref drawInfo);
             Parent?.PostDrawRecursive(ref drawInfo);
+        }
+
+        internal static bool Mergeable(Transformation? transform)
+        {
+            for (Transformation? t = transform; t != null; t = t.Parent)
+            {
+                if (t is not VanillaPlayerDrawTransform) return false;
+            }
+            return true;
+        }
+
+        internal static void Switch(ref PlayerDrawSet drawInfo, ref Transformation? active, Transformation? target)
+        {
+            if (ReferenceEquals(active, target)) return;
+            Transformation? common = active;
+            while (common != null && !Contains(target, common)) common = common.Parent;
+            while (active != null && !ReferenceEquals(active, common))
+            {
+                active.PostDraw(ref drawInfo);
+                active = active.Parent;
+            }
+            Enter(ref drawInfo, ref active, target);
+        }
+
+        static bool Contains(Transformation? chain, Transformation transform)
+        {
+            for (Transformation? t = chain; t != null; t = t.Parent)
+            {
+                if (ReferenceEquals(t, transform)) return true;
+            }
+            return false;
+        }
+
+        static void Enter(ref PlayerDrawSet drawInfo, ref Transformation? active, Transformation? target)
+        {
+            if (target == null || ReferenceEquals(target, active)) return;
+            Enter(ref drawInfo, ref active, target.Parent);
+            target.PreDraw(ref drawInfo);
+            active = target;
         }
     }
 
@@ -68,6 +108,8 @@ public abstract class PlayerDrawLayer : ModType
         public AfterParent(PlayerDrawLayer parent) => Parent = parent;
     }
 
+    [ThreadStatic] static int hiddenVanilla;
+
     readonly List<PlayerDrawLayer> childrenBefore = new();
     readonly List<PlayerDrawLayer> childrenAfter = new();
 
@@ -81,7 +123,19 @@ public abstract class PlayerDrawLayer : ModType
 
     public virtual bool IsHeadLayer => false;
 
-    public void Hide() => Visible = false;
+    internal static int HiddenVanilla
+    {
+        get => hiddenVanilla;
+        set => hiddenVanilla = value;
+    }
+
+    internal bool IsVanilla => this is VanillaPlayerDrawLayer || this is PlayerDrawLayerSlot { Layer: VanillaPlayerDrawLayer };
+
+    public void Hide()
+    {
+        if (Visible && IsVanilla) hiddenVanilla++;
+        Visible = false;
+    }
 
     internal void AddChildBefore(PlayerDrawLayer child) => childrenBefore.Add(child);
 
@@ -110,10 +164,29 @@ public abstract class PlayerDrawLayer : ModType
     {
         if (!Visible) return;
         Transform?.PreDrawRecursive(ref drawInfo);
+        DrawSelfAndChildren(ref drawInfo);
+        Transform?.PostDrawRecursive(ref drawInfo);
+    }
+
+    internal void DrawMerged(ref PlayerDrawSet drawInfo, ref Transformation? active)
+    {
+        if (!Visible) return;
+        Transformation? transform = Transform;
+        if (!Transformation.Mergeable(transform))
+        {
+            Transformation.Switch(ref drawInfo, ref active, null);
+            DrawWithTransformationAndChildren(ref drawInfo);
+            return;
+        }
+        Transformation.Switch(ref drawInfo, ref active, transform);
+        DrawSelfAndChildren(ref drawInfo);
+    }
+
+    void DrawSelfAndChildren(ref PlayerDrawSet drawInfo)
+    {
         foreach (PlayerDrawLayer child in childrenBefore) child.DrawWithTransformationAndChildren(ref drawInfo);
         Draw(ref drawInfo);
         foreach (PlayerDrawLayer child in childrenAfter) child.DrawWithTransformationAndChildren(ref drawInfo);
-        Transform?.PostDrawRecursive(ref drawInfo);
     }
 
     protected sealed override void Register() => PlayerDrawLayerLoader.Add(this);
@@ -133,6 +206,8 @@ public class PlayerDrawLayerSlot : PlayerDrawLayer
     public Multiple.Condition Condition { get; }
 
     public override string Name => $"{Layer.Name}_slot{slot}";
+
+    internal int Index => slot;
 
     internal PlayerDrawLayerSlot(PlayerDrawLayer layer, Multiple.Condition condition, int slot)
     {

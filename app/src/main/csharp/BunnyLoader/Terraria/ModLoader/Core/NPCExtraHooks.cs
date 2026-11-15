@@ -33,6 +33,7 @@ internal static unsafe class NPCExtraHooks
     [ThreadStatic] static bool drawingHealthBars;
     [ThreadStatic] static int healthBarCursor;
     static readonly float[] townDamage = new float[200];
+    static readonly NPCGates.TypeSet CollisionTypes = new(type => NPCGates.Wants(type, NPCHook.ModifyCollisionData));
 
     internal static NPCHook Install(Type type, Type baseType)
     {
@@ -42,7 +43,11 @@ internal static unsafe class NPCExtraHooks
         if (type.GetProperty(nameof(ModNPC.DeathMessage)) is { } deathMessage && deathMessage.DeclaringType != baseType && deathMessage.DeclaringType != typeof(ModNPC))
             flags |= NPCHook.ModifyDeathMessage;
         if ((flags & NPCHook.CanFallThroughPlatforms) != 0)
-            ItemHooks.Once("NPCFallThroughPlatforms", () => On_NPC.Collision_DecideFallThroughPlatforms += FallThroughPlatforms);
+            ItemHooks.Once("NPCFallThroughPlatforms", () =>
+            {
+                NPCGates.Type<On_NPC.hook_Collision_DecideFallThroughPlatforms>(0, NPCHook.CanFallThroughPlatforms);
+                On_NPC.Collision_DecideFallThroughPlatforms += FallThroughPlatforms;
+            });
         if ((flags & NPCHook.ModifyCollisionData) != 0) ItemHooks.Once("NPCCollisionData", () => On_NPC.GetMeleeCollisionData += CollisionData);
         if ((flags & NPCHook.SpecialOnKill) != 0)
             ItemHooks.Once("NPCSpecialOnKill", () =>
@@ -59,10 +64,20 @@ internal static unsafe class NPCExtraHooks
                 On_Main.NewText_string_byte_byte_byte_bool += NewTextBytes;
                 On_ChatHelper.BroadcastChatMessage += Broadcast;
             });
-        if ((flags & NPCHook.ModifyTypeName) != 0) ItemHooks.Once("NPCTypeName", () => On_NPC.get_TypeName += TypeName);
+        if ((flags & NPCHook.ModifyTypeName) != 0)
+            ItemHooks.Once("NPCTypeName", () =>
+            {
+                NPCGates.Type<On_NPC.hook_get_TypeName>(0, NPCHook.ModifyTypeName);
+                On_NPC.get_TypeName += TypeName;
+            });
         if ((flags & Statue) != 0) ItemHooks.Once("NPCStatue", () => On_Wiring.HitWireSingle += HitWireSingle);
         if ((flags & Catch) != 0) ItemHooks.Once("NPCCatch", () => On_Player.ItemCheck_CatchCritters += CatchCritters);
-        if ((flags & NPCHook.UsesPartyHat) != 0) ItemHooks.Once("NPCPartyHat", () => On_NPC.UsesPartyHat += UsesPartyHat);
+        if ((flags & NPCHook.UsesPartyHat) != 0)
+            ItemHooks.Once("NPCPartyHat", () =>
+            {
+                NPCGates.Type<On_NPC.hook_UsesPartyHat>(0, NPCHook.UsesPartyHat);
+                On_NPC.UsesPartyHat += UsesPartyHat;
+            });
         if ((flags & NPCHook.BuffTownNPC) != 0)
             ItemHooks.Once("NPCBuffTown", () =>
             {
@@ -122,9 +137,13 @@ internal static unsafe class NPCExtraHooks
     static void CollisionData(On_NPC.orig_GetMeleeCollisionData orig, ref Rectangle victimHitbox, int enemyIndex, ref int specialHitSetter,
         ref float damageMultiplier, ref Rectangle npcRect)
     {
-        if ((uint)enemyIndex < 200u && NPCLoader.HasHooks(Main.npc[enemyIndex], NPCHook.ModifyCollisionData) &&
-            !NPCLoader.ModifyCollisionData(Main.npc[enemyIndex], victimHitbox, ref specialHitSetter, ref damageMultiplier, ref npcRect))
-            return;
+        if ((uint)enemyIndex < 200u)
+        {
+            NPC npc = Main.npc[enemyIndex];
+            if (CollisionTypes.Contains(npc.type) && NPCLoader.HasHooks(npc, NPCHook.ModifyCollisionData) &&
+                !NPCLoader.ModifyCollisionData(npc, victimHitbox, ref specialHitSetter, ref damageMultiplier, ref npcRect))
+                return;
+        }
         orig(ref victimHitbox, enemyIndex, ref specialHitSetter, ref damageMultiplier, ref npcRect);
     }
 

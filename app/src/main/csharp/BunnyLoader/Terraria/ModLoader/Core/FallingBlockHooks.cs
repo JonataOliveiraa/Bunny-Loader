@@ -8,7 +8,11 @@ internal static class FallingBlockHooks
 {
     internal static void WantTiles() => ItemHooks.Once("FallingTiles", () => On_WorldGen.GetSandfallProjData += GetSandfallProjData);
 
-    internal static void WantProjectiles() => ItemHooks.Once("FallingProjectiles", () => On_Projectile.Kill += Kill);
+    internal static void WantProjectiles() => ItemHooks.Once("FallingProjectiles", () =>
+    {
+        ProjectileHooks.TypeGate<On_Projectile.hook_Kill>(0, type => type >= ProjectileID.Count);
+        On_Projectile.Kill += Kill;
+    });
 
     internal static void WantAmmo() => ItemHooks.Once("SandgunAmmo", () => On_Player.PickAmmo += PickAmmo);
 

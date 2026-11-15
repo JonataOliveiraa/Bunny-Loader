@@ -231,6 +231,9 @@ struct NativeApi {
     int32_t (*hideOcean)(int32_t hide);
     int32_t (*hideMapFrame)(int32_t hide);
     void (*onVisualItemCopy)(runtime::VisualItemCopyHook hook);
+    void** (*installGateHook)(void* method, void* replacement, const gate::Spec* spec, int32_t* id);
+    int32_t (*setGateAlways)(int32_t id, int32_t always);
+    int32_t (*tileRandomBatch)(runtime::TileRandomBatchCallback callback);
 };
 
 struct Extra {
@@ -1236,6 +1239,12 @@ const NativeApi kNativeApi{
     nativeHideOcean,
     nativeHideMapFrame,
     [](runtime::VisualItemCopyHook hook) { runtime::setVisualItemCopyHook(hook ? profile::wrap(hook, "VisualItemCopy") : nullptr); },
+    [](void* method, void* replacement, const gate::Spec* spec, int32_t* id) -> void** {
+        if (!spec) return nullptr;
+        return gate::installHook(static_cast<const MethodInfo*>(method), replacement, *spec, id);
+    },
+    [](int32_t id, int32_t always) -> int32_t { return gate::setAlways(id, always != 0) ? 1 : 0; },
+    [](runtime::TileRandomBatchCallback callback) -> int32_t { return runtime::setTileRandomBatch(profile::wrap(callback, "TileRandomBatch")) ? 1 : 0; },
 };
 
 }

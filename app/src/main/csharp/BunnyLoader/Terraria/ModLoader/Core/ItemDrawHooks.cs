@@ -34,6 +34,10 @@ internal static unsafe class ItemDrawHooks
 
     const int World = 0, Inventory = 1;
 
+    delegate void IconGate();
+
+    delegate void AlphaGate();
+
     static Hook? drawIcon, getAlpha;
 
     static bool globalWorld, globalInventory, globalAlpha;
@@ -75,16 +79,17 @@ internal static unsafe class ItemDrawHooks
                     Log.Error("item hooks: the inventory item drawing stages are not hooked (PreDrawInInventory/PostDrawInInventory)");
                     return;
                 }
-                drawIcon = ItemHooks.Raw("Terraria.UI", "ItemSlot",
+                drawIcon = ItemHooks.RawGated<IconGate>("Terraria.UI", "ItemSlot",
                     "float DrawItemIcon(Item item, int context, SpriteBatch spriteBatch, Vector2 screenPositionForItemCenter, float scale, float sizeLimit, Color environmentColor, float itemFade, bool flip)",
-                    (IntPtr)(delegate* unmanaged<IntPtr, int, IntPtr, float, float, float, float, uint, float, byte, IntPtr, float>)&DrawItemIcon);
+                    (IntPtr)(delegate* unmanaged<IntPtr, int, IntPtr, float, float, float, float, uint, float, byte, IntPtr, float>)&DrawItemIcon,
+                    0, static type => ItemHooks.WantsType(type, nameof(ModItem.PreDrawInInventory)) || ItemHooks.WantsType(type, nameof(ModItem.PostDrawInInventory)));
             });
         }
         if (has(nameof(ModItem.GetAlpha)))
         {
             if (global) globalAlpha = true;
-            ItemHooks.Once("GetAlpha", () => getAlpha = ItemHooks.Raw("Terraria", "Item", "Color GetAlpha(Color newColor)",
-                (IntPtr)(delegate* unmanaged<IntPtr, uint, IntPtr, uint>)&GetAlpha));
+            ItemHooks.Once("GetAlpha", () => getAlpha = ItemHooks.RawGated<AlphaGate>("Terraria", "Item", "Color GetAlpha(Color newColor)",
+                (IntPtr)(delegate* unmanaged<IntPtr, uint, IntPtr, uint>)&GetAlpha, 0, static type => ItemHooks.WantsType(type, nameof(ModItem.GetAlpha))));
         }
     }
 
@@ -234,9 +239,11 @@ internal static unsafe class ItemDrawHooks
             var batch = new SpriteBatch(args->Batch);
             Color drawColor = item.GetAlpha(args->Light), itemColor = item.GetColor(args->Environment);
             bool go = true;
-            foreach (GlobalItem? g in ItemHooks.GlobalsOf(item))
+            short[] overriding = ItemLoader.Globals.Overriding(nameof(GlobalItem.PreDrawInInventory));
+            GlobalItem?[]? slots = overriding.Length > 0 ? ItemLoader.Globals.Slots(item) : null;
+            foreach (short index in overriding)
             {
-                if (g == null) continue;
+                if (ItemHooks.Applied(slots, index) is not GlobalItem g) continue;
                 try { go &= g.PreDrawInInventory(item, batch, args->Position, args->Frame, drawColor, itemColor, args->Origin, args->Scale); }
                 catch (Exception e) { ItemHooks.Report($"{g.FullName}.PreDrawInInventory", e); }
             }
@@ -271,9 +278,11 @@ internal static unsafe class ItemDrawHooks
                 try { m.PostDrawInInventory(batch, a.Position, a.Frame, drawColor, itemColor, a.Origin, a.Scale); }
                 catch (Exception e) { ItemHooks.Report($"{m.FullName}.PostDrawInInventory", e); }
             }
-            foreach (GlobalItem? g in ItemHooks.GlobalsOf(item))
+            short[] overriding = ItemLoader.Globals.Overriding(nameof(GlobalItem.PostDrawInInventory));
+            GlobalItem?[]? slots = overriding.Length > 0 ? ItemLoader.Globals.Slots(item) : null;
+            foreach (short index in overriding)
             {
-                if (g == null) continue;
+                if (ItemHooks.Applied(slots, index) is not GlobalItem g) continue;
                 try { g.PostDrawInInventory(item, batch, a.Position, a.Frame, drawColor, itemColor, a.Origin, a.Scale); }
                 catch (Exception e) { ItemHooks.Report($"{g.FullName}.PostDrawInInventory", e); }
             }
@@ -301,16 +310,21 @@ internal static unsafe class ItemDrawHooks
 
     static Color? Alpha(Item item, Color light)
     {
-        foreach (GlobalItem? g in ItemHooks.GlobalsOf(item))
+        short[] overriding = ItemLoader.Globals.Overriding(nameof(GlobalItem.GetAlpha));
+        if (overriding.Length > 0)
         {
-            if (g == null) continue;
-            try
+            GlobalItem?[]? slots = ItemLoader.Globals.Slots(item);
+            foreach (short index in overriding)
             {
-                if (g.GetAlpha(item, light) is Color c) return c;
+                if (ItemHooks.Applied(slots, index) is not GlobalItem g) continue;
+                try
+                {
+                    if (g.GetAlpha(item, light) is Color c) return c;
+                }
+                catch (Exception e) { ItemHooks.Report($"{g.FullName}.GetAlpha", e); }
             }
-            catch (Exception e) { ItemHooks.Report($"{g.FullName}.GetAlpha", e); }
         }
-        if (ItemHooks.ModItemOf(item) is not ModItem m) return null;
+        if (ItemHooks.Overrider(item, item.type, nameof(ModItem.GetAlpha)) is not ModItem m) return null;
         try { return m.GetAlpha(light); }
         catch (Exception e)
         {

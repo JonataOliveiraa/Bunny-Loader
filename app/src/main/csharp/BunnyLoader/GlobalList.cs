@@ -12,9 +12,39 @@ internal sealed class GlobalList<TEntity, TGlobal> where TEntity : struct, IGame
     readonly EntityInstances<TGlobal?[]> perEntity = new();
     TGlobal[] templates = Array.Empty<TGlobal>();
 
+    Dictionary<string, (int Count, short[] Indices)> overriding = new(StringComparer.Ordinal);
+
     public int Count => Volatile.Read(ref templates).Length;
 
     public TGlobal[] Templates => Volatile.Read(ref templates);
+
+    public short[] Overriding(string method)
+    {
+        TGlobal[] all = Volatile.Read(ref templates);
+        if (Volatile.Read(ref overriding).TryGetValue(method, out var known) && known.Count == all.Length) return known.Indices;
+        lock (gate)
+        {
+            all = Volatile.Read(ref templates);
+            if (overriding.TryGetValue(method, out var cached) && cached.Count == all.Length) return cached.Indices;
+            var found = new List<short>();
+            foreach (TGlobal global in all)
+            {
+                if (Overrides(global.GetType(), method)) found.Add(global.StaticIndex);
+            }
+            short[] indices = found.ToArray();
+            Volatile.Write(ref overriding, new Dictionary<string, (int Count, short[] Indices)>(overriding, StringComparer.Ordinal) { [method] = (all.Length, indices) });
+            return indices;
+        }
+    }
+
+    static bool Overrides(Type type, string method)
+    {
+        foreach (System.Reflection.MethodInfo m in type.GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+        {
+            if (m.Name == method && m.IsVirtual && m.DeclaringType != m.GetBaseDefinition().DeclaringType) return true;
+        }
+        return false;
+    }
 
     public void Add(TGlobal global)
     {

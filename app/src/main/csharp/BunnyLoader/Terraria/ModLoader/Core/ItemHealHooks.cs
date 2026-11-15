@@ -9,11 +9,14 @@ namespace Terraria.ModLoader.Core;
 
 internal static unsafe class ItemHealHooks
 {
+    const string TryChoosingSignature = "void QuickHeal_GetItemToUse_TryChoosingItem(int lifeDifference, ref Item bestItem, ref int bestDifference, Item nextItem)";
+
     static Hook? quickHeal, quickMana, applyLifeAndMana, getItemToUse, tryChoosing, applyPotionDelay, addBuff, resetHunger;
 
     static IntPtr quickPlayer;
     static IntPtr selectingPlayer;
     static PotionScope? potion;
+    static volatile bool tryChoosingWanted;
 
     sealed class PotionScope
     {
@@ -36,8 +39,7 @@ internal static unsafe class ItemHealHooks
         }
         if (has(nameof(ModItem.GetHealLife)))
         {
-            ItemHooks.Once("TryChoosingItem", () => tryChoosing = ItemHooks.Gated(Player.Class, "void QuickHeal_GetItemToUse_TryChoosingItem(int lifeDifference, ref Item bestItem, ref int bestDifference, Item nextItem)",
-                (IntPtr)(delegate* unmanaged<int, IntPtr*, int*, IntPtr, IntPtr, void>)&TryChoosingItem, 3, -1, ItemHooks.FieldOffset(Item.Class, "healLife"), 4));
+            if (tryChoosing == null) tryChoosingWanted = true;
             ItemHooks.Once("GetItemToUse", () => getItemToUse = ItemHooks.Raw("Item QuickHeal_GetItemToUse()",
                 (IntPtr)(delegate* unmanaged<IntPtr, IntPtr, IntPtr>)&GetItemToUse));
         }
@@ -127,11 +129,37 @@ internal static unsafe class ItemHealHooks
         }
     }
 
+    static void InstallTryChoosing() => ItemHooks.Once("TryChoosingItem", () =>
+    {
+        tryChoosingWanted = false;
+        tryChoosing = ItemHooks.Gated(Player.Class, TryChoosingSignature,
+            (IntPtr)(delegate* unmanaged<int, IntPtr*, int*, IntPtr, IntPtr, void>)&TryChoosingItem, HealGate);
+    });
+
+    static GateSpec HealGate()
+    {
+        if (ItemLoader.Globals.Overriding(nameof(GlobalItem.GetHealLife)).Length > 0 || PlayerLoader.Hooked(nameof(ModPlayer.GetHealLife)).Length > 0)
+            return new GateSpec { Arg = 3, PointerOffset = -1, FieldOffset = ItemHooks.FieldOffset(Item.Class, "healLife"), FieldSize = 4 };
+        int count = ItemLoader.ItemCount;
+        int bits = (count + 7) & ~7;
+        byte* map = (byte*)NativeMemory.AllocZeroed((nuint)(bits / 8));
+        for (int type = count; type < bits; type++) map[type >> 3] |= (byte)(1 << (type & 7));
+        for (int type = ItemID.Count; type < count; type++)
+        {
+            if (ItemLoader.Get(type) is ModItem m && ItemHooks.ModOverrides(m, nameof(ModItem.GetHealLife))) map[type >> 3] |= (byte)(1 << (type & 7));
+        }
+        return new GateSpec
+        {
+            Arg = 3, PointerOffset = -1, FieldOffset = ItemHooks.FieldOffset(Item.Class, "type"), FieldSize = 4, Bitmap = (IntPtr)map, BitmapBits = bits,
+        };
+    }
+
     [UnmanagedCallersOnly]
     static IntPtr GetItemToUse(IntPtr self, IntPtr method)
     {
         Hook? hook = getItemToUse;
         if (hook == null) return IntPtr.Zero;
+        if (tryChoosingWanted) InstallTryChoosing();
         IntPtr outer = selectingPlayer;
         selectingPlayer = self;
         try { return (IntPtr)ItemHooks.Call(hook, self, method, "Player.QuickHeal_GetItemToUse"); }

@@ -61,7 +61,7 @@ internal static class ProjectileNetHooks
         else
         {
             if (!Server && projectile.owner != Main.myPlayer) return;
-            if (!ProjectileHooks.Wants(projectile, nameof(ModProjectile.SendExtraAI))) return;
+            if (!ProjectileHooks.Wants(projectile, ProjectileMethod.SendExtraAI)) return;
             extraAI = ProjectileLoader.WriteExtraAI(projectile);
         }
         if (extraAI == null) return;

@@ -1,11 +1,14 @@
 using Microsoft.Xna.Framework.Graphics;
 using Terraria.DataStructures;
 using Terraria.Localization;
+using Terraria.ModLoader.Core;
 
 namespace Terraria.ModLoader;
 
 public abstract class ModBuff : ModTexturedType, ILocalizedModType
 {
+    internal BuffHookFlags HookFlags;
+
     public int Type { get; internal set; }
 
     public virtual string LocalizationCategory => "Buffs";

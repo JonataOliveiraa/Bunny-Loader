@@ -15,8 +15,21 @@ public sealed unsafe class Hook
 
     public static Hook Install(IntPtr method, IntPtr replacement)
     {
-        IntPtr* slot = Host.Native()->InstallHook(method, replacement);
+        Type? gated = Hooks.HookGates.Installing;
+        Hooks.HookGates.Installing = null;
+        IntPtr* slot = gated != null ? Hooks.HookGates.Install(gated, method, replacement) : Host.Native()->InstallHook(method, replacement);
         if (slot == null) throw new InvalidOperationException("hook install failed");
+        return new Hook(slot);
+    }
+
+    internal static Hook InstallGated(GameClass gameClass, string signature, IntPtr replacement, GateSpec spec, out int id)
+    {
+        MethodRef method = default;
+        GameInterop.Method(ref method, gameClass, signature, LayoutUnchecked(signature));
+        int gate;
+        IntPtr* slot = Host.Native()->InstallGateHook(method.Info, replacement, &spec, &gate);
+        if (slot == null) throw new InvalidOperationException("hook install failed");
+        id = gate;
         return new Hook(slot);
     }
 

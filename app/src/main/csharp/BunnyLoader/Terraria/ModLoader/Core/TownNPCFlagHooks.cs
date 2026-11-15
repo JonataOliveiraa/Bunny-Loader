@@ -23,8 +23,11 @@ internal static unsafe class TownNPCFlagHooks
                 continue;
             ItemHooks.Once("TownActsLike", () =>
             {
+                NPCGates.Type<On_NPC.hook_get_isLikeATownNPC>(0, Modded);
                 On_NPC.get_isLikeATownNPC += IsLikeATownNPC;
+                NPCGates.Type<On_NPC.hook_get_CanBeTalkedTo>(0, Modded);
                 On_NPC.get_CanBeTalkedTo += CanBeTalkedTo;
+                NPCGates.Type<On_NPC.hook_get_CanTalk>(0, Modded);
                 On_NPC.get_CanTalk += CanTalk;
                 needsUpdateOffset = ItemHooks.FieldOffset(NPC.Class, "needsUniqueInfoUpdate");
                 trySyncing = ItemHooks.Gated(NPC.Class, "void TrySyncingUniqueTownNPCData(int npcIndex)",
@@ -47,6 +50,8 @@ internal static unsafe class TownNPCFlagHooks
         int type = npc.type;
         return type >= NPCID.Count && type < NPCID.Sets.ActsLikeTownNPC.Length && NPCID.Sets.ActsLikeTownNPC[type];
     }
+
+    static bool Modded(int type) => type >= NPCID.Count;
 
     static bool Staying(NPC npc) => npc.type >= NPCID.Count && npc.ModNPC?.TownNPCStayingHomeless == true;
 

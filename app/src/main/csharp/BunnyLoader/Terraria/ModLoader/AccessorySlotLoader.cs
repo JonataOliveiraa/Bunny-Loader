@@ -43,14 +43,22 @@ public class AccessorySlotLoader
 
     public bool ModdedIsSpecificItemSlotUnlockedAndUsable(int index, Player player, bool vanity)
     {
-        ModAccessorySlot slot = Get(index, player);
-        return !ModSlotPlayer(player).SharedSlotHasLoadoutConflict(index, vanity) && AccessorySlotHooks.WithPlayer(player, slot.IsEnabled);
+        ModAccessorySlotPlayer slots = ModSlotPlayer(player);
+        ModAccessorySlot slot = GetIdCorrected(index % slots.SlotCount);
+        if (slots.SharedSlotHasLoadoutConflict(index, vanity)) return false;
+        Player previous = Main.CurrentPlayerOverride;
+        Main.CurrentPlayerOverride = player;
+        try { return slot.IsEnabled(); }
+        finally { Main.CurrentPlayerOverride = previous; }
     }
 
     public void CustomUpdateEquips(int index, Player player)
     {
         ModAccessorySlot slot = Get(index, player);
-        AccessorySlotHooks.WithPlayer(player, slot.ApplyEquipEffects);
+        Player previous = Main.CurrentPlayerOverride;
+        Main.CurrentPlayerOverride = player;
+        try { slot.ApplyEquipEffects(); }
+        finally { Main.CurrentPlayerOverride = previous; }
     }
 
     public bool ModdedCanSlotBeShown(int index) => Get(index).IsVisibleWhenNotEnabled();
@@ -62,7 +70,10 @@ public class AccessorySlotLoader
     public bool CanPlayerAcceptItem(Player player, int index, Item checkItem, int context)
     {
         ModAccessorySlot slot = Get(index, player);
-        return AccessorySlotHooks.WithPlayer(player, () => slot.CanAcceptItem(checkItem, ContextToEnum(context)));
+        Player previous = Main.CurrentPlayerOverride;
+        Main.CurrentPlayerOverride = player;
+        try { return slot.CanAcceptItem(checkItem, ContextToEnum(context)); }
+        finally { Main.CurrentPlayerOverride = previous; }
     }
 
     public void OnHover(int index, int context) => Get(index).OnMouseHover(ContextToEnum(context));

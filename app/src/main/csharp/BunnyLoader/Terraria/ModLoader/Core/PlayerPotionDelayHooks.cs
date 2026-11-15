@@ -12,7 +12,7 @@ internal static class PlayerPotionDelayHooks
         ItemHooks.Once("PlayerPotionDelayModifier", () =>
         {
             ItemHealHooks.Install(static name => name == nameof(ModItem.ModifyPotionDelay));
-            On_Player.ResetEffects += Reset;
+            PlayerHooks.WantResetPotionDelay();
         });
         State? state = States.Get(player.Pointer);
         if (state == null) States.Set(player.Pointer, state = new State());
@@ -27,9 +27,8 @@ internal static class PlayerPotionDelayHooks
         return float.IsFinite(value) ? (int)System.Math.Clamp(value, 0f, int.MaxValue) : delay;
     }
 
-    static void Reset(On_Player.orig_ResetEffects orig, Player player)
+    internal static void BeforeReset(Player player)
     {
         if (States.Get(player.Pointer) is State state) state.Modifier = StatModifier.Default;
-        orig(player);
     }
 }

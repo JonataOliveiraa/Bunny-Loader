@@ -191,7 +191,7 @@ public sealed class TileGlobal : GlobalTile
 
     public override void ModifyLight(int i, int j, int type, ref float r, ref float g, ref float b)
     {
-        if (type == TileID.Dirt)
+        if (type == ModContent.TileType<Block>())
             Checks.GlobalLight++;
     }
 

@@ -125,8 +125,10 @@ internal static unsafe class WaterHooks
         orig(self, spriteBatch);
         if (Main.gameMenu) return;
         GameArray<float> alpha = Main.liquidAlpha;
-        foreach (ModWaterStyle style in WaterStylesLoader.All)
+        IReadOnlyList<ModWaterStyle> styles = WaterStylesLoader.All;
+        for (int i = 0; i < styles.Count; i++)
         {
+            ModWaterStyle style = styles[i];
             if (style.Slot >= alpha.Length || !(alpha[style.Slot] > 0)) continue;
             int waterfall;
             try { waterfall = style.ChooseWaterfallStyle(); }

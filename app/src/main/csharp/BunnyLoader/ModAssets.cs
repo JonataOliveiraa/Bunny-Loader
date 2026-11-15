@@ -9,25 +9,37 @@ namespace BunnyLoader;
 
 public sealed class ModAssets
 {
+    static readonly string[] Extensions = { ".png", ".json" };
+
     readonly Mod mod;
 
     readonly Dictionary<string, object> requested = new();
+
+    readonly Dictionary<(string Name, string Extension), object> byName = new();
 
     internal ModAssets(Mod mod) => this.mod = mod;
 
     public Asset<T> Request<T>(string assetName, AssetRequestMode mode = AssetRequestMode.AsyncLoad) where T : struct, IGameObject
     {
         Asset<T>.CheckSupported();
-        string relative = Relative(assetName);
         string extension = Extension<T>();
         lock (requested)
         {
-            if (requested.TryGetValue(relative + extension, out object? have)) return (Asset<T>)have;
-            string? file = Find(relative, extension);
-            if (file == null) throw new FileNotFoundException($"{mod.Name}: asset '{assetName}' not found in {mod.Folder}");
-            var asset = new Asset<T>($"{mod.Name}/{relative}", file);
-            requested[relative + extension] = asset;
-            return asset;
+            if (byName.TryGetValue((assetName, extension), out object? seen)) return (Asset<T>)seen;
+        }
+        string relative = Relative(assetName);
+        string key = relative + extension;
+        lock (requested)
+        {
+            if (!requested.TryGetValue(key, out object? have))
+            {
+                string? file = Find(relative, extension);
+                if (file == null) throw new FileNotFoundException($"{mod.Name}: asset '{assetName}' not found in {mod.Folder}");
+                have = new Asset<T>($"{mod.Name}/{relative}", file);
+                requested[key] = have;
+            }
+            byName[(assetName, extension)] = have;
+            return (Asset<T>)have;
         }
     }
 
@@ -40,7 +52,7 @@ public sealed class ModAssets
     static string Relative(string assetName)
     {
         string name = assetName.Replace('\\', '/').TrimStart('/');
-        foreach (string extension in new[] { ".png", ".json" })
+        foreach (string extension in Extensions)
             if (name.EndsWith(extension, StringComparison.OrdinalIgnoreCase)) return name[..^extension.Length];
         return name;
     }

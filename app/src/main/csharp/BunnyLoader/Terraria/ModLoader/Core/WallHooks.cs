@@ -11,17 +11,19 @@ namespace Terraria.ModLoader.Core;
 
 internal static unsafe class WallHooks
 {
-    const uint FrameFlag = 1u, RandomFlag = 2u, LightFlag = 4u;
+    const uint FrameFlag = 1u, RandomFlag = 2u, LightFlag = 4u, PreDrawFlag = 8u, PostDrawFlag = 16u, VisibleOnly = 1u << 31;
 
     static readonly HashSet<string> installed = new();
 
     static readonly Dictionary<(int, int, int), int> styles = new();
 
-    static int[] lightCells = new int[12288];
+    static int[] drawCells = new int[12288];
 
-    static Vector3[] lightValues = new Vector3[4096];
+    static GlobalWall[] preDrawGlobals = Array.Empty<GlobalWall>(), postDrawGlobals = Array.Empty<GlobalWall>(), lightGlobals = Array.Empty<GlobalWall>();
 
-    static int lightCount;
+    internal static GlobalWall[] LightGlobals => lightGlobals;
+
+    static bool preDraws, postDraws;
 
     static bool lookupReady;
 
@@ -82,13 +84,44 @@ internal static unsafe class WallHooks
 
     static void WantConverted() => Once("Converted", () => On_WorldGen.Convert_ActuallyConvertWall += Converted);
 
-    static void WantKill()
+    static void WantKill(GlobalWall wall)
     {
         Once("Kill", () => On_WorldGen.KillWall += Kill);
         Once("Dust", () => On_WorldGen.KillWall_MakeWallDust += MakeDust);
-        Once("Sound", () => On_WorldGen.KillWall_PlaySounds += Sound);
-        Once("Drop", () => On_WorldGen.KillWall_DropItems += Drop);
-        Once("Drops", () => On_WorldGen.KillWall_GetItemDrops += Drops);
+        if (Overrides(wall, nameof(GlobalWall.KillSound)))
+            Once("Sound", () => On_WorldGen.KillWall_PlaySounds += Sound);
+        if (Overrides(wall, nameof(GlobalWall.Drop)))
+        {
+            Once("Drop", () => On_WorldGen.KillWall_DropItems += Drop);
+            Once("Drops", () => On_WorldGen.KillWall_GetItemDrops += Drops);
+        }
+    }
+
+    static GlobalWall[] Append(GlobalWall[] list, GlobalWall wall)
+    {
+        var grown = new GlobalWall[list.Length + 1];
+        Array.Copy(list, grown, list.Length);
+        grown[^1] = wall;
+        return grown;
+    }
+
+    static void Everywhere(GlobalWall wall, uint flag)
+    {
+        if (Host.Native()->WallEvents(-1, flag, &Event) == 0)
+            throw new InvalidOperationException($"{wall.FullName}: native global wall hooks could not be installed");
+    }
+
+    internal static int Scan(ref int[] cells, int x, int y, int width, int height, uint flags)
+    {
+        while (true)
+        {
+            int count;
+            fixed (int* buffer = cells)
+                count = Host.Native()->ScanWalls(x, y, width, height, flags, buffer, cells.Length / 3);
+            if (count >= 0)
+                return count;
+            Array.Resize(ref cells, checked(cells.Length * 2));
+        }
     }
 
     static void GlobalFrame(On_Framing.orig_WallFrame orig, int i, int j, bool resetFrame)
@@ -148,7 +181,7 @@ internal static unsafe class WallHooks
 
     static void GlobalRandom(int i, int j, bool underground)
     {
-        int type = Main.tile[i, j].wall;
+        int type = TileData.RawWall(TileData.RawOffset(i, j));
         if (type == 0)
             return;
         foreach (GlobalWall global in WallLoader.Globals)
@@ -174,8 +207,8 @@ internal static unsafe class WallHooks
 
     internal static void Register(GlobalWall wall)
     {
-        WantKill();
-        PlayerWorldHooks.WantTeleport();
+        WantKill(wall);
+        if (Overrides(wall, nameof(GlobalWall.CanBeTeleportedTo))) PlayerWorldHooks.WantTeleport();
         if (Overrides(wall, nameof(GlobalWall.OnWallConverted))) WantConverted();
         if (Overrides(wall, nameof(GlobalWall.WallFrame))) Once("GlobalFrame", () => On_Framing.WallFrame += GlobalFrame);
         if (Overrides(wall, nameof(GlobalWall.RandomUpdate)))
@@ -187,51 +220,26 @@ internal static unsafe class WallHooks
         if (Overrides(wall, nameof(GlobalWall.PlaceInWorld))) Once("GlobalPlace", () => On_WorldGen.PlaceWall += GlobalPlace);
         if (Overrides(wall, nameof(GlobalWall.CanPlace))) WantCanPlace();
         if (Overrides(wall, nameof(GlobalWall.CanExplode))) WantCanExplode();
-        if (Overrides(wall, nameof(GlobalWall.PreDraw)) || Overrides(wall, nameof(GlobalWall.PostDraw))) WantDraw();
+        bool pre = Overrides(wall, nameof(GlobalWall.PreDraw)), post = Overrides(wall, nameof(GlobalWall.PostDraw));
+        if (pre)
+        {
+            Everywhere(wall, PreDrawFlag);
+            preDrawGlobals = Append(preDrawGlobals, wall);
+            preDraws = true;
+        }
+        if (post)
+        {
+            Everywhere(wall, PostDrawFlag);
+            postDrawGlobals = Append(postDrawGlobals, wall);
+            postDraws = true;
+        }
+        if (pre || post) WantDraw();
         if (Overrides(wall, nameof(GlobalWall.ModifyLight)))
         {
-            Once("GlobalLight", () => On_Lighting.LightTiles += GlobalLight);
-            Once("ApplyGlobalLight", () => On_Main.DoUpdateInWorld += ApplyGlobalLight);
+            Everywhere(wall, LightFlag);
+            lightGlobals = Append(lightGlobals, wall);
+            TileLightHooks.WantWalls();
         }
-    }
-
-    static readonly List<(int X, int Y, int Type, Vector3 Color)> globalLights = new();
-
-    static void GlobalLight(On_Lighting.orig_LightTiles orig, int firstX, int lastX, int firstY, int lastY)
-    {
-        orig(firstX, lastX, firstY, lastY);
-        globalLights.Clear();
-        int left = Math.Max(firstX - 28, 0), right = Math.Min(lastX + 28, Main.maxTilesX - 1);
-        int top = Math.Max(firstY - 28, 0), bottom = Math.Min(lastY + 28, Main.maxTilesY - 1);
-        for (int j = top; j <= bottom; j++)
-            for (int i = left; i <= right; i++)
-            {
-                int type = Main.tile[i, j].wall;
-                if (type == 0)
-                    continue;
-                float r = 0, g = 0, b = 0;
-                foreach (GlobalWall global in WallLoader.Globals)
-                {
-                    try { global.ModifyLight(i, j, type, ref r, ref g, ref b); }
-                    catch (Exception e) { ItemHooks.Report($"{global.FullName}.ModifyLight", e); }
-                }
-                if (r != 0 || g != 0 || b != 0)
-                    globalLights.Add((i, j, type, new Vector3(r, g, b)));
-            }
-    }
-
-    static void ApplyGlobalLight(On_Main.orig_DoUpdateInWorld orig, Main self)
-    {
-        orig(self);
-        if (Main.gameMenu)
-        {
-            globalLights.Clear();
-            return;
-        }
-
-        foreach (var entry in globalLights)
-            if (Main.tile[entry.X, entry.Y].wall == entry.Type)
-                Lighting.AddLight(entry.X, entry.Y, entry.Color.X, entry.Color.Y, entry.Color.Z);
     }
 
     internal static void Register(ModWall wall)
@@ -248,7 +256,17 @@ internal static unsafe class WallHooks
             WantCanPlace();
         if (Overrides(wall, nameof(ModBlockType.CanExplode)))
             WantCanExplode();
-        if (Overrides(wall, nameof(ModBlockType.PreDraw)) || Overrides(wall, nameof(ModBlockType.PostDraw)))
+        if (Overrides(wall, nameof(ModBlockType.PreDraw)))
+        {
+            flags |= PreDrawFlag;
+            preDraws = true;
+        }
+        if (Overrides(wall, nameof(ModBlockType.PostDraw)))
+        {
+            flags |= PostDrawFlag;
+            postDraws = true;
+        }
+        if ((flags & (PreDrawFlag | PostDrawFlag)) != 0)
             WantDraw();
         if (Overrides(wall, nameof(ModWall.CanBeTeleportedTo)))
             PlayerWorldHooks.WantTeleport();
@@ -259,8 +277,7 @@ internal static unsafe class WallHooks
         if (Overrides(wall, nameof(ModWall.ModifyLight)))
         {
             flags |= LightFlag;
-            Once("Light", () => On_Lighting.LightTiles += Light);
-            Once("ApplyLight", () => On_Main.DoUpdateInWorld += ApplyLight);
+            TileLightHooks.WantWalls();
         }
 
         if (Overrides(wall, nameof(ModWall.AnimateWall)))
@@ -309,59 +326,80 @@ internal static unsafe class WallHooks
 
     static void DrawWalls(GameContent.Drawing.On_WallDrawing.orig_DrawWalls orig, GameContent.Drawing.WallDrawing self)
     {
+        Vector2 screen = Main.screenPosition;
         int extra = Main.drawToScreen ? 2 : Main.offScreenRange / 16;
-        int left = Math.Max((int)Main.screenPosition.X / 16 - extra, 0), top = Math.Max((int)Main.screenPosition.Y / 16 - extra, 0);
-        int right = Math.Min((int)Main.screenPosition.X / 16 + Main.screenWidth / 16 + extra + 1, Main.maxTilesX - 1), bottom = Math.Min((int)Main.screenPosition.Y / 16 + Main.screenHeight / 16 + extra + 1, Main.maxTilesY - 1);
+        int left = Math.Max((int)screen.X / 16 - extra, 0), top = Math.Max((int)screen.Y / 16 - extra, 0);
+        int right = Math.Min((int)screen.X / 16 + Main.screenWidth / 16 + extra + 1, Main.maxTilesX - 1), bottom = Math.Min((int)screen.Y / 16 + Main.screenHeight / 16 + extra + 1, Main.maxTilesY - 1);
+        int width = right - left + 1, height = bottom - top + 1;
         SpriteBatch batch = Main.spriteBatch;
+        try
+        {
+            if (preDraws && width > 0 && height > 0)
+                PreDrawWalls(batch, left, top, width, height);
+            orig(self);
+        }
+        finally
+        {
+            foreach (var (x, y) in hiddenWalls)
+                Main.tile[x, y].invisibleWall(false);
+            hiddenWalls.Clear();
+        }
+
+        if (postDraws && width > 0 && height > 0)
+            PostDrawWalls(batch, left, top, width, height);
+    }
+
+    static void PreDrawWalls(SpriteBatch batch, int left, int top, int width, int height)
+    {
+        int count = Scan(ref drawCells, left, top, width, height, PreDrawFlag | VisibleOnly);
+        if (count == 0)
+            return;
+        GlobalWall[] globals = preDrawGlobals;
         BeginDraw(batch, out bool begun);
-        for (int j = top; j <= bottom; j++)
-            for (int i = left; i <= right; i++)
+        for (int k = 0; k < count; k++)
+        {
+            int i = drawCells[k * 3], j = drawCells[k * 3 + 1], type = drawCells[k * 3 + 2];
+            bool draw = true;
+            foreach (GlobalWall global in globals)
             {
-                Tile tile = Main.tile[i, j];
-                int type = tile.wall;
-                if (type == 0 || tile.invisibleWall())
-                    continue;
-                bool draw = true;
-                foreach (GlobalWall global in WallLoader.Globals)
-                {
-                    try { draw &= global.PreDraw(i, j, type, batch); }
-                    catch (Exception e) { ItemHooks.Report($"{global.FullName}.PreDraw", e); }
-                }
-                if (WallLoader.GetWall(type) is ModWall wall)
-                {
-                    try { draw &= wall.PreDraw(i, j, batch); }
-                    catch (Exception e) { ItemHooks.Report($"{wall.FullName}.PreDraw", e); }
-                }
-                if (!draw)
-                {
-                    tile.invisibleWall(true);
-                    hiddenWalls.Add((i, j));
-                }
+                try { draw &= global.PreDraw(i, j, type, batch); }
+                catch (Exception e) { ItemHooks.Report($"{global.FullName}.PreDraw", e); }
             }
+            if (WallLoader.GetWall(type) is ModWall wall)
+            {
+                try { draw &= wall.PreDraw(i, j, batch); }
+                catch (Exception e) { ItemHooks.Report($"{wall.FullName}.PreDraw", e); }
+            }
+            if (!draw)
+            {
+                hiddenWalls.Add((i, j));
+                Main.tile[i, j].invisibleWall(true);
+            }
+        }
         EndDraw(batch, begun);
-        orig(self);
-        foreach (var (x, y) in hiddenWalls)
-            Main.tile[x, y].invisibleWall(false);
-        hiddenWalls.Clear();
-        BeginDraw(batch, out begun);
-        for (int j = top; j <= bottom; j++)
-            for (int i = left; i <= right; i++)
+    }
+
+    static void PostDrawWalls(SpriteBatch batch, int left, int top, int width, int height)
+    {
+        int count = Scan(ref drawCells, left, top, width, height, PostDrawFlag | VisibleOnly);
+        if (count == 0)
+            return;
+        GlobalWall[] globals = postDrawGlobals;
+        BeginDraw(batch, out bool begun);
+        for (int k = 0; k < count; k++)
+        {
+            int i = drawCells[k * 3], j = drawCells[k * 3 + 1], type = drawCells[k * 3 + 2];
+            if (WallLoader.GetWall(type) is ModWall wall)
             {
-                Tile tile = Main.tile[i, j];
-                int type = tile.wall;
-                if (type == 0 || tile.invisibleWall())
-                    continue;
-                if (WallLoader.GetWall(type) is ModWall wall)
-                {
-                    try { wall.PostDraw(i, j, batch); }
-                    catch (Exception e) { ItemHooks.Report($"{wall.FullName}.PostDraw", e); }
-                }
-                foreach (GlobalWall global in WallLoader.Globals)
-                {
-                    try { global.PostDraw(i, j, type, batch); }
-                    catch (Exception e) { ItemHooks.Report($"{global.FullName}.PostDraw", e); }
-                }
+                try { wall.PostDraw(i, j, batch); }
+                catch (Exception e) { ItemHooks.Report($"{wall.FullName}.PostDraw", e); }
             }
+            foreach (GlobalWall global in globals)
+            {
+                try { global.PostDraw(i, j, type, batch); }
+                catch (Exception e) { ItemHooks.Report($"{global.FullName}.PostDraw", e); }
+            }
+        }
         EndDraw(batch, begun);
     }
 
@@ -380,7 +418,7 @@ internal static unsafe class WallHooks
 
     static void Kill(On_WorldGen.orig_KillWall orig, int i, int j, bool fail)
     {
-        int wallType = Main.tile[i, j].wall;
+        int wallType = TileData.RawWall(TileData.RawOffset(i, j));
         if (exploding > 0 && wallType != 0 && !WallLoader.CanExplode(i, j, wallType))
             return;
         ModWall? wall = WallLoader.GetWall(wallType);
@@ -422,7 +460,8 @@ internal static unsafe class WallHooks
 
     static void MakeDust(On_WorldGen.orig_KillWall_MakeWallDust orig, int i, int j, Tile tile)
     {
-        ModWall? wall = WallLoader.GetWall(tile.wall);
+        int wallType = TileData.RawWall(tile._tileOffset);
+        ModWall? wall = WallLoader.GetWall(wallType);
         if (wall == null && WallLoader.Globals.Count == 0)
         {
             orig(i, j, tile);
@@ -441,7 +480,7 @@ internal static unsafe class WallHooks
         {
             try
             {
-                if (!global.CreateDust(i, j, tile.wall, ref type))
+                if (!global.CreateDust(i, j, wallType, ref type))
                     return;
             }
             catch (Exception e) { ItemHooks.Report($"{global.FullName}.CreateDust", e); }
@@ -545,55 +584,6 @@ internal static unsafe class WallHooks
         foreach (ModWall wall in WallLoader.Animated)
             if (wall.Type < size)
                 wall.AnimateWall(ref Main.wallFrame[wall.Type], ref Main.wallFrameCounter[wall.Type]);
-    }
-
-    static void Light(On_Lighting.orig_LightTiles orig, int firstX, int lastX, int firstY, int lastY)
-    {
-        orig(firstX, lastX, firstY, lastY);
-        while (true)
-        {
-            int count;
-            fixed (int* buffer = lightCells)
-                count = Host.Native()->ScanWalls(firstX - 28, firstY - 28, lastX - firstX + 57, lastY - firstY + 57, LightFlag, buffer, lightCells.Length / 3);
-            if (count >= 0)
-            {
-                lightCount = count;
-                break;
-            }
-
-            Array.Resize(ref lightCells, checked(lightCells.Length * 2));
-        }
-
-        if (lightValues.Length < lightCount)
-            Array.Resize(ref lightValues, lightCells.Length / 3);
-        for (int k = 0; k < lightCount; k++)
-        {
-            int i = lightCells[k * 3], j = lightCells[k * 3 + 1];
-            float r = 0, g = 0, b = 0;
-            WallLoader.GetWall(lightCells[k * 3 + 2])?.ModifyLight(i, j, ref r, ref g, ref b);
-            lightValues[k] = new Vector3(r, g, b);
-        }
-    }
-
-    static void ApplyLight(On_Main.orig_DoUpdateInWorld orig, Main self)
-    {
-        orig(self);
-        if (Main.gameMenu)
-        {
-            lightCount = 0;
-            return;
-        }
-
-        for (int k = 0; k < lightCount; k++)
-        {
-            Vector3 color = lightValues[k];
-            if (color.X == 0 && color.Y == 0 && color.Z == 0)
-                continue;
-            int i = lightCells[k * 3], j = lightCells[k * 3 + 1];
-            if (Main.tile[i, j].wall != lightCells[k * 3 + 2])
-                continue;
-            Lighting.AddLight(i, j, color.X, color.Y, color.Z);
-        }
     }
 
     static bool BuildLookup()

@@ -87,17 +87,17 @@ void ai(void* npc, const MethodInfo* method) {
 Float2 randomVector(void* random, float min, float max, const MethodInfo* method) {
     auto caller = reinterpret_cast<uintptr_t>(__builtin_return_address(0));
     auto code = reinterpret_cast<uintptr_t>(g_aiCode);
-    if (t_scope && (caller == code + 0x6d94 || caller == code + 0xaf38 || caller == code + 0xb868)) { max = t_scope->args.random; min = -max; }
+    if ((caller == code + 0x6d94 || caller == code + 0xaf38 || caller == code + 0xb868) && t_scope) { max = t_scope->args.random; min = -max; }
     return g_random(random, min, max, method);
 }
 
 void light(Float2 position, float r, float g, float b, const MethodInfo* method) {
-    if (t_scope && t_scope->mode == 2 && __builtin_return_address(0) == static_cast<uint8_t*>(g_aiCode) + 0xcb54) { float scale = t_scope->args.aura; r *= scale; g *= scale; b *= scale; }
+    if (__builtin_return_address(0) == static_cast<uint8_t*>(g_aiCode) + 0xcb54 && t_scope && t_scope->mode == 2) { float scale = t_scope->args.aura; r *= scale; g *= scale; b *= scale; }
     g_light(position, r, g, b, method);
 }
 
 void* swing(void* npc, int32_t max, int32_t current, int32_t direction, int32_t width, int32_t height, const MethodInfo* method) {
-    if (t_scope && t_scope->npc == npc && t_scope->mode == 3 && __builtin_return_address(0) == static_cast<uint8_t*>(g_aiCode) + 0xbbec) { width = t_scope->args.width; height = t_scope->args.height; }
+    if (__builtin_return_address(0) == static_cast<uint8_t*>(g_aiCode) + 0xbbec && t_scope && t_scope->npc == npc && t_scope->mode == 3) { width = t_scope->args.width; height = t_scope->args.height; }
     return g_swing(npc, max, current, direction, width, height, method);
 }
 

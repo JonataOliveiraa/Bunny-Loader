@@ -164,7 +164,8 @@ internal static class ItemHitHooks
 
     static bool CanNPCBeHit(On_Player.orig_CanNPCBeHitByPlayerOrPlayerProjectile orig, Player self, NPC npc, Projectile projectile)
     {
-        if (!hasAttack || !projectile.IsNull || attack.CanHit != true || attack.Player != self || attack.Target != npc) return orig(self, npc, projectile);
+        if (!projectile.IsNull) return orig(self, npc, projectile);
+        if (!hasAttack || attack.CanHit != true || attack.Player != self || attack.Target != npc) return orig(self, npc, projectile);
         ref Attack a = ref attack;
         if (npc.friendly && !a.RestoreFriendly)
         {

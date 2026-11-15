@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Terraria.ID;
 
 namespace Terraria.ModLoader.Core;
@@ -15,12 +14,13 @@ internal static class ItemConsumeHooks
 
     static void ItemCheck(On_Player.orig_ItemCheck orig, Player self)
     {
-        if (self.whoAmI != Main.myPlayer || (uint)self.selectedItem >= 58u)
+        int slot = ItemHooks.Selected(self);
+        if ((uint)slot >= 58u || self.whoAmI != Main.myPlayer)
         {
             orig(self);
             return;
         }
-        Item held = self.inventory[self.selectedItem];
+        Item held = self.inventory[slot];
         if (held.IsNull || !held.consumable || held.stack <= 0)
         {
             orig(self);
@@ -28,25 +28,33 @@ internal static class ItemConsumeHooks
         }
         int type = held.type, stack = held.stack;
         ModItem? own = ItemHooks.ModItemOf(held);
-        List<GlobalItem> globals = new();
-        foreach (GlobalItem? global in ItemHooks.GlobalsOf(held))
-            if (global != null && ItemHooks.Wants(global, nameof(GlobalItem.OnConsumeItem))) globals.Add(global);
-        if (own == null && globals.Count == 0)
+        short[] overriding = ItemLoader.Globals.Overriding(nameof(GlobalItem.OnConsumeItem));
+        GlobalItem?[]? slots = overriding.Length > 0 ? ItemLoader.Globals.Slots(held) : null;
+        bool globals = false;
+        foreach (short index in overriding)
+        {
+            if (ItemHooks.Applied(slots, index) == null) continue;
+            globals = true;
+            break;
+        }
+        if (own == null && !globals)
         {
             orig(self);
             return;
         }
         orig(self);
-        Item now = self.inventory[self.selectedItem];
+        Item now = self.inventory[ItemHooks.Selected(self)];
         if (now.type == type && now.stack >= stack) return;
         if (own != null)
         {
             try { own.OnConsumeItem(self); }
             catch (Exception e) { ItemHooks.Report($"{own.FullName}.OnConsumeItem", e); }
         }
+        if (!globals) return;
         Item sample = ContentSamples.ItemsByType[type];
-        foreach (GlobalItem global in globals)
+        foreach (short index in overriding)
         {
+            if (ItemHooks.Applied(slots, index) is not GlobalItem global) continue;
             try { global.OnConsumeItem(sample, self); }
             catch (Exception e) { ItemHooks.Report($"{global.FullName}.OnConsumeItem", e); }
         }

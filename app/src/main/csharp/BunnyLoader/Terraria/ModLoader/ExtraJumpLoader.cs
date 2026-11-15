@@ -37,6 +37,15 @@ public static class ExtraJumpLoader
     static readonly EntityInstances<PlayerJumps> Players = new();
     static ExtraJump[]? orderedJumps;
 
+    static readonly PlayerHook HookCanStartExtraJump = PlayerLoader.Hook(nameof(ModPlayer.CanStartExtraJump));
+    static readonly PlayerHook HookCanShowExtraJumpVisuals = PlayerLoader.Hook(nameof(ModPlayer.CanShowExtraJumpVisuals));
+    static readonly PlayerHook HookExtraJumpVisuals = PlayerLoader.Hook(nameof(ModPlayer.ExtraJumpVisuals));
+    static readonly PlayerHook HookOnExtraJumpRefreshed = PlayerLoader.Hook(nameof(ModPlayer.OnExtraJumpRefreshed));
+    static readonly PlayerHook HookOnExtraJumpCleared = PlayerLoader.Hook(nameof(ModPlayer.OnExtraJumpCleared));
+    static readonly PlayerHook HookModifyExtraJumpDurationMultiplier = PlayerLoader.Hook(nameof(ModPlayer.ModifyExtraJumpDurationMultiplier));
+    static readonly PlayerHook HookOnExtraJumpStarted = PlayerLoader.Hook(nameof(ModPlayer.OnExtraJumpStarted));
+    static readonly PlayerHook HookOnExtraJumpEnded = PlayerLoader.Hook(nameof(ModPlayer.OnExtraJumpEnded));
+
     static ExtraJumpLoader()
     {
         for (int i = 0; i < ExtraJumps.Count; i++) ExtraJumps[i].Type = i;
@@ -121,16 +130,22 @@ public static class ExtraJumpLoader
 
     internal static PlayerJumps Of(Player player)
     {
-        PlayerJumps? jumps = Players.Get(player.Pointer);
         int count = ExtraJumpCount;
+        long epoch = GameGc.Collections();
+        PlayerJumps? jumps = RecentInstance<PlayerJumps>.Get(player.Pointer, epoch, 0);
         if (jumps != null && jumps.States.Length == count) return jumps;
-        jumps ??= new PlayerJumps();
-        Array.Resize(ref jumps.States, count);
-        Array.Resize(ref jumps.SnapEnabled, count);
-        Array.Resize(ref jumps.SnapAvailable, count);
-        Array.Resize(ref jumps.SnapActive, count);
-        Players.Set(player.Pointer, jumps);
-        for (int i = 0; i < DefaultExtraJumpCount; i++) Pull(player, jumps, i);
+        jumps = Players.Get(player.Pointer);
+        if (jumps == null || jumps.States.Length != count)
+        {
+            jumps ??= new PlayerJumps();
+            Array.Resize(ref jumps.States, count);
+            Array.Resize(ref jumps.SnapEnabled, count);
+            Array.Resize(ref jumps.SnapAvailable, count);
+            Array.Resize(ref jumps.SnapActive, count);
+            Players.Set(player.Pointer, jumps);
+            for (int i = 0; i < DefaultExtraJumpCount; i++) Pull(player, jumps, i);
+        }
+        RecentInstance<PlayerJumps>.Set(player.Pointer, epoch, 0, jumps);
         return jumps;
     }
 
@@ -193,7 +208,7 @@ public static class ExtraJumpLoader
     }
 
     internal static bool CanStart(Player player, ExtraJump jump) =>
-        jump.CanStart(player) && PlayerLoader.All(player, nameof(ModPlayer.CanStartExtraJump), jump, static (m, j) => m.CanStartExtraJump(j));
+        jump.CanStart(player) && PlayerLoader.All(player, HookCanStartExtraJump, jump, static (m, j) => m.CanStartExtraJump(j));
 
     internal static bool AnyUsable(Player player)
     {
@@ -222,9 +237,9 @@ public static class ExtraJumpLoader
         foreach (ExtraJump jump in OrderedJumps)
         {
             if (jump.Type < DefaultExtraJumpCount || !jumps.States[jump.Type].Active || !jump.CanShowVisuals(player)) continue;
-            if (!PlayerLoader.All(player, nameof(ModPlayer.CanShowExtraJumpVisuals), jump, static (m, j) => m.CanShowExtraJumpVisuals(j))) continue;
+            if (!PlayerLoader.All(player, HookCanShowExtraJumpVisuals, jump, static (m, j) => m.CanShowExtraJumpVisuals(j))) continue;
             jump.ShowVisuals(player);
-            PlayerLoader.Each(player, nameof(ModPlayer.ExtraJumpVisuals), jump, static (m, j) => m.ExtraJumpVisuals(j));
+            PlayerLoader.Each(player, HookExtraJumpVisuals, jump, static (m, j) => m.ExtraJumpVisuals(j));
         }
     }
 
@@ -234,7 +249,7 @@ public static class ExtraJumpLoader
         {
             if (jump.Type < DefaultExtraJumpCount || !jumps.States[jump.Type].Enabled) continue;
             jump.OnRefreshed(player);
-            PlayerLoader.Each(player, nameof(ModPlayer.OnExtraJumpRefreshed), jump, static (m, j) => m.OnExtraJumpRefreshed(j));
+            PlayerLoader.Each(player, HookOnExtraJumpRefreshed, jump, static (m, j) => m.OnExtraJumpRefreshed(j));
             jumps.States[jump.Type].Available = true;
         }
     }
@@ -305,12 +320,12 @@ public static class ExtraJumpLoader
     }
 
     internal static void Cleared(Player player, ExtraJump jump) =>
-        PlayerLoader.Each(player, nameof(ModPlayer.OnExtraJumpCleared), jump, static (m, j) => m.OnExtraJumpCleared(j));
+        PlayerLoader.Each(player, HookOnExtraJumpCleared, jump, static (m, j) => m.OnExtraJumpCleared(j));
 
     internal static float Duration(Player player, ExtraJump jump)
     {
         float duration = jump.GetDurationMultiplier(player);
-        PlayerLoader.Each(player, nameof(ModPlayer.ModifyExtraJumpDurationMultiplier), jump, ref duration,
+        PlayerLoader.Each(player, HookModifyExtraJumpDurationMultiplier, jump, ref duration,
             static (m, j, ref d) => m.ModifyExtraJumpDurationMultiplier(j, ref d));
         return duration;
     }
@@ -319,9 +334,8 @@ public static class ExtraJumpLoader
     {
         bool playSound = true;
         if (!vanilla) jump.OnStarted(player, ref playSound);
-        var box = new System.Runtime.CompilerServices.StrongBox<bool>(playSound);
-        PlayerLoader.Each(player, nameof(ModPlayer.OnExtraJumpStarted), (jump, box), static (m, s) => m.OnExtraJumpStarted(s.jump, ref s.box.Value));
-        return box.Value;
+        PlayerLoader.Each(player, HookOnExtraJumpStarted, jump, ref playSound, static (m, j, ref p) => m.OnExtraJumpStarted(j, ref p));
+        return playSound;
     }
 
     internal static void PerformJump(ExtraJump jump, Player player, PlayerJumps jumps)
@@ -336,12 +350,12 @@ public static class ExtraJumpLoader
     static void StopJump(ExtraJump jump, Player player, PlayerJumps jumps)
     {
         if (jump.Type >= DefaultExtraJumpCount) jump.OnEnded(player);
-        PlayerLoader.Each(player, nameof(ModPlayer.OnExtraJumpEnded), jump, static (m, j) => m.OnExtraJumpEnded(j));
+        PlayerLoader.Each(player, HookOnExtraJumpEnded, jump, static (m, j) => m.OnExtraJumpEnded(j));
         jumps.States[jump.Type].Stop();
     }
 
     internal static void Ended(Player player, ExtraJump jump) =>
-        PlayerLoader.Each(player, nameof(ModPlayer.OnExtraJumpEnded), jump, static (m, j) => m.OnExtraJumpEnded(j));
+        PlayerLoader.Each(player, HookOnExtraJumpEnded, jump, static (m, j) => m.OnExtraJumpEnded(j));
 
     internal static int DefaultCount => DefaultExtraJumpCount;
 }

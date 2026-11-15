@@ -1,20 +1,24 @@
 using System.Collections.Generic;
 using System.Threading;
 using System;
+using BunnyLoader;
+using BunnyLoader.Hooks;
 using Microsoft.Xna.Framework;
 using Terraria.ID;
 using Terraria.ModLoader;
 
 namespace Terraria.ModLoader.Core;
 
-internal static class DamageClassHooks
+internal static unsafe class DamageClassHooks
 {
+    static readonly object ProjectileGate = new();
     static bool[] projectileTypes = Array.Empty<bool>();
     static Projectile firing;
+    static volatile bool damageFallback, gatesFilled;
 
     internal static void Install() => ItemHooks.Once("DamageClass", () =>
     {
-        On_Player.ResetEffects += ResetEffects;
+        PlayerHooks.WantResetDamage();
         On_Player.CapAttackSpeeds += CapAttackSpeeds;
         On_Player.GetWeaponDamageMultiplier += GetWeaponDamageMultiplier;
         On_Player.GetWeaponCrit += GetWeaponCrit;
@@ -28,8 +32,8 @@ internal static class DamageClassHooks
 
     internal static void WantProjectile(int type)
     {
-        if (type < 0) return;
-        lock (projectileTypes)
+        if (type < 0 || Marked(type)) return;
+        lock (ProjectileGate)
         {
             bool[] table = projectileTypes;
             if (type >= table.Length)
@@ -41,12 +45,43 @@ internal static class DamageClassHooks
             table[type] = true;
             Volatile.Write(ref projectileTypes, table);
         }
-        ItemHooks.Once("DamageClassProjectiles", () =>
+        bool filled = gatesFilled;
+        ItemHooks.Once("DamageClassProjectiles", InstallProjectiles);
+        if (!filled) return;
+        WantLate<On_Projectile.hook_Update>(type);
+        if (damageFallback) WantLate<On_Projectile.hook_Damage>(type);
+    }
+
+    static void WantLate<THook>(int type) where THook : Delegate
+    {
+        Func<int, bool> wanted = value => value == type;
+        HookGates.Want<THook>(wanted);
+        HookGates.Subscribed(typeof(THook), wanted);
+    }
+
+    static void InstallProjectiles()
+    {
+        if (Host.Native()->WatchProjectileDamage() == 0)
         {
+            damageFallback = true;
+            TypeGate<On_Projectile.hook_Damage>();
             On_Projectile.Damage += Damage;
-            On_Player.TryConsumingTimerCrit += TryConsumingTimerCrit;
-            On_Projectile.Update += Update;
-        });
+        }
+        On_Player.TryConsumingTimerCrit += TryConsumingTimerCrit;
+        TypeGate<On_Projectile.hook_Update>();
+        On_Projectile.Update += Update;
+    }
+
+    static void TypeGate<THook>() where THook : Delegate
+    {
+        HookGates.Table<THook>(() => HookGates.Field(0, Projectile.Class, "type"), () => ProjectileLoader.ProjectileCount);
+        HookGates.Want<THook>(GateType);
+    }
+
+    static bool GateType(int type)
+    {
+        gatesFilled = true;
+        return Marked(type);
     }
 
     static bool Marked(int type)
@@ -55,19 +90,11 @@ internal static class DamageClassHooks
         return (uint)type < (uint)table.Length && table[type];
     }
 
+    static Projectile Firing() => damageFallback ? firing : new Projectile(Host.Native()->ProjectileDamaging());
+
     static bool HasData(Player player) => DamageClassLoader.Players.Count > 0 && DamageClassLoader.Players.Get(player.Pointer) != null;
 
     static bool MeleeLike(DamageClass cls) => cls == DamageClass.Melee || cls == DamageClass.MeleeNoSpeed || cls == DamageClass.SummonMeleeSpeed;
-
-    static void ResetEffects(On_Player.orig_ResetEffects orig, Player self)
-    {
-        orig(self);
-        try
-        {
-            if (DamageClassLoader.Players.Get(self.Pointer) is DamageClassLoader.PlayerStats d) DamageClassLoader.Reset(self, d);
-        }
-        catch (Exception e) { ItemHooks.Report("DamageClass (ResetEffects)", e); }
-    }
 
     static void CapAttackSpeeds(On_Player.orig_CapAttackSpeeds orig, Player self)
     {
@@ -221,8 +248,8 @@ internal static class DamageClassHooks
 
     static void TryConsumingTimerCrit(On_Player.orig_TryConsumingTimerCrit orig, Player self, Rectangle hitbox, ref bool crit)
     {
-        Projectile p = firing;
-        if (!p.IsNull)
+        Projectile p = Firing();
+        if (!p.IsNull && Marked(p.type))
         {
             try
             {

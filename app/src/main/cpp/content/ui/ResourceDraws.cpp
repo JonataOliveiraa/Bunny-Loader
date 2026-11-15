@@ -28,8 +28,13 @@ using DrawFn = void (*)(void*, void*, Vec2, NullableRect, uint32_t, float, Vec2,
 using DrawFloatFn = void (*)(void*, void*, Vec2, NullableRect, uint32_t, float, Vec2, float, int32_t, float, const MethodInfo*);
 using DrawRefFn = void (*)(void*, void*, Vec2*, uint32_t*, float, Vec2, float, const MethodInfo*);
 
+constexpr int32_t kPhasePre = 1;
+constexpr int32_t kPhasePost = 2;
+constexpr int32_t kPhasesKnown = 8;
+
 std::atomic<ResourceDrawCallback> g_callback{nullptr};
 std::atomic<bool> g_active{false};
+std::atomic<int32_t> g_phases{kPhasePre | kPhasePost};
 thread_local bool t_inside = false;
 DrawFn g_drawVector = nullptr;
 const MethodInfo* g_drawVectorInfo = nullptr;
@@ -42,16 +47,28 @@ bool intercepting() {
     return g_active.load(std::memory_order_relaxed) && g_callback.load(std::memory_order_relaxed) && !t_inside;
 }
 
+void learnPhases(int32_t result) {
+    if (!(result & kPhasesKnown)) return;
+    const int32_t wanted = (result >> 1) & (kPhasePre | kPhasePost);
+    g_phases.store(wanted ? wanted : kPhasePre | kPhasePost, std::memory_order_relaxed);
+}
+
 void intercept(void* self, ResourceDrawArgs& args) {
     const ResourceDrawCallback callback = g_callback.load(std::memory_order_acquire);
+    const int32_t phases = g_phases.load(std::memory_order_relaxed);
     t_inside = true;
-    const int32_t draw = callback(0, self, &args);
+    bool draw = true;
+    if (phases & kPhasePre) {
+        const int32_t result = callback(0, self, &args);
+        learnPhases(result);
+        draw = (result & 1) != 0;
+    }
     if (draw && g_drawVector && args.texture) {
         NullableRect source{static_cast<uint8_t>(args.hasSource ? 1 : 0), args.source[0], args.source[1], args.source[2], args.source[3]};
         g_drawVector(self, args.texture, Vec2{args.x, args.y}, source, args.color, args.rotation, Vec2{args.originX, args.originY},
                      Vec2{args.scaleX, args.scaleY}, args.effects, 0.0f, g_drawVectorInfo);
     }
-    callback(1, self, &args);
+    if (phases & kPhasePost) learnPhases(callback(1, self, &args));
     t_inside = false;
 }
 

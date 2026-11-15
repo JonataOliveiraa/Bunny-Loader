@@ -12,7 +12,10 @@
 
 namespace bl::runtime {
 namespace {
+constexpr uint32_t kVisibleOnly = 1u << 31;
+
 std::array<std::atomic<uint32_t>, 65536> g_flags{};
+std::atomic<uint32_t> g_globals{0};
 std::atomic<uint32_t> g_typeFlags{0};
 std::atomic<int32_t> g_lowType{65536};
 std::atomic<int32_t> g_highType{-1};
@@ -72,9 +75,13 @@ bool attach(const char* ns, const char* name, const char* signature, void* repla
 }
 
 bool installWallEvents(int32_t type, uint32_t flags, WallEventCallback callback) {
-    if (!callback || type <= 0 || type >= 65536) return false;
+    if (!callback || type == 0 || type < -1 || type >= 65536) return false;
     std::lock_guard<std::mutex> lock(g_gate);
     g_callback.store(callback, std::memory_order_release);
+    if (type < 0) {
+        g_globals.fetch_or(flags & ~(3u | kVisibleOnly), std::memory_order_release);
+        return true;
+    }
     if (flags) {
         if (type < g_lowType.load(std::memory_order_relaxed)) g_lowType.store(type, std::memory_order_relaxed);
         if (type > g_highType.load(std::memory_order_relaxed)) g_highType.store(type, std::memory_order_relaxed);
@@ -102,9 +109,12 @@ bool installWallEvents(int32_t type, uint32_t flags, WallEventCallback callback)
 int32_t scanWallEvents(int32_t x, int32_t y, int32_t width, int32_t height, uint32_t flags, int32_t* cells,
                        int32_t capacity) {
     if (!cells || capacity <= 0 || width <= 0 || height <= 0) return 0;
-    if (!(g_typeFlags.load(std::memory_order_acquire) & flags)) return 0;
+    const bool visibleOnly = (flags & kVisibleOnly) != 0;
+    flags &= ~kVisibleOnly;
+    const bool every = (g_globals.load(std::memory_order_acquire) & flags) != 0;
+    if (!every && !(g_typeFlags.load(std::memory_order_acquire) & flags)) return 0;
     TileArrays arrays;
-    if (!tileArrays(&arrays) || !arrays.wall) return 0;
+    if (!tileArrays(&arrays) || !arrays.wall || (visibleOnly && !arrays.bHeader3)) return 0;
     const int low = g_lowType.load(std::memory_order_relaxed);
     const int high = g_highType.load(std::memory_order_relaxed);
     const int left = std::max(x, 0);
@@ -112,10 +122,15 @@ int32_t scanWallEvents(int32_t x, int32_t y, int32_t width, int32_t height, uint
     const int bottom = static_cast<int>(std::min<int64_t>(arrays.height, static_cast<int64_t>(y) + height));
     int count = 0;
     for (int j = std::max(y, 0); j < bottom; ++j) {
-        const uint16_t* row = arrays.wall + static_cast<int64_t>(arrays.width) * j;
+        const int64_t start = static_cast<int64_t>(arrays.width) * j;
+        const uint16_t* row = arrays.wall + start;
+        const uint32_t* lookup = arrays.lookup + start;
         for (int i = left; i < right; ++i) {
             const int type = row[i];
-            if (type < low || type > high || !(g_flags[type].load(std::memory_order_relaxed) & flags)) continue;
+            if (type == 0) continue;
+            if (!every && (type < low || type > high || !(g_flags[type].load(std::memory_order_relaxed) & flags)))
+                continue;
+            if (visibleOnly && (arrays.bHeader3[lookup[i]] & kWallInvisibleBit)) continue;
             if (count == capacity) return -count;
             cells[count * 3] = i;
             cells[count * 3 + 1] = j;

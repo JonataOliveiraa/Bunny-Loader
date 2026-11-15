@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using BunnyLoader.Hooks;
 using BunnyLoader.Interop;
 using Microsoft.Xna.Framework;
 using Terraria.UI;
@@ -34,15 +35,41 @@ internal static class ItemStackHooks
         if (!has(nameof(ModItem.CanStack)) && !has(nameof(ModItem.CanStackInWorld)) && !has(nameof(ModItem.OnStack)) && !has(nameof(ModItem.SplitStack))) return;
         ItemHooks.Once("ItemStacking", () =>
         {
+            ItemHooks.TypeGate<On_Item.hook_CanStack_Item_Item>(0, static type => ItemHooks.WantsType(type, nameof(ModItem.CanStack)) ||
+                ItemHooks.WantsType(type, nameof(ModItem.OnStack)) || ItemHooks.WantsType(type, nameof(ModItem.SplitStack)));
             On_Item.CanStack_Item_Item += CanStack;
+            HookGates.Table<On_WorldItem.hook_TryCombiningIntoNearbyItems>(() =>
+            {
+                GateSpec spec = HookGates.Field(0, Item.Class, "type");
+                spec.PointerOffset = ItemHooks.FieldOffset(WorldItem.Class, "inner");
+                return spec;
+            }, () => ItemLoader.ItemCount);
+            HookGates.Want<On_WorldItem.hook_TryCombiningIntoNearbyItems>(static type => ItemLoader.Get(type) != null ||
+                ItemLoader.Globals.Overriding(nameof(GlobalItem.CanStackInWorld)).Length > 0 || ItemLoader.Globals.Overriding(nameof(GlobalItem.OnStack)).Length > 0);
             On_WorldItem.TryCombiningIntoNearbyItems += World;
             On_ItemSlot.LeftClick_ItemArray_int_int += Left;
             On_ItemSlot.RightClick_ItemArray_int_int += Right;
             On_ItemSlot.PlaceItem += Place;
             On_Player.GetItem += Get;
             On_Item.Clone += Clone;
+            ItemHooks.WantTurnToAir();
             On_Item.TurnToAir += TurnToAir;
         });
+    }
+
+    static bool StacksInWorld(Item item, int type)
+    {
+        if (ItemLoader.Get(type) != null) return true;
+        short[] inWorld = ItemLoader.Globals.Overriding(nameof(GlobalItem.CanStackInWorld));
+        short[] onStack = ItemLoader.Globals.Overriding(nameof(GlobalItem.OnStack));
+        if (inWorld.Length == 0 && onStack.Length == 0) return false;
+        GlobalItem?[]? slots = ItemLoader.Globals.Slots(item);
+        if (slots == null) return false;
+        foreach (short index in inWorld)
+            if (ItemHooks.Applied(slots, index) != null) return true;
+        foreach (short index in onStack)
+            if (ItemHooks.Applied(slots, index) != null) return true;
+        return false;
     }
 
     static bool CanStack(On_Item.orig_CanStack_Item_Item orig, Item a, Item b)
@@ -59,13 +86,16 @@ internal static class ItemStackHooks
     static TransferScope? Begin()
     {
         if (current != null) return null;
-        return current = new TransferScope();
+        current = new TransferScope();
+        ItemHooks.EnterAirScope();
+        return current;
     }
 
     static void End(TransferScope? scope)
     {
         if (scope == null) return;
         current = null;
+        ItemHooks.ExitAirScope();
         try
         {
             var deltas = new Dictionary<IntPtr, int>();
@@ -171,17 +201,39 @@ internal static class ItemStackHooks
 
     static void World(On_WorldItem.orig_TryCombiningIntoNearbyItems orig, WorldItem self)
     {
-        if (self.playerIndexTheItemIsReservedFor != Main.myPlayer || self.shimmerTime > 0f || !self.inner.CanPassivelyStackInWorld() || self.stack >= self.maxStack) return;
-        for (int i = self.whoAmI + 1; i < Math.Min(Main.maxItems, Main.item.Length); i++)
+        Item inner = self.inner;
+        if (inner.IsNull)
         {
-            WorldItem other = Main.item[i];
-            if (other.IsNull || other.IsAir || !Item.CanStack(self.inner, other.inner) || !ItemLoader.CanStackInWorld(self, other) || other.shimmered != self.shimmered || other.playerIndexTheItemIsReservedFor != self.playerIndexTheItemIsReservedFor || Math.Abs(self.position.X - other.position.X) + Math.Abs(self.position.Y - other.position.Y) > 30f) continue;
-            ItemLoader.StackItems(self.inner, other.inner, out int count);
+            orig(self);
+            return;
+        }
+        int type = inner.type;
+        if (!StacksInWorld(inner, type))
+        {
+            orig(self);
+            return;
+        }
+        int reserved = self.playerIndexTheItemIsReservedFor;
+        if (reserved != Main.myPlayer && !(reserved == 255 && (Main.netMode & 2) != 0)) return;
+        if (self.shimmerTime > 0f || !inner.CanPassivelyStackInWorld() || inner.stack >= inner.maxStack || self.instanced) return;
+        var items = Main.item;
+        int end = Math.Min(Main.maxItems, items.Length);
+        bool shimmered = self.shimmered;
+        for (int i = self.whoAmI + 1; i < end; i++)
+        {
+            WorldItem other = items[i];
+            if (other.IsNull) continue;
+            Item source = other.inner;
+            if (source.IsNull || source.type != type || source.stack <= 0 || !Item.CanStack(inner, source)) continue;
+            if (other.shimmered != shimmered || other.playerIndexTheItemIsReservedFor != reserved || other.instanced) continue;
+            if (Math.Abs(self.position.X - other.position.X) + Math.Abs(self.position.Y - other.position.Y) > 30f) continue;
+            if (!ItemLoader.CanStackInWorld(self, other)) continue;
+            ItemLoader.StackItems(inner, source, out int count);
             if (count <= 0) continue;
-            float amount = (float)count / Math.Max(1, self.stack);
+            float amount = (float)count / Math.Max(1, inner.stack);
             self.position = Vector2.Lerp(other.position, self.position, amount);
             self.velocity = Vector2.Lerp(other.velocity, self.velocity, amount);
-            if (other.stack <= 0) other.TurnToAir();
+            if (source.stack <= 0) other.TurnToAir();
             if (Main.netMode != 0) { self.SyncItem(); other.SyncItem(); }
         }
     }

@@ -8,25 +8,36 @@ public static partial class ItemLoader
     public static bool CanStack(Item destination, Item source)
     {
         if (destination.IsNull || source.IsNull || destination == source || destination.type != source.type || destination.prefix != source.prefix) return false;
-        foreach (GlobalItem? global in ItemHooks.GlobalsOf(destination))
+        short[] overriding = Globals.Overriding(nameof(GlobalItem.CanStack));
+        if (overriding.Length > 0)
         {
-            if (global == null) continue;
-            try { if (!global.CanStack(destination, source)) return false; }
-            catch (Exception e) { ItemHooks.Report($"{global.FullName}.CanStack", e); return false; }
+            GlobalItem?[]? slots = Globals.Slots(destination);
+            foreach (short index in overriding)
+            {
+                if (ItemHooks.Applied(slots, index) is not GlobalItem global) continue;
+                try { if (!global.CanStack(destination, source)) return false; }
+                catch (Exception e) { ItemHooks.Report($"{global.FullName}.CanStack", e); return false; }
+            }
         }
-        try { return ItemHooks.ModItemOf(destination)?.CanStack(source) ?? true; }
+        try { return ItemHooks.Overrider(destination, destination.type, nameof(ModItem.CanStack))?.CanStack(source) ?? true; }
         catch (Exception e) { ItemHooks.Report("ModItem.CanStack", e); return false; }
     }
 
     public static bool CanStackInWorld(WorldItem destination, WorldItem source)
     {
-        foreach (GlobalItem? global in ItemHooks.GlobalsOf(destination.inner))
+        Item item = destination.inner;
+        short[] overriding = Globals.Overriding(nameof(GlobalItem.CanStackInWorld));
+        if (overriding.Length > 0)
         {
-            if (global == null) continue;
-            try { if (!global.CanStackInWorld(destination, source)) return false; }
-            catch (Exception e) { ItemHooks.Report($"{global.FullName}.CanStackInWorld", e); return false; }
+            GlobalItem?[]? slots = Globals.Slots(item);
+            foreach (short index in overriding)
+            {
+                if (ItemHooks.Applied(slots, index) is not GlobalItem global) continue;
+                try { if (!global.CanStackInWorld(destination, source)) return false; }
+                catch (Exception e) { ItemHooks.Report($"{global.FullName}.CanStackInWorld", e); return false; }
+            }
         }
-        try { return ItemHooks.ModItemOf(destination.inner)?.CanStackInWorld(destination, source) ?? true; }
+        try { return item.IsNull || (ItemHooks.Overrider(item, item.type, nameof(ModItem.CanStackInWorld))?.CanStackInWorld(destination, source) ?? true); }
         catch (Exception e) { ItemHooks.Report("ModItem.CanStackInWorld", e); return false; }
     }
 
@@ -34,15 +45,21 @@ public static partial class ItemLoader
 
     static void Notify(Item destination, Item source, int count, bool split)
     {
-        foreach (GlobalItem? global in ItemHooks.GlobalsOf(destination))
+        string method = split ? nameof(GlobalItem.SplitStack) : nameof(GlobalItem.OnStack);
+        short[] overriding = Globals.Overriding(method);
+        if (overriding.Length > 0)
         {
-            if (global == null) continue;
-            try { if (split) global.SplitStack(destination, source, count); else global.OnStack(destination, source, count); }
-            catch (Exception e) { ItemHooks.Report($"{global.FullName}.Stack", e); }
+            GlobalItem?[]? slots = Globals.Slots(destination);
+            foreach (short index in overriding)
+            {
+                if (ItemHooks.Applied(slots, index) is not GlobalItem global) continue;
+                try { if (split) global.SplitStack(destination, source, count); else global.OnStack(destination, source, count); }
+                catch (Exception e) { ItemHooks.Report($"{global.FullName}.Stack", e); }
+            }
         }
         try
         {
-            ModItem? mod = ItemHooks.ModItemOf(destination);
+            ModItem? mod = destination.IsNull ? null : ItemHooks.Overrider(destination, destination.type, method);
             if (split) mod?.SplitStack(source, count); else mod?.OnStack(source, count);
         }
         catch (Exception e) { ItemHooks.Report("ModItem.Stack", e); }

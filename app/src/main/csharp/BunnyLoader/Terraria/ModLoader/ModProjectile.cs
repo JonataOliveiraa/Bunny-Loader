@@ -18,6 +18,8 @@ public abstract class ModProjectile : ModType<Projectile, ModProjectile>, ILocal
 
     internal bool UsesExplosiveMarker;
 
+    internal Core.ProjectileMethod Hooks;
+
     public int AIType { get; set; }
 
     public int CooldownSlot { get; set; } = -1;
@@ -31,7 +33,7 @@ public abstract class ModProjectile : ModType<Projectile, ModProjectile>, ILocal
         set
         {
             drawOffsetX = value;
-            if (value != 0) Core.ProjectileHooks.WantDrawOffset();
+            if (value != 0) Core.ProjectileHooks.WantDrawOffset(this);
         }
     }
 
@@ -41,7 +43,7 @@ public abstract class ModProjectile : ModType<Projectile, ModProjectile>, ILocal
         set
         {
             drawOriginOffsetY = value;
-            if (value != 0) Core.ProjectileHooks.WantDrawOffset();
+            if (value != 0) Core.ProjectileHooks.WantDrawOffset(this);
         }
     }
 
@@ -51,7 +53,7 @@ public abstract class ModProjectile : ModType<Projectile, ModProjectile>, ILocal
         set
         {
             drawOriginOffsetX = value;
-            if (value != 0) Core.ProjectileHooks.WantDrawOffset();
+            if (value != 0) Core.ProjectileHooks.WantDrawOffset(this);
         }
     }
 

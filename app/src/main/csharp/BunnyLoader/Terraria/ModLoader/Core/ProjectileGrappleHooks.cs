@@ -17,13 +17,13 @@ internal static unsafe class ProjectileGrappleHooks
     internal static void Install(Func<string, bool> has)
     {
         if (has(nameof(ModProjectile.CanUseGrapple))) canUse = true;
-        if (has(nameof(ModProjectile.UseGrapple))) use = true;
-        if (canUse || use)
-            ItemHooks.Once("ProjectileGrappleFire", () =>
-            {
-                On_Player.FireGrapple += FireGrapple;
-                On_Projectile.NewProjectile_IEntitySource_float_float_float_float_int_int_float_int_float_float_float_NewProjectileModifier += NewProjectile;
-            });
+        if (has(nameof(ModProjectile.UseGrapple)))
+        {
+            use = true;
+            ItemHooks.Once("ProjectileGrappleUse", () =>
+                On_Projectile.NewProjectile_IEntitySource_float_float_float_float_int_int_float_int_float_float_float_NewProjectileModifier += NewProjectile);
+        }
+        if (canUse || use) ItemHooks.Once("ProjectileGrappleFire", () => On_Player.FireGrapple += FireGrapple);
         if (has(nameof(ModProjectile.GrappleRange)) || has(nameof(ModProjectile.NumGrappleHooks)) || has(nameof(ModProjectile.GrappleRetreatSpeed)))
             ItemHooks.Once("ProjectileGrappleAI", () => On_Projectile.AI_007_GrapplingHooks += GrappleAI);
         if (has(nameof(ModProjectile.GrappleCanLatchOnTo)))
@@ -97,9 +97,10 @@ internal static unsafe class ProjectileGrappleHooks
 
     static void GrappleAI(On_Projectile.orig_AI_007_GrapplingHooks orig, Projectile self)
     {
-        bool range = ProjectileHooks.Wants(self, nameof(ModProjectile.GrappleRange));
-        bool count = ProjectileHooks.Wants(self, nameof(ModProjectile.NumGrappleHooks));
-        bool retreat = ProjectileHooks.Wants(self, nameof(ModProjectile.GrappleRetreatSpeed));
+        ProjectileMethod wanted = ProjectileHooks.Wanted(self, ProjectileMethod.GrappleRange | ProjectileMethod.NumGrappleHooks | ProjectileMethod.GrappleRetreatSpeed);
+        bool range = (wanted & ProjectileMethod.GrappleRange) != 0;
+        bool count = (wanted & ProjectileMethod.NumGrappleHooks) != 0;
+        bool retreat = (wanted & ProjectileMethod.GrappleRetreatSpeed) != 0;
         if (!range && !count && !retreat)
         {
             orig(self);
@@ -210,7 +211,7 @@ internal static unsafe class ProjectileGrappleHooks
 
     static bool CanLatch(On_Projectile.orig_AI_007_GrapplingHooks_CanTileBeLatchedOnTo orig, Projectile self, Tile theTile)
     {
-        if (!ProjectileHooks.Wants(self, nameof(ModProjectile.GrappleCanLatchOnTo))) return orig(self, theTile);
+        if (!ProjectileHooks.Wants(self, ProjectileMethod.GrappleCanLatchOnTo)) return orig(self, theTile);
         int width = TileWidth(), offset = theTile._tileOffset;
         if (width <= 0 || offset < 0) return orig(self, theTile);
         bool? result = ProjectileLoader.GrappleCanLatchOnTo(self, Main.player[self.owner], offset % width, offset / width);
@@ -230,11 +231,11 @@ internal static unsafe class ProjectileGrappleHooks
         int count = self.grapCount;
         if (count <= 0) return;
         Projectile first = Main.projectile[self.grappling[0]];
-        bool pull = ProjectileHooks.Wants(first, nameof(ModProjectile.GrapplePullSpeed)), target = false;
+        bool pull = ProjectileHooks.Wants(first, ProjectileMethod.GrapplePullSpeed), target = false;
         for (int i = 0; i < count && !target; i++)
         {
             Projectile hook = Main.projectile[self.grappling[i]];
-            target = hook.ai[0] == 2f && ProjectileHooks.Wants(hook, nameof(ModProjectile.GrappleTargetPoint));
+            target = hook.ai[0] == 2f && ProjectileHooks.Wants(hook, ProjectileMethod.GrappleTargetPoint);
         }
         if (!pull && !target) return;
 

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -18,9 +19,17 @@ internal static unsafe class ItemTooltipHooks
 
     internal static readonly string[] HookNames = { nameof(ModItem.ModifyTooltips), nameof(ModItem.PreDrawTooltip), nameof(ModItem.PostDrawTooltip), nameof(ModItem.PreDrawTooltipLine), nameof(ModItem.PostDrawTooltipLine) };
 
+    static readonly ConcurrentDictionary<Type, bool> ModHooks = new();
+
+    static readonly HashSet<string> Used = new(StringComparer.Ordinal);
+
+    static readonly Names Namer = new();
+
     internal static IntPtr PreparedItem;
 
     internal static List<TooltipLine>? Prepared;
+
+    internal static GameArray<GameString> PreparedTexts;
 
     internal static List<TooltipLine>? Last;
 
@@ -65,10 +74,37 @@ internal static unsafe class ItemTooltipHooks
             (IntPtr)(delegate* unmanaged<IntPtr, int*, int*, int*, float, int*, IntPtr, IntPtr, IntPtr, int*, uint*, int*, IntPtr, void>)&GetLinesInfo));
     }
 
-    internal static bool Wanted(Item item) =>
-        !item.IsNull && item.type > 0 && (globalWanted || ItemHooks.ModItemOf(item) is ModItem m && Array.Exists(HookNames, n => Has(m, n)) ||
-                                          prefixLines && PrefixLoader.GetPrefix(item.prefix) != null || damageLines && item.damage > 0 ||
-                                          setBonusLines && item.wornArmor);
+    internal static bool Wanted(Item item)
+    {
+        if (item.IsNull) return false;
+        int type = item.type;
+        if (type <= 0) return false;
+        if (ItemLoader.Get(type) is ModItem m && (globalWanted || TooltipHooks(m))) return true;
+        if (globalWanted && GlobalTooltipHooks(item)) return true;
+        return prefixLines && PrefixLoader.GetPrefix(item.prefix) != null || damageLines && item.damage > 0 || setBonusLines && item.wornArmor;
+    }
+
+    static bool TooltipHooks(ModItem m) => ModHooks.GetOrAdd(m.GetType(), static type =>
+    {
+        foreach (string name in HookNames)
+            if (ItemHooks.Overrides(type, typeof(ModItem), name)) return true;
+        return false;
+    });
+
+    static bool GlobalTooltipHooks(Item item)
+    {
+        GlobalItem?[]? slots = null;
+        foreach (string name in HookNames)
+        {
+            short[] overriding = ItemLoader.Globals.Overriding(name);
+            if (overriding.Length == 0) continue;
+            slots ??= ItemLoader.Globals.Slots(item);
+            if (slots == null) return false;
+            foreach (short index in overriding)
+                if (ItemHooks.Applied(slots, index) != null) return true;
+        }
+        return false;
+    }
 
     internal static bool Has(ModItem m, string name) => ItemHooks.Overrides(m.GetType(), typeof(ModItem), name);
 
@@ -81,6 +117,17 @@ internal static unsafe class ItemTooltipHooks
     {
         Hook? hook = linesInfo;
         if (hook == null) return;
+        if (Prepared is List<TooltipLine> prepared && PreparedItem == itemPointer && toolTipLine != IntPtr.Zero && preFixLine != IntPtr.Zero && badPreFixLine != IntPtr.Zero)
+        {
+            try
+            {
+                Last = prepared;
+                Write(prepared, new GameArray<GameString>(toolTipLine), new GameArray<bool>(preFixLine), new GameArray<bool>(badPreFixLine),
+                    yoyoLogo, researchLine, materialsLine, numLines, setBonusLine, setBonusColour, sharedLine, PreparedTexts);
+                return;
+            }
+            catch (Exception e) { ItemHooks.Report("ModifyTooltips", e); }
+        }
         var call = GameCall.Returning(RetKind.Int);
         call.Arg(itemPointer);
         call.Arg((IntPtr)yoyoLogo);
@@ -106,16 +153,11 @@ internal static unsafe class ItemTooltipHooks
             var bad = new GameArray<bool>(badPreFixLine);
             if (texts.IsNull || prefix.IsNull || bad.IsNull) return;
             int count = Math.Min(*numLines, Math.Min(texts.Length, Math.Min(prefix.Length, bad.Length)));
-            var roles = new Dictionary<int, string>
-            {
-                [*yoyoLogo] = "logo", [*researchLine] = "research", [*materialsLine] = "materials",
-                [*setBonusLine] = "setBonus", [*sharedLine] = "shared",
-            };
             List<TooltipLine> lines;
             if (Prepared != null && PreparedItem == itemPointer) lines = Prepared;
             else
             {
-                lines = Lines(item, texts, prefix, bad, first > 0, count, roles);
+                lines = Lines(item, texts, prefix, bad, first > 0, count, *yoyoLogo, *researchLine, *materialsLine, *setBonusLine, *sharedLine, *setBonusColour);
                 if (prefixLines && PrefixLoader.TooltipLines(item) is List<TooltipLine> extra)
                 {
                     int at = lines.FindLastIndex(l => l.IsModifier || l.IsModifierBad);
@@ -131,33 +173,58 @@ internal static unsafe class ItemTooltipHooks
                 lines.RemoveAll(l => !l.Visible);
             }
             Last = lines;
-            int capacity = Math.Min(texts.Length, Math.Min(prefix.Length, bad.Length));
-            int written = 0;
-            *yoyoLogo = *researchLine = *materialsLine = *setBonusLine = *sharedLine = -1;
-            foreach (TooltipLine line in lines)
-            {
-                if (line.Role == "name") continue;
-                if (written >= capacity) break;
-                int i = written++;
-                texts[i] = GameString.From(line.Text ?? "");
-                prefix[i] = line.IsModifier || line.IsModifierBad;
-                bad[i] = line.IsModifierBad;
-                if (line.OneDropLogo) *yoyoLogo = i;
-                switch (line.Role)
-                {
-                    case "research": *researchLine = i; break;
-                    case "materials": *materialsLine = i; break;
-                    case "setBonus":
-                        *setBonusLine = i;
-                        if (line.RoleColor is uint color) *setBonusColour = color;
-                        break;
-                    case "shared": *sharedLine = i; break;
-                }
-            }
-            *numLines = written;
+            Write(lines, texts, prefix, bad, yoyoLogo, researchLine, materialsLine, numLines, setBonusLine, setBonusColour, sharedLine, default);
         }
         catch (Exception e) { ItemHooks.Report("ModifyTooltips", e); }
     }
+
+    static void Write(List<TooltipLine> lines, GameArray<GameString> texts, GameArray<bool> prefix, GameArray<bool> bad, int* yoyoLogo, int* researchLine,
+                      int* materialsLine, int* numLines, int* setBonusLine, uint* setBonusColour, int* sharedLine, GameArray<GameString> reuse)
+    {
+        int capacity = Math.Min(texts.Length, Math.Min(prefix.Length, bad.Length));
+        int written = 0;
+        *yoyoLogo = *researchLine = *materialsLine = *setBonusLine = *sharedLine = -1;
+        foreach (TooltipLine line in lines)
+        {
+            if (line.Role == "name") continue;
+            if (written >= capacity) break;
+            int i = written++;
+            Put(texts, i, line.Text ?? "", reuse);
+            prefix[i] = line.IsModifier || line.IsModifierBad;
+            bad[i] = line.IsModifierBad;
+            if (line.OneDropLogo) *yoyoLogo = i;
+            switch (line.Role)
+            {
+                case "research": *researchLine = i; break;
+                case "materials": *materialsLine = i; break;
+                case "setBonus":
+                    *setBonusLine = i;
+                    if (line.RoleColor is uint color) *setBonusColour = color;
+                    break;
+                case "shared": *sharedLine = i; break;
+            }
+        }
+        *numLines = written;
+    }
+
+    static void Put(GameArray<GameString> texts, int i, string text, GameArray<GameString> reuse)
+    {
+        IntPtr current = texts[i].Pointer;
+        if (current != IntPtr.Zero && Same(current, text)) return;
+        if (!reuse.IsNull && reuse.Pointer != texts.Pointer && i < reuse.Length)
+        {
+            IntPtr kept = reuse[i].Pointer;
+            if (kept != IntPtr.Zero && Same(kept, text))
+            {
+                texts[i] = new GameString(kept);
+                return;
+            }
+        }
+        texts[i] = GameString.From(text);
+    }
+
+    static bool Same(IntPtr gameString, string text) =>
+        *(int*)(gameString + 0x10) == text.Length && new ReadOnlySpan<char>((char*)(gameString + 0x14), text.Length).SequenceEqual(text.AsSpan());
 
     static uint LimeGreen()
     {
@@ -183,25 +250,34 @@ internal static unsafe class ItemTooltipHooks
             try { m.ModifyTooltips(lines); }
             catch (Exception e) { ItemHooks.Report($"{m.FullName}.ModifyTooltips", e); }
         }
-        foreach (GlobalItem? g in ItemHooks.GlobalsOf(item))
+        short[] overriding = ItemLoader.Globals.Overriding(nameof(GlobalItem.ModifyTooltips));
+        if (overriding.Length == 0) return;
+        GlobalItem?[]? slots = ItemLoader.Globals.Slots(item);
+        foreach (short index in overriding)
         {
-            if (g == null) continue;
+            if (ItemHooks.Applied(slots, index) is not GlobalItem g) continue;
             try { g.ModifyTooltips(item, lines); }
             catch (Exception e) { ItemHooks.Report($"{g.FullName}.ModifyTooltips", e); }
         }
     }
 
+    static string? Role(int i, int yoyo, int research, int materials, int setBonus, int shared) =>
+        i == shared ? "shared" : i == setBonus ? "setBonus" : i == materials ? "materials" : i == research ? "research" : i == yoyo ? "logo" : null;
+
     static List<TooltipLine> Lines(Item item, GameArray<GameString> texts, GameArray<bool> prefix, GameArray<bool> bad, bool named, int count,
-                                   Dictionary<int, string> roles)
+                                   int yoyo, int research, int materials, int setBonus, int shared, uint setColor)
     {
-        var names = new Names(item);
+        Names names = Namer;
+        names.Reset(item);
         string name0 = named && count > 0 ? texts[0].ToString() ?? "" : item.HoverName ?? "";
         var lines = new List<TooltipLine>(count + 5) { new("Terraria", "ItemName", name0) { Role = named ? "" : "name" } };
-        var used = new HashSet<string> { "ItemName" };
+        HashSet<string> used = Used;
+        used.Clear();
+        used.Add("ItemName");
         for (int i = named ? 1 : 0; i < count; i++)
         {
             string text = texts[i].ToString() ?? "";
-            roles.TryGetValue(i, out string? role);
+            string? role = Role(i, yoyo, research, materials, setBonus, shared);
             bool modifier = prefix[i];
             string name = names.Of(i, text, role, modifier);
             if (!used.Add(name))
@@ -217,6 +293,7 @@ internal static unsafe class ItemTooltipHooks
                 OneDropLogo = role == "logo",
                 Role = role ?? "",
             };
+            if (role == "setBonus") line.RoleColor = setColor;
             lines.Add(line);
         }
         return lines;
@@ -224,13 +301,21 @@ internal static unsafe class ItemTooltipHooks
 
     sealed class Names
     {
-        readonly Item item;
+        static readonly int[] DamageTips = { 2, 3, 4, 53, 55 };
+        static readonly string?[] Tips = new string?[64], Inter = new string?[66], Misc = new string?[105];
+        static readonly Dictionary<string, string> Keys = new(StringComparer.Ordinal);
+        static IntPtr culture;
+
+        Item item;
         readonly List<string> tooltip = new();
         int nextTooltip;
 
-        public Names(Item item)
+        public void Reset(Item item)
         {
             this.item = item;
+            tooltip.Clear();
+            nextTooltip = 0;
+            Refresh();
             try
             {
                 var lines = item.ToolTip;
@@ -240,11 +325,40 @@ internal static unsafe class ItemTooltipHooks
             catch (Exception e) { ItemHooks.Report("ModifyTooltips (the item's tooltip)", e); }
         }
 
-        static string Tip(int i) => At(Lang.tip, i);
+        static void Refresh()
+        {
+            IntPtr now = IntPtr.Zero;
+            try { now = Language.ActiveCulture.Pointer; }
+            catch (Exception e) { ItemHooks.Report("ModifyTooltips (the active culture)", e); }
+            if (now == culture && now != IntPtr.Zero) return;
+            culture = now;
+            Array.Clear(Tips);
+            Array.Clear(Inter);
+            Array.Clear(Misc);
+            Keys.Clear();
+        }
+
+        static string Tip(int i) => Cached(Tips, Lang.tip, i);
+
+        static string Cached(string?[] cache, GameArray<LocalizedText> texts, int i)
+        {
+            if ((uint)i >= (uint)cache.Length) return At(texts, i);
+            string? value = cache[i];
+            if (value != null) return value;
+            value = At(texts, i);
+            if (value.Length > 0 && culture != IntPtr.Zero) cache[i] = value;
+            return value;
+        }
 
         static string At(GameArray<LocalizedText> texts, int i) => texts.IsNull || i < 0 || i >= texts.Length || texts[i].IsNull ? "" : texts[i].Value ?? "";
 
-        static string Key(string key) => Language.GetTextValue(key) ?? "";
+        static string Key(string key)
+        {
+            if (Keys.TryGetValue(key, out string? value)) return value;
+            value = Language.GetTextValue(key) ?? "";
+            if (value.Length > 0 && culture != IntPtr.Zero) Keys[key] = value;
+            return value;
+        }
 
         static bool Is(string text, string expected) => expected.Length > 0 && text == expected;
 
@@ -254,10 +368,9 @@ internal static unsafe class ItemTooltipHooks
         {
             int at = template.IndexOf("{0}", StringComparison.Ordinal);
             if (at < 0) return template.Length > 0 && text == template;
-            string head = template[..at], tail = template[(at + 3)..];
-            int next = tail.IndexOf('{');
-            if (next >= 0) tail = "";
-            return text.Length >= head.Length + tail.Length && text.StartsWith(head, StringComparison.Ordinal) && text.EndsWith(tail, StringComparison.Ordinal);
+            ReadOnlySpan<char> head = template.AsSpan(0, at), tail = template.AsSpan(at + 3);
+            if (tail.IndexOf('{') >= 0) tail = ReadOnlySpan<char>.Empty;
+            return text.Length >= head.Length + tail.Length && text.AsSpan().StartsWith(head, StringComparison.Ordinal) && text.AsSpan().EndsWith(tail, StringComparison.Ordinal);
         }
 
         public string Of(int index, string text, string? role, bool modifier)
@@ -290,9 +403,9 @@ internal static unsafe class ItemTooltipHooks
             if (Is(text, Tip(35))) return "Consumable";
             if (Is(text, Tip(36))) return "Material";
             if (Is(text, Tip(59))) return "Tooltip0";
-            if (Is(text, At(Lang.inter, 65))) return "Quest";
-            if (Is(text, At(Lang.misc, 104))) return "EtherianManaWarning";
-            if (Is(text, At(Lang.misc, 40))) return "WellFedExpert";
+            if (Is(text, Cached(Inter, Lang.inter, 65))) return "Quest";
+            if (Is(text, Cached(Misc, Lang.misc, 104))) return "EtherianManaWarning";
+            if (Is(text, Cached(Misc, Lang.misc, 40))) return "WellFedExpert";
             if (Is(text, Key("GameUI.Expert"))) return "Expert";
             if (Is(text, Key("GameUI.Master"))) return "Master";
             if (Is(text, Key("GameUI.BaitRequired"))) return "NeedsBait";
@@ -305,7 +418,7 @@ internal static unsafe class ItemTooltipHooks
             if (Is(text, Key("CommonItemTooltip.MechSummonDuringEverything"))) return "MechSummonDuringEverything";
             if (Is(text, Key("CommonItemTooltip.MechdusaSummonNotDuringEverything"))) return "MechdusaSummonNotDuringEverything";
             if (Ends(text, Tip(5)) && item.damage > 0) return "CritChance";
-            foreach (int t in new[] { 2, 3, 4, 53, 55 }) if (Ends(text, Tip(t)) && item.damage > 0) return "Damage";
+            foreach (int t in DamageTips) if (Ends(text, Tip(t)) && item.damage > 0) return "Damage";
             if (Ends(text, Tip(25))) return "Defense";
             if (Ends(text, Tip(26))) return "PickPower";
             if (Ends(text, Tip(27))) return "AxePower";

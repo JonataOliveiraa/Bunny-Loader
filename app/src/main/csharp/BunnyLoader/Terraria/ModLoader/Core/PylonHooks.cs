@@ -32,7 +32,11 @@ internal static class PylonHooks
 
     static List<(int X, int Y, int Type)>? stripped;
 
-    static int requests, npcChecks;
+    static List<(int X, int Y, int Type)>? spareMapPylons = new();
+
+    static bool drawingMap;
+
+    static int requests, npcChecks, mapNear = -1;
 
     internal static IReadOnlyList<ModPylon> Pylons => pylons;
 
@@ -115,19 +119,16 @@ internal static class PylonHooks
         return found;
     }
 
-    static List<(int X, int Y, int Type)> Strip(GameList list)
+    static void Strip(GameList list, List<(int X, int Y, int Type)>? removed)
     {
-        var removed = new List<(int, int, int)>();
         for (int k = list.Count - 1; k >= 0; k--)
         {
             TeleportPylonInfo info = list.Get<TeleportPylonInfo>(k);
             if ((int)info.TypeOfPylon < FirstPylonType)
                 continue;
-            removed.Add((info.PositionInTiles.X, info.PositionInTiles.Y, (int)info.TypeOfPylon));
+            removed?.Add((info.PositionInTiles.X, info.PositionInTiles.Y, (int)info.TypeOfPylon));
             list.RemoveAt(k);
         }
-
-        return removed;
     }
 
     static void Send((int X, int Y, int Type) entry, NetTeleportPylonModule.SubPacketType kind) =>
@@ -135,7 +136,7 @@ internal static class PylonHooks
 
     static void UpdateList(On_TeleportPylonsSystem.orig_UpdatePylonsListAndBroadcastChanges orig, TeleportPylonsSystem system)
     {
-        Strip(List(system));
+        Strip(List(system), null);
         orig(system);
         try
         {
@@ -158,6 +159,17 @@ internal static class PylonHooks
     }
 
     static bool NearAPylon(On_TeleportPylonsSystem.orig_IsPlayerNearAPylon orig, Player player)
+    {
+        bool local = drawingMap && !player.IsNull && player.whoAmI == Main.myPlayer;
+        if (local && mapNear >= 0)
+            return mapNear == 1;
+        bool near = Near(orig, player);
+        if (local)
+            mapNear = near ? 1 : 0;
+        return near;
+    }
+
+    static bool Near(On_TeleportPylonsSystem.orig_IsPlayerNearAPylon orig, Player player)
     {
         if (orig(player))
             return true;
@@ -324,7 +336,7 @@ internal static class PylonHooks
         {
             requests--;
             if (restored != null)
-                Strip(List(system));
+                Strip(List(system), null);
         }
     }
 
@@ -395,9 +407,27 @@ internal static class PylonHooks
 
     static void DrawMap(On_TeleportPylonsMapLayer.orig_Draw orig, TeleportPylonsMapLayer layer, ref MapOverlayDrawContext context, ref GameString text)
     {
+        List<(int X, int Y, int Type)> mine = spareMapPylons ?? new List<(int X, int Y, int Type)>();
+        spareMapPylons = null;
+        try
+        {
+            DrawMapPylons(orig, layer, ref context, ref text, mine);
+        }
+        finally
+        {
+            mine.Clear();
+            spareMapPylons = mine;
+        }
+    }
+
+    static void DrawMapPylons(On_TeleportPylonsMapLayer.orig_Draw orig, TeleportPylonsMapLayer layer, ref MapOverlayDrawContext context, ref GameString text, List<(int X, int Y, int Type)> mine)
+    {
         GameList list = List(Main.PylonSystem);
-        var mine = Strip(list);
+        Strip(list, mine);
         stripped = mine.Count > 0 ? mine : null;
+        bool outer = drawingMap;
+        drawingMap = mine.Count > 0;
+        mapNear = -1;
         try
         {
             if (mine.Count > 0)
@@ -416,8 +446,20 @@ internal static class PylonHooks
         }
 
         if (mine.Count == 0)
+        {
+            drawingMap = outer;
             return;
-        bool near = TeleportPylonsSystem.IsPlayerNearAPylon(Main.LocalPlayer);
+        }
+        bool near;
+        try
+        {
+            near = TeleportPylonsSystem.IsPlayerNearAPylon(Main.LocalPlayer);
+        }
+        finally
+        {
+            drawingMap = outer;
+            mapNear = -1;
+        }
         Color color = near ? new Color(255, 255, 255, 255) : new Color(64, 64, 64, 127);
         string mouseOver = text;
         string before = mouseOver;

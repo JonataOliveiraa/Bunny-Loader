@@ -10,17 +10,24 @@
 #include <array>
 #include <atomic>
 #include <mutex>
+#include <vector>
 
 namespace bl::runtime {
 namespace {
+constexpr uint32_t kRandomBit = 1u << 8;
+constexpr uint32_t kLightBit = 1u << 10;
+
 std::array<std::atomic<uint32_t>, 65536> g_flags{};
 std::atomic<uint32_t> g_globals{0};
 std::atomic<uint32_t> g_typeFlags{0};
-std::atomic<int32_t> g_lowType{65536};
-std::atomic<int32_t> g_highType{-1};
+std::array<std::atomic<int32_t>, 32> g_lowPlusOne{};
+std::array<std::atomic<int32_t>, 32> g_highPlusOne{};
 std::atomic<TileEventCallback> g_callback{nullptr};
+std::atomic<TileRandomBatchCallback> g_randomBatch{nullptr};
 std::mutex g_gate;
 uint32_t g_installed = 0;
+thread_local std::vector<int32_t> t_randomQueue;
+thread_local int t_worldDepth = 0;
 
 uint32_t flagsOf(int type) {
     return type >= 0 && type < 65536
@@ -53,8 +60,44 @@ RandomFn g_over = nullptr, g_under = nullptr;
 void random(int32_t x, int32_t y, bool spawn, int32_t distance, const MethodInfo* method, RandomFn original,
             int underground) {
     original(x, y, spawn, distance, method);
-    int type = tileTypeAt(x, y);
-    if (flagsOf(type) & (1u << 8)) invoke(8, x, y, type, &underground);
+    const int type = tileTypeAt(x, y);
+    if (!(flagsOf(type) & kRandomBit)) return;
+    if (t_worldDepth > 0 && g_randomBatch.load(std::memory_order_acquire) && !worldGrowsGrassUnderground()) {
+        t_randomQueue.insert(t_randomQueue.end(), {x, y, type, underground});
+        return;
+    }
+    invoke(8, x, y, type, &underground);
+}
+
+using UpdateWorldFn = void (*)(const MethodInfo*);
+UpdateWorldFn g_updateWorld = nullptr;
+
+thread_local void* t_worldFrame = nullptr;
+
+void flushRandom() {
+    auto& queue = t_randomQueue;
+    if (queue.empty()) return;
+    std::vector<int32_t> batch;
+    batch.swap(queue);
+    if (auto callback = g_randomBatch.load(std::memory_order_acquire))
+        callback(batch.data(), static_cast<int32_t>(batch.size() / 4));
+    if (queue.empty()) {
+        batch.clear();
+        queue.swap(batch);
+    }
+}
+
+void updateWorld(const MethodInfo* method) {
+    void* frame = __builtin_frame_address(0);
+    if (t_worldDepth > 0 && frame >= t_worldFrame) {
+        t_worldDepth = 0;
+        flushRandom();
+    }
+    if (t_worldDepth == 0) t_worldFrame = frame;
+    ++t_worldDepth;
+    g_updateWorld(method);
+    --t_worldDepth;
+    if (t_worldDepth == 0) flushRandom();
 }
 
 void over(int32_t x, int32_t y, bool spawn, int32_t distance, const MethodInfo* method) {
@@ -150,6 +193,16 @@ bool attach(const char* signature, void* replacement, void** original) {
 }
 }
 
+bool setTileRandomBatch(TileRandomBatchCallback callback) {
+    if (!callback) return false;
+    std::lock_guard<std::mutex> lock(g_gate);
+    if (!g_updateWorld && !attach("void UpdateWorld()", reinterpret_cast<void*>(updateWorld),
+                                  reinterpret_cast<void**>(&g_updateWorld)))
+        return false;
+    g_randomBatch.store(callback, std::memory_order_release);
+    return true;
+}
+
 bool installTileEvents(int32_t type, uint32_t flags, TileEventCallback callback) {
     if (!callback || type < -1 || type >= 65536) return false;
     std::lock_guard<std::mutex> lock(g_gate);
@@ -157,8 +210,13 @@ bool installTileEvents(int32_t type, uint32_t flags, TileEventCallback callback)
     if (type < 0)
         g_globals.fetch_or(flags, std::memory_order_release);
     else if (flags) {
-        if (type < g_lowType.load(std::memory_order_relaxed)) g_lowType.store(type, std::memory_order_relaxed);
-        if (type > g_highType.load(std::memory_order_relaxed)) g_highType.store(type, std::memory_order_relaxed);
+        for (uint32_t bits = flags; bits; bits &= bits - 1) {
+            const int bit = __builtin_ctz(bits);
+            const int32_t low = g_lowPlusOne[bit].load(std::memory_order_relaxed);
+            if (low == 0 || type + 1 < low) g_lowPlusOne[bit].store(type + 1, std::memory_order_relaxed);
+            if (type + 1 > g_highPlusOne[bit].load(std::memory_order_relaxed))
+                g_highPlusOne[bit].store(type + 1, std::memory_order_relaxed);
+        }
         g_flags[type].fetch_or(flags, std::memory_order_release);
         g_typeFlags.fetch_or(flags, std::memory_order_release);
     }
@@ -213,12 +271,23 @@ bool installTileEvents(int32_t type, uint32_t flags, TileEventCallback callback)
 int32_t scanTileEvents(int32_t x, int32_t y, int32_t width, int32_t height, uint32_t flags, int32_t* cells,
                        int32_t capacity) {
     if (!cells || capacity <= 0 || width <= 0 || height <= 0) return 0;
-    const bool every = (g_globals.load(std::memory_order_acquire) & flags) != 0;
-    if (!every && !(g_typeFlags.load(std::memory_order_acquire) & flags)) return 0;
+    const uint32_t globals = g_globals.load(std::memory_order_acquire) & flags;
+    bool every = (globals & ~kLightBit) != 0;
+    TileTable lighted;
+    const bool lit = !every && (globals & kLightBit) && tileLightedTable(&lighted);
+    if ((globals & kLightBit) && !lit) every = true;
+    const bool own = (g_typeFlags.load(std::memory_order_acquire) & flags) != 0;
+    if (!every && !lit && !own) return 0;
     TileArrays arrays;
     if (!tileArrays(&arrays)) return 0;
-    const int low = g_lowType.load(std::memory_order_relaxed);
-    const int high = g_highType.load(std::memory_order_relaxed);
+    int low = 65536, high = -1;
+    for (uint32_t bits = own ? flags : 0; bits; bits &= bits - 1) {
+        const int bit = __builtin_ctz(bits);
+        const int32_t first = g_lowPlusOne[bit].load(std::memory_order_relaxed);
+        if (first == 0) continue;
+        low = std::min(low, first - 1);
+        high = std::max(high, g_highPlusOne[bit].load(std::memory_order_relaxed) - 1);
+    }
     const int left = std::max(x, 0);
     const int right = static_cast<int>(std::min<int64_t>(arrays.width, static_cast<int64_t>(x) + width));
     const int bottom = static_cast<int>(std::min<int64_t>(arrays.height, static_cast<int64_t>(y) + height));
@@ -227,10 +296,13 @@ int32_t scanTileEvents(int32_t x, int32_t y, int32_t width, int32_t height, uint
         const uint32_t* row = arrays.lookup + static_cast<int64_t>(arrays.width) * j;
         for (int i = left; i < right; ++i) {
             const uint32_t definition = row[i];
-            if (!(arrays.sHeader[definition] & kTileActiveBit)) continue;
             const int type = arrays.type[definition];
-            if (!every && (type < low || type > high || !(g_flags[type].load(std::memory_order_relaxed) & flags)))
-                continue;
+            if (!every) {
+                const bool flagged =
+                    type >= low && type <= high && (g_flags[type].load(std::memory_order_relaxed) & flags);
+                if (!flagged && !(lit && type < lighted.count && lighted.data[type])) continue;
+            }
+            if (!(arrays.sHeader[definition] & kTileActiveBit)) continue;
             if (count == capacity) return -count;
             cells[count * 3] = i;
             cells[count * 3 + 1] = j;

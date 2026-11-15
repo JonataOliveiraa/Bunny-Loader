@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -158,7 +159,24 @@ public class UIElement : IComparable
     public virtual void Update(GameTime gameTime)
     {
         OnUpdate?.Invoke(this);
-        foreach (UIElement element in Elements.ToArray()) element.Update(gameTime);
+        int count = Elements.Count;
+        if (count == 0) return;
+        if (count == 1)
+        {
+            Elements[0].Update(gameTime);
+            return;
+        }
+        UIElement[] snapshot = ArrayPool<UIElement>.Shared.Rent(count);
+        Elements.CopyTo(snapshot);
+        try
+        {
+            for (int i = 0; i < count; i++) snapshot[i].Update(gameTime);
+        }
+        finally
+        {
+            Array.Clear(snapshot, 0, count);
+            ArrayPool<UIElement>.Shared.Return(snapshot);
+        }
     }
 
     public Rectangle GetClippingRectangle(SpriteBatch spriteBatch)

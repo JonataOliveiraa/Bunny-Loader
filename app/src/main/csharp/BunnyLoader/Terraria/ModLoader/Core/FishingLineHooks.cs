@@ -23,7 +23,7 @@ internal static class FishingLineHooks
     static void DrawFishingLine(On_Main.orig_DrawProj_FishingLine orig, Projectile proj, Player theOwner, ref float polePosX, ref float polePosY, Vector2 mountedCenter)
     {
         Item held = theOwner.inventory[theOwner.selectedItem];
-        bool projectile = ProjectileHooks.Wants(proj, nameof(ModProjectile.ModifyFishingLine));
+        bool projectile = ProjectileHooks.Wants(proj, ProjectileMethod.ModifyFishingLine);
         if (!projectile && !ItemWants(held))
         {
             orig(proj, theOwner, ref polePosX, ref polePosY, mountedCenter);

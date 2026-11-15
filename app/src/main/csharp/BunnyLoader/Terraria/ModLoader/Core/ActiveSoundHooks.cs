@@ -11,6 +11,8 @@ namespace Terraria.ModLoader.Core;
 internal static unsafe class ActiveSoundHooks
 {
     static readonly Dictionary<SlotId, SoundUpdateCallback> Callbacks = new();
+    static readonly List<KeyValuePair<SlotId, SoundUpdateCallback>> Pending = new();
+    static bool updating;
     static readonly Func<bool> KeepLooping = static () => true;
     static MethodRef loopMethod;
     static readonly int[] LoopLayout = { -1, 8, -1, 8, 4 };
@@ -55,16 +57,37 @@ internal static unsafe class ActiveSoundHooks
 
     static void Update(On_SoundEngine.orig_Update orig)
     {
-        foreach (var entry in new List<KeyValuePair<SlotId, SoundUpdateCallback>>(Callbacks))
+        if (Callbacks.Count > 0)
         {
-            if (!SoundEngine.TryGetActiveSound(entry.Key, out ActiveSound sound)) { Callbacks.Remove(entry.Key); continue; }
+            bool nested = updating;
+            List<KeyValuePair<SlotId, SoundUpdateCallback>> entries = nested ? new List<KeyValuePair<SlotId, SoundUpdateCallback>>(Callbacks) : Pending;
+            if (!nested)
+            {
+                Pending.AddRange(Callbacks);
+                updating = true;
+            }
             try
             {
-                if (entry.Value(sound)) continue;
+                foreach (var entry in entries)
+                {
+                    if (!SoundEngine.TryGetActiveSound(entry.Key, out ActiveSound sound)) { Callbacks.Remove(entry.Key); continue; }
+                    try
+                    {
+                        if (entry.Value(sound)) continue;
+                    }
+                    catch (Exception e) { ItemHooks.Report("SoundUpdateCallback", e); }
+                    sound.Stop();
+                    Callbacks.Remove(entry.Key);
+                }
             }
-            catch (Exception e) { ItemHooks.Report("SoundUpdateCallback", e); }
-            sound.Stop();
-            Callbacks.Remove(entry.Key);
+            finally
+            {
+                if (!nested)
+                {
+                    Pending.Clear();
+                    updating = false;
+                }
+            }
         }
         orig();
     }

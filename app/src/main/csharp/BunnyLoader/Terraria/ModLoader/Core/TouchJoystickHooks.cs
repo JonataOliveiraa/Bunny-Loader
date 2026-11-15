@@ -1,11 +1,13 @@
 using System;
+using System.Runtime.InteropServices;
+using BunnyLoader.Hooks;
 using BunnyLoader.Interop;
 using Microsoft.Xna.Framework;
 using ContolType = VirtualControlsHardwareConfigurationMapping_Layout.ContolType;
 
 namespace Terraria.ModLoader.Core;
 
-internal static class TouchJoystickHooks
+internal static unsafe class TouchJoystickHooks
 {
     sealed class Hold
     {
@@ -20,12 +22,21 @@ internal static class TouchJoystickHooks
 
     static Hold? hold;
 
+    static readonly int* Registered = (int*)NativeMemory.AllocZeroed(sizeof(int));
+
+    static GateSpec WhenRegistered() => new() { Arg = HookGates.AbsoluteArg, PointerOffset = -1, FieldOffset = 0, FieldSize = 4, Address = (IntPtr)Registered };
+
     internal static void Install()
     {
+        HookGates.Define<On_GUIVirtualInputController.hook_UpdateCursor>(WhenRegistered);
+        HookGates.Want<On_GUIVirtualInputController.hook_UpdateCursor>();
         On_GUIVirtualInputController.UpdateCursor += UpdateCursor;
+        HookGates.Define<On_GUIVirtualInputController.hook_DrawAxisControl>(WhenRegistered);
+        HookGates.Want<On_GUIVirtualInputController.hook_DrawAxisControl>();
         On_GUIVirtualInputController.DrawAxisControl += DrawAxisControl;
-        On_GUIVirtualInputController.Update += Update;
     }
+
+    internal static void Enable() => *Registered = 1;
 
     static Axis_Layout Layout(VirtualControlsHardwareConfigurationMapping_Layout slot)
     {
@@ -107,18 +118,21 @@ internal static class TouchJoystickHooks
         catch (Exception e) { ItemHooks.Report($"{joystick.FullName}.OnRelease", e); }
     }
 
-    static void Update(On_GUIVirtualInputController.orig_Update orig, GUIVirtualInputController self, float elapsedTime)
+    internal static void AfterUpdate()
     {
-        orig(self, elapsedTime);
         Hold? current = hold;
         if (current == null) return;
-        if (Main.gameMenu || !current.Cursor.Down || current.Cursor.Dead)
+        try
         {
-            Release(current);
-            return;
+            if (Main.gameMenu || !current.Cursor.Down || current.Cursor.Dead)
+            {
+                Release(current);
+                return;
+            }
+            Read(current, current.Cursor, true);
+            current.Joystick.latch = true;
         }
-        Read(current, current.Cursor, true);
-        current.Joystick.latch = true;
+        catch (Exception e) { ItemHooks.Report("TouchJoystick: update", e); }
     }
 
     static void DrawAxisControl(On_GUIVirtualInputController.orig_DrawAxisControl orig, GUIVirtualInputController self, ContolType action, VirtualControlsHardwareConfigurationMapping_Layout slotConfig)

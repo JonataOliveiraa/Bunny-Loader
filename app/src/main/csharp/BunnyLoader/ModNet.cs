@@ -11,7 +11,25 @@ internal static unsafe class ModNet
 {
     public const byte KindPacket = 1;
 
-    public static int NetMode => Host.Native()->NetMode();
+    static int netModeSource;
+
+    public static int NetMode => netModeSource > 0 ? Terraria.Main.netMode : NativeNetMode();
+
+    static int NativeNetMode()
+    {
+        int mode = Host.Native()->NetMode();
+        if (netModeSource < 0 || Host.Native()->IsCoreReady() == 0) return mode;
+        try
+        {
+            if (Terraria.Main.netMode == mode) netModeSource = 1;
+        }
+        catch (Exception e)
+        {
+            netModeSource = -1;
+            Log.Warn($"net: Main.netMode cannot be read directly ({e.Message}); reading it through the native API");
+        }
+        return mode;
+    }
 
     public static void Install() => Host.Native()->NetInstall(&Receive);
 

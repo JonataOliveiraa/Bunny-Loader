@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using BunnyLoader.Hooks;
 using BunnyLoader.Interop;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -13,11 +14,7 @@ namespace Terraria.ModLoader.Core;
 
 internal static unsafe partial class TileHooks
 {
-    static int[] drawCells = new int[12288], nearbyCells = new int[12288], lightCells = new int[12288];
-
-    static Vector3[] lightValues = new Vector3[4096];
-
-    static int lightCount;
+    static int[] drawCells = new int[12288], nearbyCells = new int[12288];
 
     static readonly List<Point> special = new();
 
@@ -48,60 +45,22 @@ internal static unsafe partial class TileHooks
     {
         if ((flags & ((1u << 13) | (1u << 23))) != 0)
         {
-            Once("Draw", () => On_TileDrawing.PostDrawTiles += Draw);
+            Once("Draw", () =>
+            {
+                HookGates.Define<On_TileDrawing.hook_PostDrawTiles>(() => HookGates.Pointer(1, HookGates.Invert));
+                HookGates.Want<On_TileDrawing.hook_PostDrawTiles>();
+                On_TileDrawing.PostDrawTiles += Draw;
+            });
             Once("Special", () => On_TileDrawing.AddSpecialLegacyPoint_Point += AddSpecial);
             Once("SpecialXY", () => On_TileDrawing.AddSpecialLegacyPoint_int_int += AddSpecialXY);
             Once("SpecialPoint", () => On_TileDrawing.AddSpecialPoint += AddSpecialPoint);
         }
 
         if ((flags & (1u << 10)) != 0)
-        {
-            Once("Light", () => On_Lighting.LightTiles += Light);
-            Once("ApplyLight", () => On_Main.DoUpdateInWorld += ApplyLight);
-        }
+            TileLightHooks.WantTiles();
 
         if ((flags & (1u << 9)) != 0)
             Once("Nearby", () => On_SceneMetrics.Scan += Nearby);
-    }
-
-    static void Light(On_Lighting.orig_LightTiles orig, int firstX, int lastX, int firstY, int lastY)
-    {
-        orig(firstX, lastX, firstY, lastY);
-        lightCount = Scan(ref lightCells, firstX - 28, firstY - 28, lastX - firstX + 57, lastY - firstY + 57, 1u << 10);
-        if (lightValues.Length < lightCount)
-            Array.Resize(ref lightValues, lightCells.Length / 3);
-        for (int k = 0; k < lightCount; k++)
-        {
-            int i = lightCells[k * 3], j = lightCells[k * 3 + 1], type = lightCells[k * 3 + 2];
-            float r = 0, g = 0, b = 0;
-            if (Main.tileLighted[type])
-                TileLoader.GetTile(type)?.ModifyLight(i, j, ref r, ref g, ref b);
-            foreach (GlobalTile global in TileLoader.Hooks.ModifyLight)
-                global.ModifyLight(i, j, type, ref r, ref g, ref b);
-            lightValues[k] = new Vector3(r, g, b);
-        }
-    }
-
-    static void ApplyLight(On_Main.orig_DoUpdateInWorld orig, Main self)
-    {
-        orig(self);
-        if (Main.gameMenu)
-        {
-            lightCount = 0;
-            return;
-        }
-
-        for (int k = 0; k < lightCount; k++)
-        {
-            Vector3 color = lightValues[k];
-            if (color.X == 0 && color.Y == 0 && color.Z == 0)
-                continue;
-            int i = lightCells[k * 3], j = lightCells[k * 3 + 1];
-            Tile tile = Main.tile[i, j];
-            if (!tile.active() || tile.type != lightCells[k * 3 + 2])
-                continue;
-            Lighting.AddLight(i, j, color.X, color.Y, color.Z);
-        }
     }
 
     static void Nearby(On_SceneMetrics.orig_Scan orig, SceneMetrics self, SceneMetricsScanSettings settings)
@@ -193,6 +152,7 @@ internal static unsafe partial class TileHooks
         vines.Clear();
         if (drawHandle == null)
             drawHandle = new GameHandle(TileDrawInfo.New().Pointer);
+        bool globalHidden = TileLoader.Hooks.PreDraw.Length > 0 || TileLoader.Hooks.DrawEffects.Length > 0;
         try
         {
             for (int k = 0; k < count; k++)
@@ -201,11 +161,9 @@ internal static unsafe partial class TileHooks
                 try
                 {
                     Tile cell = Main.tile[i, j];
-                    if (!cell.active() || cell.type != type)
-                        continue;
                     ModTile? mod = TileLoader.GetTile(type);
                     EmitParticles(self, mod, cell, i, j, type);
-                    bool draw = true, hidden = TileLoader.Hooks.PreDraw.Length > 0 || TileLoader.Hooks.DrawEffects.Length > 0 || (mod != null && TileLoader.Has(mod, 13));
+                    bool draw = true, hidden = globalHidden || (mod != null && TileLoader.Has(mod, 13));
                     if (!hidden)
                     {
                         mod?.PostDraw(i, j, batch);
@@ -219,7 +177,7 @@ internal static unsafe partial class TileHooks
                     if (draw && mod != null)
                         draw = mod.PreDraw(i, j, batch);
                     var info = new TileDrawInfo(drawHandle.Target);
-                    short fx = cell.frameX, fy = cell.frameY;
+                    short fx = TileData.RawFrameX(cell._tileOffset), fy = TileData.RawFrameY(cell._tileOffset);
                     TileLoader.DrawData d = new()
                     {
                         FrameX = fx,

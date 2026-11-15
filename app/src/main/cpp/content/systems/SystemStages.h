@@ -14,6 +14,7 @@ enum SystemStage : int32_t {
     kStageTransform = 7,
     kStageClockAdvance = 8,
     kSystemStageCount = 9,
+    kStageClockRateSlot = 100,
 };
 
 using SystemStageFn = void (*)(int32_t stage, double* value);

@@ -128,6 +128,7 @@ public static class MenuLoader
         ModMenu previous = CurrentMenu;
         current = next;
         if (next == previous) return;
+        BackgroundHooks.WakeSurface();
         try { previous.OnDeselected(); }
         catch (Exception e) { ItemHooks.Report($"{previous.FullName}.OnDeselected", e); }
         try { next.OnSelected(); }

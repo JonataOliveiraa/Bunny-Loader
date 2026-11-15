@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using BunnyLoader;
+using BunnyLoader.Hooks;
 using BunnyLoader.Interop;
 using Microsoft.Xna.Framework;
 using Terraria.Audio;
@@ -18,7 +19,11 @@ internal static unsafe class TouchButtonOptions
     const int NoneState = (int)GUITransactionButton.InputState.None;
     const int OverState = (int)GUITransactionButton.InputState.Over;
 
+    const string TransactionSignature =
+        "GUITransactionButton.InputState Draw(TransactionButton_Layout layout, Item item, string label, bool disabled, ref float scale, bool forcedPressed, bool hasControllerFocus, bool forceOver, bool disablePressedState)";
+
     static Hook? transactionDraw;
+    static readonly int* TransactionWanted = (int*)NativeMemory.AllocZeroed(sizeof(int));
     static int[]? vanilla;
     static int lines = 1;
     static int page;
@@ -30,6 +35,9 @@ internal static unsafe class TouchButtonOptions
 
     static bool capturing, clicked;
     static int applyDelay, swallowClick;
+
+    static ModTouchButton[]? plainSource;
+    static readonly List<int> plainActions = new(), built = new(), axisWanted = new();
 
     internal static int ModsAction => TouchButtonLoader.FirstAction + TouchButtonLoader.Count;
 
@@ -43,13 +51,18 @@ internal static unsafe class TouchButtonOptions
 
     static List<int> PlainActions()
     {
-        var list = new List<int>();
-        foreach (ModTouchButton button in TouchButtonLoader.Buttons)
-            if (button is not ModTouchJoystick) list.Add(TouchButtonLoader.ActionOf(button));
-        return list;
+        ModTouchButton[] all = TouchButtonLoader.Snapshot;
+        if (ReferenceEquals(plainSource, all)) return plainActions;
+        plainActions.Clear();
+        foreach (ModTouchButton button in all)
+            if (button is not ModTouchJoystick) plainActions.Add(TouchButtonLoader.ActionOf(button));
+        plainSource = all;
+        return plainActions;
     }
 
     static int Pages => (PlainActions().Count + PerPage - 1) / PerPage;
+
+    static void SyncTransaction() => *TransactionWanted = capturing || swallowClick > 0 ? 1 : 0;
 
     internal static void Install()
     {
@@ -59,7 +72,10 @@ internal static unsafe class TouchButtonOptions
             if (openSetting != IntPtr.Zero && !new ActionSetting(openSetting).displayOptions)
                 CloseList();
             if (swallowClick > 0)
+            {
                 swallowClick--;
+                SyncTransaction();
+            }
             if (applyDelay > 0 && --applyDelay == 0)
             {
                 try { Apply(); }
@@ -67,9 +83,13 @@ internal static unsafe class TouchButtonOptions
             }
             orig(self);
         };
-        transactionDraw = ItemHooks.Raw("", "GUITransactionButton",
-            "GUITransactionButton.InputState Draw(TransactionButton_Layout layout, Item item, string label, bool disabled, ref float scale, bool forcedPressed, bool hasControllerFocus, bool forceOver, bool disablePressedState)",
-            (IntPtr)(delegate* unmanaged<IntPtr, IntPtr, IntPtr, byte, float*, byte, byte, byte, byte, IntPtr, int>)&TransactionDraw);
+        var gate = new GateSpec { Arg = HookGates.AbsoluteArg, PointerOffset = -1, FieldOffset = 0, FieldSize = 4, Address = (IntPtr)TransactionWanted };
+        try
+        {
+            transactionDraw = Hook.InstallGated(new GameClass("", "GUITransactionButton"), TransactionSignature,
+                (IntPtr)(delegate* unmanaged<IntPtr, IntPtr, IntPtr, byte, float*, byte, byte, byte, byte, IntPtr, int>)&TransactionDraw, gate, out _);
+        }
+        catch (Exception e) { Log.Error($"item hooks: GUITransactionButton.{TransactionSignature} is not hooked: {e.Message}"); }
     }
 
     internal static string Label(int action) =>
@@ -95,10 +115,11 @@ internal static unsafe class TouchButtonOptions
     static void ApplyAxis(VirtualInputControllerControlConfiguration_Layout config)
     {
         if (config.AxisControls.IsNull) return;
-        var wanted = new List<int>();
+        List<int> wanted = axisWanted;
+        wanted.Clear();
         foreach (ContolType action in config.AxisControls)
             if ((int)action < TouchButtonLoader.FirstAction) wanted.Add((int)action);
-        foreach (ModTouchButton button in TouchButtonLoader.Buttons)
+        foreach (ModTouchButton button in TouchButtonLoader.Snapshot)
             if (button is ModTouchJoystick) wanted.Add(TouchButtonLoader.ActionOf(button));
         if (!Same(config.AxisControls, wanted))
         {
@@ -113,7 +134,8 @@ internal static unsafe class TouchButtonOptions
 
     static List<int> Build()
     {
-        var list = new List<int>();
+        List<int> list = built;
+        list.Clear();
         List<int> plain = PlainActions();
         int count = plain.Count;
         if (page <= 0 || count == 0)
@@ -211,11 +233,17 @@ internal static unsafe class TouchButtonOptions
             return;
         }
         capturing = true;
+        SyncTransaction();
         clicked = false;
         try { orig(self, gridLayout, index, position, scale); }
-        finally { capturing = false; }
+        finally
+        {
+            capturing = false;
+            SyncTransaction();
+        }
         if (!clicked) return;
         swallowClick = SwallowFrames;
+        SyncTransaction();
         Main.mouseLeftRelease = true;
         page = action == ModsAction ? 1 : action == MoreAction ? page + 1 : page - 1;
         page = Math.Clamp(page, 0, Pages);

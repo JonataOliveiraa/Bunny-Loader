@@ -1,4 +1,5 @@
 using System;
+using BunnyLoader.Hooks;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria.GameContent;
@@ -8,7 +9,13 @@ namespace Terraria.ModLoader.Core;
 
 internal static unsafe class PageIconHooks
 {
-    internal static void Install() => ItemHooks.Once("PageIcons", () => On_GUIPageIcons.GetCategoryTexture += GetCategoryTexture);
+    internal static void Install() => ItemHooks.Once("PageIcons", () =>
+    {
+        HookGates.Table<On_GUIPageIcons.hook_GetCategoryTexture>(() => TouchButtonHooks.ValueGate(1), () => (int)GUIPageIcons.Category.Count);
+        HookGates.Want<On_GUIPageIcons.hook_GetCategoryTexture>(static category =>
+            category is (int)GUIPageIcons.Category.Shop or (int)GUIPageIcons.Category.Chest or (int)GUIPageIcons.Category.Dresser);
+        On_GUIPageIcons.GetCategoryTexture += GetCategoryTexture;
+    });
 
     internal static void InstallSign() => ItemHooks.Once("SignItem", () => On_GUINPCDialogue.DrawSign += DrawSign);
 

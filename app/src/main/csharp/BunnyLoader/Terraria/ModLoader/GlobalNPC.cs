@@ -16,6 +16,7 @@ public abstract class GlobalNPC : GlobalType<NPC, GlobalNPC>
 {
     internal NPCMethod Hooks;
     internal NPCHook Extra;
+    internal uint Events;
     protected sealed override void Register() => NPCLoader.RegisterGlobal(this);
 
     public sealed override void SetupContent() => SetStaticDefaults();

@@ -13,9 +13,11 @@ namespace Terraria.ModLoader.Core;
 
 internal static unsafe class SystemHooks
 {
-    const int PlayersBegin = 0, PlayersEnd = 1, NPCsBegin = 2, NPCsEnd = 3, GoresEnd = 4, ItemsBegin = 5, ItemsEnd = 6, Transform = 7, ClockAdvance = 8;
+    const int PlayersBegin = 0, PlayersEnd = 1, NPCsBegin = 2, NPCsEnd = 3, GoresEnd = 4, ItemsBegin = 5, ItemsEnd = 6, Transform = 7, ClockAdvance = 8, ClockRateSlot = 100;
 
     static double clockRate = 1, tileRemainder, eventRemainder;
+    static double* clockSlot;
+    static readonly bool[] Staged = new bool[ClockAdvance + 1];
     static readonly Dictionary<string, JsonObject> Headers = new(StringComparer.Ordinal);
 
     static bool Has(Type type, string hook) => ItemHooks.Overrides(type, typeof(ModSystem), hook);
@@ -37,12 +39,12 @@ internal static unsafe class SystemHooks
         if (Any(nameof(ModSystem.PostUpdatePlayers))) Stage(PlayersEnd);
         if (Any(nameof(ModSystem.PreUpdateNPCs))) Stage(NPCsBegin);
         if (Any(nameof(ModSystem.PostUpdateNPCs), nameof(ModSystem.PreUpdateGores))) Stage(NPCsEnd);
-        if (Any(nameof(ModSystem.PostUpdateGores))) Stage(GoresEnd);
+        if (Any(nameof(ModSystem.PostUpdateGores), nameof(ModSystem.PreUpdateProjectiles))) Stage(GoresEnd);
         if (Any(nameof(ModSystem.PostUpdateProjectiles), nameof(ModSystem.PreUpdateItems))) Stage(ItemsBegin);
         if (Any(nameof(ModSystem.PostUpdateItems))) Stage(ItemsEnd);
         if (Any(nameof(ModSystem.PreUpdateEntities), nameof(ModSystem.PostUpdateEverything)))
             ItemHooks.Once("SystemUpdateEverything", () => On_Main.DoUpdateInWorld += DoUpdateInWorld);
-        if (Any(nameof(ModSystem.PreUpdateProjectiles)))
+        if (Any(nameof(ModSystem.PreUpdateProjectiles)) && !Stage(GoresEnd))
             ItemHooks.Once("SystemProjectiles", () => On_Main.PreUpdateAllProjectiles += PreUpdateAllProjectiles);
         if (Any(nameof(ModSystem.PreUpdateDusts), nameof(ModSystem.PostUpdateDusts)))
             ItemHooks.Once("SystemDusts", () => On_Dust.UpdateDust += UpdateDust);
@@ -89,11 +91,15 @@ internal static unsafe class SystemHooks
             ItemHooks.Once("SystemLocalizations", () => Terraria.Localization.On_LanguageManager.SetLanguage_GameCulture += SetLanguage);
     }
 
-    static void Stage(int stage) =>
+    static bool Stage(int stage)
+    {
         ItemHooks.Once($"SystemStage{stage}", () =>
         {
-            if (Host.Native()->InstallSystemStage(stage, &OnStage) == 0) Log.Error($"ModSystem: update stage {stage} is unavailable on this game build");
+            Staged[stage] = Host.Native()->InstallSystemStage(stage, &OnStage) != 0;
+            if (!Staged[stage]) Log.Error($"ModSystem: update stage {stage} is unavailable on this game build");
         });
+        return Staged[stage];
+    }
 
     [UnmanagedCallersOnly]
     static void OnStage(int stage, double* value)
@@ -117,6 +123,7 @@ internal static unsafe class SystemHooks
                     break;
                 case GoresEnd:
                     SystemLoader.PostUpdateGores();
+                    SystemLoader.PreUpdateProjectiles();
                     break;
                 case ItemsBegin:
                     SystemLoader.PostUpdateProjectiles();
@@ -129,6 +136,10 @@ internal static unsafe class SystemHooks
                     SystemDrawHooks.ModifyTransformMatrix();
                     break;
                 case ClockAdvance:
+                    if (value != null) *value = clockRate;
+                    break;
+                case ClockRateSlot:
+                    clockSlot = value;
                     if (value != null) *value = clockRate;
                     break;
             }
@@ -198,6 +209,7 @@ internal static unsafe class SystemHooks
         double initialTime = time, initialTiles = tiles;
         SystemLoader.ModifyTimeRate(ref time, ref tiles, ref events);
         clockRate = Rate(time, initialTime);
+        if (clockSlot != null) *clockSlot = clockRate;
         double tileRate = Rate(tiles, initialTiles) + tileRemainder;
         double eventRate = Rate(events, initialTime) + eventRemainder;
         Main.desiredWorldTilesUpdateRate = (int)Math.Floor(tileRate);

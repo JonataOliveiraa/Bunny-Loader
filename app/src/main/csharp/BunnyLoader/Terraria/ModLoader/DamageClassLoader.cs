@@ -69,6 +69,8 @@ public static class DamageClassLoader
 
     static readonly int VanillaClassCount = DamageClasses.Count;
 
+    static DamageClass[] snapshot = DamageClasses.ToArray();
+
     static readonly Dictionary<DamageClass, GameFlags> Native = new()
     {
         [DamageClass.Default] = GameFlags.None,
@@ -118,6 +120,7 @@ public static class DamageClassLoader
         {
             DamageClasses.Add(damageClass);
             type = DamageClasses.Count - 1;
+            Volatile.Write(ref snapshot, DamageClasses.ToArray());
             effectCache = null;
             inheritCache = null;
         }
@@ -134,10 +137,7 @@ public static class DamageClassLoader
         DamageClassHooks.Install();
     }
 
-    static DamageClass[] All()
-    {
-        lock (Gate) return DamageClasses.ToArray();
-    }
+    static DamageClass[] All() => Volatile.Read(ref snapshot);
 
     internal static bool CountsAs(DamageClass cls, DamageClass other)
     {

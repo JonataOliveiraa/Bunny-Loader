@@ -16,6 +16,8 @@ internal static class SubworldVoteUI
     static UserInterface? ui;
     static VoteState? state;
 
+    internal static bool Shown => ui?.CurrentState != null;
+
     sealed class Portraits : UIElement
     {
         internal const float Size = 60f, Gap = 14f;

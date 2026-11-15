@@ -26,6 +26,9 @@ internal static class TileEntityHooks
     internal static readonly Dictionary<int, ModTileEntity> ByID = new();
     static readonly Dictionary<int, ModTileEntity> ByPosition = new();
     static readonly List<JsonNode> Unloaded = new();
+    static readonly List<ModTileEntity> Updating = new();
+    static ModTileEntity[] preGlobal = Array.Empty<ModTileEntity>(), postGlobal = Array.Empty<ModTileEntity>();
+    static bool updates, busy;
     static int nextId = FirstId;
 
     internal static int Count => ByID.Count;
@@ -44,10 +47,17 @@ internal static class TileEntityHooks
             On_WorldFile.LoadWorld += LoadWorld;
             On_WorldFile.InternalSaveWorld += InternalSaveWorld;
             On_NetMessage.SendSection += SendSection;
+            NetGates.OnlineSendData();
             On_NetMessage.SendData += SendData;
         });
         Type type = template.GetType();
-        if (new[] { nameof(ModTileEntity.Update), nameof(ModTileEntity.PreGlobalUpdate), nameof(ModTileEntity.PostGlobalUpdate) }.Any(name => ItemHooks.Overrides(type, typeof(ModTileEntity), name)))
+        bool update = ItemHooks.Overrides(type, typeof(ModTileEntity), nameof(ModTileEntity.Update));
+        bool pre = ItemHooks.Overrides(type, typeof(ModTileEntity), nameof(ModTileEntity.PreGlobalUpdate));
+        bool post = ItemHooks.Overrides(type, typeof(ModTileEntity), nameof(ModTileEntity.PostGlobalUpdate));
+        updates |= update;
+        if (pre) preGlobal = [.. preGlobal, template];
+        if (post) postGlobal = [.. postGlobal, template];
+        if (update || pre || post)
             ItemHooks.Once("TileEntityUpdates", () => On_TileEntity.PerformUpdates += PerformUpdates);
     }
 
@@ -231,18 +241,27 @@ internal static class TileEntityHooks
 
     static void PerformUpdates(On_TileEntity.orig_PerformUpdates orig)
     {
-        if (ByID.Count == 0)
-        {
-            orig();
-            return;
-        }
-        ModTileEntity[] list = ByID.Values.ToArray();
-        foreach (ModTileEntity entity in list) Call(entity, e => e.PreGlobalUpdate(), nameof(ModTileEntity.PreGlobalUpdate));
+        foreach (ModTileEntity template in preGlobal) Call(template, e => e.PreGlobalUpdate(), nameof(ModTileEntity.PreGlobalUpdate));
         orig();
-        foreach (ModTileEntity entity in list)
-            if (entity.RequiresUpdates && ByID.TryGetValue(entity.ID, out ModTileEntity? still) && still == entity)
-                Call(entity, e => e.Update(), nameof(ModTileEntity.Update));
-        foreach (ModTileEntity entity in list) Call(entity, e => e.PostGlobalUpdate(), nameof(ModTileEntity.PostGlobalUpdate));
+        if (updates && ByID.Count > 0)
+        {
+            List<ModTileEntity> list = busy ? new List<ModTileEntity>() : Updating;
+            bool outer = !busy;
+            busy = true;
+            try
+            {
+                list.AddRange(ByID.Values);
+                foreach (ModTileEntity entity in list)
+                    if (entity.RequiresUpdates && ByID.TryGetValue(entity.ID, out ModTileEntity? still) && still == entity)
+                        Call(entity, e => e.Update(), nameof(ModTileEntity.Update));
+            }
+            finally
+            {
+                list.Clear();
+                if (outer) busy = false;
+            }
+        }
+        foreach (ModTileEntity template in postGlobal) Call(template, e => e.PostGlobalUpdate(), nameof(ModTileEntity.PostGlobalUpdate));
     }
 
     static void Call(ModTileEntity entity, Action<ModTileEntity> action, string what)

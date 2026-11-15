@@ -2,11 +2,14 @@ using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria.DataStructures;
+using Terraria.ModLoader.Core;
 
 namespace Terraria.ModLoader;
 
 public abstract class GlobalBuff : ModType
 {
+    internal BuffHookFlags HookFlags;
+
     protected sealed override void Register() => BuffLoader.RegisterGlobal(this);
 
     public sealed override void SetupContent() => SetStaticDefaults();

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using BunnyLoader;
+using BunnyLoader.Hooks;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria.DataStructures;
@@ -9,58 +11,141 @@ using Terraria.ID;
 
 namespace Terraria.ModLoader.Core;
 
+[Flags]
+internal enum ProjectileMethod : ulong
+{
+    OnSpawn = 1UL << 0, PreAI = 1UL << 1, AI = 1UL << 2, PostAI = 1UL << 3, SendExtraAI = 1UL << 4, ModifyFishingLine = 1UL << 5,
+    ShouldUpdatePosition = 1UL << 6, TileCollideStyle = 1UL << 7, OnTileCollide = 1UL << 8, CanCutTiles = 1UL << 9, CutTiles = 1UL << 10,
+    PreKill = 1UL << 11, OnKill = 1UL << 12, CanDamage = 1UL << 13, MinionContactDamage = 1UL << 14, ModifyDamageHitbox = 1UL << 15,
+    CanHitNPC = 1UL << 16, Colliding = 1UL << 17, GetAlpha = 1UL << 18, PreDrawExtras = 1UL << 19, PreDraw = 1UL << 20, PostDraw = 1UL << 21,
+    GrappleRange = 1UL << 22, NumGrappleHooks = 1UL << 23, GrappleRetreatSpeed = 1UL << 24, GrapplePullSpeed = 1UL << 25,
+    GrappleTargetPoint = 1UL << 26, GrappleCanLatchOnTo = 1UL << 27,
+}
+
 internal static unsafe class ProjectileHooks
 {
     sealed class Movement
     {
         public Projectile Projectile;
+        public ModProjectile? Instance;
+        public GlobalProjectile?[]? Slots;
         public Vector2 Velocity, Anchor;
         public int Width, Height;
         public bool Reported, PendingKill, Kept, HasCollision, HasStyle, Bypass;
         public Movement? Outer;
     }
 
-    static readonly HashSet<string> GlobalHooks = new();
-    static readonly Dictionary<Type, HashSet<string>> ModHooks = new();
+    const ProjectileMethod AIMethods = ProjectileMethod.PreAI | ProjectileMethod.AI | ProjectileMethod.PostAI;
+    const ProjectileMethod MoveMethods = ProjectileMethod.OnTileCollide | ProjectileMethod.TileCollideStyle;
+    const ProjectileMethod KillMethods = ProjectileMethod.PreKill | ProjectileMethod.OnKill;
+    const ProjectileMethod DamageMethods = ProjectileMethod.CanDamage | ProjectileMethod.MinionContactDamage;
+    const ProjectileMethod SpriteMethods = ProjectileMethod.PreDraw | ProjectileMethod.PostDraw;
+    const ProjectileMethod DrawMethods = SpriteMethods | ProjectileMethod.PreDrawExtras;
+
+    static readonly object Gate = new();
+    static readonly List<(ProjectileMethod Methods, Action<int> Late)> BorrowGates = new();
+    static ProjectileMethod globalMask, anyMask;
+    static ProjectileMethod[] borrowedTypes = Array.Empty<ProjectileMethod>();
+    static bool[] offsetTypes = Array.Empty<bool>();
     static Movement? moving, spare;
     static int spawning;
     static (IntPtr Projectile, Color Light)? drawLight;
 
-    internal static void Install(Type type, Type baseType)
+    internal static ProjectileMethod Methods(Type type, Type baseType)
+    {
+        ProjectileMethod mask = 0;
+        foreach (ProjectileMethod method in Enum.GetValues<ProjectileMethod>())
+            if (ItemHooks.Overrides(type, baseType, method.ToString())) mask |= method;
+        return mask;
+    }
+
+    internal static void Install(Type type, Type baseType, ProjectileMethod mask)
     {
         bool Has(string name) => ItemHooks.Overrides(type, baseType, name);
-        lock (GlobalHooks)
+        lock (Gate)
         {
-            HashSet<string> names = baseType == typeof(GlobalProjectile) ? GlobalHooks : ModHooks.TryGetValue(type, out var found) ? found : ModHooks[type] = new();
-            foreach (var method in baseType.GetMethods())
-                if (method.DeclaringType == baseType && Has(method.Name)) names.Add(method.Name);
+            if (baseType == typeof(GlobalProjectile)) globalMask |= mask;
+            anyMask |= mask;
         }
-        if (baseType == typeof(ModProjectile)) ItemHooks.Once("ProjectileOriginalDamage", () => On_Projectile.ApplyStatsFromSource += ApplyStatsFromSource);
+        if (baseType == typeof(ModProjectile))
+            ItemHooks.Once("ProjectileOriginalDamage", () =>
+            {
+                TypeGate<On_Projectile.hook_ApplyStatsFromSource>(0, type => ProjectileLoader.GetProjectile(type) != null);
+                On_Projectile.ApplyStatsFromSource += ApplyStatsFromSource;
+            });
         if (Has(nameof(ModProjectile.OnSpawn)))
             ItemHooks.Once("ProjectileSpawn", () =>
             {
                 On_Projectile.NewProjectile_IEntitySource_float_float_float_float_int_int_float_int_float_float_float_NewProjectileModifier += NewProjectile;
                 On_Projectile.NewProjectile_IEntitySource_Vector2_Vector2_int_int_float_int_float_float_float_NewProjectileModifier += NewProjectile;
             });
-        if (baseType == typeof(ModProjectile) || Has(nameof(ModProjectile.PreAI)) || Has(nameof(ModProjectile.AI)) || Has(nameof(ModProjectile.PostAI)))
-            ItemHooks.Once("ProjectileAI", () => On_Projectile.AI += AI);
-        if (Has(nameof(ModProjectile.OnTileCollide)) || Has(nameof(ModProjectile.TileCollideStyle)) || Has(nameof(ModProjectile.PreKill)) ||
-            Has(nameof(ModProjectile.OnKill)) || Has(nameof(ModProjectile.ShouldUpdatePosition)))
+        if (baseType == typeof(ModProjectile) || (mask & AIMethods) != 0)
+            ItemHooks.Once("ProjectileAI", () =>
+            {
+                TypeGate<On_Projectile.hook_AI>(0, type => ProjectileLoader.GetProjectile(type) != null || WantsType(type, AIMethods));
+                On_Projectile.AI += AI;
+            });
+        if ((mask & MoveMethods) != 0)
             ItemHooks.Once("ProjectileMovement", () =>
             {
+                TypeGate<On_Projectile.hook_HandleMovement>(MoveMethods);
                 On_Projectile.HandleMovement += HandleMovement;
+            });
+        if ((mask & (MoveMethods | ProjectileMethod.ShouldUpdatePosition)) != 0)
+            ItemHooks.Once("ProjectilePosition", () =>
+            {
+                TypeGate<On_Projectile.hook_UpdatePosition>(MoveMethods | ProjectileMethod.ShouldUpdatePosition);
                 On_Projectile.UpdatePosition += UpdatePosition;
+            });
+        if ((mask & (KillMethods | ProjectileMethod.OnTileCollide)) != 0)
+            ItemHooks.Once("ProjectileKill", () =>
+            {
+                TypeGate<On_Projectile.hook_Kill>(KillMethods | ProjectileMethod.OnTileCollide);
                 On_Projectile.Kill += Kill;
             });
-        if (Has(nameof(ModProjectile.TileCollideStyle))) ItemHooks.Once("ProjectileCollideStyle", () => On_Projectile.GetCollisionParams += CollisionParams);
-        if (Has(nameof(ModProjectile.CanCutTiles)) || Has(nameof(ModProjectile.CutTiles))) ItemHooks.Once("ProjectileCanCut", () => On_Projectile.CanCutTiles += CanCutTiles);
-        if (Has(nameof(ModProjectile.CutTiles))) ItemHooks.Once("ProjectileCut", () => On_Projectile.CutTiles += CutTiles);
-        if (Has(nameof(ModProjectile.Colliding))) ItemHooks.Once("ProjectileColliding", () => On_Projectile.Colliding += Colliding);
-        if (Has(nameof(ModProjectile.CanDamage)) || Has(nameof(ModProjectile.MinionContactDamage))) ItemHooks.Once("ProjectileDamage", () => On_Projectile.Damage += Damage);
-        if (Has(nameof(ModProjectile.ModifyDamageHitbox))) ItemHooks.Once("ProjectileHitbox", () => On_Projectile.Damage_GetHitbox += DamageHitbox);
-        if (Has(nameof(ModProjectile.GetAlpha)) || Has(nameof(ModProjectile.PreDraw))) ItemHooks.Once("ProjectileAlpha", () => On_Projectile.GetAlpha += GetAlpha);
-        if (Has(nameof(ModProjectile.PreDraw)) || Has(nameof(ModProjectile.PostDraw)) || Has(nameof(ModProjectile.PreDrawExtras)))
-            ItemHooks.Once("ProjectileDraw", () => On_Main.DrawProjDirect += DrawProjDirect);
+        if (Has(nameof(ModProjectile.TileCollideStyle)))
+            ItemHooks.Once("ProjectileCollideStyle", () =>
+            {
+                TypeGate<On_Projectile.hook_GetCollisionParams>(ProjectileMethod.TileCollideStyle);
+                On_Projectile.GetCollisionParams += CollisionParams;
+            });
+        if (Has(nameof(ModProjectile.CanCutTiles)))
+            ItemHooks.Once("ProjectileCanCut", () =>
+            {
+                TypeGate<On_Projectile.hook_CanCutTiles>(ProjectileMethod.CanCutTiles);
+                On_Projectile.CanCutTiles += CanCutTiles;
+            });
+        if (Has(nameof(ModProjectile.CutTiles)))
+            ItemHooks.Once("ProjectileCut", () =>
+            {
+                TypeGate<On_Projectile.hook_CutTiles>(ProjectileMethod.CutTiles);
+                On_Projectile.CutTiles += CutTiles;
+            });
+        if (Has(nameof(ModProjectile.Colliding)))
+            ItemHooks.Once("ProjectileColliding", () =>
+            {
+                TypeGate<On_Projectile.hook_Colliding>(ProjectileMethod.Colliding);
+                On_Projectile.Colliding += Colliding;
+            });
+        if ((mask & DamageMethods) != 0)
+            ItemHooks.Once("ProjectileDamage", () =>
+            {
+                TypeGate<On_Projectile.hook_Damage>(DamageMethods);
+                On_Projectile.Damage += Damage;
+            });
+        if (Has(nameof(ModProjectile.ModifyDamageHitbox)))
+            ItemHooks.Once("ProjectileHitbox", () =>
+            {
+                TypeGate<On_Projectile.hook_Damage_GetHitbox>(ProjectileMethod.ModifyDamageHitbox);
+                On_Projectile.Damage_GetHitbox += DamageHitbox;
+            });
+        if ((mask & (ProjectileMethod.GetAlpha | ProjectileMethod.PreDraw)) != 0)
+            ItemHooks.Once("ProjectileAlpha", () =>
+            {
+                TypeGate<On_Projectile.hook_GetAlpha>(ProjectileMethod.GetAlpha | ProjectileMethod.PreDraw, ProjectileMethod.GetAlpha);
+                On_Projectile.GetAlpha += GetAlpha;
+            });
+        if ((mask & DrawMethods) != 0) WantDraw();
         ProjectileExampleHooks.Install(Has);
         ProjectileHitHooks.Install(Has);
         ProjectileGrappleHooks.Install(Has);
@@ -68,16 +153,97 @@ internal static unsafe class ProjectileHooks
         FishingLineHooks.Install(Has);
     }
 
-    internal static bool Wants(Projectile projectile, string method)
+    internal static void TypeGate<THook>(int arg, Func<int, bool> wanted) where THook : Delegate
     {
-        if (ProjectileLoader.TemplateOf(projectile) is ModProjectile m && ModHooks.TryGetValue(m.GetType(), out var names) && names.Contains(method)) return true;
-        return GlobalHooks.Contains(method) && ProjectileLoader.Globals.Slots(projectile) != null;
+        HookGates.Table<THook>(() => HookGates.Field(arg, Projectile.Class, "type"), () => ProjectileLoader.ProjectileCount);
+        HookGates.Want<THook>(wanted);
+    }
+
+    static void TypeGate<THook>(ProjectileMethod methods) where THook : Delegate => TypeGate<THook>(methods, methods);
+
+    static void TypeGate<THook>(ProjectileMethod methods, ProjectileMethod borrowed) where THook : Delegate
+    {
+        lock (Gate) BorrowGates.Add((borrowed, static type => WantLate<THook>(type)));
+        TypeGate<THook>(0, type => WantsType(type, methods) || (Borrowed(type) & borrowed) != 0);
+    }
+
+    static ProjectileMethod Borrowed(int type)
+    {
+        ProjectileMethod[] table = Volatile.Read(ref borrowedTypes);
+        return (uint)type < (uint)table.Length ? table[type] : 0;
+    }
+
+    static void WantBorrowed(int type, ProjectileMethod methods)
+    {
+        if ((uint)type >= (uint)ProjectileLoader.ProjectileCount || (Borrowed(type) & methods) == methods) return;
+        List<Action<int>>? late = null;
+        lock (Gate)
+        {
+            ProjectileMethod[] table = borrowedTypes;
+            ProjectileMethod old = (uint)type < (uint)table.Length ? table[type] : 0;
+            if ((old & methods) == methods) return;
+            var grown = new ProjectileMethod[Math.Max(type + 1, table.Length)];
+            Array.Copy(table, grown, table.Length);
+            grown[type] = old | methods;
+            Volatile.Write(ref borrowedTypes, grown);
+            foreach ((ProjectileMethod wanted, Action<int> mark) in BorrowGates)
+                if ((wanted & old) == 0 && (wanted & methods) != 0) (late ??= new()).Add(mark);
+        }
+        if (late == null) return;
+        foreach (Action<int> mark in late) mark(type);
+    }
+
+    internal static void WantLate<THook>(int type) where THook : Delegate
+    {
+        Func<int, bool> wanted = value => value == type;
+        HookGates.Want<THook>(wanted);
+        HookGates.Subscribed(typeof(THook), wanted);
+    }
+
+    static bool Marked(bool[] table, int type) => (uint)type < (uint)table.Length && table[type];
+
+    static bool Mark(ref bool[] table, int type)
+    {
+        bool[] current = table;
+        if (Marked(current, type)) return false;
+        var grown = new bool[Math.Max(type + 1, Math.Max(current.Length, ProjectileLoader.ProjectileCount))];
+        Array.Copy(current, grown, current.Length);
+        grown[type] = true;
+        Volatile.Write(ref table, grown);
+        return true;
+    }
+
+    internal static bool WantsType(int type, ProjectileMethod methods) =>
+        (globalMask & methods) != 0 || ProjectileLoader.GetProjectile(type) is ModProjectile m && (m.Hooks & methods) != 0;
+
+    internal static bool Wants(Projectile projectile, ProjectileMethod method) => Wanted(projectile, method) != 0;
+
+    internal static ProjectileMethod Wanted(Projectile projectile, ProjectileMethod methods)
+    {
+        ProjectileMethod found = ProjectileLoader.TemplateOf(projectile) is ModProjectile m ? m.Hooks & methods : 0;
+        ProjectileMethod rest = globalMask & methods & ~found;
+        if (rest != 0 && ProjectileLoader.Globals.Slots(projectile) != null) found |= rest;
+        return found;
+    }
+
+    internal static ProjectileMethod Wanted(Projectile projectile, ProjectileMethod methods, out ModProjectile? instance, out GlobalProjectile?[]? slots)
+    {
+        ProjectileMethod found = 0;
+        instance = null;
+        if (ProjectileLoader.TemplateOf(projectile) is ModProjectile m && (m.Hooks & methods) != 0)
+        {
+            found = m.Hooks & methods;
+            instance = ProjectileLoader.InstanceOf(projectile);
+        }
+        slots = (globalMask & methods) != 0 ? ProjectileLoader.Globals.Slots(projectile) : null;
+        if (slots != null) found |= globalMask & methods;
+        return found;
     }
 
     static void ApplyStatsFromSource(On_Projectile.orig_ApplyStatsFromSource orig, Projectile self, IEntitySource spawnSource)
     {
         orig(self, spawnSource);
-        if (ProjectileLoader.InstanceOf(self) == null || self.originalDamage != 0) return;
+        if (self.originalDamage != 0 || ProjectileLoader.TemplateOf(self) == null) return;
         Item item = BunnyLoader.Interop.GameInterop.IsInstance(spawnSource.Pointer, EntitySource_ItemUse.Class) ? new EntitySource_ItemUse(spawnSource.Pointer).Item : default;
         self.originalDamage = !item.IsNull && item.damage >= 0 ? item.damage : self.damage;
     }
@@ -86,7 +252,7 @@ internal static unsafe class ProjectileHooks
     {
         if (spawning > 0 || (uint)index >= 1000u) return;
         Projectile projectile = Main.projectile[index];
-        if (Wants(projectile, nameof(ModProjectile.OnSpawn))) ProjectileLoader.OnSpawn(projectile, source);
+        if (Wants(projectile, ProjectileMethod.OnSpawn)) ProjectileLoader.OnSpawn(projectile, source);
     }
 
     static int NewProjectile(On_Projectile.orig_NewProjectile_IEntitySource_float_float_float_float_int_int_float_int_float_float_float_NewProjectileModifier orig,
@@ -111,20 +277,35 @@ internal static unsafe class ProjectileHooks
         return index;
     }
 
+    static GlobalProjectile?[]? AISlots(Projectile projectile) => (globalMask & AIMethods) != 0 ? ProjectileLoader.Globals.Slots(projectile) : null;
+
+    static void Refresh(Projectile self, ref int type, ref int generation, ref ModProjectile? instance, ref GlobalProjectile?[]? slots)
+    {
+        int current = ProjectileLoader.Generation;
+        if (self.type == type && current == generation) return;
+        type = self.type;
+        generation = current;
+        instance = ProjectileLoader.InstanceOf(self);
+        slots = AISlots(self);
+    }
+
     static void AI(On_Projectile.orig_AI orig, Projectile self)
     {
-        if (!ProjectileLoader.HasHooks(self))
+        int type = self.type, generation = ProjectileLoader.Generation;
+        ModProjectile? instance = ProjectileLoader.InstanceOf(self);
+        GlobalProjectile?[]? slots = AISlots(self);
+        if (instance == null && slots == null)
         {
             orig(self);
             return;
         }
-        if (ProjectileLoader.PreAI(self))
+        if (ProjectileLoader.PreAI(self, instance, slots))
         {
-            ModProjectile? instance = ProjectileLoader.InstanceOf(self);
+            Refresh(self, ref type, ref generation, ref instance, ref slots);
             int aiType = instance?.AIType ?? 0;
             if (aiType > 0)
             {
-                int type = self.type;
+                WantBorrowed(aiType, instance!.Hooks);
                 IntPtr outer = ProjectileLoader.Borrow(self, instance, out ModProjectile? outerInstance);
                 self.type = aiType;
                 try { orig(self); }
@@ -135,9 +316,11 @@ internal static unsafe class ProjectileHooks
                 }
             }
             else if (instance?.UsesExplosiveMarker != true) orig(self);
-            ProjectileLoader.AI(self);
+            Refresh(self, ref type, ref generation, ref instance, ref slots);
+            ProjectileLoader.AI(self, instance, slots);
         }
-        ProjectileLoader.PostAI(self);
+        Refresh(self, ref type, ref generation, ref instance, ref slots);
+        ProjectileLoader.PostAI(self, instance, slots);
     }
 
     static bool Collided(Projectile p, Movement move) => p.velocity.X != move.Velocity.X || p.velocity.Y != move.Velocity.Y;
@@ -145,7 +328,7 @@ internal static unsafe class ProjectileHooks
     static void ReportCollision(Projectile p, Movement move)
     {
         move.Reported = true;
-        bool allowed = ProjectileLoader.OnTileCollide(p, move.Velocity);
+        bool allowed = ProjectileLoader.OnTileCollide(p, move.Velocity, move.Instance, move.Slots);
         if (!move.PendingKill) return;
         if (!allowed) move.Kept = true;
         else if (p.active) p.Kill();
@@ -153,14 +336,20 @@ internal static unsafe class ProjectileHooks
 
     static void HandleMovement(On_Projectile.orig_HandleMovement orig, Projectile self, Vector2 wetVelocity)
     {
-        bool collision = Wants(self, nameof(ModProjectile.OnTileCollide)), style = Wants(self, nameof(ModProjectile.TileCollideStyle));
-        if (!self.tileCollide || !collision && !style)
+        if (!self.tileCollide)
         {
             orig(self, wetVelocity);
             return;
         }
+        ProjectileMethod wanted = Wanted(self, MoveMethods, out ModProjectile? instance, out GlobalProjectile?[]? slots);
+        if (wanted == 0)
+        {
+            orig(self, wetVelocity);
+            return;
+        }
+        bool collision = (wanted & ProjectileMethod.OnTileCollide) != 0, style = (wanted & ProjectileMethod.TileCollideStyle) != 0;
         float startX = self.position.X, startY = self.position.Y;
-        Movement move = Rent(self, collision);
+        Movement move = Rent(self, collision, instance, slots);
         bool manual = self.decidesManualFallThrough, should = self.shouldFallThrough;
         if (style) ApplyCollideStyle(self, move);
         moving = move;
@@ -180,17 +369,21 @@ internal static unsafe class ProjectileHooks
                 if (move.Bypass) self.tileCollide = true;
             }
             move.Projectile = default;
+            move.Instance = null;
+            move.Slots = null;
             move.Outer = spare;
             spare = move;
         }
     }
 
-    static Movement Rent(Projectile self, bool collision)
+    static Movement Rent(Projectile self, bool collision, ModProjectile? instance, GlobalProjectile?[]? slots)
     {
         Movement? move = spare;
         if (move == null) move = new Movement();
         else spare = move.Outer;
         move.Projectile = self;
+        move.Instance = instance;
+        move.Slots = slots;
         move.Velocity = new Vector2(self.velocity.X, self.velocity.Y);
         move.Anchor = default;
         move.Width = move.Height = 0;
@@ -204,7 +397,7 @@ internal static unsafe class ProjectileHooks
     {
         self.GetCollisionParams(out Vector2 anchor, out int width, out int height);
         bool fallThrough = VanillaFallThrough(self);
-        move.Bypass = !ProjectileLoader.TileCollideStyle(self, ref width, ref height, ref fallThrough, ref anchor);
+        move.Bypass = !ProjectileLoader.TileCollideStyle(self, ref width, ref height, ref fallThrough, ref anchor, move.Instance, move.Slots);
         move.HasStyle = true;
         move.Anchor = anchor;
         move.Width = width;
@@ -262,31 +455,33 @@ internal static unsafe class ProjectileHooks
             if (move.Bypass) self.tileCollide = true;
             else if (move.HasCollision && !move.Reported && self.active && self.tileCollide && Collided(self, move)) ReportCollision(self, move);
         }
-        if (Wants(self, nameof(ModProjectile.ShouldUpdatePosition)) && !ProjectileLoader.ShouldUpdatePosition(self)) return;
+        if ((anyMask & ProjectileMethod.ShouldUpdatePosition) != 0 &&
+            Wanted(self, ProjectileMethod.ShouldUpdatePosition, out ModProjectile? instance, out GlobalProjectile?[]? slots) != 0 &&
+            !ProjectileLoader.ShouldUpdatePosition(self, instance, slots)) return;
         orig(self, wetVelocity);
     }
 
     static bool CanCutTiles(On_Projectile.orig_CanCutTiles orig, Projectile self)
     {
-        if (!Wants(self, nameof(ModProjectile.CanCutTiles))) return orig(self);
-        return ProjectileLoader.CanCutTiles(self) ?? orig(self);
+        if (Wanted(self, ProjectileMethod.CanCutTiles, out ModProjectile? instance, out GlobalProjectile?[]? slots) == 0) return orig(self);
+        return ProjectileLoader.CanCutTiles(self, instance, slots) ?? orig(self);
     }
 
     static void CutTiles(On_Projectile.orig_CutTiles orig, Projectile self)
     {
-        if (!Wants(self, nameof(ModProjectile.CutTiles)))
+        if (Wanted(self, ProjectileMethod.CutTiles, out ModProjectile? instance, out GlobalProjectile?[]? slots) == 0)
         {
             orig(self);
             return;
         }
         if (!self.CanCutTiles()) return;
         orig(self);
-        ProjectileLoader.CutTiles(self);
+        ProjectileLoader.CutTiles(self, instance, slots);
     }
 
     static void Kill(On_Projectile.orig_Kill orig, Projectile self)
     {
-        if (!self.active || !ProjectileLoader.HasHooks(self))
+        if (!self.active)
         {
             orig(self);
             return;
@@ -297,33 +492,39 @@ internal static unsafe class ProjectileHooks
             move.PendingKill = true;
             return;
         }
+        if (Wanted(self, KillMethods, out ModProjectile? instance, out GlobalProjectile?[]? slots) == 0)
+        {
+            orig(self);
+            return;
+        }
         int timeLeft = self.timeLeft;
-        if (!ProjectileLoader.PreKill(self, timeLeft))
+        if (!ProjectileLoader.PreKill(self, timeLeft, instance, slots))
         {
             self.active = false;
             return;
         }
-        ProjectileLoader.OnKill(self, timeLeft);
+        ProjectileLoader.OnKill(self, timeLeft, instance, slots);
         orig(self);
     }
 
     static bool Colliding(On_Projectile.orig_Colliding orig, Projectile self, Rectangle myRect, Rectangle targetRect)
     {
-        if (ProjectileLoader.HasHooks(self) && ProjectileLoader.Colliding(self, myRect, targetRect) is bool result) return result;
+        if (Wanted(self, ProjectileMethod.Colliding, out ModProjectile? instance, out GlobalProjectile?[]? slots) != 0 &&
+            ProjectileLoader.Colliding(self, myRect, targetRect, instance, slots) is bool result) return result;
         return orig(self, myRect, targetRect);
     }
 
     static void Damage(On_Projectile.orig_Damage orig, Projectile self)
     {
-        if (!ProjectileLoader.HasHooks(self))
+        if (Wanted(self, DamageMethods, out ModProjectile? instance, out GlobalProjectile?[]? slots) == 0)
         {
             orig(self);
             return;
         }
-        if (ProjectileLoader.CanDamage(self) == false) return;
+        if (ProjectileLoader.CanDamage(self, instance, slots) == false) return;
         int type = self.type;
         bool pet = Main.projPet[type];
-        if (!pet || !ProjectileLoader.MinionContactDamage(self))
+        if (!pet || !ProjectileLoader.MinionContactDamage(self, instance, slots))
         {
             orig(self);
             return;
@@ -336,25 +537,36 @@ internal static unsafe class ProjectileHooks
     static Rectangle DamageHitbox(On_Projectile.orig_Damage_GetHitbox orig, Projectile self)
     {
         Rectangle box = orig(self);
-        if (ProjectileLoader.HasHooks(self)) ProjectileLoader.ModifyDamageHitbox(self, ref box);
+        if (Wanted(self, ProjectileMethod.ModifyDamageHitbox, out ModProjectile? instance, out GlobalProjectile?[]? slots) != 0)
+            ProjectileLoader.ModifyDamageHitbox(self, ref box, instance, slots);
         return box;
     }
 
     static Color GetAlpha(On_Projectile.orig_GetAlpha orig, Projectile self, Color newColor)
     {
         if (drawLight is { } light && light.Projectile == self.Pointer) newColor = light.Light;
-        if (Wants(self, nameof(ModProjectile.GetAlpha)) && ProjectileLoader.GetAlpha(self, newColor) is Color result) return result;
+        if (Wanted(self, ProjectileMethod.GetAlpha, out ModProjectile? instance, out GlobalProjectile?[]? slots) != 0 &&
+            ProjectileLoader.GetAlpha(self, newColor, instance, slots) is Color result) return result;
         return orig(self, newColor);
     }
 
     static readonly Dictionary<int, ReLogic.Content.Asset<Texture2D>> glows = new();
+
+    static void WantDraw() => ItemHooks.Once("ProjectileDraw", () =>
+    {
+        TypeGate<On_Main.hook_DrawProjDirect>(1, DrawsType);
+        On_Main.DrawProjDirect += DrawProjDirect;
+    });
+
+    static bool DrawsType(int type) => WantsType(type, DrawMethods) || glows.ContainsKey(type) || Marked(Volatile.Read(ref offsetTypes), type) ||
+        type >= ProjectileID.Count && ProjectileID.Sets.IsInteractable[type];
 
     internal static void WantGlow(ModProjectile projectile)
     {
         if (!ModContent.RequestIfExists<Texture2D>(projectile.GlowTexture, out var glow))
             return;
         glows[projectile.Type] = glow;
-        ItemHooks.Once("ProjectileDraw", () => On_Main.DrawProjDirect += DrawProjDirect);
+        WantDraw();
     }
 
     internal static void WantInteractable(ModProjectile projectile)
@@ -363,21 +575,28 @@ internal static unsafe class ProjectileHooks
             return;
         ItemHooks.Once("ProjectileInteractable", () =>
         {
+            TypeGate<On_Projectile.hook_IsInteractable>(0, type => type >= ProjectileID.Count);
             On_Projectile.IsInteractable += IsInteractable;
             On_Player.PushTouchCursorState += PushTouchCursorState;
         });
-        ItemHooks.Once("ProjectileDraw", () => On_Main.DrawProjDirect += DrawProjDirect);
+        WantDraw();
     }
 
     static bool drawOffsets;
 
     [ThreadStatic] static Vector3 drawOffset;
 
-    internal static void WantDrawOffset()
+    internal static void WantDrawOffset(ModProjectile projectile)
     {
-        if (drawOffsets) return;
+        int type = projectile.Type;
+        if (type <= 0 || Marked(Volatile.Read(ref offsetTypes), type)) return;
+        lock (Gate)
+        {
+            if (!Mark(ref offsetTypes, type)) return;
+        }
         drawOffsets = true;
-        ItemHooks.Once("ProjectileDraw", () => On_Main.DrawProjDirect += DrawProjDirect);
+        WantDraw();
+        WantLate<On_Main.hook_DrawProjDirect>(type);
     }
 
     static void Original(On_Main.orig_DrawProjDirect orig, Main self, Projectile proj, Player overridePlayer)
@@ -439,15 +658,16 @@ internal static unsafe class ProjectileHooks
 
     static void DrawProjDirect(On_Main.orig_DrawProjDirect orig, Main self, Projectile proj, Player overridePlayer)
     {
-        bool draw = Wants(proj, nameof(ModProjectile.PreDraw)) || Wants(proj, nameof(ModProjectile.PostDraw));
-        bool wantsExtras = Wants(proj, nameof(ModProjectile.PreDrawExtras));
+        ProjectileMethod wanted = Wanted(proj, DrawMethods, out ModProjectile? instance, out GlobalProjectile?[]? slots);
+        bool draw = (wanted & SpriteMethods) != 0, wantsExtras = (wanted & ProjectileMethod.PreDrawExtras) != 0;
         if (!draw && !wantsExtras && !glows.ContainsKey(proj.type))
         {
             Original(orig, self, proj, overridePlayer);
             return;
         }
+        instance ??= ProjectileLoader.InstanceOf(proj);
         Player player = overridePlayer.IsNull ? Main.player[proj.owner] : overridePlayer;
-        IntPtr outer = ProjectileLoader.Borrow(proj, ProjectileLoader.InstanceOf(proj), out ModProjectile? outerInstance);
+        IntPtr outer = ProjectileLoader.Borrow(proj, instance, out ModProjectile? outerInstance);
         bool tapped = proj.type >= ProjectileID.Count && ProjectileID.Sets.IsInteractable[proj.type] && Main.LocalPlayer.checkProjectilesFrame == XNAUnityRunner._frame;
         bool right = Main.mouseRight, release = Main.mouseRightRelease;
         if (tapped)
@@ -455,7 +675,7 @@ internal static unsafe class ProjectileHooks
             Main.mouseRight = true;
             Main.mouseRightRelease = true;
         }
-        try { Draw(orig, self, proj, overridePlayer, player, draw, wantsExtras); }
+        try { Draw(orig, self, proj, overridePlayer, player, draw, wantsExtras, instance, slots); }
         finally
         {
             if (tapped)
@@ -467,11 +687,13 @@ internal static unsafe class ProjectileHooks
         }
     }
 
-    static void Draw(On_Main.orig_DrawProjDirect orig, Main self, Projectile proj, Player overridePlayer, Player player, bool draw, bool wantsExtras)
+    static void Draw(On_Main.orig_DrawProjDirect orig, Main self, Projectile proj, Player overridePlayer, Player player, bool draw, bool wantsExtras,
+        ModProjectile? instance, GlobalProjectile?[]? slots)
     {
         int type = proj.type;
-        bool extras = !wantsExtras || ProjectileLoader.PreDrawExtras(proj, player);
-        if (extras && proj.type != type && HasExtras(proj))
+        bool extras = !wantsExtras || ProjectileLoader.PreDrawExtras(proj, player, instance, slots);
+        bool retyped = wantsExtras && Retyped(proj, type, instance);
+        if (extras && retyped && HasExtras(proj))
         {
             if (Host.Native()->BeginProjectileDrawSplit(TextureAssets.Projectile[proj.type].Value.Pointer, 1, 0) != 0)
             {
@@ -483,7 +705,8 @@ internal static unsafe class ProjectileHooks
         Vector2 center = proj.Center;
         Color light = float.IsFinite(center.X) && float.IsFinite(center.Y) ? Lighting.GetColor((int)(center.X / 16f), (int)(center.Y / 16f)) : Color.White;
         Color original = light;
-        bool sprite = !draw || ProjectileLoader.PreDraw(proj, player, ref light);
+        bool sprite = !draw || ProjectileLoader.PreDraw(proj, player, ref light, instance, slots);
+        if (draw) Retyped(proj, type, instance);
         bool split = sprite != extras && HasExtras(proj) &&
             Host.Native()->BeginProjectileDrawSplit(TextureAssets.Projectile[proj.type].Value.Pointer, extras ? 1 : 0, sprite ? 1 : 0) != 0;
         if (sprite || split)
@@ -499,7 +722,15 @@ internal static unsafe class ProjectileHooks
             if (sprite)
                 DrawGlow(proj);
         }
-        if (draw) ProjectileLoader.PostDraw(proj, player, light);
+        if (draw) ProjectileLoader.PostDraw(proj, player, light, instance, slots);
+    }
+
+    static bool Retyped(Projectile proj, int type, ModProjectile? instance)
+    {
+        int current = proj.type;
+        if (current == type) return false;
+        WantBorrowed(current, (instance?.Hooks ?? 0) | ProjectileMethod.GetAlpha);
+        return true;
     }
 
     static bool HasExtras(Projectile proj) => proj.bobber || proj.aiStyle is 7 or 13 or 15 or 99;

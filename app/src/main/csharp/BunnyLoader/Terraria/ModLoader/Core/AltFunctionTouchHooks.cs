@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using BunnyLoader;
+using BunnyLoader.Hooks;
 using BunnyLoader.Interop;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -27,6 +28,9 @@ internal static unsafe class AltFunctionTouchHooks
 
     public static void Install()
     {
+        HookGates.Table<On_GUIQuickActionButton.hook_Draw_QuickActionControl_QuickActionButton_Layout_bool_reffloat_bool_bool>(
+            static () => TouchButtonHooks.ValueGate(0), static () => TouchButtonLoader.QuickBase + TouchButtonLoader.Count);
+        HookGates.Want<On_GUIQuickActionButton.hook_Draw_QuickActionControl_QuickActionButton_Layout_bool_reffloat_bool_bool>(static action => action == (int)Control.Interact);
         On_GUIQuickActionButton.Draw_QuickActionControl_QuickActionButton_Layout_bool_reffloat_bool_bool += Draw;
         On_GUIVirtualInputController.HandleTouchCursorDown += HandleTouchCursorDown;
         try

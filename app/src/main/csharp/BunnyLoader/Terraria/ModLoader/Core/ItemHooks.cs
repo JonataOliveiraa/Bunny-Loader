@@ -3,10 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System;
+using BunnyLoader.Hooks;
 using BunnyLoader.Interop;
 using BunnyLoader;
 using Microsoft.Xna.Framework;
+using Terraria.ID;
 using Terraria.ModLoader;
 
 namespace Terraria.ModLoader.Core;
@@ -18,7 +21,11 @@ internal static unsafe class ItemHooks
     static readonly HashSet<string> Reported = new();
     static readonly Dictionary<int, IntPtr> UsedBy = new();
 
+    static readonly int* AirScopes = (int*)NativeMemory.AllocZeroed(sizeof(int));
+
     static Hook? canUse, startUse, ownerOnly, animation, useStyle, holdStyle, updateEquips;
+
+    [ThreadStatic] static IntPtr equipping;
 
     public static void Install(Type type, Type baseType)
     {
@@ -40,9 +47,11 @@ internal static unsafe class ItemHooks
         if (Has(nameof(ModItem.HoldStyle)) || Has(nameof(ModItem.HoldItem)) || Has(nameof(ModItem.HoldoutOffset)))
             Once("HoldStyle", () => holdStyle = Raw("void ItemCheck_ApplyHoldStyle(float mountOffset, Item sItem, Rectangle heldItemFrame)",
                 (IntPtr)(delegate* unmanaged<IntPtr, float, IntPtr, Rectangle, IntPtr, void>)&ApplyHoldStyle));
-        if (Has(nameof(ModItem.UpdateInventory)))
+        if (Has(nameof(ModItem.UpdateInventory)) || Has(nameof(ModItem.UpdateInfoAccessory)))
             Once("Inventory", () => updateEquips = Raw("void UpdateEquips(int i)",
                 (IntPtr)(delegate* unmanaged<IntPtr, int, IntPtr, void>)&UpdateEquips));
+        if (Has(nameof(ModItem.UpdateInfoAccessory)))
+            Once("InventoryInfo", () => On_Player.RefreshInfoAccsFromTeamPlayers += RefreshInfoAccsFromTeamPlayers);
         ItemExampleHooks.Install(Has);
         ItemVisibilityHooks.Install(Has);
         ItemStackHooks.Install(Has);
@@ -98,6 +107,46 @@ internal static unsafe class ItemHooks
     internal static bool Overrides(Type type, Type baseType, string name) =>
         OverrideNames.GetOrAdd((type, baseType), static key => FindOverrides(key.Item1, key.Item2)).Contains(name);
 
+    internal static bool ModOverrides(ModItem item, string name) => Overrides(item.GetType(), typeof(ModItem), name);
+
+    internal static ModItem? Overrider(Item item, int type, string name) =>
+        ItemLoader.Get(type) is ModItem template && ModOverrides(template, name) ? ItemLoader.InstanceOf(item) : null;
+
+    internal static bool WantsType(int type, string name) =>
+        ItemLoader.Globals.Overriding(name).Length > 0 || ItemLoader.Get(type) is ModItem template && ModOverrides(template, name);
+
+    internal static GlobalItem? Applied(GlobalItem?[]? slots, short index) => slots != null && index < slots.Length ? slots[index] : null;
+
+    internal static int Selected(Player player) => player.selectedItemState.selected;
+
+    internal static void TypeGate<THook>(int arg, Func<int, bool> wanted) where THook : Delegate
+    {
+        HookGates.Table<THook>(() => HookGates.Field(arg, Item.Class, "type"), () => ItemLoader.ItemCount);
+        HookGates.Want<THook>(wanted);
+    }
+
+    internal static Hook? RawGated<TGate>(string ns, string type, string signature, IntPtr replacement, int arg, Func<int, bool> wanted) where TGate : Delegate
+    {
+        TypeGate<TGate>(arg, wanted);
+        Type? outer = HookGates.Installing;
+        HookGates.Installing = typeof(TGate);
+        try { return Raw(ns, type, signature, replacement); }
+        finally { HookGates.Installing = outer; }
+    }
+
+    internal static void WantTurnToAir()
+    {
+        HookGates.Define<On_Item.hook_TurnToAir>(() => new GateSpec
+        {
+            Arg = HookGates.AbsoluteArg, PointerOffset = -1, FieldOffset = 0, FieldSize = 4, Address = (IntPtr)AirScopes,
+        });
+        HookGates.Want<On_Item.hook_TurnToAir>();
+    }
+
+    internal static void EnterAirScope() => Interlocked.Increment(ref *AirScopes);
+
+    internal static void ExitAirScope() => Interlocked.Decrement(ref *AirScopes);
+
     static HashSet<string> FindOverrides(Type type, Type baseType)
     {
         var names = new HashSet<string>(StringComparer.Ordinal);
@@ -131,11 +180,44 @@ internal static unsafe class ItemHooks
         }
     }
 
+    internal static Hook? Raw(GameClass type, string signature, IntPtr replacement)
+    {
+        try
+        {
+            return Hook.Install(type, signature, replacement);
+        }
+        catch (Exception e)
+        {
+            Log.Error($"item hooks: {type.FullName}.{signature} is not hooked: {e.Message}");
+            return null;
+        }
+    }
+
     internal static Hook? Gated(GameClass type, string signature, IntPtr replacement, int arg, int pointerOffset, int fieldOffset, int fieldSize)
     {
         try
         {
             return Hook.InstallGated(type, signature, replacement, arg, pointerOffset, fieldOffset, fieldSize);
+        }
+        catch (Exception e)
+        {
+            Log.Error($"item hooks: {type.FullName}.{signature} is not hooked: {e.Message}");
+            return null;
+        }
+    }
+
+    internal static Hook? Gated(GameClass type, string signature, IntPtr replacement, Func<GateSpec> spec)
+    {
+        GateSpec gate;
+        try { gate = spec(); }
+        catch (Exception e)
+        {
+            Log.Warn($"item hooks: {type.FullName}.{signature} is hooked without a gate: {e.Message}");
+            return Raw(type, signature, replacement);
+        }
+        try
+        {
+            return Hook.InstallGated(type, signature, replacement, gate, out _);
         }
         catch (Exception e)
         {
@@ -188,15 +270,18 @@ internal static unsafe class ItemHooks
 
     static bool CanUseItem(Item item, Player player)
     {
-        bool allowed = PlayerLoader.All(player, nameof(ModPlayer.CanUseItem), m => m.CanUseItem(item));
+        bool allowed = PlayerLoader.All(player, nameof(ModPlayer.CanUseItem), item, static (m, i) => m.CanUseItem(i));
         if (ModItemOf(item) is ModItem m)
         {
             try { allowed &= m.CanUseItem(player); }
             catch (Exception e) { Report($"{m.FullName}.CanUseItem", e); }
         }
-        foreach (GlobalItem? g in ItemLoader.Globals.Slots(item) ?? Array.Empty<GlobalItem?>())
+        short[] overriding = ItemLoader.Globals.Overriding(nameof(GlobalItem.CanUseItem));
+        if (overriding.Length == 0) return allowed;
+        GlobalItem?[]? slots = ItemLoader.Globals.Slots(item);
+        foreach (short index in overriding)
         {
-            if (g == null) continue;
+            if (Applied(slots, index) is not GlobalItem g) continue;
             try { allowed &= g.CanUseItem(item, player); }
             catch (Exception e) { Report($"{g.FullName}.CanUseItem", e); }
         }
@@ -404,37 +489,95 @@ internal static unsafe class ItemHooks
         call.Arg(self);
         call.Arg(i);
         call.Arg(method);
-        Original(ref call, hook, "Player.UpdateEquips");
-        try
-        {
-            var player = new Player(self);
-            var inventory = player.inventory;
-            int count = Math.Min(inventory.Length, 58);
-            for (int slot = 0; slot < count; slot++)
-            {
-                Item item = inventory[slot];
-                if (item.IsNull || item.type <= 0 || item.stack <= 0) continue;
-                UpdateInventory(item, player);
-            }
-        }
+        IntPtr outer = equipping;
+        equipping = self;
+        try { Original(ref call, hook, "Player.UpdateEquips"); }
+        finally { equipping = outer; }
+        try { CarriedItems(new Player(self), static (item, type, player, overriding) => UpdateInventory(item, type, player, overriding), nameof(GlobalItem.UpdateInventory)); }
         catch (Exception e)
         {
             Report("UpdateInventory", e);
         }
     }
 
-    static void UpdateInventory(Item item, Player player)
+    static void RefreshInfoAccsFromTeamPlayers(On_Player.orig_RefreshInfoAccsFromTeamPlayers orig, Player self)
     {
-        if (ModItemOf(item) is ModItem m)
+        if (equipping != IntPtr.Zero && equipping == self.Pointer)
+        {
+            try { CarriedItems(self, static (item, _, player, overriding) => UpdateInfoAccessory(item, player, overriding), nameof(GlobalItem.UpdateInfoAccessory)); }
+            catch (Exception e) { Report("UpdateInfoAccessory", e); }
+        }
+        orig(self);
+    }
+
+    static void CarriedItems(Player player, Action<Item, int, Player, short[]> visit, string globalHook)
+    {
+        short[] overriding = ItemLoader.Globals.Overriding(globalHook);
+        var items = player.inventory;
+        int count = Math.Min(items.Length, 58);
+        bool voidBag = false;
+        for (int slot = 0; slot < count; slot++)
+        {
+            Item item = items[slot];
+            if (item.IsNull) continue;
+            int type = item.type;
+            if (type == 4131) voidBag = true;
+            if (type <= 0 || item.stack <= 0) continue;
+            visit(item, type, player, overriding);
+        }
+        if (!voidBag) return;
+        var bank = player.bank4;
+        if (bank.IsNull) return;
+        var bag = bank.item;
+        if (bag.IsNull) return;
+        var works = ItemID.Sets.WorksInVoidBag;
+        for (int slot = 0; slot < bag.Length; slot++)
+        {
+            Item item = bag[slot];
+            if (item.IsNull) continue;
+            int type = item.type;
+            if (type <= 0 || item.stack <= 0 || (type <= ItemID.Count && !(!works.IsNull && (uint)type < (uint)works.Length && works[type]))) continue;
+            visit(item, type, player, overriding);
+        }
+    }
+
+    static void UpdateInventory(Item item, int type, Player player, short[] overriding)
+    {
+        if (Overrider(item, type, nameof(ModItem.UpdateInventory)) is ModItem m)
         {
             try { m.UpdateInventory(player); }
             catch (Exception e) { Report($"{m.FullName}.UpdateInventory", e); }
         }
-        foreach (GlobalItem? g in ItemLoader.Globals.Slots(item) ?? Array.Empty<GlobalItem?>())
+        if (overriding.Length == 0) return;
+        GlobalItem?[]? slots = ItemLoader.Globals.Slots(item);
+        foreach (short index in overriding)
         {
-            if (g == null) continue;
+            if (Applied(slots, index) is not GlobalItem g) continue;
             try { g.UpdateInventory(item, player); }
             catch (Exception e) { Report($"{g.FullName}.UpdateInventory", e); }
+        }
+    }
+
+    internal static void UpdateInfoAccessory(Item item, Player player) =>
+        UpdateInfoAccessory(item, player, ItemLoader.Globals.Overriding(nameof(GlobalItem.UpdateInfoAccessory)));
+
+    internal static void UpdateInfoAccessory(Item item, Player player, short[] overriding)
+    {
+        if (item.IsNull) return;
+        int type = item.type;
+        if (type <= 0 || item.stack <= 0) return;
+        if (Overrider(item, type, nameof(ModItem.UpdateInfoAccessory)) is ModItem m)
+        {
+            try { m.UpdateInfoAccessory(player); }
+            catch (Exception e) { Report($"{m.FullName}.UpdateInfoAccessory", e); }
+        }
+        if (overriding.Length == 0) return;
+        GlobalItem?[]? slots = ItemLoader.Globals.Slots(item);
+        foreach (short index in overriding)
+        {
+            if (Applied(slots, index) is not GlobalItem g) continue;
+            try { g.UpdateInfoAccessory(item, player); }
+            catch (Exception e) { Report($"{g.FullName}.UpdateInfoAccessory", e); }
         }
     }
 }

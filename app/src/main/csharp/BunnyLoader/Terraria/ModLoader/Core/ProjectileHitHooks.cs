@@ -42,19 +42,39 @@ internal static unsafe class ProjectileHitHooks
         On_NPC.StrikeNPC += StrikeNPC;
     });
 
-    static bool? CanHitNPCWithProj(Projectile projectile, NPC npc)
+    static bool? CanHitNPCWithProj(Projectile projectile, NPC npc, bool own, ModProjectile? instance, GlobalProjectile?[]? slots)
     {
         bool? result = null;
         if (playerCanHit && projectile.TryGetOwner(out Player player))
         {
-            if (!PlayerLoader.All(player, nameof(ModPlayer.CanHitNPC), npc, static (m, n) => m.CanHitNPC(n))) return false;
-            result = PlayerLoader.Nullable(player, nameof(ModPlayer.CanHitNPCWithProj), (projectile, npc),
-                static (m, s) => m.CanHitNPCWithProj(s.projectile, s.npc));
-            if (result == false) return false;
+            ModPlayer[] canHit = PlayerLoader.Hooked(nameof(ModPlayer.CanHitNPC)), withProj = PlayerLoader.Hooked(nameof(ModPlayer.CanHitNPCWithProj));
+            if (canHit.Length > 0 || withProj.Length > 0)
+            {
+                ModPlayer[] players = PlayerLoader.Of(player);
+                bool allowed = true;
+                foreach (ModPlayer template in canHit)
+                {
+                    ModPlayer m = players[template.Index];
+                    try { allowed &= m.CanHitNPC(npc); }
+                    catch (Exception e) { ItemHooks.Report($"{m.FullName}.{nameof(ModPlayer.CanHitNPC)}", e); }
+                }
+                if (!allowed) return false;
+                foreach (ModPlayer template in withProj)
+                {
+                    ModPlayer m = players[template.Index];
+                    try
+                    {
+                        bool? value = m.CanHitNPCWithProj(projectile, npc);
+                        if (value.HasValue && result != false) result = value.Value;
+                    }
+                    catch (Exception e) { ItemHooks.Report($"{m.FullName}.{nameof(ModPlayer.CanHitNPCWithProj)}", e); }
+                }
+                if (result == false) return false;
+            }
         }
-        if (projectileCanHit)
+        if (own)
         {
-            result ??= ProjectileLoader.CanHitNPC(projectile, npc);
+            result ??= ProjectileLoader.CanHitNPC(projectile, npc, instance, slots);
             if (result == false) return false;
         }
         if (npcCanHit) result ??= NPCLoader.CanBeHitByProjectile(npc, projectile);
@@ -63,10 +83,13 @@ internal static unsafe class ProjectileHitHooks
 
     static bool CanNPCBeHit(On_Player.orig_CanNPCBeHitByPlayerOrPlayerProjectile orig, Player self, NPC npc, Projectile projectile)
     {
-        if (projectile.IsNull || !playerCanHit && !ProjectileLoader.HasHooks(projectile) &&
-            !(npcCanHit && NPCLoader.HasHooks(npc, NPCMethod.CanBeHitByProjectile))) return orig(self, npc, projectile);
+        if (projectile.IsNull) return orig(self, npc, projectile);
+        ModProjectile? instance = null;
+        GlobalProjectile?[]? slots = null;
+        bool own = projectileCanHit && ProjectileHooks.Wanted(projectile, ProjectileMethod.CanHitNPC, out instance, out slots) != 0;
+        if (!playerCanHit && !own && !(npcCanHit && NPCLoader.HasHooks(npc, NPCMethod.CanBeHitByProjectile))) return orig(self, npc, projectile);
         bool? decision;
-        try { decision = CanHitNPCWithProj(projectile, npc); }
+        try { decision = CanHitNPCWithProj(projectile, npc, own, instance, slots); }
         catch (Exception e)
         {
             ItemHooks.Report("CanHitNPC (projectile)", e);

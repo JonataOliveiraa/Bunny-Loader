@@ -34,6 +34,8 @@ public static class InvasionLoader
 
     static readonly HashSet<Mod> systems = new();
 
+    static Mod? firstSystem;
+
     static ModInvasion? active, shown;
 
     static int wave, progress, progressMax = 1;
@@ -65,7 +67,10 @@ public static class InvasionLoader
             InstallHooks();
         }
         if (systems.Add(invasion.Mod))
+        {
+            firstSystem ??= invasion.Mod;
             invasion.Mod.AddContent(new InvasionSystem());
+        }
     }
 
     public static bool IsDowned(ModInvasion invasion) => downed.Contains(invasion.FullName);
@@ -456,7 +461,7 @@ public static class InvasionLoader
 
     sealed class InvasionSystem : ModSystem
     {
-        bool First => systems.First() == Mod;
+        bool First => firstSystem == Mod;
 
         public override void PostUpdateEverything()
         {

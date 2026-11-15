@@ -58,11 +58,19 @@ public static class CloudLoader
 
     internal static IEnumerable<ModCloud> All => clouds.Values;
 
+    [ThreadStatic] static (int Type, float Weight)[]? scratch;
+
     public static int? ChooseCloud(float vanillaPool, bool rare)
     {
         if (!cloudLoaded) return 0;
-        float total = Math.Max(0, vanillaPool);
-        List<(int Type, float Weight)>? pool = null;
+        (int Type, float Weight)[]? pool = scratch;
+        if (pool == null || pool.Length < clouds.Count) scratch = pool = new (int, float)[clouds.Count];
+        return Roll(vanillaPool, pool, Weights(rare, pool));
+    }
+
+    static int Weights(bool rare, (int Type, float Weight)[] pool)
+    {
+        int count = 0;
         foreach (ModCloud cloud in clouds.Values)
         {
             if (rare != cloud.RareCloud) continue;
@@ -73,18 +81,24 @@ public static class CloudLoader
                 ItemHooks.Report($"{cloud.FullName}.SpawnChance", e);
                 continue;
             }
-            if (!(weight > 0f)) continue;
-            (pool ??= new()).Add((cloud.Type, weight));
-            total += weight;
+            if (!(weight > 0f) || count >= pool.Length) continue;
+            pool[count++] = (cloud.Type, weight);
         }
-        if (pool == null) return 0;
+        return count;
+    }
+
+    static int? Roll(float vanillaPool, (int Type, float Weight)[] pool, int count)
+    {
+        if (count == 0) return 0;
+        float total = Math.Max(0, vanillaPool);
+        for (int i = 0; i < count; i++) total += pool[i].Weight;
         float choice = (float)Main.rand.NextDouble() * total;
         if (choice < vanillaPool) return 0;
         choice -= Math.Max(0, vanillaPool);
-        foreach ((int type, float weight) in pool)
+        for (int i = 0; i < count; i++)
         {
-            if (choice < weight) return type;
-            choice -= weight;
+            if (choice < pool[i].Weight) return pool[i].Type;
+            choice -= pool[i].Weight;
         }
         return null;
     }

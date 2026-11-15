@@ -16,6 +16,9 @@ internal static class MountHooks
 
     static Setting? setting;
     static bool? dismountSkip;
+    static int lastOwner = -1;
+
+    [ThreadStatic] static List<DrawData>? spareExtra;
 
     internal static void Install(Type type)
     {
@@ -44,10 +47,20 @@ internal static class MountHooks
         Player local = Main.LocalPlayer;
         if (!local.IsNull && local.mount == mount) return local;
         var players = Main.player;
+        int last = lastOwner;
+        if ((uint)last < 255u)
+        {
+            Player cached = players[last];
+            if (!cached.IsNull && cached.active && cached.mount == mount) return cached;
+        }
         for (int i = 0; i < 255; i++)
         {
             Player p = players[i];
-            if (!p.IsNull && p.active && p.mount == mount) return p;
+            if (!p.IsNull && p.active && p.mount == mount)
+            {
+                lastOwner = i;
+                return p;
+            }
         }
         return default;
     }
@@ -210,11 +223,22 @@ internal static class MountHooks
         float rotation = 0f, drawScale = 1f;
         Vector2 drawOrigin = self.Origin;
         Color color = drawColor;
-        var extra = new List<DrawData>();
-        bool draw = mount.Draw(extra, drawType, player, ref texture, ref glowTexture, ref drawPosition, ref frame, ref color, ref glowColor, ref rotation,
-            ref spriteEffects, ref drawOrigin, ref drawScale, shadow);
-        DrawDataList cache = drawInfo.DrawDataCache;
-        foreach (DrawData added in extra) cache.Add(added);
+        List<DrawData> extra = spareExtra ?? new List<DrawData>();
+        spareExtra = null;
+        bool draw;
+        DrawDataList cache;
+        try
+        {
+            draw = mount.Draw(extra, drawType, player, ref texture, ref glowTexture, ref drawPosition, ref frame, ref color, ref glowColor, ref rotation,
+                ref spriteEffects, ref drawOrigin, ref drawScale, shadow);
+            cache = drawInfo.DrawDataCache;
+            foreach (DrawData added in extra) cache.Add(added);
+        }
+        finally
+        {
+            extra.Clear();
+            spareExtra = extra;
+        }
         if (draw)
         {
             if (!texture.IsNull) cache.Add(Shaded(new DrawData(texture, drawPosition, frame, color, rotation, drawOrigin, drawScale, spriteEffects)));

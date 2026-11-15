@@ -10,6 +10,17 @@ internal static class ItemTimingHooks
 
     static int timing;
 
+    sealed class AltAnswer
+    {
+        public uint Tick;
+        public IntPtr Player, Held;
+        public int Slot, Type;
+        public bool Stacked;
+        public Item Result;
+    }
+
+    static readonly AltAnswer LastAlt = new() { Slot = -1 };
+
     public static void Install(Func<string, bool> has, bool global)
     {
         bool speed = has(nameof(ModItem.UseSpeedMultiplier));
@@ -203,9 +214,29 @@ internal static class ItemTimingHooks
         if (player.IsNull) return default;
         try
         {
-            int slot = player.selectedItem;
+            int slot = ItemHooks.Selected(player);
             Item held = slot >= 0 && slot < 58 ? player.inventory[slot] : default;
-            return !held.IsNull && held.stack > 0 && HasAlternativeUse(held, player) ? held : default;
+            int type = held.IsNull ? 0 : held.type;
+            bool stacked = !held.IsNull && held.stack > 0;
+            uint tick = Main._gameUpdateCount;
+            AltAnswer last = LastAlt;
+            lock (last)
+            {
+                if (last.Tick == tick && last.Player == player.Pointer && last.Slot == slot && last.Held == held.Pointer && last.Type == type && last.Stacked == stacked)
+                    return last.Result;
+            }
+            Item result = stacked && HasAlternativeUse(held, player) ? held : default;
+            lock (last)
+            {
+                last.Tick = tick;
+                last.Player = player.Pointer;
+                last.Slot = slot;
+                last.Held = held.Pointer;
+                last.Type = type;
+                last.Stacked = stacked;
+                last.Result = result;
+            }
+            return result;
         }
         catch (Exception e)
         {
@@ -247,7 +278,7 @@ internal static class ItemTimingHooks
         bool check = false;
         try
         {
-            int slot = self.selectedItem;
+            int slot = ItemHooks.Selected(self);
             held = slot >= 0 && slot < 58 ? self.inventory[slot] : default;
             if (!held.IsNull && held.stack > 0 && ItemCombatHooks.Wanted(globalAlt, held))
             {

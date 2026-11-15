@@ -1,5 +1,5 @@
 using System;
-using System.Collections.Concurrent;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using BunnyLoader;
@@ -9,6 +9,45 @@ using Terraria.DataStructures;
 using Terraria.GameContent;
 
 namespace Terraria.ModLoader.Core;
+
+[Flags]
+internal enum BuffHookFlags
+{
+    None = 0,
+    UpdatePlayer = 1 << 0,
+    UpdateNPC = 1 << 1,
+    ReApplyPlayer = 1 << 2,
+    ReApplyNPC = 1 << 3,
+    ModifyBuffText = 1 << 4,
+    CustomBuffTipSize = 1 << 5,
+    DrawCustomBuffTip = 1 << 6,
+    PreDraw = 1 << 7,
+    PostDraw = 1 << 8,
+    RightClick = 1 << 9,
+}
+
+internal sealed class GlobalBuffHooks
+{
+    internal static readonly GlobalBuffHooks Empty = new(Array.Empty<GlobalBuff>());
+
+    internal readonly GlobalBuff[] UpdatePlayer, UpdateNPC, ReApplyPlayer, ReApplyNPC, ModifyBuffText, CustomBuffTipSize, DrawCustomBuffTip, PreDraw, PostDraw, RightClick;
+
+    internal GlobalBuffHooks(GlobalBuff[] all)
+    {
+        UpdatePlayer = With(all, BuffHookFlags.UpdatePlayer);
+        UpdateNPC = With(all, BuffHookFlags.UpdateNPC);
+        ReApplyPlayer = With(all, BuffHookFlags.ReApplyPlayer);
+        ReApplyNPC = With(all, BuffHookFlags.ReApplyNPC);
+        ModifyBuffText = With(all, BuffHookFlags.ModifyBuffText);
+        CustomBuffTipSize = With(all, BuffHookFlags.CustomBuffTipSize);
+        DrawCustomBuffTip = With(all, BuffHookFlags.DrawCustomBuffTip);
+        PreDraw = With(all, BuffHookFlags.PreDraw);
+        PostDraw = With(all, BuffHookFlags.PostDraw);
+        RightClick = With(all, BuffHookFlags.RightClick);
+    }
+
+    static GlobalBuff[] With(GlobalBuff[] all, BuffHookFlags flag) => Array.FindAll(all, g => (g.HookFlags & flag) != 0);
+}
 
 internal static unsafe class BuffHooks
 {
@@ -28,26 +67,52 @@ internal static unsafe class BuffHooks
 
     static IconLook* look;
 
-    static readonly ConcurrentDictionary<(Type, string), bool> Overridden = new();
-
     static bool texting;
 
-    internal static void Install(Type type, Type baseType)
+    internal static BuffHookFlags FlagsOf(Type type, Type baseType)
     {
+        bool global = baseType == typeof(GlobalBuff);
+        Type index = typeof(int).MakeByRefType();
+        Type[] Args(Type entity, params Type[] rest)
+        {
+            var args = new Type[rest.Length + (global ? 2 : 1)];
+            int at = 0;
+            if (global) args[at++] = typeof(int);
+            args[at++] = entity;
+            rest.CopyTo(args, at);
+            return args;
+        }
         bool Has(string name) => ItemHooks.Overrides(type, baseType, name);
-        if (Has(nameof(ModBuff.Update)))
-            ItemHooks.Once("BuffUpdate", () =>
-            {
-                On_Player.UpdateBuffs += UpdateBuffs;
-                On_NPC.UpdateNPC_BuffSetFlags += UpdateNPCBuffs;
-            });
-        if (Has(nameof(ModBuff.ReApply)))
-            ItemHooks.Once("BuffReApply", () =>
-            {
-                On_Player.AddBuff_TryUpdatingExistingBuffTime += TryUpdatingExistingBuffTime;
-                On_NPC.AddBuff += AddNPCBuff;
-            });
-        if (Has(nameof(ModBuff.ModifyBuffText)))
+        var flags = BuffHookFlags.None;
+        if (Exact(type, baseType, nameof(ModBuff.Update), Args(typeof(Player), index))) flags |= BuffHookFlags.UpdatePlayer;
+        if (Exact(type, baseType, nameof(ModBuff.Update), Args(typeof(NPC), index))) flags |= BuffHookFlags.UpdateNPC;
+        if (Exact(type, baseType, nameof(ModBuff.ReApply), Args(typeof(Player), typeof(int), typeof(int)))) flags |= BuffHookFlags.ReApplyPlayer;
+        if (Exact(type, baseType, nameof(ModBuff.ReApply), Args(typeof(NPC), typeof(int), typeof(int)))) flags |= BuffHookFlags.ReApplyNPC;
+        if (Has(nameof(ModBuff.ModifyBuffText))) flags |= BuffHookFlags.ModifyBuffText;
+        if (Has(nameof(GlobalBuff.CustomBuffTipSize))) flags |= BuffHookFlags.CustomBuffTipSize;
+        if (Has(nameof(GlobalBuff.DrawCustomBuffTip))) flags |= BuffHookFlags.DrawCustomBuffTip;
+        if (Has(nameof(ModBuff.PreDraw))) flags |= BuffHookFlags.PreDraw;
+        if (Has(nameof(ModBuff.PostDraw))) flags |= BuffHookFlags.PostDraw;
+        if (Has(nameof(ModBuff.RightClick))) flags |= BuffHookFlags.RightClick;
+        return flags;
+    }
+
+    static bool Exact(Type type, Type baseType, string name, Type[] parameters)
+    {
+        MethodInfo? method;
+        try { method = type.GetMethod(name, BindingFlags.Public | BindingFlags.Instance, null, parameters, null); }
+        catch (AmbiguousMatchException) { return true; }
+        return method != null && method.DeclaringType != baseType && method.GetBaseDefinition().DeclaringType == baseType;
+    }
+
+    internal static void Install(BuffHookFlags flags)
+    {
+        if ((flags & BuffHookFlags.UpdatePlayer) != 0) PlayerHooks.WantBuffUpdates();
+        if ((flags & BuffHookFlags.UpdateNPC) != 0) ItemHooks.Once("BuffUpdateNPC", () => On_NPC.UpdateNPC_BuffSetFlags += UpdateNPCBuffs);
+        if ((flags & BuffHookFlags.ReApplyPlayer) != 0)
+            ItemHooks.Once("BuffReApply", () => On_Player.AddBuff_TryUpdatingExistingBuffTime += TryUpdatingExistingBuffTime);
+        if ((flags & BuffHookFlags.ReApplyNPC) != 0) ItemHooks.Once("BuffReApplyNPC", () => On_NPC.AddBuff += AddNPCBuff);
+        if ((flags & BuffHookFlags.ModifyBuffText) != 0)
         {
             ItemHooks.Once("BuffText", () =>
             {
@@ -56,10 +121,10 @@ internal static unsafe class BuffHooks
             });
             ItemHooks.Once("BuffTip", () => On_Main.MouseText_DrawBuffTooltip += DrawBuffTooltip);
         }
-        if (Has(nameof(ModBuff.RightClick))) ItemHooks.Once("BuffRightClick", () => On_GUIBuffs.RemoveBuff_int += RemoveBuff);
-        if (Has(nameof(GlobalBuff.CustomBuffTipSize)) || Has(nameof(GlobalBuff.DrawCustomBuffTip)))
+        if ((flags & BuffHookFlags.RightClick) != 0) ItemHooks.Once("BuffRightClick", () => On_GUIBuffs.RemoveBuff_int += RemoveBuff);
+        if ((flags & (BuffHookFlags.CustomBuffTipSize | BuffHookFlags.DrawCustomBuffTip)) != 0)
             ItemHooks.Once("BuffTip", () => On_Main.MouseText_DrawBuffTooltip += DrawBuffTooltip);
-        if (Has(nameof(ModBuff.PreDraw)) || Has(nameof(ModBuff.PostDraw)))
+        if ((flags & (BuffHookFlags.PreDraw | BuffHookFlags.PostDraw)) != 0)
             ItemHooks.Once("BuffDraw", () =>
             {
                 look = (IconLook*)Host.Native()->BuffIconLook();
@@ -77,9 +142,9 @@ internal static unsafe class BuffHooks
         SpriteFont font = FontAssets.MouseText.Value;
         var sizes = new System.Collections.Generic.List<Vector2> { font.MeasureString(shown), font.MeasureString(name) };
         int fixedSizes = sizes.Count;
-        foreach (GlobalBuff g in BuffLoader.Globals)
+        GlobalBuffHooks hooks = BuffLoader.GlobalHooks;
+        foreach (GlobalBuff g in hooks.CustomBuffTipSize)
         {
-            if (!Over(g, typeof(GlobalBuff), nameof(GlobalBuff.CustomBuffTipSize))) continue;
             try { g.CustomBuffTipSize(tip, sizes); }
             catch (Exception e) { ItemHooks.Report($"{g.FullName}.CustomBuffTipSize", e); }
         }
@@ -96,9 +161,8 @@ internal static unsafe class BuffHooks
         }
         orig(self, name, shown, ref X, ref Y);
         int originY = Y + (int)font.MeasureString(merged ? name : tip).Y;
-        foreach (GlobalBuff g in BuffLoader.Globals)
+        foreach (GlobalBuff g in hooks.DrawCustomBuffTip)
         {
-            if (!Over(g, typeof(GlobalBuff), nameof(GlobalBuff.DrawCustomBuffTip))) continue;
             try { g.DrawCustomBuffTip(tip, Main.spriteBatch, X, originY); }
             catch (Exception e) { ItemHooks.Report($"{g.FullName}.DrawCustomBuffTip", e); }
         }
@@ -106,13 +170,10 @@ internal static unsafe class BuffHooks
 
     static bool WantsDraw(int type, out ModBuff? own)
     {
-        own = BuffLoader.GetBuff(type) is ModBuff m && (Over(m, typeof(ModBuff), nameof(ModBuff.PreDraw)) || Over(m, typeof(ModBuff), nameof(ModBuff.PostDraw)))
-            ? m
-            : null;
+        own = Own(type, BuffHookFlags.PreDraw | BuffHookFlags.PostDraw);
         if (own != null) return true;
-        foreach (GlobalBuff g in BuffLoader.Globals)
-            if (Over(g, typeof(GlobalBuff), nameof(GlobalBuff.PreDraw)) || Over(g, typeof(GlobalBuff), nameof(GlobalBuff.PostDraw))) return true;
-        return false;
+        GlobalBuffHooks hooks = BuffLoader.GlobalHooks;
+        return hooks.PreDraw.Length > 0 || hooks.PostDraw.Length > 0;
     }
 
     static uint Packed(Color color) => Unsafe.As<Color, uint>(ref color);
@@ -139,6 +200,7 @@ internal static unsafe class BuffHooks
         SpriteBatch spriteBatch = Main.spriteBatch;
         BuffDrawParams drawParams;
         bool draw = true;
+        GlobalBuffHooks hooks = BuffLoader.GlobalHooks;
         try
         {
             var texture = new Texture2D(Host.Native()->TextureAssetValue(TextureAssets.Buff[type]?.Pointer ?? IntPtr.Zero));
@@ -148,9 +210,8 @@ internal static unsafe class BuffHooks
             drawParams = new BuffDrawParams(texture, position, new Vector2(position.X, position.Y + height), new Rectangle(0, 0, width, height),
                 new Rectangle((int)position.X, (int)position.Y, width, height), new Color(alpha, alpha, alpha, alpha));
             BuffDrawParams before = drawParams;
-            foreach (GlobalBuff g in BuffLoader.Globals)
+            foreach (GlobalBuff g in hooks.PreDraw)
             {
-                if (!Over(g, typeof(GlobalBuff), nameof(GlobalBuff.PreDraw))) continue;
                 try { draw &= g.PreDraw(spriteBatch, type, buffIndex, ref drawParams); }
                 catch (Exception e) { ItemHooks.Report($"{g.FullName}.PreDraw", e); }
             }
@@ -177,9 +238,8 @@ internal static unsafe class BuffHooks
             try { own.PostDraw(spriteBatch, buffIndex, drawParams); }
             catch (Exception e) { ItemHooks.Report($"{own.FullName}.PostDraw", e); }
         }
-        foreach (GlobalBuff g in BuffLoader.Globals)
+        foreach (GlobalBuff g in hooks.PostDraw)
         {
-            if (!Over(g, typeof(GlobalBuff), nameof(GlobalBuff.PostDraw))) continue;
             try { g.PostDraw(spriteBatch, type, buffIndex, drawParams); }
             catch (Exception e) { ItemHooks.Report($"{g.FullName}.PostDraw", e); }
         }
@@ -211,16 +271,13 @@ internal static unsafe class BuffHooks
         look->Active = 1;
     }
 
-    static bool Over(object instance, Type baseType, string name) =>
-        Overridden.GetOrAdd((instance.GetType(), name), static (key, b) => ItemHooks.Overrides(key.Item1, b, key.Item2), baseType);
+    static ModBuff? Own(int type, BuffHookFlags flag) => BuffLoader.GetBuff(type) is ModBuff m && (m.HookFlags & flag) != 0 ? m : null;
 
-    static ModBuff? Own(int type, string name) => BuffLoader.GetBuff(type) is ModBuff m && Over(m, typeof(ModBuff), name) ? m : null;
-
-    static void UpdateBuffs(On_Player.orig_UpdateBuffs orig, Player self, int i)
+    internal static void AfterPlayerBuffs(Player self)
     {
-        orig(self, i);
         try
         {
+            GlobalBuff[] globals = BuffLoader.GlobalHooks.UpdatePlayer;
             var types = self.buffType;
             var times = self.buffTime;
             for (int b = 0; b < types.Length; b++)
@@ -228,15 +285,14 @@ internal static unsafe class BuffHooks
                 int type = types[b];
                 if (type <= 0 || times[b] <= 0) continue;
                 int index = b;
-                if (Own(type, nameof(ModBuff.Update)) is ModBuff m)
+                if (Own(type, BuffHookFlags.UpdatePlayer) is ModBuff m)
                 {
                     try { m.Update(self, ref index); }
                     catch (Exception e) { ItemHooks.Report($"{m.FullName}.Update", e); }
                 }
-                foreach (GlobalBuff g in BuffLoader.Globals)
+                foreach (GlobalBuff g in globals)
                 {
                     if (index != b) break;
-                    if (!Over(g, typeof(GlobalBuff), nameof(GlobalBuff.Update))) continue;
                     try { g.Update(type, self, ref index); }
                     catch (Exception e) { ItemHooks.Report($"{g.FullName}.Update", e); }
                 }
@@ -251,6 +307,7 @@ internal static unsafe class BuffHooks
         orig(self, lowerBuffTime);
         try
         {
+            GlobalBuff[] globals = BuffLoader.GlobalHooks.UpdateNPC;
             var types = self.buffType;
             var times = self.buffTime;
             for (int b = 0; b < types.Length; b++)
@@ -258,15 +315,14 @@ internal static unsafe class BuffHooks
                 int type = types[b];
                 if (type <= 0 || times[b] <= 0) continue;
                 int index = b;
-                if (Own(type, nameof(ModBuff.Update)) is ModBuff m)
+                if (Own(type, BuffHookFlags.UpdateNPC) is ModBuff m)
                 {
                     try { m.Update(self, ref index); }
                     catch (Exception e) { ItemHooks.Report($"{m.FullName}.Update", e); }
                 }
-                foreach (GlobalBuff g in BuffLoader.Globals)
+                foreach (GlobalBuff g in globals)
                 {
                     if (index != b) break;
-                    if (!Over(g, typeof(GlobalBuff), nameof(GlobalBuff.Update))) continue;
                     try { g.Update(type, self, ref index); }
                     catch (Exception e) { ItemHooks.Report($"{g.FullName}.Update", e); }
                 }
@@ -283,16 +339,15 @@ internal static unsafe class BuffHooks
             int index = self.FindBuffIndex(type);
             if (index >= 0)
             {
-                foreach (GlobalBuff g in BuffLoader.Globals)
+                foreach (GlobalBuff g in BuffLoader.GlobalHooks.ReApplyPlayer)
                 {
-                    if (!Over(g, typeof(GlobalBuff), nameof(GlobalBuff.ReApply))) continue;
                     try
                     {
                         if (g.ReApply(type, self, time, index)) return true;
                     }
                     catch (Exception e) { ItemHooks.Report($"{g.FullName}.ReApply", e); }
                 }
-                if (Own(type, nameof(ModBuff.ReApply)) is ModBuff m)
+                if (Own(type, BuffHookFlags.ReApplyPlayer) is ModBuff m)
                 {
                     try
                     {
@@ -313,16 +368,15 @@ internal static unsafe class BuffHooks
             int index = self.FindBuffIndex(type);
             if (index >= 0)
             {
-                foreach (GlobalBuff g in BuffLoader.Globals)
+                foreach (GlobalBuff g in BuffLoader.GlobalHooks.ReApplyNPC)
                 {
-                    if (!Over(g, typeof(GlobalBuff), nameof(GlobalBuff.ReApply))) continue;
                     try
                     {
                         if (g.ReApply(type, self, time, index)) return;
                     }
                     catch (Exception e) { ItemHooks.Report($"{g.FullName}.ReApply", e); }
                 }
-                if (Own(type, nameof(ModBuff.ReApply)) is ModBuff m)
+                if (Own(type, BuffHookFlags.ReApplyNPC) is ModBuff m)
                 {
                     try
                     {
@@ -342,13 +396,8 @@ internal static unsafe class BuffHooks
         return !gui.IsNull && !gui.GUIBuffs.IsNull && gui.GUIBuffs.lastDrawBuffText == Terraria.ID.BuffID.MonsterBanner;
     }
 
-    static bool WantsText(int type)
-    {
-        if (Own(type, nameof(ModBuff.ModifyBuffText)) != null) return true;
-        foreach (GlobalBuff g in BuffLoader.Globals)
-            if (Over(g, typeof(GlobalBuff), nameof(GlobalBuff.ModifyBuffText))) return true;
-        return false;
-    }
+    static bool WantsText(int type) =>
+        Own(type, BuffHookFlags.ModifyBuffText) != null || BuffLoader.GlobalHooks.ModifyBuffText.Length > 0;
 
     static void Text(int type, ref string name, ref string tip)
     {
@@ -357,14 +406,13 @@ internal static unsafe class BuffHooks
         texting = true;
         try
         {
-            if (Own(type, nameof(ModBuff.ModifyBuffText)) is ModBuff m)
+            if (Own(type, BuffHookFlags.ModifyBuffText) is ModBuff m)
             {
                 try { m.ModifyBuffText(ref name, ref tip, ref rare); }
                 catch (Exception e) { ItemHooks.Report($"{m.FullName}.ModifyBuffText", e); }
             }
-            foreach (GlobalBuff g in BuffLoader.Globals)
+            foreach (GlobalBuff g in BuffLoader.GlobalHooks.ModifyBuffText)
             {
-                if (!Over(g, typeof(GlobalBuff), nameof(GlobalBuff.ModifyBuffText))) continue;
                 try { g.ModifyBuffText(type, ref name, ref tip, ref rare); }
                 catch (Exception e) { ItemHooks.Report($"{g.FullName}.ModifyBuffText", e); }
             }
@@ -415,16 +463,15 @@ internal static unsafe class BuffHooks
 
     static bool RightClick(int type, int buffIndex)
     {
-        foreach (GlobalBuff g in BuffLoader.Globals)
+        foreach (GlobalBuff g in BuffLoader.GlobalHooks.RightClick)
         {
-            if (!Over(g, typeof(GlobalBuff), nameof(GlobalBuff.RightClick))) continue;
             try
             {
                 if (!g.RightClick(type, buffIndex)) return false;
             }
             catch (Exception e) { ItemHooks.Report($"{g.FullName}.RightClick", e); }
         }
-        if (Own(type, nameof(ModBuff.RightClick)) is ModBuff m)
+        if (Own(type, BuffHookFlags.RightClick) is ModBuff m)
         {
             try { return m.RightClick(buffIndex); }
             catch (Exception e) { ItemHooks.Report($"{m.FullName}.RightClick", e); }

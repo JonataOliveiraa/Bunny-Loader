@@ -19,19 +19,40 @@ internal static unsafe class Host
 
     static readonly List<Mod> Created = new();
 
+    static Mod[] createdSnapshot = Array.Empty<Mod>(), loadedSnapshot = Array.Empty<Mod>();
+
     internal static Mod[] CreatedMods
     {
-        get { lock (Created) return Created.ToArray(); }
+        get { lock (Created) return Snapshot(Created, ref createdSnapshot); }
     }
 
     internal static Mod? FindMod(string name)
     {
-        lock (Created) return Created.Find(m => m.Name == name) ?? Created.Find(m => string.Equals(m.Name, name, StringComparison.OrdinalIgnoreCase));
+        lock (Created)
+        {
+            foreach (Mod mod in Created)
+                if (mod.Name == name) return mod;
+            foreach (Mod mod in Created)
+                if (string.Equals(mod.Name, name, StringComparison.OrdinalIgnoreCase)) return mod;
+            return null;
+        }
     }
 
     internal static Mod[] Mods
     {
-        get { lock (LoadedMods) return LoadedMods.ToArray(); }
+        get { lock (LoadedMods) return Snapshot(LoadedMods, ref loadedSnapshot); }
+    }
+
+    static Mod[] Snapshot(List<Mod> list, ref Mod[] snapshot)
+    {
+        Mod[] known = snapshot;
+        if (known.Length == list.Count)
+        {
+            int same = 0;
+            while (same < known.Length && ReferenceEquals(known[same], list[same])) same++;
+            if (same == known.Length) return known;
+        }
+        return snapshot = list.ToArray();
     }
 
     [UnmanagedCallersOnly]

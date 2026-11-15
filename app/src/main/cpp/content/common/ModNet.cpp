@@ -112,10 +112,29 @@ Il2CppObject* invoke(const MethodInfo* m, void* self, void** args, const char* w
     return call(m, self, args, what, &result) ? result : nullptr;
 }
 
-const MethodInfo* methodOf(Il2CppObject* object, const char* name, int argc) {
-    auto& a = il2cpp::api();
-    return object ? a.class_get_method_from_name(a.object_get_class(object), name, argc) : nullptr;
+struct MethodSlot {
+    std::mutex mx;
+    Il2CppClass* cls = nullptr;
+    const MethodInfo* method = nullptr;
+};
+
+template <typename Resolve>
+const MethodInfo* cachedMethod(MethodSlot& slot, Il2CppObject* object, Resolve resolve) {
+    if (!object) return nullptr;
+    Il2CppClass* cls = il2cpp::api().object_get_class(object);
+    std::lock_guard<std::mutex> lock(slot.mx);
+    if (slot.cls != cls) {
+        slot.method = resolve(cls);
+        slot.cls = cls;
+    }
+    return slot.method;
 }
+
+const MethodInfo* methodOf(MethodSlot& slot, Il2CppObject* object, const char* name, int argc) {
+    return cachedMethod(slot, object, [&](Il2CppClass* cls) { return il2cpp::api().class_get_method_from_name(cls, name, argc); });
+}
+
+MethodSlot g_baseStream, g_getPosition, g_setPosition, g_readUInt16, g_readBytes, g_writeBytes;
 
 template <typename T>
 T unbox(Il2CppObject* boxed) {
@@ -137,10 +156,10 @@ ReadFn g_origRead = nullptr;
 void hkRead(Il2CppObject* self, Il2CppObject* reader, int32_t userId, int32_t readLength, const MethodInfo* method) {
     ManagedPacketHandler handler = g_handler.load(std::memory_order_acquire);
     if (!reader || readLength < 2) return g_origRead(self, reader, userId, readLength, method);
-    Il2CppObject* stream = invoke(methodOf(reader, "get_BaseStream", 0), reader, nullptr, "BinaryReader.BaseStream");
-    const MethodInfo* getPosition = methodOf(stream, "get_Position", 0);
-    const MethodInfo* setPosition = methodOf(stream, "set_Position", 1);
-    const MethodInfo* readUInt16 = methodOf(reader, "ReadUInt16", 0);
+    Il2CppObject* stream = invoke(methodOf(g_baseStream, reader, "get_BaseStream", 0), reader, nullptr, "BinaryReader.BaseStream");
+    const MethodInfo* getPosition = methodOf(g_getPosition, stream, "get_Position", 0);
+    const MethodInfo* setPosition = methodOf(g_setPosition, stream, "set_Position", 1);
+    const MethodInfo* readUInt16 = methodOf(g_readUInt16, reader, "ReadUInt16", 0);
     if (!stream || !getPosition || !setPosition || !readUInt16) return g_origRead(self, reader, userId, readLength, method);
     Il2CppObject* position = nullptr;
     if (!call(getPosition, stream, nullptr, "Stream.Position", &position) || !position)
@@ -155,7 +174,7 @@ void hkRead(Il2CppObject* self, Il2CppObject* reader, int32_t userId, int32_t re
     }
     int32_t count = readLength - 2;
     void* args[1] = {&count};
-    auto* bytes = reinterpret_cast<Il2CppArray*>(invoke(methodOf(reader, "ReadBytes", 1), reader, args, "BinaryReader.ReadBytes"));
+    auto* bytes = reinterpret_cast<Il2CppArray*>(invoke(methodOf(g_readBytes, reader, "ReadBytes", 1), reader, args, "BinaryReader.ReadBytes"));
     if (!bytes) return;
     const auto* payload = static_cast<const uint8_t*>(arrayData(bytes));
     const bool client = gameNetMode() == 1;
@@ -319,7 +338,7 @@ bool sendManagedPacket(const uint8_t* data, int32_t length, int32_t toClient, in
     void* ctorArgs[2] = {&id, &size};
     if (!call(g_refs.packetCtor, packet, ctorArgs, "NetPacket.ctor")) return false;
     Il2CppObject* writer = invoke(g_refs.packetWriter, packet, nullptr, "NetPacket.Writer");
-    const MethodInfo* write = writer ? sig(a.object_get_class(writer), "void Write(byte[] buffer)") : nullptr;
+    const MethodInfo* write = cachedMethod(g_writeBytes, writer, [](Il2CppClass* cls) { return sig(cls, "void Write(byte[] buffer)"); });
     Il2CppArray* bytes = a.array_new(g_refs.byteCls, static_cast<uintptr_t>(length));
     if (!write || !bytes) return false;
     std::memcpy(arrayData(bytes), data, static_cast<size_t>(length));

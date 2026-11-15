@@ -16,12 +16,27 @@ struct TileArrays {
     uint16_t* wall = nullptr;
 };
 
+struct TileTable {
+    const uint8_t* data = nullptr;
+    int count = 0;
+};
+
 bool tileArrays(TileArrays* out);
+
+bool tileLightedTable(TileTable* out);
+
+bool tileSolidTable(TileTable* out);
+
+bool worldTileSize(int* width, int* height);
+
+bool worldGrowsGrassUnderground();
 
 int tileTypeAt(int x, int y);
 
 int wallTypeAt(int x, int y);
 
 constexpr int16_t kTileActiveBit = 0x20;
+
+constexpr uint8_t kWallInvisibleBit = 0x20;
 
 }

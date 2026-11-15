@@ -246,6 +246,26 @@ sealed class Emitter
         return model;
     }
 
+    static readonly HashSet<string> EntitySetters = new(StringComparer.Ordinal)
+    {
+        "set_Center", "set_Left", "set_Right", "set_Top", "set_TopLeft", "set_TopRight",
+        "set_Bottom", "set_BottomLeft", "set_BottomRight", "set_Size", "set_Hitbox",
+    };
+
+    static readonly HashSet<string> RandomMethods = new(StringComparer.Ordinal)
+    {
+        "SetSeed", "Sample", "InternalSample", "Peek", "Next", "GetSampleForLargeRange",
+        "Next2", "NextI", "NextDouble", "NextBytes",
+    };
+
+    static readonly HashSet<string> StructSetters = new(StringComparer.Ordinal)
+    {
+        "Terraria.DataStructures.TrackedProjectileReference.set_Key",
+        "Terraria.DataStructures.TrackedProjectileReference.set_ProjectileType",
+        "Terraria.Net.NetPacket.set_Length",
+        "Terraria.GameContent.PlayerEyeHelper.set_EyeFrameToShow",
+    };
+
     static bool IsLeaf(MethodBase m, MethodModel model)
     {
         Type? declaring = m.DeclaringType;
@@ -254,7 +274,18 @@ sealed class Emitter
         bool xna = ns.StartsWith("Microsoft.Xna.Framework", StringComparison.Ordinal) &&
                    (declaring.IsValueType || declaring.Name == "MathHelper");
         bool getter = m.IsSpecialName && m.Name.StartsWith("get_", StringComparison.Ordinal) && model.Params.Count == 0;
-        return xna || getter;
+        return xna || getter || IsPureMember(m, declaring, model);
+    }
+
+    static bool IsPureMember(MethodBase m, Type declaring, MethodModel model)
+    {
+        if (model.IsCtor || m.IsStatic || m.IsVirtual) return false;
+        if (declaring.FullName == "Terraria.Utilities.UnifiedRandom") return RandomMethods.Contains(m.Name);
+        if (!m.IsSpecialName || !m.Name.StartsWith("set_", StringComparison.Ordinal) || model.Params.Count != 1 || model.Params[0].Mode != ArgMode.Value) return false;
+        Type value = m.GetParameters()[0].ParameterType;
+        if (!value.IsValueType) return false;
+        if (declaring.FullName == "Terraria.Entity") return EntitySetters.Contains(m.Name);
+        return declaring.IsValueType && StructSetters.Contains(declaring.FullName + "." + m.Name);
     }
 
     static string? DefaultOf(ParameterInfo p, TypeUse use, ArgMode mode)
@@ -317,8 +348,7 @@ sealed class Emitter
 
     static string RetCs(MethodModel m) => m.Plan.Ret.ByRef ? "ref " + m.Plan.Ret.Use.Cs : m.Plan.Ret.Use.Cs;
 
-    void EmitCall(StringBuilder sb, string ind, MethodModel m, string fnExpr, string infoExpr, string? selfExpr,
-                  string? afterReturnValue = null)
+    void EmitCall(StringBuilder sb, string ind, MethodModel m, string fnExpr, string infoExpr, string? selfExpr)
     {
         RetPlan ret = m.Plan.Ret;
         bool hasRet = ret.Use.Abi != AbiClass.Void || ret.ByRef;
@@ -412,16 +442,7 @@ sealed class Emitter
                 AbiClass.F64 => $"{RT}.Abi.ToF64(__f.Out[0])",
                 _ => ret.Indirect ? "__ret" : $"*({ret.Use.Cs}*)__f.Out",
             };
-            if (afterReturnValue != null && !ret.ByRef)
-            {
-                sb.Append(b).Append($"var __v = {value};\n");
-                sb.Append(b).Append(afterReturnValue.Replace("$v", "__v")).Append('\n');
-                sb.Append(b).Append("return __v;\n");
-            }
-            else
-            {
-                sb.Append(b).Append($"return {value};\n");
-            }
+            sb.Append(b).Append($"return {value};\n");
         }
         sb.Append(inner).Append("}\n");
     }
@@ -598,12 +619,24 @@ sealed class Emitter
         sb.Append(ind).Append($"    __s{id} = (nint*)global::BunnyLoader.Hook.Install(__m.Info, (nint)(delegate* unmanaged<{rawTypes}>)&__n{id}).OriginalSlot;\n");
         sb.Append(ind).Append("}\n");
 
+        sb.Append(ind).Append($"static {retCs} __b{id}({fullParams})\n");
+        sb.Append(ind).Append("{\n");
+        EmitCall(sb, ind + "    ", m, $"*__s{id}", $"__m{id}.Info", m.IsStatic ? null : (m.OwnerIsStruct ? "self" : "self.Pointer"));
+        sb.Append(ind).Append("}\n");
         sb.Append(ind).Append($"static {retCs} __o{id}({fullParams})\n");
         sb.Append(ind).Append("{\n");
-        sb.Append(ind).Append($"    __r{id}++;\n");
-        string after = isVoid ? null! : $"__l{id} = $v;";
-        EmitCall(sb, ind + "    ", m, $"*__s{id}", $"__m{id}.Info", m.IsStatic ? null : (m.OwnerIsStruct ? "self" : "self.Pointer"),
-                 isVoid ? null : after);
+        sb.Append(ind).Append($"    ref int __rr = ref __r{id};\n");
+        sb.Append(ind).Append("    __rr++;\n");
+        if (isVoid)
+        {
+            sb.Append(ind).Append($"    __b{id}({argNames});\n");
+        }
+        else
+        {
+            sb.Append(ind).Append($"    var __v = __b{id}({argNames});\n");
+            sb.Append(ind).Append($"    __l{id} = __v;\n");
+            sb.Append(ind).Append("    return __v;\n");
+        }
         sb.Append(ind).Append("}\n");
 
         string rawParams = string.Join(", ", m.Plan.Raw.Select(r => $"{r.Type} {r.Name}"));
@@ -659,19 +692,21 @@ sealed class Emitter
         sb.Append(u).Append($"var __c = __h{id}.Chain;\n");
         if (isVoid)
         {
-            sb.Append(u).Append($"if (__c == null) {{ __o{id}({args}); return; }}\n");
-            sb.Append(u).Append($"int __runs = __r{id};\n");
+            sb.Append(u).Append($"if (__c == null) {{ __b{id}({args}); return; }}\n");
+            sb.Append(u).Append($"ref int __rr = ref __r{id};\n");
+            sb.Append(u).Append("int __runs = __rr;\n");
             sb.Append(u).Append($"try {{ __c({args}); }}\n");
-            sb.Append(u).Append($"catch (global::System.Exception __e) {{ {rep}__e); if (__r{id} == __runs) __o{id}({args}); }}\n");
+            sb.Append(u).Append($"catch (global::System.Exception __e) {{ {rep}__e); if (__rr == __runs) __o{id}({args}); }}\n");
             sb.Append(t).Append("}\n");
             sb.Append(t).Append($"catch (global::System.Exception __e2) {{ {rep}__e2); }}\n");
         }
         else
         {
-            sb.Append(u).Append($"if (__c == null) return {Conv($"__o{id}({args})")};\n");
-            sb.Append(u).Append($"int __runs = __r{id};\n");
+            sb.Append(u).Append($"if (__c == null) return {Conv($"__b{id}({args})")};\n");
+            sb.Append(u).Append($"ref int __rr = ref __r{id};\n");
+            sb.Append(u).Append("int __runs = __rr;\n");
             sb.Append(u).Append($"try {{ return {Conv($"__c({args})")}; }}\n");
-            sb.Append(u).Append($"catch (global::System.Exception __e) {{ {rep}__e); if (__r{id} == __runs) return {Conv($"__o{id}({args})")}; return {Conv($"__l{id}")}; }}\n");
+            sb.Append(u).Append($"catch (global::System.Exception __e) {{ {rep}__e); if (__rr == __runs) return {Conv($"__o{id}({args})")}; return {Conv($"__l{id}")}; }}\n");
             sb.Append(t).Append("}\n");
             sb.Append(t).Append($"catch (global::System.Exception __e2) {{ {rep}__e2); }}\n");
             sb.Append(t).Append("return default;\n");

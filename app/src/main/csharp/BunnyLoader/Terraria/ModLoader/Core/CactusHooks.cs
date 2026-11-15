@@ -66,29 +66,39 @@ internal static unsafe class CactusHooks
         }
     }
 
+    static readonly IntPtr NoTexture = (IntPtr)1;
+
     [UnmanagedCallersOnly]
-    static IntPtr Texture(int x, int y, int type)
+    static IntPtr Texture(int x, int y, int packed)
     {
         try
         {
-            Tile tile = Main.tile[x, y];
-            int frameX = tile.frameX;
-            if (type == TileID.DyePlants)
-            {
-                if (frameX != FruitFrame && frameX != FruitFrameAlt)
-                    return IntPtr.Zero;
-                int below = y + 1;
-                int ground = WorldGen.InWorld(x, below, 2) ? GroundOf(x, below, 0, 0) : 0;
-                return PlantLoader.Get<ModCactus>(TileID.Cactus, ground) is ModCactus fruit ? fruit.GetFruitTexture().Value.Pointer : IntPtr.Zero;
-            }
-            int sand = GroundOf(x, y, frameX, tile.frameY);
-            return sand > 0 && PlantLoader.Get<ModCactus>(TileID.Cactus, sand) is ModCactus cactus ? cactus.GetTexture().Value.Pointer : IntPtr.Zero;
+            int type = packed & 0xFFFF, ground = (int)((uint)packed >> 16);
+            if (ground == 0)
+                ground = GroundAt(x, y, type);
+            if (ground <= 0)
+                return IntPtr.Zero;
+            if (PlantLoader.Get<ModCactus>(TileID.Cactus, ground) is not ModCactus cactus)
+                return NoTexture;
+            return (type == TileID.DyePlants ? cactus.GetFruitTexture() : cactus.GetTexture()).Value.Pointer;
         }
         catch (Exception e)
         {
             ItemHooks.Report("ModCactus texture", e);
             return IntPtr.Zero;
         }
+    }
+
+    static int GroundAt(int x, int y, int type)
+    {
+        Tile tile = Main.tile[x, y];
+        int frameX = tile.frameX;
+        if (type != TileID.DyePlants)
+            return GroundOf(x, y, frameX, tile.frameY);
+        if (frameX != FruitFrame && frameX != FruitFrameAlt)
+            return 0;
+        int below = y + 1;
+        return WorldGen.InWorld(x, below, 2) ? GroundOf(x, below, 0, 0) : 0;
     }
 
     static void Swap(int x, int y)

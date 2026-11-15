@@ -8,9 +8,9 @@ using Terraria.GameContent.UI.BigProgressBar;
 
 namespace Terraria.ModLoader.Core;
 
-internal static class BossBarHooks
+internal static unsafe class BossBarHooks
 {
-    const int ScanEvery = 30;
+    const int ScanEvery = 30, CaptureEvery = 60;
 
     struct Look
     {
@@ -19,11 +19,15 @@ internal static class BossBarHooks
         public bool ShowText;
     }
 
+    static readonly object VanillaBar = new();
     static ModBossBar? bar;
-    static int index = -1, tracked = -1, scanAge;
-    static bool drawing, looking, looksHooked;
+    static int index = -1, tracked = -1, scanAge, panelAge;
+    static bool drawing, looking, recapture;
+    static int* lookGate, regionGate;
     static Look look;
     static Panel_Layout panel;
+    static GameHandle? panelPin;
+    static object? panelOwner;
 
     internal static void Install(bool globals)
     {
@@ -140,7 +144,7 @@ internal static class BossBarHooks
         BossBarDrawParams before = drawParams;
         if (BossBarLoader.PreDraw(spriteBatch, npc, own, ref drawParams))
         {
-            Begin(in before, in drawParams);
+            Begin(in before, in drawParams, own);
             try
             {
                 bool shielded = drawParams.ShieldMax > 0f;
@@ -168,7 +172,7 @@ internal static class BossBarHooks
         BossBarDrawParams before = drawParams;
         if (BossBarLoader.PreDraw(spriteBatch, npc, null, ref drawParams))
         {
-            Begin(in before, in drawParams);
+            Begin(in before, in drawParams, VanillaBar);
             try { orig(self, drawParams.Life, drawParams.LifeMax, drawParams.IconTexture, drawParams.IconFrame, drawParams.Shield, drawParams.ShieldMax); }
             finally { End(); }
         }
@@ -185,7 +189,7 @@ internal static class BossBarHooks
         return new Vector2(region.X + region.Width / 2f, region.Y + region.Height / 2f);
     }
 
-    static void Begin(in BossBarDrawParams before, in BossBarDrawParams after)
+    static void Begin(in BossBarDrawParams before, in BossBarDrawParams after, object owner)
     {
         drawing = true;
         bool barColor = !after.BarColor.Equals(before.BarColor), iconColor = !after.IconColor.Equals(before.IconColor), text = after.ShowText != before.ShowText;
@@ -199,28 +203,62 @@ internal static class BossBarHooks
                 Icon = after.IconTexture.Pointer,
                 ShowText = after.ShowText,
             };
-            if (!looksHooked)
-            {
-                looksHooked = true;
-                On_GUIPanel.DrawBacking += DrawBacking;
-                On_GUITransactionButton.Draw_TransactionButton_Layout_Texture2D_Rectangle_string_bool_reffloat_Nullable_bool_bool_bool_bool += DrawIcon;
-                On_GUIString.Draw_String_Layout_StringBuilder += DrawText;
-                On_GUIString.Draw_String_Layout_StringBuilder_Color += DrawTextColored;
-            }
+            if (lookGate == null) HookLooks();
+            *lookGate = 1;
         }
-        if (panel.IsNull) On_GUIPanel.Region += Region;
+        if (!ReferenceEquals(owner, panelOwner) || ++panelAge >= CaptureEvery)
+        {
+            panelOwner = owner;
+            panelAge = 0;
+            recapture = true;
+        }
+        if (panel.IsNull || recapture)
+        {
+            if (regionGate == null) HookRegion();
+            *regionGate = 1;
+        }
+    }
+
+    static void HookLooks()
+    {
+        int* gate = NPCGates.Flag<On_GUIPanel.hook_DrawBacking>();
+        NPCGates.Flag<On_GUITransactionButton.hook_Draw_TransactionButton_Layout_Texture2D_Rectangle_string_bool_reffloat_Nullable_bool_bool_bool_bool>(gate);
+        NPCGates.Flag<On_GUIString.hook_Draw_String_Layout_StringBuilder>(gate);
+        NPCGates.Flag<On_GUIString.hook_Draw_String_Layout_StringBuilder_Color>(gate);
+        lookGate = gate;
+        On_GUIPanel.DrawBacking += DrawBacking;
+        On_GUITransactionButton.Draw_TransactionButton_Layout_Texture2D_Rectangle_string_bool_reffloat_Nullable_bool_bool_bool_bool += DrawIcon;
+        On_GUIString.Draw_String_Layout_StringBuilder += DrawText;
+        On_GUIString.Draw_String_Layout_StringBuilder_Color += DrawTextColored;
+    }
+
+    static void HookRegion()
+    {
+        regionGate = NPCGates.Flag<On_GUIPanel.hook_Region>();
+        On_GUIPanel.Region += Region;
     }
 
     static void End()
     {
         drawing = looking = false;
-        if (!panel.IsNull) On_GUIPanel.Region -= Region;
+        if (lookGate != null) *lookGate = 0;
+        if (regionGate != null) *regionGate = 0;
     }
 
     static Rectangle Region(On_GUIPanel.orig_Region orig, Panel_Layout layout)
     {
-        if (drawing && panel.IsNull) panel = layout;
+        if (drawing && (panel.IsNull || recapture)) Capture(layout);
         return orig(layout);
+    }
+
+    static void Capture(Panel_Layout layout)
+    {
+        recapture = false;
+        if (regionGate != null) *regionGate = 0;
+        if (layout.Pointer == panel.Pointer) return;
+        panelPin?.Dispose();
+        panelPin = layout.IsNull ? null : new GameHandle(layout.Pointer);
+        panel = layout;
     }
 
     static void DrawBacking(On_GUIPanel.orig_DrawBacking orig, Vector2 position, Vector2 size, Texture2D texture, Color color, GameNullable<Rectangle> sourceFrame)

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using BunnyLoader;
+using BunnyLoader.Interop;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria.GameContent;
@@ -15,15 +16,34 @@ internal static unsafe class NPCUIHooks
 
     [ThreadStatic] static NPC adjusting;
     static readonly List<(NPC Npc, Vector2 Position, Rectangle Frame, bool Active)> hidden = new();
+    static readonly NPCGates.TypeSet HoverTypes = new(type => NPCGates.Wants(type, Hover));
+    static readonly NPCGates.TypeSet BubbleTypes = new(type => NPCGates.Wants(type, NPCHook.ChatBubblePosition));
+    static (IntPtr Raw, IntPtr Asset) partyHat;
 
     internal static void Install(NPCHook flags)
     {
-        if ((flags & NPCHook.PartyHatPosition) != 0) ItemHooks.Once("NPCPartyHatPosition", () => On_Main.DrawNPCExtras += DrawNPCExtras);
+        if ((flags & NPCHook.PartyHatPosition) != 0)
+            ItemHooks.Once("NPCPartyHatPosition", () =>
+            {
+                NPCGates.Type<On_Main.hook_DrawNPCExtras>(1, NPCHook.PartyHatPosition);
+                On_Main.DrawNPCExtras += DrawNPCExtras;
+            });
         if ((flags & NPCHook.ChatBubblePosition) != 0) ItemHooks.Once("NPCChatBubblePosition", () => On_Main.DrawNPCChatBubble += DrawNPCChatBubble);
         if ((flags & Hover) != 0) ItemHooks.Once("NPCHover", () => On_Main.HoverOverNPCs += HoverOverNPCs);
     }
 
     static IntPtr TextureOf(GameObjectRef asset) => asset.Pointer == IntPtr.Zero ? IntPtr.Zero : Host.Native()->TextureAssetValue(asset.Pointer);
+
+    static IntPtr PartyHatAsset()
+    {
+        GameArray<GameObject> extra = TextureAssets.Extra.Raw;
+        IntPtr raw = extra.Length > 72 ? extra[72].Pointer : IntPtr.Zero;
+        var cached = partyHat;
+        if (raw != IntPtr.Zero && cached.Raw == raw) return cached.Asset;
+        IntPtr asset = TextureAssets.Extra[72]?.Pointer ?? IntPtr.Zero;
+        if (raw != IntPtr.Zero) partyHat = (raw, asset);
+        return asset;
+    }
 
     readonly struct GameObjectRef
     {
@@ -76,7 +96,12 @@ internal static unsafe class NPCUIHooks
     static void DrawNPCExtras(On_Main.orig_DrawNPCExtras orig, Main self, NPC n, bool beforeDraw, float addHeight, float addY, Color npcColor, Vector2 halfSize,
         SpriteEffects npcSpriteEffect, Vector2 screenPosition)
     {
-        bool armed = !beforeDraw && NPCLoader.HasHooks(n, NPCHook.PartyHatPosition) && Arm(TextureOf(new GameObjectRef(TextureAssets.Extra[72]?.Pointer ?? IntPtr.Zero)), PartyHat, n);
+        if (beforeDraw || !NPCLoader.HasHooks(n, NPCHook.PartyHatPosition))
+        {
+            orig(self, n, beforeDraw, addHeight, addY, npcColor, halfSize, npcSpriteEffect, screenPosition);
+            return;
+        }
+        bool armed = Arm(TextureOf(new GameObjectRef(PartyHatAsset())), PartyHat, n);
         try { orig(self, n, beforeDraw, addHeight, addY, npcColor, halfSize, npcSpriteEffect, screenPosition); }
         finally
         {
@@ -86,7 +111,7 @@ internal static unsafe class NPCUIHooks
 
     static void DrawNPCChatBubble(On_Main.orig_DrawNPCChatBubble orig, int i)
     {
-        bool armed = (uint)i < 200u && NPCLoader.HasHooks(Main.npc[i], NPCHook.ChatBubblePosition) &&
+        bool armed = (uint)i < 200u && BubbleTypes.Contains(Main.npc[i].type) && NPCLoader.HasHooks(Main.npc[i], NPCHook.ChatBubblePosition) &&
             Arm(TextureOf(new GameObjectRef(TextureAssets.Chat?.Pointer ?? IntPtr.Zero)), ChatBubble, Main.npc[i]);
         try { orig(i); }
         finally
@@ -105,7 +130,7 @@ internal static unsafe class NPCUIHooks
             for (int n = 0; n < 200; n++)
             {
                 NPC npc = Main.npc[n];
-                if (!npc.active || !NPCLoader.HasHooks(npc, Hover)) continue;
+                if (!npc.active || !HoverTypes.Contains(npc.type) || !NPCLoader.HasHooks(npc, Hover)) continue;
                 Vector2 bottom = npc.position + npc.netOffset + new Vector2(npc.width / 2f, npc.height);
                 Rectangle frame = npc.frame;
                 var vanilla = new Rectangle((int)bottom.X - frame.Width / 2, (int)bottom.Y - frame.Height, frame.Width, frame.Height);

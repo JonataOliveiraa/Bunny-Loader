@@ -116,15 +116,43 @@ public sealed unsafe class Asset<T> where T : struct, IGameObject
 
     static int valueOffset = -1;
 
+    static IntPtr textureClass;
+
+    static int textureOffset = -1;
+
     public T Value
     {
         get
         {
             Wait();
             IntPtr value = directTexture != IntPtr.Zero ? directTexture
-                : typeof(T) == typeof(Texture2D) ? Host.Native()->TextureAssetValue(asset) : *(IntPtr*)(asset + ValueOffset());
+                : typeof(T) == typeof(Texture2D) ? TextureValue(asset) : *(IntPtr*)(asset + ValueOffset());
             return Unsafe.As<IntPtr, T>(ref value);
         }
+    }
+
+    static IntPtr TextureValue(IntPtr gameAsset)
+    {
+        if (gameAsset != IntPtr.Zero)
+        {
+            IntPtr klass = Volatile.Read(ref textureClass);
+            if (klass != IntPtr.Zero && *(IntPtr*)gameAsset == klass) return *(IntPtr*)(gameAsset + textureOffset);
+        }
+        IntPtr value = Host.Native()->TextureAssetValue(gameAsset);
+        if (value != IntPtr.Zero && Volatile.Read(ref textureClass) == IntPtr.Zero) LearnTexture(gameAsset, value);
+        return value;
+    }
+
+    static void LearnTexture(IntPtr gameAsset, IntPtr value)
+    {
+        IntPtr klass = *(IntPtr*)gameAsset;
+        byte* name = Host.Utf8("Value");
+        int offset;
+        try { offset = Host.Native()->FieldOffset(klass, name); }
+        finally { Host.FreeUtf8(name); }
+        if (offset <= 0 || *(IntPtr*)(gameAsset + offset) != value) return;
+        textureOffset = offset;
+        Volatile.Write(ref textureClass, klass);
     }
 
     int ValueOffset()

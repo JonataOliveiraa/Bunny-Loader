@@ -286,9 +286,12 @@ internal static class SubworldNet
         lock (mainThread) mainThread.Enqueue(action);
     }
 
+    static bool Idle => mainThread.Count == 0 && vote == null && !hostTravelPending && rejoin == Rejoin.None && !SubworldTransition.Active && !SubworldVoteUI.Shown;
+
     static void DoUpdate(On_Main.orig_DoUpdate orig, Main self, GameTime gameTime)
     {
         orig(self, gameTime);
+        if (Idle) return;
         try { Tick(gameTime); }
         catch (Exception e) { ItemHooks.Report("Subworld travel (multiplayer)", e); }
     }

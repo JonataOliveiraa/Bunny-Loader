@@ -31,9 +31,13 @@ public sealed class HookChain<THook, TOrig> where THook : System.Delegate where 
         {
             if (!installed)
             {
-                install();
+                Type? outer = HookGates.Installing;
+                HookGates.Installing = typeof(THook);
+                try { install(); }
+                finally { HookGates.Installing = outer; }
                 installed = true;
             }
+            HookGates.Subscribed(typeof(THook), hook);
             hooks.Add(hook);
             Rebuild();
         }
@@ -71,5 +75,18 @@ internal static unsafe class HookGate
 
 public static class HookErrors
 {
-    public static void Report(string method, Exception error) => Log.Error($"hook {method}: {error}");
+    static readonly Dictionary<string, int> Seen = new();
+
+    public static void Report(string method, Exception error)
+    {
+        string key = method + "|" + error.GetType().FullName + "|" + error.TargetSite?.Name;
+        int count;
+        lock (Seen)
+        {
+            Seen.TryGetValue(key, out count);
+            Seen[key] = ++count;
+        }
+        if (count == 1) Log.Error($"hook {method}: {error}");
+        else if ((count & (count - 1)) == 0) Log.Warn($"hook {method}: {error.GetType().Name} again ({count} times): {error.Message}");
+    }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Terraria.Audio;
@@ -16,7 +17,11 @@ internal static class PlayerJumpHooks
         public bool[] Announced = Array.Empty<bool>();
     }
 
-    static JumpScope? jumping;
+    static JumpScope? jumping, spare;
+
+    static readonly PlayerHook HookOnExtraJumpRefreshed = PlayerLoader.Hook(nameof(ModPlayer.OnExtraJumpRefreshed));
+    static readonly PlayerHook HookCanShowExtraJumpVisuals = PlayerLoader.Hook(nameof(ModPlayer.CanShowExtraJumpVisuals));
+    static readonly PlayerHook HookExtraJumpVisuals = PlayerLoader.Hook(nameof(ModPlayer.ExtraJumpVisuals));
 
     static readonly string[] Hooks =
     {
@@ -44,7 +49,7 @@ internal static class PlayerJumpHooks
     internal static void InstallCore() =>
         ItemHooks.Once("PlayerExtraJumps", () =>
         {
-            On_Player.ResetEffects += ResetEffects;
+            PlayerHooks.WantResetJumps();
             On_Player.UpdateJumpHeight += UpdateJumpHeight;
             On_Player.RefreshDoubleJumps += RefreshDoubleJumps;
             On_Player.JumpMovement += JumpMovement;
@@ -58,11 +63,7 @@ internal static class PlayerJumpHooks
     static VanillaExtraJump? Native(int index) =>
         ExtraJumpLoader.ExtraJumps[index] is VanillaExtraJump { Native: true } jump ? jump : null;
 
-    static void ResetEffects(On_Player.orig_ResetEffects orig, Player self)
-    {
-        orig(self);
-        ExtraJumpLoader.ResetEnableFlags(self, ExtraJumpLoader.Of(self));
-    }
+    internal static void AfterReset(Player self) => ExtraJumpLoader.ResetEnableFlags(self, ExtraJumpLoader.Of(self));
 
     static void UpdateJumpHeight(On_Player.orig_UpdateJumpHeight orig, Player self)
     {
@@ -95,7 +96,7 @@ internal static class PlayerJumpHooks
         foreach (ExtraJump jump in ExtraJumpLoader.OrderedJumps)
         {
             if (Native(jump.Type) is { } vanilla && vanilla.HasOption(self))
-                PlayerLoader.Each(self, nameof(ModPlayer.OnExtraJumpRefreshed), jump, static (m, j) => m.OnExtraJumpRefreshed(j));
+                PlayerLoader.Each(self, HookOnExtraJumpRefreshed, jump, static (m, j) => m.OnExtraJumpRefreshed(j));
         }
         ExtraJumpLoader.RefreshModded(self, jumps);
     }
@@ -114,7 +115,7 @@ internal static class PlayerJumpHooks
     {
         ExtraJumpLoader.PlayerJumps jumps = ExtraJumpLoader.Of(self);
         ExtraJumpLoader.Sync(self, jumps);
-        var scope = new JumpScope { Player = self, Jumps = jumps, Before = new bool[VanillaCount], Announced = new bool[VanillaCount] };
+        JumpScope scope = Rent(self, jumps);
         for (int i = 0; i < VanillaCount; i++) scope.Before[i] = Native(i)?.IsPerforming(self) ?? false;
         Span<bool> hidden = stackalloc bool[VanillaCount];
         if (Attempting(self))
@@ -165,6 +166,33 @@ internal static class PlayerJumpHooks
             else if (!now && scope.Before[i]) ExtraJumpLoader.Ended(self, jump);
         }
         ExtraJumpLoader.PullAll(self, jumps);
+        Return(scope);
+    }
+
+    static JumpScope Rent(Player self, ExtraJumpLoader.PlayerJumps jumps)
+    {
+        JumpScope scope = Interlocked.Exchange(ref spare, null) ?? new JumpScope();
+        int count = VanillaCount;
+        if (scope.Before.Length != count)
+        {
+            scope.Before = new bool[count];
+            scope.Announced = new bool[count];
+        }
+        else
+        {
+            Array.Clear(scope.Before);
+            Array.Clear(scope.Announced);
+        }
+        scope.Player = self;
+        scope.Jumps = jumps;
+        return scope;
+    }
+
+    static void Return(JumpScope scope)
+    {
+        scope.Player = default;
+        scope.Jumps = null!;
+        Volatile.Write(ref spare, scope);
     }
 
     static bool Announce(JumpScope scope, int index)
@@ -214,12 +242,12 @@ internal static class PlayerJumpHooks
         for (int i = 0; i < VanillaCount; i++)
         {
             if (Native(i) is not { } jump || !jump.IsPerforming(self)) continue;
-            if (!PlayerLoader.All(self, nameof(ModPlayer.CanShowExtraJumpVisuals), (ExtraJump)jump, static (m, j) => m.CanShowExtraJumpVisuals(j)))
+            if (!PlayerLoader.All(self, HookCanShowExtraJumpVisuals, (ExtraJump)jump, static (m, j) => m.CanShowExtraJumpVisuals(j)))
             {
                 hidden[i] = true;
                 jump.IsPerforming(self) = false;
             }
-            else PlayerLoader.Each(self, nameof(ModPlayer.ExtraJumpVisuals), (ExtraJump)jump, static (m, j) => m.ExtraJumpVisuals(j));
+            else PlayerLoader.Each(self, HookExtraJumpVisuals, (ExtraJump)jump, static (m, j) => m.ExtraJumpVisuals(j));
         }
         try { orig(self); }
         finally

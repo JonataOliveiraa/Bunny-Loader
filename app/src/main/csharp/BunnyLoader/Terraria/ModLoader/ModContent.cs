@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -106,12 +107,20 @@ public static class ModContent
     public static bool TryFind<T>(string modName, string name, out T value) where T : IModType =>
         TryFind(modName + "/" + name, out value);
 
+    static class Requested<T> where T : struct, IGameObject
+    {
+        internal static readonly ConcurrentDictionary<string, Asset<T>> ByName = new(StringComparer.Ordinal);
+    }
+
     public static Asset<T> Request<T>(string name, AssetRequestMode mode = AssetRequestMode.AsyncLoad) where T : struct, IGameObject
     {
+        if (name != null && Requested<T>.ByName.TryGetValue(name, out Asset<T>? known)) return known;
         Asset<T>.CheckSupported();
-        (string modName, string path) = SplitName(name);
+        (string modName, string path) = SplitName(name!);
         if (modName == "Terraria") return typeof(T) == typeof(Microsoft.Xna.Framework.Graphics.SpriteFont) ? (Asset<T>)(object)VanillaFont(path) : VanillaAsset<T>.Get(path);
-        return ModOf(modName, name).Assets.Request<T>(path, mode);
+        Asset<T> asset = ModOf(modName, name!).Assets.Request<T>(path, mode);
+        Requested<T>.ByName.TryAdd(name!, asset);
+        return asset;
     }
 
     static Asset<Microsoft.Xna.Framework.Graphics.SpriteFont> VanillaFont(string path)
@@ -129,12 +138,17 @@ public static class ModContent
 
     public static bool RequestIfExists<T>(string name, out Asset<T> asset, AssetRequestMode mode = AssetRequestMode.AsyncLoad) where T : struct, IGameObject
     {
-        if (!HasAsset(name))
+        if (name != null && Requested<T>.ByName.TryGetValue(name, out Asset<T>? known))
+        {
+            asset = known;
+            return true;
+        }
+        if (!HasAsset(name!))
         {
             asset = null!;
             return false;
         }
-        asset = Request<T>(name, mode);
+        asset = Request<T>(name!, mode);
         return true;
     }
 
@@ -533,6 +547,8 @@ public static class ModContent
                            mod.GetContent<GlobalItem>().Any(g => ItemHooks.Overrides(g.GetType(), typeof(GlobalItem), nameof(GlobalItem.OnCreated)));
             if (created) RecipeLoader.WantCraft();
         }
+        try { BunnyLoader.Hooks.HookGates.ContentReady(); }
+        catch (Exception e) { Log.Error($"hook gates: setup failed: {e}"); }
         Log.Info($"startup: C# compiled {JitInfo.GetCompiledMethodCount(false)} methods, {JitInfo.GetCompiledILBytes(false) / 1024} KB of IL, {JitInfo.GetCompilationTime(false).TotalMilliseconds:F0} ms of JIT");
     }
 

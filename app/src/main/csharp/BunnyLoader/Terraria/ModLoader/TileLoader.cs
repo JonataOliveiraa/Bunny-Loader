@@ -28,7 +28,7 @@ public static unsafe partial class TileLoader
 
     static readonly List<ModTile> animated = new();
 
-    static bool subscribed, ready;
+    static bool subscribed, ready, randomUpdates;
 
     internal static readonly string[][] Events =
     {
@@ -226,6 +226,7 @@ public static unsafe partial class TileLoader
         methods[type] = flags;
         if (Host.Native()->TileEvents(type, flags, &Event) == 0)
             throw new InvalidOperationException($"{tile.FullName}: native tile hooks could not be installed");
+        randomUpdates |= (flags & (1u << 8)) != 0;
         TileHooks.Install(flags, true);
         if (tile is ModPylon pylon)
             PylonHooks.Add(pylon);
@@ -245,6 +246,7 @@ public static unsafe partial class TileLoader
         uint flags = Flags(tile);
         if (Host.Native()->TileEvents(-1, flags, &Event) == 0)
             throw new InvalidOperationException($"{tile.FullName}: native global tile hooks could not be installed");
+        randomUpdates |= (flags & (1u << 8)) != 0;
         TileHooks.Install(flags, false);
     }
 
@@ -390,6 +392,9 @@ public static unsafe partial class TileLoader
                 drops.TryAdd((template.createTile, -1), item.Type);
                 TileID.Sets.CraftingStationItemId[template.createTile] = item.Type;
             }
+        TileHooks.SetupTorches();
+        if (randomUpdates && Host.Native()->TileRandomBatch(&RandomBatch) == 0)
+            Log.Warn("tiles: RandomUpdate is not batched; it runs once per updated tile");
     }
 
     internal static void AddMapEntry(ModTile tile, Color color, LocalizedText name, Func<string, int, int, string>? nameFunc)
@@ -525,6 +530,30 @@ public static unsafe partial class TileLoader
         internal IntPtr Player;
 
         internal int Result;
+    }
+
+    [UnmanagedCallersOnly]
+    static void RandomBatch(int* entries, int count)
+    {
+        for (int k = 0; k < count; k++)
+        {
+            int* entry = entries + k * 4;
+            int i = entry[0], j = entry[1], type = entry[2];
+            try
+            {
+                int at = TileData.RawOffset(i, j);
+                if (!TileData.RawActive(at) || TileData.RawType(at) != type)
+                    continue;
+                bool underground = entry[3] != 0;
+                GetTile(type)?.RandomUpdate(i, j, underground);
+                foreach (GlobalTile g in Hooks.RandomUpdate)
+                    g.RandomUpdate(i, j, type, underground);
+            }
+            catch (Exception e)
+            {
+                ItemHooks.Report("TileLoader.RandomUpdate", e);
+            }
+        }
     }
 
     [UnmanagedCallersOnly]

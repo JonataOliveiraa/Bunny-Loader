@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text.Json.Nodes;
+using System.Threading;
 using BunnyLoader;
 using BunnyLoader.Interop;
 using Terraria.IO;
@@ -19,6 +20,7 @@ internal static class AccessorySlotHooks
 
     static readonly EntityInstances<ModAccessorySlotPlayer> Players = new();
     static bool installed;
+    static int generation;
 
     [ThreadStatic] static int scopeSlot;
     [ThreadStatic] static bool scoped;
@@ -31,8 +33,10 @@ internal static class AccessorySlotHooks
     {
         if (installed)
             return;
+            
         installed = true;
-        On_Player.UpdateEquips += UpdateEquips;
+        PlayerHooks.WantSlotEquips();
+
         On_Player.UpdateVisibleAccessories += UpdateVisibleAccessories;
         On_Player.UpdateDyes += UpdateDyes;
         On_Player.TrySwitchingLoadout += TrySwitchingLoadout;
@@ -40,19 +44,30 @@ internal static class AccessorySlotHooks
         On_Player.InternalSavePlayerFile += InternalSavePlayerFile;
         On_Player.LoadPlayer += LoadPlayer;
         On_Player_Hooks.EnterWorld += EnterWorld;
+
         On_ItemSlot.PickItemMovementAction += PickItemMovementAction;
         On_ItemSlot.ArmorSwap += ArmorSwap;
+
         AccessorySlotPanel.Install();
         AccessorySlotNet.Install();
     }
 
     internal static ModAccessorySlotPlayer Of(Player player)
     {
-        ModAccessorySlotPlayer? slots = Players.Get(player.Pointer);
+        IntPtr pointer = player.Pointer;
+        long epoch = GameGc.Collections();
+        int stamp = Volatile.Read(ref generation);
+        ModAccessorySlotPlayer? slots = RecentInstance<ModAccessorySlotPlayer>.Get(pointer, epoch, stamp);
         if (slots != null && slots.SlotCount >= Loader.TotalCount)
             return slots;
-        slots = new ModAccessorySlotPlayer(player);
-        Players.Set(player.Pointer, slots);
+        slots = Players.Get(pointer);
+        if (slots == null || slots.SlotCount < Loader.TotalCount)
+        {
+            slots = new ModAccessorySlotPlayer(player);
+            Players.Set(pointer, slots);
+            stamp = Interlocked.Increment(ref generation);
+        }
+        RecentInstance<ModAccessorySlotPlayer>.Set(pointer, epoch, stamp, slots);
         return slots;
     }
 
@@ -202,9 +217,8 @@ internal static class AccessorySlotHooks
         return a != -1 && a == ID.ItemID.Sets.AccessoryIncompatibilityType[equipped.type];
     }
 
-    static void UpdateEquips(On_Player.orig_UpdateEquips orig, Player self, int i)
+    internal static void AfterUpdateEquips(Player self)
     {
-        orig(self, i);
         try
         {
             Of(self).UpdateEquips();
@@ -305,6 +319,7 @@ internal static class AccessorySlotHooks
             if (player.IsNull)
                 return data;
             Players.Set(player.Pointer, null);
+            Interlocked.Increment(ref generation);
             ModAccessorySlotPlayer slots = Of(player);
             if (PlayerHooks.Read(file)[SaveKey] is JsonObject saved)
                 slots.LoadData(TagJson.Read(saved.ToJsonString()));

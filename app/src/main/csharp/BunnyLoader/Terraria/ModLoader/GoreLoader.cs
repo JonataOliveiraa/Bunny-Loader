@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using BunnyLoader;
 using BunnyLoader.Interop;
 using Microsoft.Xna.Framework.Graphics;
@@ -16,7 +17,7 @@ public static class GoreLoader
 {
     static readonly object Gate = new();
     static readonly List<ModGore> pending = new();
-    static readonly Dictionary<int, ModGore> gores = new();
+    static ModGore?[] gores = Array.Empty<ModGore?>();
 
     public static int GoreCount => TextureAssets.Gore_.IsNull ? GoreID.Count : TextureAssets.Gore_.Length;
 
@@ -50,7 +51,8 @@ public static class GoreLoader
 
     internal static ModGore? GetModGore(int type)
     {
-        lock (Gate) return gores.TryGetValue(type, out ModGore? gore) ? gore : null;
+        ModGore?[] all = Volatile.Read(ref gores);
+        return (uint)type < (uint)all.Length ? all[type] : null;
     }
 
     internal static void ResizeArrays()
@@ -69,12 +71,22 @@ public static class GoreLoader
         Grow(ref GoreID.Sets.DisappearSpeedAlpha, total);
         Grow(ref GoreID.Sets.IsDrip, total);
         Grow(ref ChildSafety.SafeGore, total);
+        lock (Gate)
+        {
+            ModGore?[] all = gores;
+            var grown = new ModGore?[Math.Max(all.Length, total)];
+            Array.Copy(all, grown, all.Length);
+            for (int i = 0; i < adding.Length; i++)
+            {
+                adding[i].Type = first + i;
+                grown[first + i] = adding[i];
+            }
+            Volatile.Write(ref gores, grown);
+        }
         for (int i = 0; i < adding.Length; i++)
         {
             ModGore gore = adding[i];
-            int type = first + i;
-            gore.Type = type;
-            lock (Gate) gores[type] = gore;
+            int type = gore.Type;
             GoreID.Sets.DisappearSpeed[type] = 1;
             GoreID.Sets.DisappearSpeedAlpha[type] = 1;
             try { TextureAssets.Gore[type] = new Asset<Texture2D>(gore.Texture, ItemLoader.ResolveTexture(gore, gore.Texture)); }

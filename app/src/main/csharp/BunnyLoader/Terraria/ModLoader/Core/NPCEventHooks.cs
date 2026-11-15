@@ -2,6 +2,8 @@ using System;
 using System.Runtime.InteropServices;
 using System.Threading;
 using BunnyLoader;
+using BunnyLoader.Interop;
+using Microsoft.Xna.Framework.Graphics;
 using Terraria.DataStructures;
 using Terraria.GameContent;
 
@@ -31,9 +33,28 @@ internal enum NPCMethod : ulong
 
 internal static unsafe class NPCEventHooks
 {
+    internal const uint PerType = 1 | 2 | 4 | 8 | 16;
+    const int EmptyType = 0;
+
+    sealed class FrameSize
+    {
+        internal readonly IntPtr Texture;
+        internal readonly int Frames, Height;
+        internal readonly GameHandle Pin;
+
+        internal FrameSize(IntPtr texture, int frames, int height)
+        {
+            Texture = texture;
+            Frames = frames;
+            Height = height;
+            Pin = new GameHandle(texture);
+        }
+    }
+
     static readonly object Gate = new();
     static uint[] wanted = Array.Empty<uint>();
     static uint all;
+    static FrameSize?[] frameSizes = Array.Empty<FrameSize?>();
     internal struct BorrowContext
     {
         public IntPtr Pointer;
@@ -50,16 +71,19 @@ internal static unsafe class NPCEventHooks
         NPCMethod flags = 0;
         foreach (NPCMethod method in Enum.GetValues<NPCMethod>())
             if (ItemHooks.Overrides(type, baseType, method.ToString())) flags |= method;
-        uint events = 0;
-        if ((flags & (NPCMethod.PreAI | NPCMethod.AI | NPCMethod.PostAI)) != 0) events |= 1;
-        if ((flags & NPCMethod.FindFrame) != 0) events |= 2;
-        if ((flags & NPCMethod.ResetEffects) != 0) events |= 4;
-        if ((flags & NPCMethod.CheckActive) != 0) events |= 8;
-        if ((flags & NPCMethod.UpdateLifeRegen) != 0) events |= 16;
-        if ((flags & NPCMethod.ApplyDifficultyAndPlayerScaling) != 0) events |= 32;
-        if ((flags & NPCMethod.CheckDead) != 0) events |= 128;
+        uint events = Events(flags);
+        if (npcType < 0)
+        {
+            if ((events & PerType) != 0) Want(EmptyType, events & PerType);
+            events &= ~PerType;
+        }
         if (events != 0) Want(npcType, events);
-        if ((flags & NPCMethod.HitEffect) != 0) ItemHooks.Once("NPCHitEffect", () => On_NPC.HitEffect += HitEffect);
+        if ((flags & NPCMethod.HitEffect) != 0)
+            ItemHooks.Once("NPCHitEffect", () =>
+            {
+                NPCGates.Borrowable<On_NPC.hook_HitEffect>(0, NPCMethod.HitEffect);
+                On_NPC.HitEffect += HitEffect;
+            });
         if ((flags & NPCMethod.OnSpawn) != 0) ItemHooks.Once("NPCSpawn", () => On_NPC.NewNPC += NewNPC);
         if ((flags & NPCMethod.SetDefaultsFromNetId) != 0) ItemHooks.Once("NPCVariantDefaults", () => On_NPC.SetDefaultsFromNetId += VariantDefaults);
         ItemHitHooks.InstallNPC(flags);
@@ -71,6 +95,60 @@ internal static unsafe class NPCEventHooks
         NPCLootHooks.Install(flags);
         NPCSpawnHooks.Install(type, baseType, npcType, ref flags);
         return flags;
+    }
+
+    internal static uint Events(NPCMethod flags)
+    {
+        uint events = 0;
+        if ((flags & (NPCMethod.PreAI | NPCMethod.AI | NPCMethod.PostAI)) != 0) events |= 1;
+        if ((flags & NPCMethod.FindFrame) != 0) events |= 2;
+        if ((flags & NPCMethod.ResetEffects) != 0) events |= 4;
+        if ((flags & NPCMethod.CheckActive) != 0) events |= 8;
+        if ((flags & NPCMethod.UpdateLifeRegen) != 0) events |= 16;
+        if ((flags & NPCMethod.ApplyDifficultyAndPlayerScaling) != 0) events |= 32;
+        if ((flags & NPCMethod.CheckDead) != 0) events |= 128;
+        return events;
+    }
+
+    static int FrameHeight(int type)
+    {
+        int frames = Math.Max(1, Main.npcFrameCount[type]);
+        if (Main.dedServ) return 1;
+        IntPtr texture = TextureOf(type);
+        FrameSize?[] sizes = Volatile.Read(ref frameSizes);
+        if (texture != IntPtr.Zero && (uint)type < (uint)sizes.Length && sizes[type] is { } known && known.Texture == texture && known.Frames == frames)
+            return known.Height;
+        Texture2D value = TextureAssets.Npc[type].Value;
+        int height = value.Height / frames;
+        if (type >= 0 && value.Pointer != IntPtr.Zero && value.Pointer == TextureOf(type)) Remember(type, new FrameSize(value.Pointer, frames, height));
+        return height;
+    }
+
+    static IntPtr TextureOf(int type)
+    {
+        GameArray<GameObject> assets = TextureAssets.Npc_.Raw;
+        if ((uint)type >= (uint)assets.Length) return IntPtr.Zero;
+        IntPtr asset = assets[type].Pointer;
+        return asset == IntPtr.Zero ? IntPtr.Zero : Host.Native()->TextureAssetValue(asset);
+    }
+
+    static void Remember(int type, FrameSize size)
+    {
+        FrameSize? old;
+        lock (Gate)
+        {
+            FrameSize?[] sizes = frameSizes;
+            if (type >= sizes.Length)
+            {
+                var grown = new FrameSize?[Math.Max(type + 1, Math.Max(NPCLoader.NPCCount, sizes.Length * 2))];
+                Array.Copy(sizes, grown, sizes.Length);
+                sizes = grown;
+            }
+            old = sizes[type];
+            sizes[type] = size;
+            Volatile.Write(ref frameSizes, sizes);
+        }
+        old?.Pin.Dispose();
     }
 
     internal static void Want(int type, uint events)
@@ -105,10 +183,7 @@ internal static unsafe class NPCEventHooks
             switch (kind)
             {
                 case 0: NPCLoader.NPCAI(npc); break;
-                case 1:
-                    int frames = Math.Max(1, Main.npcFrameCount[npc.type]);
-                    NPCLoader.FindFrame(npc, Main.dedServ ? 1 : TextureAssets.Npc[npc.type].Value.Height / frames);
-                    break;
+                case 1: NPCLoader.FindFrame(npc, FrameHeight(npc.type)); break;
                 case 2: NPCLoader.ResetEffects(npc); break;
                 case 3: return NPCLoader.CheckActive(npc) ? 1 : 0;
                 case 4: NPCLoader.UpdateLifeRegen(npc, ref *(int*)args); break;

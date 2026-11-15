@@ -111,13 +111,25 @@ public class UserInterface
             seenInput = UIInput.Sequence;
             return;
         }
-        foreach (UIInput.Touch touch in UIInput.Since(seenInput)) UIInput.With(touch, () => Pointer(touch));
-        seenInput = UIInput.Sequence;
-        UIInput.With(UIInput.Current, () =>
+        int seen = seenInput;
+        List<UIInput.Touch> events = UIInput.Events;
+        for (int i = 0; i < events.Count; i++)
         {
-            Pointer(UIInput.Current);
+            UIInput.Touch touch = events[i];
+            if (touch.Sequence <= seen) continue;
+            UIInput.Saved saved = UIInput.Push(touch);
+            try { Pointer(touch); }
+            finally { UIInput.Pop(saved); }
+        }
+        seenInput = UIInput.Sequence;
+        UIInput.Touch current = UIInput.Current;
+        UIInput.Saved state = UIInput.Push(current);
+        try
+        {
+            Pointer(current);
             currentState?.Update(time);
-        });
+        }
+        finally { UIInput.Pop(state); }
     }
 
     void Pointer(UIInput.Touch touch)

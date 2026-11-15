@@ -34,6 +34,13 @@ internal static class PlayerDrawHooks
 
     static Camera? camera;
 
+    static readonly PlayerHook HookDrawEffects = PlayerLoader.Hook(nameof(ModPlayer.DrawEffects));
+    static readonly PlayerHook HookModifyDrawInfo = PlayerLoader.Hook(nameof(ModPlayer.ModifyDrawInfo));
+    static readonly PlayerHook HookTransformDrawData = PlayerLoader.Hook(nameof(ModPlayer.TransformDrawData));
+    static readonly PlayerHook HookDrawPlayer = PlayerLoader.Hook(nameof(ModPlayer.DrawPlayer));
+    static readonly PlayerHook HookModifyScreenPosition = PlayerLoader.Hook(nameof(ModPlayer.ModifyScreenPosition));
+    static readonly PlayerHook HookModifyZoom = PlayerLoader.Hook(nameof(ModPlayer.ModifyZoom));
+
     internal static void Install(Func<string, bool> has)
     {
         if (has(nameof(ModPlayer.DrawEffects)) || has(nameof(ModPlayer.ModifyDrawInfo)))
@@ -67,18 +74,27 @@ internal static class PlayerDrawHooks
     static void UseNormalLayers(On_LegacyPlayerRenderer.orig_DrawPlayer_UseNormalLayers orig, PlayerDrawSet drawinfo)
     {
         PlayerDrawLayer[] layers;
-        try { layers = PlayerDrawLayerLoader.GetDrawLayers(drawinfo); }
+        bool vanilla;
+        try { layers = PlayerDrawLayerLoader.GetDrawLayers(drawinfo, out vanilla); }
         catch (Exception e)
         {
             ItemHooks.Report("PlayerDrawLayers", e);
             orig(drawinfo);
             return;
         }
+        if (vanilla)
+        {
+            orig(drawinfo);
+            return;
+        }
+        PlayerDrawLayer.Transformation? active = null;
         foreach (PlayerDrawLayer layer in layers)
         {
-            try { layer.DrawWithTransformationAndChildren(ref drawinfo); }
+            try { layer.DrawMerged(ref drawinfo, ref active); }
             catch (Exception e) { ItemHooks.Report($"{layer.FullName}.Draw", e); }
         }
+        try { PlayerDrawLayer.Transformation.Switch(ref drawinfo, ref active, null); }
+        catch (Exception e) { ItemHooks.Report("PlayerDrawLayers", e); }
         PlayerDrawLayers.DrawPlayer_MakeIntoFirstFractalAfterImage(drawinfo);
     }
 
@@ -87,30 +103,22 @@ internal static class PlayerDrawHooks
     static void BoringSetup(On_PlayerDrawSet.orig_BoringSetup orig, PlayerDrawSet self, Player player, ref Vector2 drawPosition, float shadowOpacity, float rotation, ref Vector2 rotationOrigin, Projectile overrideHeldProjectile)
     {
         orig(self, player, ref drawPosition, shadowOpacity, rotation, ref rotationOrigin, overrideHeldProjectile);
-        if (PlayerLoader.Hooked(nameof(ModPlayer.DrawEffects)).Length > 0) Effects(player, self);
+        if (HookDrawEffects.Hooked.Length > 0) Effects(player, self);
         PlayerDrawSet info = self;
-        PlayerLoader.Each(player, nameof(ModPlayer.ModifyDrawInfo), new StrongBoxInfo(info), static (m, s) => m.ModifyDrawInfo(ref s.Info));
+        PlayerLoader.Each(player, HookModifyDrawInfo, 0, ref info, static (m, _, ref i) => m.ModifyDrawInfo(ref i));
     }
 
-    sealed class StrongBoxInfo
+    struct Tones
     {
-        public PlayerDrawSet Info;
-
-        public StrongBoxInfo(PlayerDrawSet info) => Info = info;
-    }
-
-    sealed class Tones
-    {
-        public PlayerDrawSet Info;
-        public float R = 1f, G = 1f, B = 1f, A = 1f;
+        public float R, G, B, A;
         public bool FullBright;
     }
 
     static void Effects(Player player, PlayerDrawSet info)
     {
-        var tones = new Tones { Info = info };
-        PlayerLoader.Each(player, nameof(ModPlayer.DrawEffects), tones,
-            static (m, t) => m.DrawEffects(t.Info, ref t.R, ref t.G, ref t.B, ref t.A, ref t.FullBright));
+        var tones = new Tones { R = 1f, G = 1f, B = 1f, A = 1f };
+        PlayerLoader.Each(player, HookDrawEffects, info, ref tones,
+            static (m, i, ref t) => m.DrawEffects(i, ref t.R, ref t.G, ref t.B, ref t.A, ref t.FullBright));
         if (tones.R == 1f && tones.G == 1f && tones.B == 1f && tones.A == 1f && !tones.FullBright) return;
         float shadow = info.shadow;
         foreach ((ColorField field, Tint tint) in Colors)
@@ -125,7 +133,10 @@ internal static class PlayerDrawHooks
     {
         Player player = drawinfo.drawPlayer;
         if (!player.IsNull)
-            PlayerLoader.Each(player, nameof(ModPlayer.TransformDrawData), new StrongBoxInfo(drawinfo), static (m, s) => m.TransformDrawData(ref s.Info));
+        {
+            PlayerDrawSet info = drawinfo;
+            PlayerLoader.Each(player, HookTransformDrawData, 0, ref info, static (m, _, ref i) => m.TransformDrawData(ref i));
+        }
         orig(drawinfo, positionalOffsets);
     }
 
@@ -140,14 +151,14 @@ internal static class PlayerDrawHooks
     static void PrepareDrawForFrame(On_LegacyPlayerRenderer.orig_PrepareDrawForFrame orig, LegacyPlayerRenderer self, Player drawPlayer)
     {
         orig(self, drawPlayer);
-        if (camera is { } current) PlayerLoader.Each(drawPlayer, nameof(ModPlayer.DrawPlayer), current, static (m, c) => m.DrawPlayer(c));
+        if (camera is { } current) PlayerLoader.Each(drawPlayer, HookDrawPlayer, current, static (m, c) => m.DrawPlayer(c));
     }
 
     static void UpdateCameraPosition(On_Main.orig_DoDraw_UpdateCameraPosition orig)
     {
         orig();
         if (Main.gameMenu) return;
-        if (cameraPlayer) PlayerLoader.Each(Main.LocalPlayer, nameof(ModPlayer.ModifyScreenPosition), static m => m.ModifyScreenPosition());
+        if (cameraPlayer) PlayerLoader.Each(Main.LocalPlayer, HookModifyScreenPosition, static m => m.ModifyScreenPosition());
         if (cameraSystem) SystemLoader.ModifyScreenPosition();
     }
 
@@ -159,7 +170,7 @@ internal static class PlayerDrawHooks
             return;
         }
         float zoom = value.X;
-        PlayerLoader.Each(Main.LocalPlayer, nameof(ModPlayer.ModifyZoom), 0, ref zoom, static (m, _, ref z) => m.ModifyZoom(ref z));
+        PlayerLoader.Each(Main.LocalPlayer, HookModifyZoom, 0, ref zoom, static (m, _, ref z) => m.ModifyZoom(ref z));
         float factor = float.IsFinite(zoom) && zoom > 0f ? zoom / value.X : 1f;
         orig(self, factor == 1f ? value : new Vector2(value.X * factor, value.Y * factor));
     }

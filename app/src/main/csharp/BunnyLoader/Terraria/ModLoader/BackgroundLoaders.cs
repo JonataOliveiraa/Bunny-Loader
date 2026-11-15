@@ -142,7 +142,8 @@ public static class UndergroundBackgroundStylesLoader
     public static void FillTextureArray(int style, int[] textureSlots)
     {
         Get(style)?.FillTextureArray(textureSlots);
-        foreach (GlobalBackgroundStyle global in GlobalBackgroundStyleLoader.All) global.FillUndergroundTextureArray(style, textureSlots);
+        IReadOnlyList<GlobalBackgroundStyle> globals = GlobalBackgroundStyleLoader.All;
+        for (int i = 0; i < globals.Count; i++) globals[i].FillUndergroundTextureArray(style, textureSlots);
     }
 }
 
@@ -173,7 +174,8 @@ public static class SurfaceBackgroundStylesLoader
     public static void ModifyFarFades(int style, float[] fades, float transitionSpeed)
     {
         Get(style)?.ModifyFarFades(fades, transitionSpeed);
-        foreach (GlobalBackgroundStyle global in GlobalBackgroundStyleLoader.All) global.ModifyFarSurfaceFades(style, fades, transitionSpeed);
+        IReadOnlyList<GlobalBackgroundStyle> globals = GlobalBackgroundStyleLoader.All;
+        for (int i = 0; i < globals.Count; i++) globals[i].ModifyFarSurfaceFades(style, fades, transitionSpeed);
     }
 }
 

@@ -12,7 +12,7 @@ internal static class PlayerCrowdControlHooks
         ItemHooks.Once("PlayerCustomCrowdControl", () =>
         {
             On_Player.get_CCed += IsCrowdControlled;
-            On_Player.ResetEffects += Reset;
+            PlayerHooks.WantResetCrowdControl();
         });
         State? state = States.Get(player.Pointer);
         if (state == null) States.Set(player.Pointer, state = new State());
@@ -22,9 +22,8 @@ internal static class PlayerCrowdControlHooks
     static bool IsCrowdControlled(On_Player.orig_get_CCed orig, Player player) =>
         States.Get(player.Pointer)?.Controlled == true || orig(player);
 
-    static void Reset(On_Player.orig_ResetEffects orig, Player player)
+    internal static void BeforeReset(Player player)
     {
         if (States.Get(player.Pointer) is State state) state.Controlled = false;
-        orig(player);
     }
 }

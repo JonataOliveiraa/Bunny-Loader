@@ -143,6 +143,8 @@ public static class Measure
         Info($"[{windowName}] C# self time: {total:0.000} ms/frame in {rows.Count} hooks, {entries:0} entries/frame (bias {bias:0} ns/entry subtracted, clock {HookProfile.ClockNs:0} ns)");
         foreach (var r in rows.OrderByDescending(r => r.SelfMs).Take(40))
             Info($"[{windowName}]   {r.SelfMs:0.000} ms/frame, {r.PerFrame:0.0}/frame, {r.PerCallUs:0.00} us/call (raw {r.RawUs:0.00}): {r.Name}");
+        foreach (var r in rows.OrderByDescending(r => r.PerFrame).Take(60))
+            Info($"[{windowName}]   by count {r.PerFrame:0.0}/frame, {r.SelfMs:0.000} ms/frame, {r.PerCallUs:0.00} us/call: {r.Name}");
         var result = new Dictionary<string, (double, double, double)>(StringComparer.Ordinal);
         foreach (string f in focus)
         {

@@ -64,9 +64,28 @@ internal static unsafe partial class TileHooks
             global.EmitParticles(i, j, cell, (ushort)type, frameX, frameY, light, visible);
     }
 
+    const uint TorchFlag = 1u << 28;
+
+    static int[] torchCells = new int[243];
+
+    static bool anyModTorch;
+
+    internal static void SetupTorches()
+    {
+        if (!installed.Contains("TorchRow"))
+            return;
+        for (int type = TileID.Count; type < TileLoader.TileCount; type++)
+        {
+            if (TileLoader.GetTile(type) == null || !TileID.Sets.Torches[type])
+                continue;
+            TileLoader.Mark(type, TorchFlag);
+            anyModTorch = true;
+        }
+    }
+
     static void TorchRow(On_Player.orig_TryRecalculatingTorchLuck orig, Player self)
     {
-        if (!self.happyFunTorchTime)
+        if (anyModTorch && !self.happyFunTorchTime)
         {
             Vector2 center = self._nextTorchLuckCheckCenter;
             int row = (int)center.Y / 16 - 40 + self.luckyTorchCounter;
@@ -74,11 +93,13 @@ internal static unsafe partial class TileHooks
             {
                 int first = Utils.Clamp((int)center.X / 16 - 40, 10, Main.maxTilesX - 10);
                 int last = Utils.Clamp((int)center.X / 16 + 40, 10, Main.maxTilesX - 10);
-                for (int x = first; x <= last; x++)
+                int count = last >= first ? Scan(ref torchCells, first, row, last - first + 1, 1, TorchFlag) : 0;
+                for (int k = 0; k < count; k++)
                 {
-                    Tile tile = Main.tile[x, row];
-                    if (tile.active() && TileID.Sets.Torches[tile.type] && TileLoader.GetTile(tile.type) != null && tile.frameX >= 0 && tile.frameX < 66)
-                        ModTorches(self.whoAmI).Add(tile.type);
+                    int x = torchCells[k * 3], type = torchCells[k * 3 + 2];
+                    short frameX = TileData.RawFrameX(TileData.RawOffset(x, row));
+                    if (frameX >= 0 && frameX < 66)
+                        ModTorches(self.whoAmI).Add(type);
                 }
             }
         }

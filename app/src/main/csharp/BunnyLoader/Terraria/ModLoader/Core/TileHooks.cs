@@ -39,9 +39,9 @@ internal static partial class TileHooks
     internal static void Install(uint flags, bool own)
     {
         bool Has(int bit) => (flags & (1u << bit)) != 0;
-        if (own || Has(0) || Has(4))
+        if (Has(0) || Has(4))
             Once("Kill", () => On_WorldGen.KillTile += Kill);
-        if (own || Has(1))
+        if (Has(1))
             Once("CanKill", () => On_WorldGen.CanKillTile_int_int_outbool += CanKill);
         if (own || Has(6))
         {
@@ -77,7 +77,7 @@ internal static partial class TileHooks
             Once("Pound", () => On_WorldGen.PoundTile += Pound);
         }
 
-        if (own || Has(25))
+        if (Has(25))
             Once("Explode", () => On_Projectile.CanExplodeTile += Explode);
         if (Has(21))
             Once("Replace", () => On_WorldGen.ReplaceTile += Replace);
@@ -215,7 +215,7 @@ internal static partial class TileHooks
     static bool CanKill(On_WorldGen.orig_CanKillTile_int_int_outbool orig, int i, int j, out bool damaged)
     {
         damaged = false;
-        int type = Main.tile[i, j].type;
+        int type = TileData.RawType(TileData.RawOffset(i, j));
         if (TileLoader.GetTile(type)?.CanKillTile(i, j, ref damaged) == false)
             return false;
         foreach (GlobalTile g in TileLoader.Hooks.CanKillTile)
@@ -226,15 +226,21 @@ internal static partial class TileHooks
 
     static void Kill(On_WorldGen.orig_KillTile orig, int i, int j, bool fail, bool effects, bool noItem)
     {
-        Tile tile = Main.tile[i, j];
-        int type = tile.type;
-        if (!tile.active())
+        int at = TileData.RawOffset(i, j);
+        if (!TileData.RawActive(at))
         {
             orig(i, j, fail, effects, noItem);
             return;
         }
 
+        int type = TileData.RawType(at);
         ModTile? mod = TileLoader.GetTile(type);
+        if (mod == null && killing == 0 && TileLoader.Hooks.KillTile.Length == 0 && TileLoader.Hooks.NumDust.Length == 0)
+        {
+            orig(i, j, fail, effects, noItem);
+            return;
+        }
+
         mod?.KillTile(i, j, ref fail, ref effects, ref noItem);
         foreach (GlobalTile g in TileLoader.Hooks.KillTile)
             g.KillTile(i, j, type, ref fail, ref effects, ref noItem);
@@ -267,7 +273,7 @@ internal static partial class TileHooks
 
     static void Drop(On_WorldGen.orig_KillTile_DropItems orig, int i, int j, Tile tile, bool large)
     {
-        int type = tile.type;
+        int type = TileData.RawType(tile._tileOffset);
         if (!AllowDrop(i, j, type))
             return;
         if (TileLoader.GetTile(type) is ModTile mod)
@@ -287,7 +293,7 @@ internal static partial class TileHooks
     static void Drops(On_WorldGen.orig_KillTile_GetItemDrops orig, int i, int j, Tile tile, out int item, out int stack, out int second, out int secondStack, out bool noPrefix, bool large)
     {
         orig(i, j, tile, out item, out stack, out second, out secondStack, out noPrefix, large);
-        int type = tile.type;
+        int type = TileData.RawType(tile._tileOffset);
         if (!AllowDrop(i, j, type))
         {
             item = second = 0;
@@ -320,10 +326,12 @@ internal static partial class TileHooks
             return 6000;
         if (killing > 0)
             dustBudget--;
-        int type = tile.type;
+        int type = TileData.RawType(tile._tileOffset);
         ModTile? mod = TileLoader.GetTile(type);
         if (mod == null)
         {
+            if (TileLoader.Hooks.CreateDust.Length == 0)
+                return orig(i, j, tile);
             int index = orig(i, j, tile);
             if ((uint)index >= 6000u)
                 return index;
@@ -351,7 +359,7 @@ internal static partial class TileHooks
 
     static void Sound(On_WorldGen.orig_KillTile_PlaySounds orig, int i, int j, bool fail, Tile tile)
     {
-        int type = tile.type;
+        int type = TileData.RawType(tile._tileOffset);
         ModTile? mod = TileLoader.GetTile(type);
         if (mod?.KillSound(i, j, fail) == false)
             return;
@@ -372,7 +380,7 @@ internal static partial class TileHooks
     static int Pick(On_Player.orig_GetPickaxeDamage orig, Player player, int i, int j, int power, int buffer, Tile tile)
     {
         int damage = orig(player, i, j, power, buffer, tile);
-        ModTile? mod = TileLoader.GetTile(tile.type);
+        ModTile? mod = TileLoader.GetTile(TileData.RawType(tile._tileOffset));
         return mod == null ? damage : power < mod.MinPick ? 0 : mod.MineResist > 0 ? (int)(damage / mod.MineResist) : damage;
     }
 
@@ -648,12 +656,17 @@ internal static partial class TileHooks
 
     static void Click(On_Player.orig_TileInteractionsUse orig, Player player, int i, int j)
     {
-        Tile cell = Main.tile[i, j];
-        ModTile? mod = TileLoader.GetTile(cell.type);
+        int type = TileData.RawType(TileData.RawOffset(i, j));
+        ModTile? mod = TileLoader.GetTile(type);
         bool fresh = Fresh(player);
+        if (mod == null && TileLoader.Hooks.RightClick.Length == 0)
+        {
+            orig(player, i, j);
+            return;
+        }
+
         if (mod != null && !fresh)
             return;
-        int type = cell.type;
         bool chest = TileID.Sets.BasicChest[type], dresser = TileID.Sets.BasicDresser[type], fire = TileID.Sets.Campfires[type];
         bool right = mod != null && TileLoader.Has(mod, 14);
         if (right)
@@ -697,8 +710,10 @@ internal static partial class TileHooks
         orig(player, i, j);
         if (i != Player.tileTargetX || j != Player.tileTargetY)
             return;
-        int type = Main.tile[i, j].type;
+        int type = TileData.RawType(TileData.RawOffset(i, j));
         ModTile? mod = TileLoader.GetTile(type);
+        if (mod == null && TileLoader.Hooks.MouseOver.Length == 0)
+            return;
         mod?.MouseOver(i, j);
         foreach (GlobalTile g in TileLoader.Hooks.MouseOver)
             g.MouseOver(i, j, type);
@@ -713,8 +728,11 @@ internal static partial class TileHooks
     static void Far(On_Player.orig_TileInteractionsCheckLongDistance orig, Player player, int i, int j)
     {
         orig(player, i, j);
-        int type = Main.tile[i, j].type;
-        TileLoader.GetTile(type)?.MouseOverFar(i, j);
+        int type = TileData.RawType(TileData.RawOffset(i, j));
+        ModTile? mod = TileLoader.GetTile(type);
+        if (mod == null && TileLoader.Hooks.MouseOverFar.Length == 0)
+            return;
+        mod?.MouseOverFar(i, j);
         foreach (GlobalTile g in TileLoader.Hooks.MouseOverFar)
             g.MouseOverFar(i, j, type);
     }

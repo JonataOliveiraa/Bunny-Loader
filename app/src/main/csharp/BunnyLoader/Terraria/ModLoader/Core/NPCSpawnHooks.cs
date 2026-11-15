@@ -9,15 +9,22 @@ internal static class NPCSpawnHooks
     sealed class SpawnState { internal NPCSpawnInfo Info; }
     static readonly EntityInstances<SpawnState> States = new();
     [ThreadStatic] static NPCSpawnInfo current;
+    [ThreadStatic] static bool refreshed;
 
-    internal static NPCSpawnInfo InfoOf(NPC.Spawner spawner)
+    internal static NPCSpawnInfo BaseOf(NPC.Spawner spawner)
     {
         if (spawner.IsNull) throw new ArgumentException("Spawn context cannot be null", nameof(spawner));
-        NPCSpawnInfo info = current.Spawner == spawner ? current : States.Get(spawner.Pointer)?.Info ?? new NPCSpawnInfo
+        return current.Spawner == spawner ? current : States.Get(spawner.Pointer)?.Info ?? new NPCSpawnInfo
         {
             Spawner = spawner, SpawnTileX = -1, SpawnTileY = -1, GroundTileY = -1, SpawnTileType = -1, SpawnWallType = -1,
             Player = Main.player[(uint)spawner.defaultTarget < 255u ? spawner.defaultTarget : Main.myPlayer]
         };
+    }
+
+    internal static NPCSpawnInfo InfoOf(NPC.Spawner spawner)
+    {
+        if (refreshed && !spawner.IsNull && current.Spawner == spawner) return current;
+        NPCSpawnInfo info = BaseOf(spawner);
         info.Sky = spawner.skyMob;
         info.Lihzahrd = spawner.ZoneLihzhardTemple;
         info.PlayerSafe = spawner.spawnFriendly || spawner.noWorms;
@@ -32,6 +39,11 @@ internal static class NPCSpawnHooks
         {
             info.PlayerFloorX = (int)info.Player.Center.X / 16;
             info.PlayerFloorY = (int)info.Player.Bottom.Y / 16;
+        }
+        if (current.Spawner == spawner)
+        {
+            current = info;
+            refreshed = true;
         }
         return info;
     }
@@ -67,38 +79,57 @@ internal static class NPCSpawnHooks
     {
         orig(self, player);
         NPCSpawnInfo outer = current;
+        bool outerRefreshed = refreshed;
         current = new NPCSpawnInfo { Spawner = self, Player = player, SpawnTileX = -1, SpawnTileY = -1, GroundTileY = -1 };
+        refreshed = false;
         Store(self);
         try { NPCLoader.EditSpawnFlags(self); }
-        finally { current = outer; }
+        finally
+        {
+            current = outer;
+            refreshed = outerRefreshed;
+        }
     }
 
     static void ChosenTile(On_NPC_Spawner.orig_SetSpawnFlagsForChosenTile orig, NPC.Spawner self, int x, int y, int groundY, int tileType, int wallType)
     {
         orig(self, x, y, groundY, tileType, wallType);
         NPCSpawnInfo outer = current;
+        bool outerRefreshed = refreshed;
         current = new NPCSpawnInfo { Spawner = self, Player = Main.player[(uint)self.defaultTarget < 255u ? self.defaultTarget : Main.myPlayer],
             SpawnTileX = x, SpawnTileY = y, GroundTileY = groundY, SpawnTileType = tileType, SpawnWallType = wallType };
+        refreshed = false;
         Store(self);
         try { NPCLoader.EditSpawnInfo(self); }
-        finally { current = outer; }
+        finally
+        {
+            current = outer;
+            refreshed = outerRefreshed;
+        }
     }
 
     static void SpawnAnNPC(On_NPC_Spawner.orig_SpawnAnNPC orig, NPC.Spawner self, int x, int y, int tileType, int wallType, bool xRange, int target)
     {
         if (Main.netMode == 1) { orig(self, x, y, tileType, wallType, xRange, target); return; }
         NPCSpawnInfo outer = current;
+        bool outerRefreshed = refreshed;
         NPC.Spawner.FindGroundTile(x, y, out int groundY);
         current = new NPCSpawnInfo { Spawner = self, Player = Main.player[(uint)target < 255u ? target : Main.myPlayer],
             SpawnTileX = x, SpawnTileY = y, GroundTileY = groundY, SpawnTileType = tileType, SpawnWallType = wallType, SafeRangeX = xRange };
+        refreshed = false;
         Store(self);
         try
         {
             int? chosen = NPCLoader.ChooseSpawn(self);
+            refreshed = false;
             if (chosen == 0) orig(self, x, y, tileType, wallType, xRange, target);
             else if (chosen.HasValue) NPCLoader.SpawnNPC(chosen.Value, x, y);
         }
-        finally { current = outer; }
+        finally
+        {
+            current = outer;
+            refreshed = outerRefreshed;
+        }
     }
 
     static NPC Spawned(On_NPC_Spawner.orig_SpawnNPC_int_int_int_int_float_float_float_float_int orig, NPC.Spawner self,

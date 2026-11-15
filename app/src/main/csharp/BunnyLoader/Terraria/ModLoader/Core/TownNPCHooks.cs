@@ -20,9 +20,12 @@ internal static class TownNPCHooks
     const float PageButtonInset = 48f;
     const float PageIconCell = 2f;
     static int chatPage;
-    static nint chatNpc, widenedLayout;
+    static nint chatNpc, widenedLayout, shownNpc;
     static bool pageButton, widened;
     static float pageScale = 1f;
+    static readonly long ShownTicks = System.Diagnostics.Stopwatch.Frequency / 250;
+    static readonly List<NPCInteraction> shown = new();
+    static long shownAt;
     static readonly string[] PageIcon =
     {
         ".......#...",
@@ -193,7 +196,10 @@ internal static class TownNPCHooks
 
     static List<NPCInteraction> Shown(NPC npc)
     {
-        var shown = new List<NPCInteraction>();
+        long now = System.Diagnostics.Stopwatch.GetTimestamp();
+        if (npc.Pointer == shownNpc && now - shownAt < ShownTicks) return shown;
+        shown.Clear();
+        shownNpc = 0;
         foreach (NPCInteractionList.Entry entry in List(npc).Entries)
         {
             if (!entry.Enabled || Dedicated(entry.NPCInteraction)) continue;
@@ -203,6 +209,8 @@ internal static class TownNPCHooks
             }
             catch (Exception e) { ItemHooks.Report("NPC interaction", e); }
         }
+        shownNpc = npc.Pointer;
+        shownAt = now;
         return shown;
     }
 
@@ -343,9 +351,11 @@ internal static class TownNPCHooks
             ? Choice(npc, first)
             : list.Interactions.OfType<NPCInteractions.Actions.VanillaOption>().FirstOrDefault(option => option.First == first);
         NPCInteraction interaction = chosen ?? new NativeButton(first, original);
+        shownNpc = 0;
         if (!NPCLoader.PreChatButtonClicked(interaction)) return;
         try { interaction.Interact(); }
         catch (Exception e) { ItemHooks.Report("NPC interaction", e); }
+        finally { shownNpc = 0; }
         NPCLoader.OnChatButtonClicked(interaction);
     }
 
@@ -368,6 +378,7 @@ internal static class TownNPCHooks
     {
         NPC npc = TalkingTo();
         if (npc.IsNull) { orig(self); return; }
+        shownNpc = 0;
         if (!NPCLoader.PreChatButtonClicked(NPCInteractionDatabase.CloseButton)) return;
         NPCLoader.OnChatButtonClicked(NPCInteractionDatabase.CloseButton);
         orig(self);

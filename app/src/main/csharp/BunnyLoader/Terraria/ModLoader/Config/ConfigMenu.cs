@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using BunnyLoader;
+using BunnyLoader.Hooks;
 using BunnyLoader.Interop;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -120,6 +121,7 @@ internal static unsafe class ConfigMenu
     static float? lastY, pressY, tabPressX, tabLastX;
     static string? slider;
     static int guardIdle, pauseDrawing;
+    static readonly int* PauseFlag = (int*)System.Runtime.InteropServices.NativeMemory.AllocZeroed(sizeof(int));
     static Popup? popup;
     static Tip? tip;
     static readonly List<Rectangle> tipRects = new();
@@ -159,6 +161,8 @@ internal static unsafe class ConfigMenu
         installed = true;
         On_GUISettingsPauseMenu.SetupOffsets += SetupOffsets;
         On_GUISettingsPauseMenu.Draw += PauseDraw;
+        HookGates.Define<On_GUIPanel.hook_Draw>(() => new GateSpec { Arg = HookGates.AbsoluteArg, PointerOffset = -1, FieldOffset = 0, FieldSize = 4, Address = (IntPtr)PauseFlag });
+        HookGates.Want<On_GUIPanel.hook_Draw>();
         On_GUIPanel.Draw += PanelDraw;
         On_WorldGen.clearWorld += ClearWorld;
         On_GUISettingsOverlay.SetCategory += SetCategory;
@@ -184,9 +188,9 @@ internal static unsafe class ConfigMenu
     {
         if (where != "pause")
         {
-            pauseDrawing++;
+            *PauseFlag = ++pauseDrawing;
             try { orig(self); }
-            finally { pauseDrawing--; }
+            finally { *PauseFlag = --pauseDrawing; }
             return;
         }
 
@@ -1544,13 +1548,16 @@ internal static unsafe class ConfigMenu
         string? text = TipOf(row);
         if (text == null)
             return;
+
         Rectangle r = ControlAnchor._gridItemRegion;
         string title = Label(row);
         float size = r.Height * TipSize;
         float x = labelEnd + TipGap;
         float y = r.Y + (r.Height - size) / 2;
+
         if (y < top || y + size > bottom)
             return;
+
         Rectangle rect = Rect(x, y, size, size);
         tipRects.Add(rect);
         RowState st = StateOf(row);
@@ -1558,6 +1565,7 @@ internal static unsafe class ConfigMenu
         p.Option.overloadedSize = new Vector2(size, size);
         p.Option.Location = new Vector2(-size / 2, -size / 2);
         ControlAnchor._gridItemRegion = rect;
+        
         try
         {
             var state = GUITransactionButton.Draw(p.Option, default(Item), "?", false, ref st.TipScale, tip?.Title == title, Focus(), false, false);

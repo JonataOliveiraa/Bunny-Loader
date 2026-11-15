@@ -9,26 +9,49 @@ namespace Terraria.ModLoader;
 
 public static class PlayerDrawLayerLoader
 {
+    sealed class Ordering
+    {
+        public readonly PlayerDrawLayer[] Order;
+        public readonly PlayerDrawLayer[] Modded;
+        public readonly bool Vanilla;
+
+        public Ordering(PlayerDrawLayer[] order, PlayerDrawLayer[] modded, bool vanilla)
+        {
+            Order = order;
+            Modded = modded;
+            Vanilla = vanilla;
+        }
+    }
+
     static readonly List<PlayerDrawLayer> layers = new(PlayerDrawLayers.VanillaLayers);
-    static PlayerDrawLayer[]? drawOrder;
+    static Ordering? ordering;
 
     public static IReadOnlyList<PlayerDrawLayer> Layers => layers;
 
-    public static IReadOnlyList<PlayerDrawLayer> DrawOrder => drawOrder ??= Order();
+    public static IReadOnlyList<PlayerDrawLayer> DrawOrder => Current.Order;
 
     internal static bool HasModded => layers.Count > PlayerDrawLayers.VanillaLayers.Count;
+
+    static Ordering Current => ordering ??= Build();
 
     internal static void Add(PlayerDrawLayer layer)
     {
         lock (layers)
         {
             layers.Add(layer);
-            drawOrder = null;
+            ordering = null;
         }
         PlayerDrawHooks.InstallLayers();
     }
 
-    internal static void ResizeArrays() => drawOrder = Order();
+    internal static void ResizeArrays() => ordering = Build();
+
+    static Ordering Build()
+    {
+        PlayerDrawLayer[] order = Order();
+        PlayerDrawLayer[] modded = layers.Skip(PlayerDrawLayers.VanillaLayers.Count).ToArray();
+        return new Ordering(order, modded, MatchesVanilla(order));
+    }
 
     static PlayerDrawLayer[] Order()
     {
@@ -92,11 +115,52 @@ public static class PlayerDrawLayerLoader
         return result.ToArray();
     }
 
-    public static PlayerDrawLayer[] GetDrawLayers(PlayerDrawSet drawInfo)
+    static bool MatchesVanilla(PlayerDrawLayer[] order)
     {
-        PlayerDrawLayer[] order = drawOrder ??= Order();
+        if (PlayerLoader.OrdersDrawLayers) return false;
+        var expected = new List<(PlayerDrawLayer Layer, int Slot)>();
+        foreach (PlayerDrawLayer layer in PlayerDrawLayers.FixedVanillaLayers)
+        {
+            expected.Add((layer, -1));
+            if (layer == PlayerDrawLayers.BalloonAcc) expected.Add((PlayerDrawLayers.HeldItem, 0));
+            else if (layer == PlayerDrawLayers.FaceAcc) expected.Add((PlayerDrawLayers.FrontAccFront, 0));
+            else if (layer == PlayerDrawLayers.SolarShield) expected.Add((PlayerDrawLayers.HeldItem, 1));
+            else if (layer == PlayerDrawLayers.BladedGlove)
+            {
+                expected.Add((PlayerDrawLayers.FrontAccFront, 1));
+                expected.Add((PlayerDrawLayers.HeldItem, 2));
+            }
+        }
+        int next = 0;
+        foreach (PlayerDrawLayer layer in order)
+        {
+            if (!layer.IsVanilla) continue;
+            (PlayerDrawLayer Layer, int Slot) entry = layer is PlayerDrawLayerSlot slot ? (slot.Layer, slot.Index) : (layer, -1);
+            if (next >= expected.Count || expected[next].Layer != entry.Layer || expected[next].Slot != entry.Slot) return false;
+            next++;
+        }
+        return next == expected.Count;
+    }
+
+    public static PlayerDrawLayer[] GetDrawLayers(PlayerDrawSet drawInfo) => GetDrawLayers(drawInfo, out _);
+
+    internal static PlayerDrawLayer[] GetDrawLayers(PlayerDrawSet drawInfo, out bool vanilla)
+    {
+        Ordering current = Current;
+        PlayerDrawLayer[] order = current.Order;
+        PlayerDrawLayer.HiddenVanilla = 0;
         foreach (PlayerDrawLayer layer in order) layer.ResetVisibility(drawInfo);
         PlayerLoader.HideDrawLayers(drawInfo);
+        vanilla = current.Vanilla && PlayerDrawLayer.HiddenVanilla == 0 && !AnyVisible(current.Modded);
         return order;
+    }
+
+    static bool AnyVisible(PlayerDrawLayer[] modded)
+    {
+        foreach (PlayerDrawLayer layer in modded)
+        {
+            if (layer.Visible) return true;
+        }
+        return false;
     }
 }

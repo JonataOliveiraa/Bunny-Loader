@@ -32,6 +32,7 @@ internal static class ChestHooks
             ItemHooks.Once("Chests", () =>
             {
                 ModNet.Install();
+                NetGates.OnlineSendData();
                 On_NetMessage.SendData += SendData;
                 On_Player.PickTile += PickTile;
                 On_Player.ClearMiningCacheAt += ClearMiningCacheAt;

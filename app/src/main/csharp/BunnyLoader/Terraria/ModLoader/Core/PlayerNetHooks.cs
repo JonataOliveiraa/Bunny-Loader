@@ -16,9 +16,10 @@ internal static class PlayerNetHooks
     static readonly Dictionary<int, Entry> Connected = new();
     static readonly HashSet<int> Disconnected = new();
 
-    static Player baseline;
-    static GameHandle? baselinePin;
-    static IntPtr source;
+    static readonly PlayerHook HookCopyClientState = PlayerLoader.Hook(nameof(ModPlayer.CopyClientState));
+    static readonly PlayerHook HookSendClientChanges = PlayerLoader.Hook(nameof(ModPlayer.SendClientChanges));
+
+    static bool syncing;
 
     internal static void Install(Func<string, bool> has)
     {
@@ -27,7 +28,7 @@ internal static class PlayerNetHooks
             {
                 On_Player.clientClone_Player += ClientCloneInto;
                 On_Player.clientClone += ClientClone;
-                On_Main.UpdateClient += UpdateClient;
+                On_Main.TrySyncingMyPlayer += TrySyncingMyPlayer;
             });
         if (has(nameof(ModPlayer.SyncPlayer)) || has(nameof(ModPlayer.PlayerConnect)) || has(nameof(ModPlayer.PlayerDisconnect)))
             ItemHooks.Once("PlayerNetLifecycle", () =>
@@ -37,12 +38,17 @@ internal static class PlayerNetHooks
                 On_Player_Hooks.EnterWorld += EnterWorld;
                 On_Player_Hooks.PlayerDisconnect += PlayerDisconnect;
                 On_NetMessage.SyncDisconnectedPlayer += SyncDisconnectedPlayer;
-                On_Player.Update += Update;
+                PlayerHooks.WantNetUpdate();
             });
     }
 
     static GameObject ClientCloneInto(On_Player.orig_clientClone_Player orig, Player self, Player clonePlayer)
     {
+        if (syncing && clonePlayer == Main.clientPlayer)
+        {
+            syncing = false;
+            SendClientChanges(self, clonePlayer);
+        }
         if (!Copying.Add(self.Pointer)) return orig(self, clonePlayer);
         try
         {
@@ -68,52 +74,28 @@ internal static class PlayerNetHooks
     static void Copy(Player player, Player clone)
     {
         if (clone.IsNull || clone == player) return;
-        ModPlayer[] hooked = PlayerLoader.Hooked(nameof(ModPlayer.CopyClientState));
-        if (hooked.Length == 0) return;
+        if (HookCopyClientState.Hooked.Length == 0) return;
         ModPlayer[] copies = PlayerLoader.Of(clone);
-        PlayerLoader.Each(player, nameof(ModPlayer.CopyClientState), copies, static (m, c) => m.CopyClientState(c[m.Index]));
+        PlayerLoader.Each(player, HookCopyClientState, copies, static (m, c) => m.CopyClientState(c[m.Index]));
     }
 
-    static void UpdateClient(On_Main.orig_UpdateClient orig)
+    static void TrySyncingMyPlayer(On_Main.orig_TrySyncingMyPlayer orig)
     {
-        if (Main.gameMenu || (Main.netMode & 1) == 0)
-        {
-            Forget();
-            orig();
-            return;
-        }
-        Player player = Main.player[Main.myPlayer];
-        if (player.IsNull)
-        {
-            orig();
-            return;
-        }
-        if (source == player.Pointer && !baseline.IsNull)
-        {
-            ModPlayer[] previous = PlayerLoader.Of(baseline);
-            PlayerLoader.Each(player, nameof(ModPlayer.SendClientChanges), previous, static (m, p) => m.SendClientChanges(p[m.Index]));
-        }
-        orig();
+        bool outer = syncing;
+        syncing = !Main.gameMenu && (Main.netMode & 1) != 0;
+        try { orig(); }
+        finally { syncing = outer; }
+    }
+
+    static void SendClientChanges(Player player, Player client)
+    {
+        if (player.IsNull || client.IsNull || client == player || HookSendClientChanges.Hooked.Length == 0) return;
         try
         {
-            if (source != player.Pointer || baseline.IsNull)
-            {
-                Forget();
-                baseline = player.clientClone();
-                baselinePin = new GameHandle(baseline.Pointer);
-            }
-            else player.clientClone(baseline);
-            source = player.Pointer;
+            ModPlayer[] previous = PlayerLoader.Of(client);
+            PlayerLoader.Each(player, HookSendClientChanges, previous, static (m, p) => m.SendClientChanges(p[m.Index]));
         }
         catch (Exception e) { ItemHooks.Report("SendClientChanges (client copy)", e); }
-    }
-
-    static void Forget()
-    {
-        baselinePin?.Dispose();
-        baselinePin = null;
-        baseline = default;
-        source = IntPtr.Zero;
     }
 
     static void SyncOnePlayer(On_NetMessage.orig_SyncOnePlayer orig, int plr, int toWho, int fromWho)
@@ -160,9 +142,8 @@ internal static class PlayerNetHooks
         orig(plr);
     }
 
-    static void Update(On_Player.orig_Update orig, Player self, int i)
+    internal static void AfterUpdate(int i)
     {
-        orig(self, i);
         if (Connected.Count == 0 || i != Main.myPlayer || Main.gameMenu || Main.netMode == 0) return;
         List<int>? gone = null;
         foreach ((int index, Entry entry) in Connected)

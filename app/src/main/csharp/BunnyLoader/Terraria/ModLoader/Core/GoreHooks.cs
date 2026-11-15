@@ -1,4 +1,5 @@
 using System;
+using BunnyLoader.Hooks;
 using Microsoft.Xna.Framework;
 using Terraria.DataStructures;
 using Color = Microsoft.Xna.Framework.Graphics.Color;
@@ -13,11 +14,26 @@ internal static class GoreHooks
     {
         bool Has(string name) => ItemHooks.Overrides(type, typeof(ModGore), name);
         if (Has(nameof(ModGore.OnSpawn))) ItemHooks.Once("GoreSpawn", () => On_Gore.NewGore += NewGore);
-        if (Has(nameof(ModGore.GetAlpha))) ItemHooks.Once("GoreAlpha", () => On_Gore.GetAlpha += GetAlpha);
+        if (Has(nameof(ModGore.GetAlpha)))
+            ItemHooks.Once("GoreAlpha", () =>
+            {
+                TypeGate<On_Gore.hook_GetAlpha>(type => GoreLoader.GetModGore(type) is ModGore gore && ItemHooks.Overrides(gore.GetType(), typeof(ModGore), nameof(ModGore.GetAlpha)));
+                On_Gore.GetAlpha += GetAlpha;
+            });
         if (Has(nameof(ModGore.Update))) WantUpdate();
     }
 
-    internal static void WantUpdate() => ItemHooks.Once("GoreUpdate", () => On_Gore.Update += Update);
+    internal static void WantUpdate() => ItemHooks.Once("GoreUpdate", () =>
+    {
+        TypeGate<On_Gore.hook_Update>(type => GoreLoader.GetModGore(type) != null);
+        On_Gore.Update += Update;
+    });
+
+    static void TypeGate<THook>(Func<int, bool> wanted) where THook : Delegate
+    {
+        HookGates.Table<THook>(() => HookGates.Field(0, Gore.Class, "type"), () => GoreLoader.GoreCount);
+        HookGates.Want<THook>(wanted);
+    }
 
     static int NewGore(On_Gore.orig_NewGore orig, Vector2 Position, Vector2 Velocity, int Type, float Scale)
     {
