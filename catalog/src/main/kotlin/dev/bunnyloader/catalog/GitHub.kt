@@ -12,8 +12,9 @@ import java.util.concurrent.TimeUnit
 
 object Repo {
     const val OWNER = "JonataOliveiraa"
-    const val NAME = "Bunny-Loader-Mods"
+    const val NAME = "Bunny-Loader-CSharp-Mods"
     const val BRANCH = "main"
+    const val STORE = "store/"
     const val API = "https://api.github.com/repos/$OWNER/$NAME"
     const val UPLOADS = "https://uploads.github.com/repos/$OWNER/$NAME"
     const val DOWNLOAD = "https://github.com/$OWNER/$NAME/releases/download"

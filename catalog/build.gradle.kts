@@ -11,9 +11,9 @@ plugins {
 val localProps = Properties().apply {
     rootProject.file("local.properties").takeIf { it.isFile }?.inputStream()?.use(::load)
 }
-// Só o token do Bunny-Loader-Mods: o _token.txt antigo também abre o repo do app
+// Só o token do Bunny-Loader-CSharp-Mods: o _token.txt antigo também abre o repo do app
 // e não deve ir para um APK.
-val embeddedToken = rootProject.file("bunnyloadermodstoken.txt").takeIf { it.isFile }?.readText()?.trim()
+val embeddedToken = rootProject.file("tokenmodscsharp.txt").takeIf { it.isFile }?.readText()?.trim()
     ?.takeIf { it.isNotEmpty() }
     ?: localProps.getProperty("bl.catalogToken", "").trim()
 
@@ -47,8 +47,8 @@ android {
         applicationId = "com.bunnyloader.catalog"
         minSdk = 24
         targetSdk = 34
-        versionCode = 3
-        versionName = "1.2.0"
+        versionCode = 4
+        versionName = "1.3.0"
         buildConfigField("String", "EMBEDDED_TOKEN", "\"${hide(embeddedToken)}\"")
         buildConfigField("String", "EMBEDDED_WEBHOOK", "\"${hide(embeddedWebhook)}\"")
         // O Mono do compilador de C# só existe para arm64, como o Bunny Loader.

@@ -15,11 +15,11 @@ import java.util.zip.ZipOutputStream
 class BlPackageTest {
     @get:Rule val temp = TemporaryFolder()
 
-    private val manifest = """{"uid":"12345678-1234-1234-1234-123456789abc","id":"test","version":"1.0.0",""" +
-        """"name":"Test","blVersion":2,"theme":{"background":"docs/bg.gif"}}"""
+    private val manifest = """{"uid":"12345678-1234-1234-1234-123456789abc","id":"Test","version":"1.0.0",""" +
+        """"name":"Test","blVersion":3,"theme":{"background":"docs/bg.gif"}}"""
 
     /** Um .bl válido; a descrição vai sem compressão, com \n (o que a cópia como texto estraga). */
-    private fun valid(): ByteArray {
+    private fun valid(manifestText: String = manifest): ByteArray {
         val out = ByteArrayOutputStream()
         ZipOutputStream(out).use { zip ->
             fun put(name: String, data: ByteArray, stored: Boolean = false) {
@@ -33,8 +33,8 @@ class BlPackageTest {
                 zip.write(data)
                 zip.closeEntry()
             }
-            put("manifest.json", manifest.toByteArray())
-            put("content/main.js", "export default class Test extends Mod {}\n".toByteArray())
+            put("manifest.json", manifestText.toByteArray())
+            put("Test.cs", "public class Test : Mod {}\n".toByteArray())
             put("icon.png", byteArrayOf(1, 2, 3))
             put("banner.gif", byteArrayOf(4, 5, 6))
             put("docs/bg.gif", byteArrayOf(7, 8, 9))
@@ -65,6 +65,12 @@ class BlPackageTest {
         assertTrue(files.toString(), "banner.gif" in files && "docs/bg.gif" in files)
         assertTrue(files.containsAll(listOf("description_zh-Hans.md", "changelog_zh-Hans.md", "docs/english.png")))
         assertTrue("description_invalid/path.md" !in files)
+    }
+
+    @Test
+    fun dashedIdIsRefused() {
+        val message = failure(valid(manifest.replace("\"id\":\"Test\"", "\"id\":\"T-st\"")))
+        assertTrue(message, "classe C#" in message)
     }
 
     @Test

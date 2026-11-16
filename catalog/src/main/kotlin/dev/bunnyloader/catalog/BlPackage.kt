@@ -50,19 +50,23 @@ class BlPackage(val file: File) {
         version = text("version") ?: ""
         name = text("name") ?: id
         if (!UID.matches(uid)) throw Fail(I18n.tr("$label: uid ausente ou fora do formato UUID minúsculo", "$label: uid missing or not a lowercase UUID"))
-        if (!ID.matches(id)) throw Fail(I18n.tr("$label: id '$id' precisa ser minúsculo, sem espaço", "$label: id '$id' must be lowercase, without spaces"))
+        if (!ID.matches(id)) throw Fail(I18n.tr("$label: id '$id' precisa ser nome de classe C# (letra, depois letras, números ou _)",
+            "$label: id '$id' must be a C# class name (a letter, then letters, digits or _)"))
         if (!VERSION.matches(version)) throw Fail(I18n.tr("$label: versão '$version' não é do tipo 1.2.0", "$label: version '$version' is not in the 1.2.0 form"))
         val declared = manifest["blVersion"]
         val bl = if (declared == null) 1 else (declared as? JsonPrimitive)?.takeIf { !it.isString }?.intOrNull
         if (bl != BL_VERSION) throw Fail(I18n.tr("$label: blVersion ${declared ?: 1}; o app carrega $BL_VERSION", "$label: blVersion ${declared ?: 1}; the app loads $BL_VERSION"))
         val kind = (text("type") ?: "").trim().lowercase()
         if (kind in TEXTURE_KINDS) {
-            if (names.none { (it.startsWith("content/Images/") || it.startsWith("Content/Images/")) && it.lowercase().endsWith(".png") }) {
-                throw Fail(I18n.tr("$label: pacote de textura sem PNGs em content/Images", "$label: texture pack without PNGs in content/Images"))
+            if (names.none { it.startsWith("Images/") && it.lowercase().endsWith(".png") }) {
+                throw Fail(I18n.tr("$label: pacote de textura sem PNGs em Images/", "$label: texture pack without PNGs in Images/"))
             }
-        } else {
-            val entry = "content/${text("entry") ?: "main.js"}"
-            if (entry !in names) throw Fail(I18n.tr("$label: sem $entry", "$label: missing $entry"))
+        } else if (kind in FONT_KINDS) {
+            if (names.none { it.startsWith("Fonts/") }) {
+                throw Fail(I18n.tr("$label: pacote de fonte sem a pasta Fonts/", "$label: font pack without a Fonts/ folder"))
+            }
+        } else if ("$id.cs" !in names && "$id.dll" !in names) {
+            throw Fail(I18n.tr("$label: sem $id.cs na raiz", "$label: no $id.cs at the root"))
         }
         if ("icon.png" !in names && "icon.gif" !in names) {
             val other = names.firstOrNull { it.lowercase() == "icon.png" || it.lowercase() == "icon.gif" }
@@ -74,7 +78,7 @@ class BlPackage(val file: File) {
     }
 
     val tag get() = "mod-$id-v$version"
-    val asset get() = "$id-$version.bl"
+    val asset get() = "$id.bl"
     val url get() = "${Repo.DOWNLOAD}/$tag/$asset"
 
     fun read(name: String): ByteArray = zip.getInputStream(zip.getEntry(name)).use { input ->
@@ -119,15 +123,16 @@ class BlPackage(val file: File) {
     }
 
     companion object {
-        const val BL_VERSION = 2
+        const val BL_VERSION = 3
         private const val MAX_STORE_FILE = 4L shl 20
         private val UID = Regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
-        private val ID = Regex("^[a-z0-9][a-z0-9._-]*$")
+        private val ID = Regex("^[A-Za-z][A-Za-z0-9_]{0,63}$")
         private val SAFE_PATH = Regex("^[A-Za-z0-9._ -]+(/[A-Za-z0-9._ -]+)*$")
         private val PACKAGE_PATH = Regex("^[A-Za-z0-9._ ()-]+(/[A-Za-z0-9._ ()-]+)*$")
         private val VERSION = Regex("^\\d+(\\.\\d+)*([-+][0-9A-Za-z.]+)?$")
         private val MD_IMAGE = Regex("!\\[[^\\]]*\\]\\(([^)\\s]+)")
         private val TEXTURE_KINDS = setOf("texture", "textures", "textura", "texturas", "resourcepack", "resource-pack")
+        private val FONT_KINDS = setOf("font", "fonts", "fonte", "fontes")
         // As capas na ordem do Catalog.BANNERS do app: ele usa a primeira que existir.
         private val STORE_ROOT_FILES = listOf("manifest.json", "icon.png", "icon.gif",
             "banner.gif", "banner.png", "banner.webp", "banner.jpg", "banner.jpeg",

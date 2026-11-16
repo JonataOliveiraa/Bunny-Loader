@@ -32,7 +32,7 @@ class Publisher(token: String, private val uploads: File, private val discord: D
     private var head: Head? = null
     private var account: JsonObject? = null
     private val storeManifests = HashMap<String, JsonObject>()
-    private var statsCache: Pair<String, JsonObject>? = null
+    private val storeJsonCache = HashMap<String, JsonObject>()
     var log: (String) -> Unit = {}
         set(value) {
             field = value
@@ -83,9 +83,9 @@ class Publisher(token: String, private val uploads: File, private val discord: D
                 put("device", "${Build.MANUFACTURER} ${Build.MODEL}")
                 put("android", "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
             })
-            val stats = stats(h)
+            val stats = storeJson(h, STATS)
             val downloads = stats["downloads"] as? JsonObject ?: JsonObject(emptyMap())
-            val featured = (h.index["featured"] as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }.orEmpty()
+            val featured = featured(h)
             put("stats", buildJsonObject {
                 put("updatedAt", stats.text("updatedAt"))
                 put("total", downloads.values.sumOf { (it as? JsonPrimitive)?.contentOrNull?.toLongOrNull() ?: 0L })
@@ -156,7 +156,7 @@ class Publisher(token: String, private val uploads: File, private val discord: D
     private fun loadHead(): Head {
         val started = System.currentTimeMillis()
         val g = gh ?: run {
-            val text = String(GitHub.download("${Repo.RAW}/${Repo.BRANCH}/index.json"), Charsets.UTF_8)
+            val text = String(GitHub.download("${Repo.RAW}/${Repo.BRANCH}/$INDEX_PATH"), Charsets.UTF_8)
             return Head(Repo.BRANCH, "", emptyMap(), Json.parseToJsonElement(text).jsonObject, text,
                 loadMs = System.currentTimeMillis() - started)
         }
@@ -172,7 +172,7 @@ class Publisher(token: String, private val uploads: File, private val discord: D
         val files = listing["tree"]!!.jsonArray.map { it.jsonObject }
             .filter { it.text("type") == "blob" }
             .associate { it.text("path")!! to it.text("sha")!! }
-        val indexText = files["index.json"]?.let { sha ->
+        val indexText = files[INDEX_PATH]?.let { sha ->
             val blob = g.call("GET", "${Repo.API}/git/blobs/$sha")!!.jsonObject
             String(Base64.decode(blob.text("content"), Base64.DEFAULT), Charsets.UTF_8)
         } ?: ""
@@ -189,8 +189,10 @@ class Publisher(token: String, private val uploads: File, private val discord: D
         val manifest = mod["manifest"] as? JsonObject ?: storeManifest(h, mod.text("uid") ?: "")
         val files = (mod["files"] as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull } ?: emptyList()
         val url = mod.obj("download").text("url") ?: ""
-        val icon = ICONS.firstOrNull { it in files }?.let { "${Repo.RAW}/${h.commit}/mods/${mod.text("uid")}/$it" }
+        val icon = ICONS.firstOrNull { it in files }?.let { "${Repo.RAW}/${h.commit}/${Repo.STORE}mods/${mod.text("uid")}/$it" }
         return JsonObject(mod + mapOf(
+            "id" to JsonPrimitive(mod.text("id") ?: manifest.text("id") ?: ""),
+            "name" to JsonPrimitive(mod.text("name") ?: manifest.text("name") ?: ""),
             "manifest" to manifest,
             "authors" to JsonPrimitive(authorLine(manifest)),
             "category" to JsonPrimitive(manifest.text("category") ?: ""),
@@ -204,25 +206,29 @@ class Publisher(token: String, private val uploads: File, private val discord: D
     /** Entradas antigas do índice não levam o manifesto: lê o da vitrine, como o manager.py. */
     private fun storeManifest(h: Head, uid: String): JsonObject {
         val g = gh ?: return JsonObject(emptyMap())
-        val sha = h.files["mods/$uid/manifest.json"] ?: return JsonObject(emptyMap())
+        val sha = h.files["${Repo.STORE}mods/$uid/manifest.json"] ?: return JsonObject(emptyMap())
         return storeManifests.getOrPut(sha) {
             runCatching { Json.parseToJsonElement(blobText(g, sha)).jsonObject }.getOrDefault(JsonObject(emptyMap()))
         }
     }
 
-    /** O stats.json da mesma ponta (downloads somados pela Action do reposit\u00F3rio de mods); sem ele, vazio. */
-    private fun stats(h: Head): JsonObject {
+    /** Um JSON de store/ na mesma ponta (stats.json da Action, featured.json); sem ele, vazio. */
+    private fun storeJson(h: Head, name: String): JsonObject {
         val g = gh
-        val key = if (g == null) "public:${h.fetchedAt}" else h.files["stats.json"] ?: return JsonObject(emptyMap())
-        statsCache?.let { (k, v) -> if (k == key) return v }
+        val path = Repo.STORE + name
+        val key = if (g == null) "public:${h.fetchedAt}:$name" else h.files[path] ?: return JsonObject(emptyMap())
+        storeJsonCache[key]?.let { return it }
         val parsed = runCatching {
-            val text = if (g == null) String(GitHub.download("${Repo.RAW}/${Repo.BRANCH}/stats.json"), Charsets.UTF_8)
+            val text = if (g == null) String(GitHub.download("${Repo.RAW}/${Repo.BRANCH}/$path"), Charsets.UTF_8)
             else blobText(g, key)
             Json.parseToJsonElement(text.removePrefix("\uFEFF")).jsonObject
         }.getOrDefault(JsonObject(emptyMap()))
-        statsCache = key to parsed
+        storeJsonCache[key] = parsed
         return parsed
     }
+
+    private fun featured(h: Head): List<String> =
+        (storeJson(h, FEATURED)["mods"] as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }.orEmpty()
 
     private fun blobText(g: GitHub, sha: String): String {
         val blob = g.call("GET", "${Repo.API}/git/blobs/$sha")!!.jsonObject
@@ -260,7 +266,7 @@ class Publisher(token: String, private val uploads: File, private val discord: D
         return buildJsonObject {
             put("manifest", pkg.manifest)
             put("entries", pkg.names.size)
-            put("scripts", pkg.names.count { it.endsWith(".js") })
+            put("scripts", pkg.names.count { it.endsWith(".cs") })
             put("images", pkg.names.count { it.lowercase().let { n -> n.endsWith(".png") || n.endsWith(".gif") } })
             put("tag", pkg.tag)
             put("asset", pkg.asset)
@@ -306,7 +312,7 @@ class Publisher(token: String, private val uploads: File, private val discord: D
 
     /** `dry`: confere e monta tudo, como o --dry-run do publish.py, sem gravar nada no GitHub. */
     fun publish(file: File, dry: Boolean = false) {
-        val g = gh ?: throw Fail(I18n.tr("sem token: gere o APK com o _token.txt", "no access key: build the APK with bunnyloadermodstoken.txt"))
+        val g = gh ?: throw Fail(I18n.tr("sem chave: gere o APK com o tokenmodscsharp.txt", "no access key: build the APK with tokenmodscsharp.txt"))
         if (!file.isFile) throw Fail(I18n.tr("o arquivo enviado não está mais aqui; envie de novo", "the uploaded file is gone; upload it again"))
         csharp.prepare(file, log)
         val pkg = BlPackage(file)
@@ -315,12 +321,13 @@ class Publisher(token: String, private val uploads: File, private val discord: D
         pkg.warnings.forEach { log(I18n.tr("  aviso: $it", "  warning: $it")) }
         val files = pkg.storeFiles()
         releaseFor(g, pkg, dry)
-        commitIndex(g, "Publicar ${pkg.name} v${pkg.version}", dry) { h ->
+        commitIndex(g, "Publish ${pkg.name} v${pkg.version}", dry) { h ->
             val old = mods(h.index).firstOrNull { it.text("uid") == pkg.uid }
-            if (old != null && old.text("id") != pkg.id) {
-                log(I18n.tr("  aviso: o id mudou de '${old.text("id")}' para '${pkg.id}' (o uid manda)", "  warning: id changed from '${old.text("id")}' to '${pkg.id}' (uid wins)"))
+            val oldId = old?.obj("manifest")?.text("id")
+            if (old != null && oldId != pkg.id) {
+                log(I18n.tr("  aviso: o id mudou de '$oldId' para '${pkg.id}' (o uid manda)", "  warning: id changed from '$oldId' to '${pkg.id}' (uid wins)"))
             }
-            val prefix = "mods/${pkg.uid}/"
+            val prefix = "${Repo.STORE}mods/${pkg.uid}/"
             val changes = mutableListOf<JsonObject>()
             for (f in files) {
                 val data = pkg.read(f)
@@ -330,8 +337,6 @@ class Publisher(token: String, private val uploads: File, private val discord: D
                 .forEach { changes += deleteEntry(it) }
             val entry = buildJsonObject {
                 put("uid", pkg.uid)
-                put("id", pkg.id)
-                put("name", pkg.name)
                 put("version", pkg.version)
                 put("download", buildJsonObject {
                     put("url", pkg.url)
@@ -350,13 +355,20 @@ class Publisher(token: String, private val uploads: File, private val discord: D
     }
 
     fun remove(uid: String) {
-        val g = gh ?: throw Fail(I18n.tr("sem token: gere o APK com o _token.txt", "no access key: build the APK with bunnyloadermodstoken.txt"))
+        val g = gh ?: throw Fail(I18n.tr("sem chave: gere o APK com o tokenmodscsharp.txt", "no access key: build the APK with tokenmodscsharp.txt"))
         if (!UID.matches(uid)) throw Fail(I18n.tr("uid inválido", "invalid uid"))
-        commitIndex(g, "Tirar $uid do catálogo") { h ->
+        commitIndex(g, "Remove $uid from the catalog") { h ->
             val mods = mods(h.index)
             if (mods.none { it.text("uid") == uid }) throw Fail(I18n.tr("$uid não está no catálogo", "$uid is not in the catalog"))
-            h.files.keys.filter { it.startsWith("mods/$uid/") }.map(::deleteEntry) to
-                mods.filter { it.text("uid") != uid }
+            val changes = h.files.keys.filter { it.startsWith("${Repo.STORE}mods/$uid/") }.map(::deleteEntry).toMutableList()
+            val featured = featured(h)
+            if (uid in featured) {
+                changes += textEntry(Repo.STORE + FEATURED, PyJson.dump(buildJsonObject {
+                    put("format", FORMAT)
+                    put("mods", JsonArray(featured.filter { it != uid }.map(::JsonPrimitive)))
+                }))
+            }
+            changes to mods.filter { it.text("uid") != uid }
         }
     }
 
@@ -386,7 +398,8 @@ class Publisher(token: String, private val uploads: File, private val discord: D
                 put("tag_name", pkg.tag)
                 put("target_commitish", "main")
                 put("name", "${pkg.name} v${pkg.version}")
-                put("body", "Mod para o Bunny Loader.\n\n- uid: `${pkg.uid}`\n- sha256: `${pkg.sha256}`")
+                put("body", "${pkg.name} for Bunny Loader.\n\n- uid: `${pkg.uid}`\n- sha256: `${pkg.sha256}`\n" +
+                    "- license: ${pkg.manifest.text("license")?.takeIf { it.isNotEmpty() } ?: "see license.md"}\n")
                 put("make_latest", "false")
             })!!.jsonObject
         }
@@ -413,12 +426,12 @@ class Publisher(token: String, private val uploads: File, private val discord: D
             val (changes, mods) = build(h)
             val index = JsonObject(LinkedHashMap(h.index).apply {
                 put("format", JsonPrimitive(FORMAT))
-                put("mods", JsonArray(mods.sortedBy { (it.text("name") ?: it.text("uid") ?: "").lowercase() }))
+                put("mods", JsonArray(mods.sortedWith(compareBy(
+                    { (it.obj("manifest").text("name") ?: "").lowercase() }, { it.text("uid") ?: "" }))))
             })
             val text = PyJson.dump(index)
             val all = changes.toMutableList()
-            if (text != h.indexText) all += textEntry("index.json", text)
-            if (h.files["README.md"] != gitSha(README.toByteArray())) all += textEntry("README.md", README)
+            if (text != h.indexText) all += textEntry(INDEX_PATH, text)
             if (all.isEmpty()) {
                 log(I18n.tr("  índice sem mudança", "  index unchanged"))
                 return
@@ -499,22 +512,11 @@ class Publisher(token: String, private val uploads: File, private val discord: D
 
     companion object {
         private const val FORMAT = 1
+        private const val INDEX_PATH = Repo.STORE + "index.json"
+        private const val STATS = "stats.json"
+        private const val FEATURED = "featured.json"
         private val ICONS = listOf("icon.gif", "icon.png")
         private val UID = Regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
-        /** O mesmo texto do readme() do publish.py: os dois publicam. */
-        private const val README =
-            "# Bunny Loader mod catalog\n" +
-            "\n" +
-            "The online catalog of [Bunny Loader](https://github.com/JonataOliveiraa/Bunny-Loader), generated by `tools/mods/publish.py` and by the catalog app. Do not edit `index.json` or `mods/` by hand.\n" +
-            "\n" +
-            "- `index.json`: the list the app reads.\n" +
-            "- `mods/<uid>/`: each mod's page (manifest, icon, banner, description, authors).\n" +
-            "- Releases `mod-<id>-v<version>`: the `.bl` packages.\n" +
-            "- `ports/`: the sources of the ported texture packs.\n" +
-            "\n" +
-            "Each mod and texture pack belongs to its authors and keeps its own license (`license.md` and `authors/` inside the package). Bunny Loader's license does not apply to them.\n" +
-            "\n" +
-            "If you made something listed here and want it removed or credited differently, open an issue.\n"
 
         private fun mods(index: JsonObject): List<JsonObject> =
             (index["mods"] as? JsonArray)?.map { it.jsonObject } ?: emptyList()

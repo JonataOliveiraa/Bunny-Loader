@@ -40,7 +40,7 @@ class DiscordTest {
         val discord = Discord(hook, File.createTempFile("discord", ".json").apply { delete() })
         val before = listOf(mod("a", "1.0"), mod("b", "1.0"), mod("c", "1.0"))
         val after = listOf(mod("a", "1.0"), mod("b", "1.1"), mod("d", "1.0"))
-        val events = discord.events(before, after, "old", "new", listOf("mods/a/icon.png"))
+        val events = discord.events(before, after, "old", "new", listOf("store/mods/a/icon.png"))
         val titles = events.map {
             it["payload"]!!.jsonObject["embeds"]!!.jsonArray[0].jsonObject["title"].let { t -> (t as JsonPrimitive).content }
         }
@@ -52,6 +52,6 @@ class DiscordTest {
         ), titles)
         assertEquals(listOf("new:a", "new:b", "new:c", "new:d"), events.map { (it["id"] as JsonPrimitive).content })
         val removed = events[2]["payload"]!!.jsonObject["embeds"]!!.jsonArray[0] as JsonObject
-        assertEquals("${Repo.RAW}/old/mods/c/icon.png", (removed["thumbnail"] as JsonObject)["url"].let { (it as JsonPrimitive).content })
+        assertEquals("${Repo.RAW}/old/store/mods/c/icon.png", (removed["thumbnail"] as JsonObject)["url"].let { (it as JsonPrimitive).content })
     }
 }

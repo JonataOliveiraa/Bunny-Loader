@@ -860,7 +860,7 @@ function renderReport() {
           [t("f.bl"), esc(man.blVersion ?? 1)],
           [t("f.game"), esc(gameRange(man.gameVersion))],
           [t("f.type"), esc(man.type || "mod")],
-          [t("f.entry"), esc(man.type ? "—" : "content/" + (man.entry || "main.js"))],
+          [t("f.entry"), esc(man.type ? "—" : c.id + ".cs")],
           [t("f.license"), esc(man.license || "—")],
           [t("f.deps"), esc(depList(man.dependencies))],
           [t("f.entries"), esc(num(c.entries))],

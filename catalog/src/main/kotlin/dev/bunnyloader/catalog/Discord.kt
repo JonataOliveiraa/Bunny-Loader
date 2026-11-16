@@ -76,7 +76,7 @@ class Discord(webhook: String, private val stateFile: File) {
         val new = after.associateBy { it.text("uid") ?: "" }
         val changed = HashMap<String, MutableList<String>>()
         for (path in paths) {
-            val parts = path.split('/', limit = 3)
+            val parts = path.removePrefix(Repo.STORE).split('/', limit = 3)
             if (parts.size == 3 && parts[0] == "mods") changed.getOrPut(parts[1]) { mutableListOf() } += parts[2]
         }
         return (old.keys + new.keys).sorted().mapNotNull { uid ->
@@ -225,7 +225,8 @@ class Discord(webhook: String, private val stateFile: File) {
             else -> Triple("Package removed", "This package has been removed from the Bunny Loader catalog. Its existing GitHub releases remain available.", 0xED4245)
         }
         val manifest = entry["manifest"] as? JsonObject ?: JsonObject(emptyMap())
-        val id = entry.text("id") ?: ""
+        val id = entry.text("id") ?: manifest.text("id") ?: ""
+        val name = entry.text("name") ?: manifest.text("name")
         val version = entry.text("version") ?: ""
         val fields = mutableListOf(field("Version", clean(version, 100).ifEmpty { "Not specified" }, true))
         if (previous != null && previous.text("version") != entry.text("version")) {
@@ -262,7 +263,7 @@ class Discord(webhook: String, private val stateFile: File) {
             put("allowed_mentions", buildJsonObject { put("parse", JsonArray(emptyList())) })
             put("embeds", buildJsonArray {
                 add(buildJsonObject {
-                    put("title", clean("$title: ${entry.text("name")?.takeIf { it.isNotEmpty() } ?: id}", 256))
+                    put("title", clean("$title: ${name?.takeIf { it.isNotEmpty() } ?: id}", 256))
                     put("description", description)
                     put("url", release)
                     put("color", color)
@@ -271,7 +272,7 @@ class Discord(webhook: String, private val stateFile: File) {
                     put("footer", buildJsonObject { put("text", "Bunny Loader Catalog") })
                     if (icon != null) {
                         val revision = if (kind == "removed") previousCommit else commit
-                        put("thumbnail", buildJsonObject { put("url", "${Repo.RAW}/$revision/mods/${entry.text("uid")}/$icon") })
+                        put("thumbnail", buildJsonObject { put("url", "${Repo.RAW}/$revision/${Repo.STORE}mods/${entry.text("uid")}/$icon") })
                     }
                 })
             })
