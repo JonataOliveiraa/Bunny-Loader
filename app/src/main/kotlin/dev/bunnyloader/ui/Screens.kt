@@ -128,11 +128,17 @@ fun InicioTab(shell: Shell, onOpen: (String) -> Unit) {
             }
 
             val counts = shell.downloadCounts
-            val ranked = counts.isNotEmpty()
-            val popular = remember(catalogEntries, counts, featured) {
-                if (!ranked) catalogEntries.filter { e -> featured.none { it.uid == e.uid } }.take(3)
-                else catalogEntries.filter { (counts[it.uid] ?: 0L) > 0L }
-                    .sortedByDescending { counts[it.uid] }.take(POPULAR_COUNT)
+            val curated = remember(shell.popularUids, catalogEntries) {
+                shell.popularUids.mapNotNull { uid -> catalogEntries.firstOrNull { it.uid == uid } }
+            }
+            val ranked = curated.isNotEmpty() || counts.isNotEmpty()
+            val popular = remember(catalogEntries, counts, featured, curated) {
+                when {
+                    curated.isNotEmpty() -> curated.take(POPULAR_COUNT)
+                    !ranked -> catalogEntries.filter { e -> featured.none { it.uid == e.uid } }.take(3)
+                    else -> catalogEntries.filter { (counts[it.uid] ?: 0L) > 0L }
+                        .sortedByDescending { counts[it.uid] }.take(POPULAR_COUNT)
+                }
             }
             if (popular.isNotEmpty()) {
                 SectionTitle(tr("Popular"), icon = R.drawable.ic_download)
@@ -156,7 +162,7 @@ fun InicioTab(shell: Shell, onOpen: (String) -> Unit) {
 }
 
 /** Quantos mods a lista de Populares do Início mostra. */
-private const val POPULAR_COUNT = 5
+private const val POPULAR_COUNT = dev.bunnyloader.mods.RemoteCatalog.POPULAR_LIMIT
 
 /**
  * Mods no catálogo, downloads somados e instalados, numa placa só. Os
@@ -771,46 +777,64 @@ fun ConfigTab(shell: Shell) {
             LanguagePicker()
 
             SectionTitle(tr("Mods"))
-            Setting(
-                tr("EnableOnInstall"),
-                tr("EnableOnInstallDescription"),
-                enableNewMods,
-            ) { enableNewMods = it; prefs.enableOnInstall = it }
-            Setting(
-                tr("ShowErrorsInGame"),
-                tr("ShowErrorsInGameDescription"),
-                errorPanel,
-            ) { errorPanel = it; prefs.errorPanel = it }
-            Setting(
-                tr("DetailedLog"),
-                tr("DetailedLogDescription"),
-                verboseLog,
-            ) { verboseLog = it; prefs.verboseLog = it }
-            Setting(
-                tr("FileCommandChannel"),
-                tr("FileCommandChannelDescription"),
-                devChannel,
-            ) { devChannel = it; prefs.devChannel = it }
+            SettingsGroup(
+                {
+                    Setting(
+                        tr("EnableOnInstall"),
+                        tr("EnableOnInstallDescription"),
+                        enableNewMods,
+                    ) { enableNewMods = it; prefs.enableOnInstall = it }
+                },
+                {
+                    Setting(
+                        tr("ShowErrorsInGame"),
+                        tr("ShowErrorsInGameDescription"),
+                        errorPanel,
+                    ) { errorPanel = it; prefs.errorPanel = it }
+                },
+                {
+                    Setting(
+                        tr("DetailedLog"),
+                        tr("DetailedLogDescription"),
+                        verboseLog,
+                    ) { verboseLog = it; prefs.verboseLog = it }
+                },
+                {
+                    Setting(
+                        tr("FileCommandChannel"),
+                        tr("FileCommandChannelDescription"),
+                        devChannel,
+                    ) { devChannel = it; prefs.devChannel = it }
+                },
+            )
 
             SectionTitle(tr("Developer"))
             PixelButton(tr("ModSources"), { sourcesOpen = true },
                 Modifier.fillMaxWidth().padding(bottom = 10.dp), icon = R.drawable.ic_folder)
-            QuickStartCard(prefs)
-            Setting(
-                tr("ModMenu"),
-                tr("ModMenuDescription"),
-                modMenu,
-            ) { modMenu = it; prefs.devModMenu = it }
-            Setting(
-                tr("JsEditor"),
-                tr("JsEditorDescription"),
-                editor,
-            ) { editor = it; prefs.devEditor = it }
-            Setting(
-                tr("Restart"),
-                tr("RestartDescription"),
-                restart,
-            ) { restart = it; prefs.devRestart = it }
+            SettingsGroup(
+                { QuickStartSetting(prefs) },
+                {
+                    Setting(
+                        tr("ModMenu"),
+                        tr("ModMenuDescription"),
+                        modMenu,
+                    ) { modMenu = it; prefs.devModMenu = it }
+                },
+                {
+                    Setting(
+                        tr("JsEditor"),
+                        tr("JsEditorDescription"),
+                        editor,
+                    ) { editor = it; prefs.devEditor = it }
+                },
+                {
+                    Setting(
+                        tr("Restart"),
+                        tr("RestartDescription"),
+                        restart,
+                    ) { restart = it; prefs.devRestart = it }
+                },
+            )
 
             SectionTitle(tr("Diagnostics"))
             PixelCard(Modifier.fillMaxWidth()) {
@@ -894,7 +918,7 @@ private fun LanguagePicker() {
  * vai para as preferências também.
  */
 @Composable
-private fun QuickStartCard(prefs: Prefs) {
+private fun QuickStartSetting(prefs: Prefs) {
     val ctx = LocalContext.current
     val saves by produceState<Pair<List<SaveFiles.Save>, List<SaveFiles.Save>>?>(null, ctx) {
         value = withContext(Dispatchers.IO) { SaveFiles.players(ctx) to SaveFiles.worlds(ctx) }
@@ -922,55 +946,53 @@ private fun QuickStartCard(prefs: Prefs) {
         prefs.quickWorld = world?.file ?: Prefs.TITLE_ONLY
     }
 
-    PixelCard(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
-        Column(Modifier.padding(12.dp).fillMaxWidth()) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f).padding(end = 8.dp)) {
-                    PixelText(tr("QuickStart"), size = Ts.Item)
-                    PixelText(
-                        tr("QuickStartDescription"),
-                        size = Ts.Small, color = Bl.TextFaint,
-                    )
-                }
-                SwitchSprite(on) { on = !on; prefs.quickStart = on }
+    Column(Modifier.padding(12.dp).fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f).padding(end = 8.dp)) {
+                PixelText(tr("QuickStart"), size = Ts.Item)
+                PixelText(
+                    tr("QuickStartDescription"),
+                    size = Ts.Small, color = Bl.TextFaint,
+                )
             }
-            if (on) {
-                if (saves == null) {
-                    PixelText(tr("LoadingCharactersAndWorlds"), size = Ts.Small,
-                        modifier = Modifier.padding(top = 10.dp))
-                } else if (player == null) {
+            SwitchSprite(on) { on = !on; prefs.quickStart = on }
+        }
+        if (on) {
+            if (saves == null) {
+                PixelText(tr("LoadingCharactersAndWorlds"), size = Ts.Small,
+                    modifier = Modifier.padding(top = 10.dp))
+            } else if (player == null) {
+                PixelText(
+                    tr("NoSavedCharacters"),
+                    size = Ts.Small, color = Bl.TextDim, modifier = Modifier.padding(top = 10.dp),
+                )
+            } else {
+                PixelText(tr("Character"), size = Ts.Small, color = Bl.TextFaint,
+                    modifier = Modifier.padding(top = 10.dp))
+                val pi = players.indexOf(player)
+                PixelSelect(
+                    saveLabel(player),
+                    onPrev = { playerFile = players[(pi - 1).mod(players.size)].file },
+                    onNext = { playerFile = players[(pi + 1).mod(players.size)].file },
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+                PixelText(tr("World"), size = Ts.Small, color = Bl.TextFaint,
+                    modifier = Modifier.padding(top = 8.dp))
+                val wi = worldOptions.indexOf(world)
+                val pickWorld = { i: Int ->
+                    worldFile = worldOptions[i.mod(worldOptions.size)]?.file ?: Prefs.TITLE_ONLY
+                }
+                PixelSelect(
+                    world?.let { saveLabel(it) } ?: tr("QuickStartNone"),
+                    onPrev = { pickWorld(wi - 1) },
+                    onNext = { pickWorld(wi + 1) },
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+                if (fitting.isEmpty()) {
                     PixelText(
-                        tr("NoSavedCharacters"),
-                        size = Ts.Small, color = Bl.TextDim, modifier = Modifier.padding(top = 10.dp),
+                        if (player.journey) tr("NoSavedJourneyWorlds") else tr("NoSavedWorlds"),
+                        size = Ts.Small, color = Bl.TextDim, modifier = Modifier.padding(top = 6.dp),
                     )
-                } else {
-                    PixelText(tr("Character"), size = Ts.Small, color = Bl.TextFaint,
-                        modifier = Modifier.padding(top = 10.dp))
-                    val pi = players.indexOf(player)
-                    PixelSelect(
-                        saveLabel(player),
-                        onPrev = { playerFile = players[(pi - 1).mod(players.size)].file },
-                        onNext = { playerFile = players[(pi + 1).mod(players.size)].file },
-                        modifier = Modifier.padding(top = 4.dp),
-                    )
-                    PixelText(tr("World"), size = Ts.Small, color = Bl.TextFaint,
-                        modifier = Modifier.padding(top = 8.dp))
-                    val wi = worldOptions.indexOf(world)
-                    val pickWorld = { i: Int ->
-                        worldFile = worldOptions[i.mod(worldOptions.size)]?.file ?: Prefs.TITLE_ONLY
-                    }
-                    PixelSelect(
-                        world?.let { saveLabel(it) } ?: tr("QuickStartNone"),
-                        onPrev = { pickWorld(wi - 1) },
-                        onNext = { pickWorld(wi + 1) },
-                        modifier = Modifier.padding(top = 4.dp),
-                    )
-                    if (fitting.isEmpty()) {
-                        PixelText(
-                            if (player.journey) tr("NoSavedJourneyWorlds") else tr("NoSavedWorlds"),
-                            size = Ts.Small, color = Bl.TextDim, modifier = Modifier.padding(top = 6.dp),
-                        )
-                    }
                 }
             }
         }
@@ -982,17 +1004,35 @@ private fun saveLabel(save: SaveFiles.Save) = if (save.journey) tr("JourneyWorld
 /** Uma linha de ajuste: nome, o que ela faz, e o interruptor. */
 @Composable
 private fun Setting(title: String, help: String, on: Boolean, onChange: (Boolean) -> Unit) {
-    PixelCard(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
-        Row(
-            Modifier.padding(12.dp).fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f).padding(end = 8.dp)) {
-                PixelText(title, size = Ts.Item)
-                PixelText(help, size = Ts.Small, color = Bl.TextFaint)
-            }
-            SwitchSprite(on, { onChange(!on) })
+    Row(
+        Modifier.padding(12.dp).fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f).padding(end = 8.dp)) {
+            PixelText(title, size = Ts.Item)
+            PixelText(help, size = Ts.Small, color = Bl.TextFaint)
         }
+        SwitchSprite(on, { onChange(!on) })
+    }
+}
+
+@Composable
+private fun SettingsGroup(vararg rows: @Composable () -> Unit) {
+    PixelCard(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+        Column(Modifier.fillMaxWidth()) {
+            rows.forEachIndexed { i, row ->
+                if (i > 0) SettingsDivider()
+                row()
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsDivider() {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
+        Box(Modifier.fillMaxWidth().height(2.dp).background(Bl.Panel.mix(Bl.Night, 0.45f)))
+        Box(Modifier.fillMaxWidth().height(2.dp).background(Bl.Panel.mix(Color.White, 0.08f)))
     }
 }
 

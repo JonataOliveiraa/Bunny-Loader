@@ -18,16 +18,17 @@ import java.security.MessageDigest
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * Os mods publicados online: o repositório Bunny-Loader-Mods, separado do
+ * Os mods publicados online: o repositório Bunny-Loader-CSharp-Mods, separado do
  * código do app (um pedido de remoção contra um mod não derruba o app), com o
- * índice e a vitrine de cada mod no `main` e os pacotes nas Releases.
+ * índice e a vitrine de cada mod em `main/store/` e os pacotes nas Releases.
  *
- *     main/index.json                  a lista: uid, versão, pacote, arquivos e o
- *                                      manifesto de cada mod (`manifest`), e
- *                                      os mods em destaque no Início (`featured`)
- *     main/stats.json                  downloads de cada mod, somados das
+ *     store/index.json                 a lista: uid, versão, pacote, arquivos e o
+ *                                      manifesto de cada mod (`manifest`)
+ *     store/featured.json              os mods do "Em destaque" do Início, em ordem
+ *     store/popular.json               os 10 mais baixados, em ordem
+ *     store/stats.json                 downloads de cada mod, somados das
  *                                      Releases por uma Action a cada 6 h
- *     main/mods/<uid>/...              icon.png (ou .gif), banner.png (ou .gif...), description.md,
+ *     store/mods/<uid>/...             icon.png (ou .gif), banner.png (ou .gif...), description.md,
  *                                      authors/... — o que a ficha mostra, sem
  *                                      baixar o mod inteiro
  *     releases/mod-<id>-v<versão>      o .bl, que só desce ao instalar
@@ -54,14 +55,13 @@ class RemoteCatalog(private val context: Context, private val catalog: Catalog) 
     private val json = Json { ignoreUnknownKeys = true }
     private val storeDir get() = File(context.cacheDir, "store")
     private val indexFile get() = File(storeDir, INDEX)
-    private val etagFile get() = File(storeDir, ETAG)
-    private val statsFile get() = File(storeDir, STATS)
-    private val statsEtagFile get() = File(storeDir, STATS_ETAG)
+    private val etagFile get() = File(storeDir, "$INDEX.etag")
     private val locks = java.util.concurrent.ConcurrentHashMap<String, Any>()
 
     /** A última lista baixada, sem rede. Vazia na primeira abertura. */
     fun cached(): CatalogSnapshot = runCatching {
-        snapshotOf(json.decodeFromString<RemoteIndex>(indexFile.readText()), cachedDownloads())
+        snapshotOf(json.decodeFromString<RemoteIndex>(indexFile.readText()),
+            cachedText(STATS), cachedText(FEATURED), cachedText(POPULAR))
     }.getOrDefault(CatalogSnapshot())
 
     /**
@@ -73,7 +73,11 @@ class RemoteCatalog(private val context: Context, private val catalog: Catalog) 
     suspend fun refresh(onProgress: (CatalogProgress) -> Unit = {}): CatalogSnapshot {
         storeDir.mkdirs()
         val etag = runCatching { etagFile.readText().trim() }.getOrNull()?.takeIf { indexFile.isFile }
-        val response = fetchIfChanged(INDEX_URL, etag, MAX_INDEX_BYTES)
+        val response = try {
+            fetchIfChanged(BASE_URL + INDEX, etag, MAX_INDEX_BYTES)
+        } catch (_: MissingFile) {
+            CachedResponse(EMPTY_INDEX.encodeToByteArray(), null)
+        }
         val raw = response?.body?.decodeToString() ?: indexFile.readText()
         val index = json.decodeFromString<RemoteIndex>(raw)
         require(index.format <= FORMAT) {
@@ -111,29 +115,39 @@ class RemoteCatalog(private val context: Context, private val catalog: Catalog) 
             indexFile.writeText(raw)
             if (response.etag != null) etagFile.writeText(response.etag) else etagFile.delete()
         }
-        return snapshotOf(index, refreshDownloads())
+        return snapshotOf(index, refreshText(STATS), refreshText(FEATURED), refreshText(POPULAR))
     }
 
-    /**
-     * Os downloads de cada mod. São só um enfeite da lista: sem rede ou com o
-     * arquivo quebrado, ficam os da última vez (ou nenhum), e o catálogo segue.
-     */
-    private fun refreshDownloads(): Map<String, Long> = runCatching {
-        val etag = runCatching { statsEtagFile.readText().trim() }.getOrNull()?.takeIf { statsFile.isFile }
-        val response = fetchIfChanged(STATS_URL, etag, MAX_STATS_BYTES) ?: return cachedDownloads()
-        val raw = response.body.decodeToString()
-        val counts = downloadsOf(raw)
-        statsFile.writeText(raw)
-        if (response.etag != null) statsEtagFile.writeText(response.etag) else statsEtagFile.delete()
-        counts
-    }.getOrElse { cachedDownloads() }
+    private fun refreshText(name: String): String? {
+        val file = File(storeDir, name)
+        val tag = File(storeDir, "$name.etag")
+        return try {
+            val etag = runCatching { tag.readText().trim() }.getOrNull()?.takeIf { file.isFile }
+            val response = fetchIfChanged(BASE_URL + name, etag, MAX_SIDE_BYTES) ?: return file.readText()
+            val raw = response.body.decodeToString()
+            file.writeText(raw)
+            if (response.etag != null) tag.writeText(response.etag) else tag.delete()
+            raw
+        } catch (_: MissingFile) {
+            file.delete()
+            tag.delete()
+            null
+        } catch (_: Exception) {
+            cachedText(name)
+        }
+    }
 
-    private fun cachedDownloads(): Map<String, Long> =
-        runCatching { downloadsOf(statsFile.readText()) }.getOrDefault(emptyMap())
+    private fun cachedText(name: String): String? = runCatching { File(storeDir, name).readText() }.getOrNull()
 
-    private fun downloadsOf(raw: String): Map<String, Long> =
-        json.decodeFromString<RemoteStats>(raw).downloads
+    private fun downloadsOf(stats: String?, popular: RemotePopular?): Map<String, Long> {
+        val counted = stats?.let { runCatching { json.decodeFromString<RemoteStats>(it).downloads }.getOrNull() }
+            .orEmpty()
+        return (popular?.mods.orEmpty().associate { it.uid to it.downloads } + counted)
             .filter { (uid, count) -> ModManifest.isValidUid(uid) && count >= 0 }
+    }
+
+    private inline fun <reified T> decodeSide(raw: String?): T? =
+        raw?.let { runCatching { json.decodeFromString<T>(it) }.getOrNull() }
 
     /**
      * Garante no cache estes arquivos da vitrine de um mod (os que o índice
@@ -152,7 +166,7 @@ class RemoteCatalog(private val context: Context, private val catalog: Catalog) 
                 dir.mkdirs()
                 File(dir, STAMP).writeText(sha)
             }
-            val base = INDEX_URL.substringBeforeLast('/') + "/mods/${mod.uid}/"
+            val base = BASE_URL + "mods/${mod.uid}/"
             for (rel in rels.distinct()) {
                 if (rel !in mod.files) continue
                 val out = File(dir, rel)
@@ -217,9 +231,17 @@ class RemoteCatalog(private val context: Context, private val catalog: Catalog) 
         }
     }
 
-    private fun snapshotOf(index: RemoteIndex, downloads: Map<String, Long>): CatalogSnapshot {
+    private fun snapshotOf(index: RemoteIndex, stats: String?, featured: String?, popular: String?): CatalogSnapshot {
         val entries = index.mods.filter(::isSane).distinctBy { it.uid }.mapNotNull(::entryOf)
-        return CatalogSnapshot(entries, index.featured.filter(ModManifest::isValidUid).distinct(), downloads)
+        val listed = entries.map { it.uid }.toSet()
+        val curated = decodeSide<RemoteFeatured>(featured)?.takeIf { it.format <= FORMAT }
+        val ranked = decodeSide<RemotePopular>(popular)?.takeIf { it.format <= FORMAT }
+        return CatalogSnapshot(
+            entries,
+            (curated?.mods ?: index.featured).filter(ModManifest::isValidUid).distinct(),
+            downloadsOf(stats, ranked).filterKeys { it in listed },
+            ranked?.mods.orEmpty().map { it.uid }.filter(ModManifest::isValidUid).distinct(),
+        )
     }
 
     /**
@@ -234,6 +256,7 @@ class RemoteCatalog(private val context: Context, private val catalog: Catalog) 
         }.getOrNull()) ?: return null
         // A vitrine diz quem ela é; se não for o mod do índice, não entra.
         if (manifest.uid != mod.uid) return null
+        if (manifest.blVersion !in ModRepository.MIN_BL_VERSION..ModRepository.BL_VERSION) return null
         // Vitrine de outra versão não vale: a entrada fica sem ícone até ele descer.
         val base = catalog.fromDisk(manifest, if (fresh) dir else File(storeDir, "${mod.uid}.none"), mod.download.size)
         return base.copy(assetDir = dir.path, sizeBytes = mod.download.size, remote = mod)
@@ -256,6 +279,8 @@ class RemoteCatalog(private val context: Context, private val catalog: Catalog) 
 
     private class CachedResponse(val body: ByteArray, val etag: String?)
 
+    private class MissingFile(url: String) : IOException("o servidor respondeu 404: $url")
+
     /** O arquivo, ou null quando o servidor confirma (304) que é o mesmo do cache. */
     private fun fetchIfChanged(url: String, etag: String?, limit: Long): CachedResponse? {
         val conn = connect(url)
@@ -264,6 +289,10 @@ class RemoteCatalog(private val context: Context, private val catalog: Catalog) 
         if (code == HttpURLConnection.HTTP_NOT_MODIFIED && etag != null) {
             conn.disconnect()
             return null
+        }
+        if (code == HttpURLConnection.HTTP_NOT_FOUND) {
+            conn.disconnect()
+            throw MissingFile(url)
         }
         if (code != HttpURLConnection.HTTP_OK) {
             conn.disconnect()
@@ -300,31 +329,27 @@ class RemoteCatalog(private val context: Context, private val catalog: Catalog) 
     }
 
     companion object {
-        const val ENABLED = false
+        const val ENABLED = true
         const val FORMAT = 1
+        const val POPULAR_LIMIT = 10
         private const val INDEX = "index.json"
-        private const val ETAG = "index.etag"
         private const val STATS = "stats.json"
-        private const val STATS_ETAG = "stats.etag"
+        private const val FEATURED = "featured.json"
+        private const val POPULAR = "popular.json"
         private const val STAMP = ".sha256"
-        const val INDEX_URL =
-            "https://raw.githubusercontent.com/JonataOliveiraa/Bunny-Loader-Mods/main/index.json"
-        private val STATS_URL = INDEX_URL.substringBeforeLast('/') + "/stats.json"
+        private const val EMPTY_INDEX = """{"format":1,"mods":[]}"""
+        const val BASE_URL =
+            "https://raw.githubusercontent.com/JonataOliveiraa/Bunny-Loader-CSharp-Mods/main/store/"
 
-        /**
-         * O pacote só pode vir das Releases do catálogo. As do repositório do
-         * app valem enquanto os pacotes antigos não são copiados para o de
-         * mods (tools/mods/migrate_releases.py); depois, esta linha sai.
-         */
+        /** O pacote só pode vir das Releases do catálogo. */
         private val ALLOWED_HOSTS = listOf(
-            "https://github.com/JonataOliveiraa/Bunny-Loader-Mods/releases/download/",
-            "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/",
+            "https://github.com/JonataOliveiraa/Bunny-Loader-CSharp-Mods/releases/download/",
         )
 
         /** Com o manifesto de cada mod dentro, o índice cresce ~2 KB por mod. */
         private const val MAX_INDEX_BYTES = 8L shl 20
         /** Um uid e um número por mod: ~60 bytes cada. */
-        private const val MAX_STATS_BYTES = 1L shl 20
+        private const val MAX_SIDE_BYTES = 1L shl 20
         private const val MAX_STORE_FILE_BYTES = 4L shl 20
         private const val MAX_PACKAGE_BYTES = 200L shl 20
 
@@ -348,6 +373,26 @@ data class CatalogSnapshot(
     val featured: List<String> = emptyList(),
     /** Downloads de cada mod, pelo uid. Vazio enquanto o stats.json não existe. */
     val downloads: Map<String, Long> = emptyMap(),
+    val popular: List<String> = emptyList(),
+)
+
+@Serializable
+data class RemoteFeatured(
+    val format: Int = 1,
+    val mods: List<String> = emptyList(),
+)
+
+@Serializable
+data class RemotePopular(
+    val format: Int = 1,
+    val updatedAt: String? = null,
+    val mods: List<PopularMod> = emptyList(),
+)
+
+@Serializable
+data class PopularMod(
+    val uid: String,
+    val downloads: Long = 0,
 )
 
 /** O index.json do repositório de mods. */

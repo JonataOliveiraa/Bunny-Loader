@@ -28,6 +28,17 @@ class CatalogStatsTest {
         assertEquals(listOf("dae471c1-68ae-4d6a-b49e-a5b3f5a0cd36"), curated.featured)
     }
 
+    @Test fun featuredAndPopularFilesParse() {
+        val featured = json.decodeFromString<RemoteFeatured>(
+            """{"format":1,"mods":["dae471c1-68ae-4d6a-b49e-a5b3f5a0cd36"]}""")
+        assertEquals(listOf("dae471c1-68ae-4d6a-b49e-a5b3f5a0cd36"), featured.mods)
+        val popular = json.decodeFromString<RemotePopular>("""
+            {"format":1,"updatedAt":"2026-11-15T12:00:00Z",
+             "mods":[{"uid":"dae471c1-68ae-4d6a-b49e-a5b3f5a0cd36","downloads":12}]}
+        """.trimIndent())
+        assertEquals(12L, popular.mods.single().downloads)
+    }
+
     @Test fun statsFileParsesWithUnknownFields() {
         val stats = json.decodeFromString<RemoteStats>("""
             {"format":1,"updatedAt":"2026-10-21T12:00:00Z","source":"x",

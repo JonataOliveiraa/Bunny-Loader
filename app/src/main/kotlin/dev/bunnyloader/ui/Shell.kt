@@ -243,6 +243,8 @@ class Shell(context: Context) {
     /** Downloads de cada mod do catálogo online, pelo uid (stats.json). */
     var downloadCounts by mutableStateOf(emptyMap<String, Long>())
         private set
+    var popularUids by mutableStateOf(emptyList<String>())
+        private set
     private var remoteFetchedAt = 0L
     private var remoteCacheLoaded = false
 
@@ -378,6 +380,7 @@ class Shell(context: Context) {
         remote = snapshot.entries
         featuredUids = snapshot.featured
         downloadCounts = snapshot.downloads
+        popularUids = snapshot.popular
     }
 
     /**
