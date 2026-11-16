@@ -10,6 +10,14 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="com.android.vending.CHECK_LICENSE" />
 
+    <uses-permission android:name="android.permission.RECORD_AUDIO" tools:node="remove" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" tools:node="remove" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" tools:node="remove" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" tools:node="remove" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" tools:node="remove" />
+    <uses-permission android:name="android.permission.BLUETOOTH" tools:node="remove" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" tools:node="remove" />
+
     <!-- O BL Editor (com.bunnyloader.editor) é outro APK: só ele, assinado com
          a mesma chave, abre a EditorBridgeActivity. Ele declara a mesma
          permissão, para valer em qualquer ordem de instalação. -->
@@ -126,5 +134,8 @@
             <meta-data android:name="unityplayer.UnityActivity" android:value="true" />
             <meta-data android:name="android.notch_support" android:value="true" />
         </activity>
+
+        <activity android:name="com.discord.socialsdk.AuthenticationActivity" tools:node="remove" />
+        <service android:name="com.discord.socialsdk.ForegroundService" tools:node="remove" />
     </application>
 </manifest>

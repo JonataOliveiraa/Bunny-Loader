@@ -752,6 +752,7 @@ fun ConfigTab(shell: Shell) {
     var modMenu by remember { mutableStateOf(prefs.devModMenu) }
     var editor by remember { mutableStateOf(prefs.devEditor) }
     var restart by remember { mutableStateOf(prefs.devRestart) }
+    var discordPresence by remember { mutableStateOf(prefs.discordPresence) }
     var sourcesOpen by rememberSaveable { mutableStateOf(false) }
     if (sourcesOpen) {
         ModSourcesScreen(shell) { sourcesOpen = false }
@@ -762,6 +763,16 @@ fun ConfigTab(shell: Shell) {
         Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal = EdgePad)) {
             SectionTitle(tr("Community"))
             DiscordCard()
+            Spacer(Modifier.height(10.dp))
+            SettingsGroup(
+                {
+                    Setting(
+                        tr("DiscordPresence"),
+                        tr("DiscordPresenceDescription"),
+                        discordPresence,
+                    ) { discordPresence = it; prefs.discordPresence = it }
+                },
+            )
 
             SectionTitle(tr("Collection"))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

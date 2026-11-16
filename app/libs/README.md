@@ -34,3 +34,16 @@ depend on the OS, and the Windows installer requires administrator privileges:
 Inside: `Payload` (gzip + cpio odc) -> `./Variations/il2cpp/Release/Classes/classes.jar`.
 
 It is NOT Terraria content — it is Unity's Android runtime.
+
+# discord_partner_sdk.aar
+
+**Out of Git.** The Discord Social SDK belongs to Discord, so whoever builds
+downloads it from the Developer Portal (application > Discord Social SDK >
+Downloads, C++ SDK) and copies `discord_social_sdk/lib/release/discord_partner_sdk.aar`
+here. Used version: `DiscordSocialSdk-1.10.19337.zip`.
+
+It powers the Discord status (Settings > Community). The application id comes
+from `bl.discordAppId` in `gradle.properties`. Without the AAR or the id the app
+builds and the status stays off. Only the presence over the installed Discord
+app is used, so the manifest drops the SDK's voice permissions, its foreground
+service and its sign-in activity.

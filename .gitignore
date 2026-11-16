@@ -90,6 +90,7 @@ exmod_tl/
 # as classes Java da Unity (procedencia em app/libs/README.md) e a fonte Andy
 # Bold, da Monotype (sem ela o build usa app/src/fontFallback).
 app/libs/unity-classes.jar
+app/libs/discord_partner_sdk.aar
 app/src/main/res/font/bunny.ttf
 
 # Saida do SDK do .NET (a API C# e os mods C# de teste)

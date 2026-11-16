@@ -94,6 +94,10 @@ class Prefs(context: Context) {
     val quickWorldFile: String
         get() = quickWorld.takeIf { quickStart && it != TITLE_ONLY } ?: ""
 
+    var discordPresence: Boolean
+        get() = p.getBoolean(DISCORD_PRESENCE, true)
+        set(v) = p.edit().putBoolean(DISCORD_PRESENCE, v).apply()
+
     /** A ordem do Explorar: o nome de um [ExploreSort]. */
     var exploreSort: String
         get() = p.getString(EXPLORE_SORT, "") ?: ""
@@ -114,6 +118,7 @@ class Prefs(context: Context) {
         const val DEV_RESTART = "devRestart"
         const val SOURCE_TREES = "sourceTrees"
         const val GAME_CHECK_DONE = "gameCheckDone"
+        const val DISCORD_PRESENCE = "discordPresence"
         /** Nenhum arquivo de mundo tem este nome (o jogo grava `*.wld`). */
         const val TITLE_ONLY = "-"
     }

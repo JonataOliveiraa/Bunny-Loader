@@ -15,6 +15,7 @@ import android.widget.Toast
 import bunny.MenuLocalization
 import dev.bunnyloader.game.BootLog
 import dev.bunnyloader.game.BundledRuntime
+import dev.bunnyloader.game.DiscordPresence
 import dev.bunnyloader.game.DotnetRuntime
 import dev.bunnyloader.game.Eligibility
 import dev.bunnyloader.game.GameTexts
@@ -166,12 +167,13 @@ class GameActivity : Activity() {
         // nesta abertura só.
         val session = ServerSync.takeSession(this)
         if (session != null) Log.i(TAG, "sincronizar mods: abrindo com os ${session.mods.size} pacotes do servidor")
+        val enabledMods = session?.mods ?: repo.enabledSpecs()
         val ok = runCatching {
             NativeBridge.init(
                 NativeConfig(
                     gameLibDir = BundledRuntime.libDir(this).absolutePath,
                     modsDir = repo.modsDir.absolutePath,
-                    enabledMods = (session?.mods ?: repo.enabledSpecs()).toTypedArray(),
+                    enabledMods = enabledMods.toTypedArray(),
                     logPath = logFile.absolutePath,
                     // Canal de dev: adb push <arquivo> para a NOSSA pasta
                     // externa. A do Terraria nao serve — desde o Android 11
@@ -206,6 +208,9 @@ class GameActivity : Activity() {
         if (!ok) {
             Toast.makeText(this, "Nucleo nao iniciado - rodando sem mods", Toast.LENGTH_SHORT).show()
         }
+        runCatching {
+            DiscordPresence.start(this, enabledMods.count { !it.substringAfter('=').startsWith('@') })
+        }.onFailure { logFailure("DiscordPresence.start", it) }
     }
 
 
@@ -292,6 +297,7 @@ class GameActivity : Activity() {
     override fun onDestroy() {
         if (currentRef?.get() === this) currentRef = null
         val hadHost = host != null
+        DiscordPresence.stop()
         host?.destroy()
         super.onDestroy()
         // So derruba o processo se a Unity chegou a subir; num erro de boot,

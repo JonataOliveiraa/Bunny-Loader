@@ -25,6 +25,9 @@ val baseAssets = layout.buildDirectory.dir(if (playBuild) "generated/blAssetsPla
 val movableAssets: Provider<Directory> =
     if (playBuild) layout.dir(provider { rootProject.file("play_assets/src/main/assets") }) else baseAssets
 
+val discordSdk = file("libs/discord_partner_sdk.aar")
+val discordAppId = (project.findProperty("bl.discordAppId") as String?)?.trim()?.toLongOrNull() ?: 0L
+
 val hasGameFont = file("src/main/res/font/bunny.ttf").isFile
 val fontDir = file(if (hasGameFont) "src/main/res/font" else "src/fontFallback/res/font")
 
@@ -106,6 +109,7 @@ android {
         manifestPlaceholders["editorPermission"] =
             if (playBuild) "com.bunnyloader.potatolabs.permission.EDITOR" else "com.bunnyloader.permission.EDITOR"
         buildConfigField("boolean", "BENCH", benchBuild.toString())
+        buildConfigField("long", "DISCORD_APP_ID", "${if (discordSdk.isFile) discordAppId else 0L}L")
 
         // Só arm64. O runtime do jogo é integrado e existe apenas para
         // arm64-v8a; permitir armeabi-v7a instalaria o Bunny Loader em
@@ -497,6 +501,8 @@ dependencies {
     // é carregada por reflection), mas o jogo não sobe, como sem os .so do jogo.
     val unityClasses = file("libs/unity-classes.jar")
     if (unityClasses.isFile) implementation(files(unityClasses))
+
+    if (discordSdk.isFile) implementation(files(discordSdk))
 
     if (csharpEnabled) implementation(files(monoCryptoJar).builtBy(syncMonoCryptoJar))
 
