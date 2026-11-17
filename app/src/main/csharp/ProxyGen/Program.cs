@@ -50,10 +50,21 @@ static class Program
 
         var listed = new List<Type>();
         var missing = new List<string>();
+        bool everyType = false;
         foreach (string raw in typesFiles.SelectMany(File.ReadAllLines))
         {
             string line = raw.Split('#')[0].Trim();
             if (line.Length == 0) continue;
+            if (line == "*")
+            {
+                everyType = true;
+                continue;
+            }
+            if (line.StartsWith('-'))
+            {
+                TypeMap.Excluded.Add(line[1..].Replace('/', '+'));
+                continue;
+            }
             if (line.StartsWith('='))
             {
                 string[] parts = line[1..].Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -84,6 +95,10 @@ static class Program
             }
             if (!listed.Contains(t)) listed.Add(t);
         }
+        if (everyType)
+            foreach (Type a in types.OrderBy(TypeMap.Key, StringComparer.Ordinal))
+                if (EveryType(a) && !listed.Contains(a)) listed.Add(a);
+        listed.RemoveAll(TypeMap.IsExcluded);
         foreach (string m in missing) Console.WriteLine($"ProxyGen: skipped type {m}");
         if (listed.Count == 0)
         {
@@ -109,7 +124,8 @@ static class Program
                     grew = true;
                 }
                 if (mode != GenMode.Full || plans.ContainsKey(key)) continue;
-                plans[key] = BuildPlan(type, map, emitter);
+                TypePlan plan = plans[key] = BuildPlan(type, map, emitter);
+                foreach (MethodModel m in plan.Methods.Concat(plan.Ctors)) emitter.ResolveDelegates(m);
                 grew = true;
             }
         }
@@ -158,6 +174,10 @@ static class Program
                           $"{missing.Count} types and {emitter.Skipped.Count} members skipped (skipped.txt)");
         return 0;
     }
+
+    static bool EveryType(Type t) =>
+        !t.IsNested && !t.IsInterface && !t.IsGenericTypeDefinition && TypeMap.ValidName(t.Name) &&
+        t.BaseType?.FullName != "System.MulticastDelegate";
 
     static Type? Lookup(Dictionary<string, Type> byName, string line)
     {

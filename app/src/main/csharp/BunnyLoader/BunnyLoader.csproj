@@ -9,6 +9,7 @@
     <AssemblyVersion>2.0.0.0</AssemblyVersion>
     <DebugType>embedded</DebugType>
     <GenerateDependencyFile>false</GenerateDependencyFile>
+    <EmbedUntrackedSources>false</EmbedUntrackedSources>
     <RepoRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../../../../'))</RepoRoot>
     <ProxyGenProject>$(MSBuildThisFileDirectory)../ProxyGen/ProxyGen.csproj</ProxyGenProject>
     <ProxyGenDll>$(MSBuildThisFileDirectory)../ProxyGen/bin/Release/net10.0/ProxyGen.dll</ProxyGenDll>

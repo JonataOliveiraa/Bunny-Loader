@@ -523,6 +523,11 @@ sealed class Emitter
         return DelegateModels[key] = (model, managed);
     }
 
+    public void ResolveDelegates(MethodModel m)
+    {
+        foreach (ParameterInfo p in m.Method.GetParameters()) DelegateOf(p.ParameterType);
+    }
+
     void EmitDelegateOverload(StringBuilder sb, string ind, MethodModel m, string classExpr, string name, string access, int id)
     {
         if (name.StartsWith("__", StringComparison.Ordinal)) return;

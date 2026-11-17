@@ -60,6 +60,10 @@ sealed class TypeMap
         "ReLogic.Content.AssetState",
     };
 
+    public static readonly HashSet<string> Excluded = new();
+
+    public static bool IsExcluded(Type t) => Handwritten.Contains(Key(t)) || Excluded.Contains(Key(t));
+
     public static string Key(Type t) => t.FullName ?? t.Name;
 
     public static string ProxyNamespace(Type t)
@@ -179,7 +183,7 @@ sealed class TypeMap
 
     void Register(Type t, GenMode mode)
     {
-        if (!IsGame(t) || Handwritten.Contains(Key(t))) return;
+        if (!IsGame(t) || IsExcluded(t)) return;
         string key = Key(t);
         if (Generated.TryGetValue(key, out var have))
         {
@@ -215,7 +219,7 @@ sealed class TypeMap
         foreach (Type n in t.GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic))
         {
             if (!ValidName(n.Name) || n.IsGenericTypeDefinition) continue;
-            if (n.BaseType?.FullName == "System.MulticastDelegate") continue;
+            if (n.BaseType?.FullName == "System.MulticastDelegate" || IsExcluded(n)) continue;
             RegisterFull(n);
         }
         if (!t.IsValueType && t.BaseType != null && IsGame(t.BaseType) && Supported(t.BaseType))
@@ -373,6 +377,7 @@ sealed class TypeMap
         string key = Key(t);
         if (emitted.TryGetValue(key, out bool have)) return have;
         if (Handwritten.Contains(key)) return true;
+        if (Excluded.Contains(key)) return false;
         emitted[key] = true;
         bool ok = Generated.ContainsKey(key) && (!t.IsNested || Emits(t.DeclaringType!));
         if (ok && t.IsValueType && !t.IsEnum) ok = Layout(t) != null;

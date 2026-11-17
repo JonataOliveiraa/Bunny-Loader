@@ -1,0 +1,17 @@
+{
+  "uid": "f5b0f2d6-ad17-433b-a8b0-239033fbc038",
+  "id": "CsAllHooks",
+  "name": "Test: On_ hooks on every game type",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Hooks methods of game types that only got On_ classes with the every-type ProxyGen list: a per-frame call from the game, static returns and an instance method.",
+  "description": "Compile with tools/tests/build-cs.sh csallhooks. Run with tools/tests/run-cs.sh csallhooks.",
+  "updated": "2026-11-17",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}
