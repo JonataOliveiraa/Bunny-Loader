@@ -178,6 +178,7 @@ public static unsafe partial class NPCLoader
         WantEvents(npc, slots);
         if (instance?.AIType is > 0) NPCEventHooks.Want(npc.type, 1);
         if (instance?.AnimationType is > 0) NPCEventHooks.Want(npc.type, 2);
+        NPCUIHooks.Spawned(npc);
     }
 
     static void WantEvents(NPC npc, GlobalNPC?[]? slots)

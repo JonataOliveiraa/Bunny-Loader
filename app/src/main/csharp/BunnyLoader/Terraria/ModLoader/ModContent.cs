@@ -445,7 +445,11 @@ public static class ModContent
         try { PlantLoader.FinishSetup(); }
         catch (Exception e) { Log.Error($"trees: setup failed: {e}"); }
         yield return 0;
-        try { Core.TownNPCFlagHooks.WantActsLike(); }
+        try
+        {
+            Core.TownNPCFlagHooks.WantActsLike();
+            Core.TownNPCFlagHooks.WantNoHappiness();
+        }
         catch (Exception e) { Log.Error($"town NPC flags: setup failed: {e}"); }
         CustomContentSetup.ContentReady();
         try { LocalizationLoader.ResolvePlaceholders(); }

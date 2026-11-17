@@ -1,0 +1,17 @@
+{
+  "uid": "3f6b2c1e-8a47-4d0f-9b2e-5c7d1a9e4b63",
+  "id": "CsBoneChat",
+  "name": "Test: chat with an ActsLikeTownNPC",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Checks that a real tap on the Example Bone Merchant opens its chat and shop, and that the Guide still opens.",
+  "description": "Compile with tools/tests/build-cs.sh csbonechat. Run with DLL=1 SAMPLE=1 tools/tests/run-taps.sh csbonechat.",
+  "updated": "2026-11-17",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

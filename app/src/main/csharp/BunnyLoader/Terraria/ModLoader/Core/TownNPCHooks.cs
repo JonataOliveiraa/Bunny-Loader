@@ -63,6 +63,7 @@ internal static class TownNPCHooks
         if (Any(nameof(ModNPC.CanChat), nameof(ModNPC.GetChat)))
         {
             flags |= NPCMethod.TownChat;
+            if (Has(nameof(ModNPC.CanChat))) NPCUIHooks.WantChat();
             if (Has(nameof(ModNPC.GetChat))) ItemHooks.Once("TownChat", () => On_NPC.GetChat += Chat);
         }
         if (Any(nameof(ModNPC.RegisterChatButtons), nameof(ModNPC.SetChatButtons), nameof(ModNPC.OnChatButtonClicked), nameof(GlobalNPC.PreChatButtonClicked)))

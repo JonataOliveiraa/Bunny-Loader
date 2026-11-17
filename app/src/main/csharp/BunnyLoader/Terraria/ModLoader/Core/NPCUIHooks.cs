@@ -15,10 +15,14 @@ internal static unsafe class NPCUIHooks
     const int PartyHat = 0, ChatBubble = 1;
 
     [ThreadStatic] static NPC adjusting;
-    static readonly List<(NPC Npc, Vector2 Position, Rectangle Frame, bool Active)> hidden = new();
+    static readonly List<(NPC Npc, Vector2 Position, Rectangle Frame, bool Active, bool Town)> hidden = new();
     static readonly NPCGates.TypeSet HoverTypes = new(type => NPCGates.Wants(type, Hover));
+    static readonly NPCGates.TypeSet ChatTypes = new(type => NPCGates.Wants(type, NPCMethod.TownChat));
     static readonly NPCGates.TypeSet BubbleTypes = new(type => NPCGates.Wants(type, NPCHook.ChatBubblePosition));
     static (IntPtr Raw, IntPtr Asset) partyHat;
+    static readonly List<NPC> talkers = new(), lent = new();
+    static uint talkersAt = uint.MaxValue;
+    static int* talkGate;
 
     internal static void Install(NPCHook flags)
     {
@@ -29,7 +33,81 @@ internal static unsafe class NPCUIHooks
                 On_Main.DrawNPCExtras += DrawNPCExtras;
             });
         if ((flags & NPCHook.ChatBubblePosition) != 0) ItemHooks.Once("NPCChatBubblePosition", () => On_Main.DrawNPCChatBubble += DrawNPCChatBubble);
-        if ((flags & Hover) != 0) ItemHooks.Once("NPCHover", () => On_Main.HoverOverNPCs += HoverOverNPCs);
+        if ((flags & Hover) != 0) WantHover();
+    }
+
+    internal static void WantHover() => ItemHooks.Once("NPCHover", () => On_Main.HoverOverNPCs += HoverOverNPCs);
+
+    internal static void WantChat()
+    {
+        WantHover();
+        ItemHooks.Once("NPCTalkCursor", () =>
+        {
+            talkGate = NPCGates.Flag<On_GUIQuickActionButton.hook_GetMouseNPC>();
+            NPCGates.Flag<On_GUIQuickActionButton.hook_GetMouseNPCAtPosition>(talkGate);
+            On_GUIQuickActionButton.GetMouseNPC += GetMouseNPC;
+            On_GUIQuickActionButton.GetMouseNPCAtPosition += GetMouseNPCAtPosition;
+        });
+    }
+
+    internal static void Spawned(NPC npc)
+    {
+        if (talkGate != null && ChatTypes.Contains(npc.type)) *talkGate = 1;
+    }
+
+    static bool TalksAsTown(NPC npc) =>
+        npc.active && !npc.townNPC && !ChatListed(npc.type) && ChatTypes.Contains(npc.type) && !SpecialBox(npc.type) &&
+        NPCLoader.HasHooks(npc, NPCMethod.TownChat) && NPCLoader.CanChat(npc) == true;
+
+    static int LendTalkers()
+    {
+        int mark = lent.Count;
+        try
+        {
+            uint now = Main.GameUpdateCount;
+            if (now != talkersAt && mark == 0 && hidden.Count == 0)
+            {
+                talkersAt = now;
+                talkers.Clear();
+                for (int n = 0; n < 200; n++)
+                {
+                    NPC npc = Main.npc[n];
+                    if (TalksAsTown(npc)) talkers.Add(npc);
+                }
+                if (talkers.Count == 0 && talkGate != null) *talkGate = 0;
+            }
+            foreach (NPC npc in talkers)
+            {
+                if (!npc.active || npc.townNPC) continue;
+                npc.townNPC = true;
+                lent.Add(npc);
+            }
+        }
+        catch (Exception e) { ItemHooks.Report("NPC talk cursor", e); }
+        return mark;
+    }
+
+    static void ReturnTalkers(int mark)
+    {
+        for (int k = lent.Count - 1; k >= mark; k--)
+        {
+            lent[k].townNPC = false;
+            lent.RemoveAt(k);
+        }
+    }
+
+    static NPC GetMouseNPC(On_GUIQuickActionButton.orig_GetMouseNPC orig, out bool allowTileInteraction)
+    {
+        int mark = LendTalkers();
+        try { return orig(out allowTileInteraction); }
+        finally { ReturnTalkers(mark); }
+    }
+
+    static NPC GetMouseNPCAtPosition(On_GUIQuickActionButton.orig_GetMouseNPCAtPosition orig, Vector2 mouseWorldPosition, out bool allowTileInteraction)
+    {
+        int mark = LendTalkers();
+        try { return orig(mouseWorldPosition, out allowTileInteraction); }
+        finally { ReturnTalkers(mark); }
     }
 
     static IntPtr TextureOf(GameObjectRef asset) => asset.Pointer == IntPtr.Zero ? IntPtr.Zero : Host.Native()->TextureAssetValue(asset.Pointer);
@@ -122,6 +200,8 @@ internal static unsafe class NPCUIHooks
 
     static bool SpecialBox(int type) => type >= 87 && type <= 92 || type == 677 || type == 695 || type == 696;
 
+    static bool ChatListed(int type) => type is 105 or 106 or 123 or 354 or 376 or 453 or 579 or 589;
+
     static void HoverOverNPCs(On_Main.orig_HoverOverNPCs orig, Main self, Rectangle mouseRectangle)
     {
         hidden.Clear();
@@ -130,22 +210,34 @@ internal static unsafe class NPCUIHooks
             for (int n = 0; n < 200; n++)
             {
                 NPC npc = Main.npc[n];
-                if (!npc.active || !HoverTypes.Contains(npc.type) || !NPCLoader.HasHooks(npc, Hover)) continue;
+                if (!npc.active) continue;
+                int type = npc.type;
+                bool hover = HoverTypes.Contains(type) && NPCLoader.HasHooks(npc, Hover);
+                bool chat = ChatTypes.Contains(type) && !SpecialBox(type) && NPCLoader.HasHooks(npc, NPCMethod.TownChat);
+                if (!hover && !chat) continue;
                 Vector2 bottom = npc.position + npc.netOffset + new Vector2(npc.width / 2f, npc.height);
                 Rectangle frame = npc.frame;
                 var vanilla = new Rectangle((int)bottom.X - frame.Width / 2, (int)bottom.Y - frame.Height, frame.Width, frame.Height);
                 Rectangle box = vanilla;
-                if (!SpecialBox(npc.type)) NPCLoader.ModifyHoverBoundingBox(npc, ref box);
+                if (hover && !SpecialBox(type)) NPCLoader.ModifyHoverBoundingBox(npc, ref box);
                 bool intersects = mouseRectangle.Intersects(box);
                 bool considered = intersects || Main.SmartInteractShowingGenuine && Main.SmartInteractNPC == n;
-                if (considered && !NPCLoader.PreHoverInteract(npc, intersects))
+                bool town = npc.townNPC;
+                if (hover && considered && !NPCLoader.PreHoverInteract(npc, intersects))
                 {
-                    hidden.Add((npc, npc.position, frame, true));
+                    hidden.Add((npc, npc.position, frame, true, town));
                     npc.active = false;
                     continue;
                 }
-                if (box.X == vanilla.X && box.Y == vanilla.Y && box.Width == vanilla.Width && box.Height == vanilla.Height) continue;
-                hidden.Add((npc, npc.position, frame, true));
+                bool moved = box.X != vanilla.X || box.Y != vanilla.Y || box.Width != vanilla.Width || box.Height != vanilla.Height;
+                bool listed = ChatListed(type);
+                bool vanillaChat = town || listed;
+                bool canChat = chat && considered ? NPCLoader.CanChat(npc) ?? vanillaChat : vanillaChat;
+                bool lend = canChat != vanillaChat && (canChat || !listed);
+                if (!moved && !lend) continue;
+                hidden.Add((npc, npc.position, frame, true, town));
+                if (lend) npc.townNPC = canChat;
+                if (!moved) continue;
                 npc.frame = new Rectangle(frame.X, frame.Y, box.Width, box.Height);
                 npc.position = new Vector2(box.X + box.Width / 2 - npc.width / 2f + 0.25f, box.Y + box.Height - npc.height + 0.25f) - npc.netOffset;
             }
@@ -156,10 +248,11 @@ internal static unsafe class NPCUIHooks
         {
             for (int k = hidden.Count - 1; k >= 0; k--)
             {
-                var (npc, position, frame, active) = hidden[k];
+                var (npc, position, frame, active, town) = hidden[k];
                 npc.position = position;
                 npc.frame = frame;
                 npc.active = active;
+                npc.townNPC = town;
             }
             hidden.Clear();
         }
