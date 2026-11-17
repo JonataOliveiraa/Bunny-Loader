@@ -6,6 +6,9 @@ using Terraria.ModLoader;
 
 namespace ExampleMod.Content.Items
 {
+    /// <summary>
+    /// This item lets you test the existing ItemHoldStyleID values for Item.holdStyle. Note that the sword texture might not fit each of the holdStyle animations.
+    /// </summary>
     public class HoldStyleShowcase : ModItem
     {
         public static LocalizedText SwitchingText { get; private set; }
@@ -29,6 +32,7 @@ namespace ExampleMod.Content.Items
             Item.autoReuse = true;
             Item.UseSound = SoundID.Item1;
 
+            // In Visual Studio, you can click on "ItemHoldStyleID" and then press F12 to see the list of possible values. You can also type "ItemHoldStyleID." to view the list of possible values.
             Item.holdStyle = ItemHoldStyleID.None;
         }
 
@@ -56,6 +60,7 @@ namespace ExampleMod.Content.Items
                 }
                 Main.NewText(SwitchingText.Format(Item.holdStyle));
 
+                // This line will trigger NetSend to be called at the end of this game update, allowing the changes to holdStyle to be in sync.
                 Item.NetStateChanged();
             }
             else {

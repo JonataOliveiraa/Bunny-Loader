@@ -13,12 +13,14 @@ using Terraria.ObjectData;
 
 namespace ExampleMod.Content.Tiles;
 
+//// Torches are special tiles that support the block swap feature and the biome torch feature. ExampleSurfaceBiome shows how the biome torch is assigned.
 public class ExampleTorch : ModTile
 {
     private Asset<Texture2D> flameTexture;
 
     public override void SetStaticDefaults()
     {
+        // Properties
         Main.tileLighted[Type] = true;
         Main.tileFrameImportant[Type] = true;
         Main.tileSolid[Type] = false;
@@ -36,8 +38,26 @@ public class ExampleTorch : ModTile
 
         TileID.Sets.RoomNeeds.CountsAsTorch[Type] = true;
 
+        // Placement
         TileObjectData.newTile.CopyFrom(TileObjectData.GetTileData(TileID.Torches, 0));
 
+        /*  This is what is copied from the Torches tile
+        TileObjectData.newTile.CopyFrom(TileObjectData.StyleTorch);
+        TileObjectData.newTile.AnchorBottom = new AnchorData(AnchorType.SolidTile | AnchorType.SolidSide, TileObjectData.newTile.Width, 0);
+        TileObjectData.newAlternate.CopyFrom(TileObjectData.StyleTorch);
+        TileObjectData.newAlternate.AnchorLeft = new AnchorData(AnchorType.SolidTile | AnchorType.SolidSide | AnchorType.Tree | AnchorType.AlternateTile, TileObjectData.newTile.Height, 0);
+        TileObjectData.newAlternate.AnchorAlternateTiles = [124, 561, 574, 575, 576, 577, 578];
+        TileObjectData.addAlternate(1);
+        TileObjectData.newAlternate.CopyFrom(TileObjectData.StyleTorch);
+        TileObjectData.newAlternate.AnchorRight = new AnchorData(AnchorType.SolidTile | AnchorType.SolidSide | AnchorType.Tree | AnchorType.AlternateTile, TileObjectData.newTile.Height, 0);
+        TileObjectData.newAlternate.AnchorAlternateTiles = [124, 561, 574, 575, 576, 577, 578];
+        TileObjectData.addAlternate(2);
+        TileObjectData.newAlternate.CopyFrom(TileObjectData.StyleTorch);
+        TileObjectData.newAlternate.AnchorWall = true;
+        TileObjectData.addAlternate(0);
+        */
+
+        // This code adds style-specific properties to style 1. Style 1 is used by ExampleWaterTorch. This code allows the tile to be placed in liquids. More info can be found in the guide: https://github.com/tModLoader/tModLoader/wiki/Basic-Tile#newsubtile-and-newalternate
         TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
         TileObjectData.newSubTile.LinkedAlternates = true;
         TileObjectData.newSubTile.WaterDeath = false;
@@ -48,8 +68,10 @@ public class ExampleTorch : ModTile
 
         TileObjectData.addTile(Type);
 
+        // Etc
         AddMapEntry(new Color(200, 200, 200), Language.GetText("ItemName.Torch"));
 
+        // Assets
         flameTexture = ModContent.Request<Texture2D>(Texture + "_Flame");
     }
 
@@ -59,14 +81,27 @@ public class ExampleTorch : ModTile
         player.noThrow = 2;
         player.cursorItemIconEnabled = true;
 
+        // We can determine the item to show on the cursor by getting the tile style and looking up the corresponding item drop.
         int style = TileObjectData.GetTileStyle(Main.tile[i, j]);
         player.cursorItemIconID = TileLoader.GetItemDropFromTypeAndStyle(Type, style);
     }
 
     public override float GetTorchLuck(Player player)
     {
+        // GetTorchLuck is called when there is an ExampleTorch nearby the client player
+        // In most use-cases you should return 1f for a good luck torch, or -1f for a bad luck torch.
+        // You can also add a smaller amount (eg 0.5) for a smaller positive/negative luck impact.
+        // Remember that the overall torch luck is decided by every torch around the player, so it may be wise to have a smaller amount of luck impact.
+        // Multiple example torches on screen will have no additional effect.
+
+        // Positive and negative luck are accumulated separately and then compared to some fixed limits in vanilla to determine overall torch luck.
+        // Positive luck is capped at 1, any value higher won't make any difference and negative luck is capped at 2.
+        // A negative luck of 2 will cancel out all torch luck bonuses.
+
+        // The influence positive torch luck can have overall is 0.1 (if positive luck is any number less than 1) or 0.2 (if positive luck is greater than or equal to 1)
+
         bool inExampleUndergroundBiome = player.InModBiome<ExampleUndergroundBiome>();
-        return inExampleUndergroundBiome ? 1f : -0.1f;
+        return inExampleUndergroundBiome ? 1f : -0.1f; // ExampleTorch gives maximum positive luck when in example biome, otherwise a small negative luck
     }
 
     public override void NumDust(int i, int j, bool fail, ref int num) => num = Main.rand.Next(1, 3);
@@ -75,10 +110,12 @@ public class ExampleTorch : ModTile
     {
         Tile tile = Main.tile[i, j];
 
+        // If the torch is on
         if (tile.TileFrameX < 66)
         {
             int style = TileObjectData.GetTileStyle(Main.tile[i, j]);
 
+            // Make it emit the following light.
             if (style == 0)
             {
                 r = 0.9f;
@@ -96,6 +133,7 @@ public class ExampleTorch : ModTile
 
     public override void SetDrawPositions(int i, int j, ref int width, ref int offsetY, ref int height, ref short tileFrameX, ref short tileFrameY)
     {
+        // This code slightly lowers the draw position if there is a solid tile above, so the flame doesn't overlap that tile. Terraria torches do this same logic.
         offsetY = 0;
 
         if (WorldGen.SolidTile(i, j - 1))
@@ -113,6 +151,8 @@ public class ExampleTorch : ModTile
             return;
         }
 
+        // The following code draws multiple flames on top our placed torch.
+
         int offsetY = 0;
 
         if (WorldGen.SolidTile(i, j - 1))
@@ -122,7 +162,7 @@ public class ExampleTorch : ModTile
 
         Vector2 zero = Main.drawToScreen ? Vector2.Zero : new Vector2(Main.offScreenRange);
 
-        ulong randSeed = Main.TileFrameSeed ^ (ulong)((long)j << 32 | (long)(uint)i);
+        ulong randSeed = Main.TileFrameSeed ^ (ulong)((long)j << 32 | (long)(uint)i); // Don't remove any casts.
         Color color = new Color(100, 100, 100, 0);
         int width = 20;
         int height = 20;
@@ -131,6 +171,7 @@ public class ExampleTorch : ModTile
         int style = TileObjectData.GetTileStyle(Main.tile[i, j]);
         if (style == 1)
         {
+            // ExampleWaterTorch should be a bit greener.
             color.G = 255;
         }
 

@@ -8,6 +8,8 @@ using Terraria.ObjectData;
 
 namespace ExampleMod.Content.Tiles;
 
+// This example shows how to have a tile that is cut by weapons, like vines and grass.
+// This example also shows how to spawn a projectile on death like Beehive and Boulder trap.
 public class ExampleCutTile : ModTile
 {
     public override void SetStaticDefaults()
@@ -17,9 +19,11 @@ public class ExampleCutTile : ModTile
 
         TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
 
+        // We need to change the 3x3 default to allow only placement anchored to top rather than on bottom. Also, the 1,1 means that only the middle tile needs to attach
         TileObjectData.newTile.AnchorTop = new AnchorData(AnchorType.SolidTile | AnchorType.SolidSide, 1, 1);
         TileObjectData.newTile.AnchorBottom = AnchorData.Empty;
 
+        // This is so we can place from above.
         TileObjectData.newTile.Origin = new Point16(1, 0);
         TileObjectData.newTile.DrawYOffset = -2;
         TileObjectData.addTile(Type);

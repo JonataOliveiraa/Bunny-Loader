@@ -5,6 +5,10 @@ using Terraria.ModLoader;
 
 namespace ExampleMod.Content.Buffs;
 
+/// <summary>
+/// This debuff reduces enemy armor by 25%. Use <see cref="Content.Items.Weapons.HitModifiersShowcase"/> or <see cref="Items.Consumables.ExampleFlask"/> to apply.
+/// By using a buff we can apply to both players and NPCs, and also rely on vanilla to sync the AddBuff calls so we don't need to write our own netcode
+/// </summary>
 public class ExampleDefenseDebuff : ModBuff
 {
     public const int DefenseReductionPercent = 25;
@@ -13,7 +17,8 @@ public class ExampleDefenseDebuff : ModBuff
     public override void SetStaticDefaults()
     {
         Main.debuff[Type] = true;
-        Main.pvpBuff[Type] = true;
+        Main.pvpBuff[Type] = true; // This buff can be applied by other players in Pvp, so we need this to be true.
+        // NPCs immune to Ichor will automatically be immune to this buff.
         BuffID.Sets.GrantImmunityWith[Type].Add(BuffID.Ichor);
     }
 

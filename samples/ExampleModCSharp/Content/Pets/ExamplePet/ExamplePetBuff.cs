@@ -11,7 +11,7 @@ public class ExamplePetBuff : ModBuff
         Main.vanityPet[Type] = true;
     }
 
-    public override void Update(Player player, ref int buffIndex)
+    public override void Update(Player player, ref int buffIndex) // This method gets called every frame your buff is active on your player.
     {
         bool unused = false;
         player.BuffHandle_SpawnPetIfNeededAndSetTime(buffIndex, ref unused, ModContent.ProjectileType<ExamplePetProjectile>());

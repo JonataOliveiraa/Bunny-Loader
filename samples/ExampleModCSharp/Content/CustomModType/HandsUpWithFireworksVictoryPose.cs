@@ -7,6 +7,7 @@ using Terraria.ID;
 namespace ExampleMod.Content.CustomModType
 {
 
+    // An advanced example of a ModVictoryPose.
     public class HandsUpWithFireworksVictoryPose : ModVictoryPose
     {
         public override void SetStaticDefaults() {
@@ -21,7 +22,7 @@ namespace ExampleMod.Content.CustomModType
 
         public override void Update(Player player) {
             if (player.itemAnimation == 0) {
-                player.bodyFrame.Y = player.bodyFrame.Height * 5;
+                player.bodyFrame.Y = player.bodyFrame.Height * 5; // 2 Hands up / falling
             }
 
             float elapsedPoseTime = ElapsedPoseTime(player);

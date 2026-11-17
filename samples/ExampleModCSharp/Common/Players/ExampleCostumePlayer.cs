@@ -11,13 +11,14 @@ namespace ExampleMod.Common.Players;
 
 public class ExampleCostumePlayer : ModPlayer
 {
+    // These 6 relate to ExampleCostume.
     public bool BlockyAccessoryPrevious;
-    public bool BlockyAccessory;
-    public bool BlockyHideVanity;
-    public bool BlockyForceVanity;
-    public bool BlockyPower;
+    public bool BlockyAccessory; // If true, an accessory granting potential effects is equipped
+    public bool BlockyHideVanity; // If true, the item is in a hidden accessory slot
+    public bool BlockyForceVanity; //	If true, the vanity is forced because the item is in a vanity slot, not the stats.
+    public bool BlockyPower; // If true, the stats boosts are applied
 
-    public bool BlockyVanityEffects => BlockyForceVanity || (BlockyPower && !BlockyHideVanity);
+    public bool BlockyVanityEffects => BlockyForceVanity || (BlockyPower && !BlockyHideVanity); // This helper property controls if the audio and visual effects of the vanity should be applied.
 
     public override void ResetEffects()
     {
@@ -27,6 +28,7 @@ public class ExampleCostumePlayer : ModPlayer
 
     public override void UpdateEquips()
     {
+        // Make sure this condition is the same as the condition in the Buff to remove itself. We do this here instead of in ModItem.UpdateAccessory in case we want future upgraded items to set blockyAccessory
         if (Player.townNPCs >= 1 && BlockyAccessory)
         {
             Player.AddBuff(ModContent.BuffType<Blocky>(), 60);
@@ -35,6 +37,7 @@ public class ExampleCostumePlayer : ModPlayer
 
     public override void FrameEffects()
     {
+        // TODO: Need new hook, FrameEffects doesn't run while paused.
         if (BlockyVanityEffects)
         {
             var exampleCostume = ModContent.GetInstance<ExampleCostume>();
@@ -42,6 +45,7 @@ public class ExampleCostumePlayer : ModPlayer
             Player.body = EquipLoader.GetEquipSlot(Mod, exampleCostume.Name, EquipType.Body);
             Player.legs = EquipLoader.GetEquipSlot(Mod, exampleCostume.Name, EquipType.Legs);
 
+            // Use the alternative equipment textures by calling them through their internal name.
             if (Player.wet)
             {
                 Player.head = EquipLoader.GetEquipSlot(Mod, "BlockyAlt", EquipType.Head);
@@ -77,6 +81,7 @@ public class ExampleCostumePlayer : ModPlayer
     {
         if (BlockyVanityEffects)
         {
+            // SoundID.Frog is actually SoundType.Ambient, so we need to change it to play at the correct SoundType.Sound master volume.
             SoundEngine.PlaySound(SoundID.Frog, Player.position);
         }
     }

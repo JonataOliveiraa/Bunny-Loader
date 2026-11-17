@@ -9,6 +9,7 @@ using Terraria.ModLoader;
 
 namespace ExampleMod.Common.GlobalBossBars;
 
+// Shows things you can do around drawing boss bars
 public class ExampleGlobalBossBar : GlobalBossBar
 {
     public override bool PreDraw(SpriteBatch spriteBatch, NPC npc, ref BossBarDrawParams drawParams)
@@ -27,6 +28,7 @@ public class ExampleGlobalBossBar : GlobalBossBar
         string text = "GlobalBossBar Showcase";
         var font = FontAssets.MouseText.Value;
         Vector2 size = font.MeasureString(text);
+        // Draw centered on the boss bar, offset upwards, otherwise it will overlap with the health text
         spriteBatch.DrawString(font, text, drawParams.BarCenter - size / 2 + new Vector2(0, -30), Color.White);
     }
 }

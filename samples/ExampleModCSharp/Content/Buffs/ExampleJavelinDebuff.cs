@@ -9,6 +9,7 @@ namespace ExampleMod.Content.Buffs
     {
         public override void SetStaticDefaults() {
             
+            // NPCs will automatically be immune to this buff if they are immune to BoneJavelin. SkeletronHead and SkeletronPrime are immune to BoneJavelin.
             BuffID.Sets.GrantImmunityWith[Type].Add(BuffID.BoneJavelin);
         }
 

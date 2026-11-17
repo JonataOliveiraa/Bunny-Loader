@@ -11,6 +11,10 @@ using Terraria.ModLoader;
 namespace ExampleMod.Content.BuilderToggles
 {
 
+    // The examples in this file don't actually affect anything, they just show typical approaches for the BuilderToggle half of the effect.
+    // A full example would have code doing something, such as drawing an overlay, after checking ModContent.GetInstance<YourBuilderToggle>().Active() and ModContent.GetInstance<YourBuilderToggle>().CurrentState.
+    // That code is highly dependent on what you want to accomplish.
+
     public class ExampleBuilderToggle : BuilderToggle
     {
         public static LocalizedText CurrentColorText { get; private set; }
@@ -35,6 +39,7 @@ namespace ExampleMod.Content.BuilderToggles
             return true;
         }
 
+        // Right click to cycle through states backwards.
         public override void OnRightClick() {
             CurrentState -= 1;
             if (CurrentState < 0) {

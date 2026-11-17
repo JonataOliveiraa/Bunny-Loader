@@ -7,29 +7,38 @@ using Terraria.ModLoader;
 
 namespace ExampleMod.Content.Projectiles;
 
+// ExampleFlail and ExampleFlailProjectile show the minimum amount of code needed for a flail using the existing vanilla code and behavior. ExampleAdvancedFlail and ExampleAdvancedFlailProjectile need to be consulted if more advanced customization is desired, or if you want to learn more advanced modding techniques.
+// ExampleFlailProjectile is a copy of the Sunfury flail projectile.
 internal class ExampleFlailProjectile : ModProjectile
 {
     public override void SetDefaults()
     {
-        Projectile.netImportant = true;
-        Projectile.width = 22;
-        Projectile.height = 22;
-        Projectile.friendly = true;
-        Projectile.penetrate = -1;
-        Projectile.DamageType = DamageClass.Melee;
+        Projectile.netImportant = true; // This ensures that the projectile is synced when other players join the world.
+        Projectile.width = 22; // The width of your projectile
+        Projectile.height = 22; // The height of your projectile
+        Projectile.friendly = true; // Deals damage to enemies
+        Projectile.penetrate = -1; // Infinite pierce
+        Projectile.DamageType = DamageClass.Melee; // Deals melee damage
         Projectile.scale = 0.8f;
-        Projectile.drawLayer = ProjectileDrawLayerID.HeldProj;
-        Projectile.usesLocalNPCImmunity = true;
-        Projectile.localNPCHitCooldown = 10;
+        Projectile.drawLayer = ProjectileDrawLayerID.HeldProj; // Draws over the player's body and under the player's hands
+        Projectile.usesLocalNPCImmunity = true; // Used for hit cooldown changes in the ai hook
+        Projectile.localNPCHitCooldown = 10; // This facilitates custom hit cooldown logic
+
+        // Here we reuse the flail projectile aistyle and set the aitype to the Sunfury. These lines will get our projectile to behave exactly like Sunfury would. This only affects the AI code, you'll need to adapt other code for the other behaviors you wish to use.
         Projectile.aiStyle = ProjAIStyleID.Flail;
         AIType = ProjectileID.Sunfury;
 
+        // These help center the projectile as it rotates since its hitbox and scale doesn't match the actual texture size
         DrawOffsetX = -8;
         DrawOriginOffsetY = -8;
     }
 
+    // All of the following methods are additional behaviors of Sunfury that are not automatically inherited by ExampleFlailProjectile through the use of Projectile.aiStyle and AIType. You'll need to find corresponding code in the decompiled source code if you wish to clone a different vanilla projectile as a starting point.
+
+    // Draw the projectile in full brightness, ignoring lighting conditions.
     public override Color? GetAlpha(Color lightColor) => Color.White;
 
+    // In PreDrawExtras, we trick the game into thinking the projectile is actually a Sunfury projectile. After PreDrawExtras, the Terraria code will draw the chain. Drawing the chain ourselves is quite complicated, ExampleAdvancedFlailProjectile has an example of that. Then, in PreDraw, we restore the Projectile.type back to normal so we don't break anything.
     public override bool PreDrawExtras(Player player)
     {
         Projectile.type = ProjectileID.Sunfury;
@@ -40,6 +49,7 @@ internal class ExampleFlailProjectile : ModProjectile
     {
         Projectile.type = ModContent.ProjectileType<ExampleFlailProjectile>();
 
+        // This code handles the after images.
         if (Projectile.ai[0] == 1f)
         {
             Texture2D projectileTexture = TextureAssets.Projectile[Type].Value;
@@ -67,6 +77,7 @@ internal class ExampleFlailProjectile : ModProjectile
         return base.PreDraw(player, ref lightColor);
     }
 
+    // Another thing that won't automatically be inherited by using Projectile.aiStyle and AIType are effects that happen when the projectile hits something. Here we see the code responsible for applying the OnFire debuff to players and enemies.
     public override void OnHitNPC(NPC target, NPC.HitInfo hit, int damageDone)
     {
         if (Main.rand.NextBool(2))
@@ -83,8 +94,10 @@ internal class ExampleFlailProjectile : ModProjectile
         }
     }
 
+    // Finally, you can customize the AI if you read and understand the vanilla aiStyle source code. This example spawns a Grenade right when the flail starts to retract.
     public override void AI()
     {
+        // The only reason this code works is because the author read the vanilla code and comprehended it well enough to tack on additional logic.
         if (Main.myPlayer == Projectile.owner && Projectile.ai[0] == 2f && Projectile.ai[1] == 0f)
         {
             Projectile.NewProjectile(Projectile.GetSource_FromThis(), Projectile.Center, Projectile.velocity, ProjectileID.Grenade, Projectile.damage, Projectile.knockBack, Main.myPlayer);

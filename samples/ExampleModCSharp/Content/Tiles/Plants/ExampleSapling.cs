@@ -35,6 +35,10 @@ public class ExampleSapling : ModTile
         TileObjectData.newTile.RandomStyleRange = 3;
         TileObjectData.newTile.StyleMultiplier = 3;
 
+        //TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+        //TileObjectData.newSubTile.AnchorValidTiles = [ModContent.TileType<ExampleSand>()];
+        //TileObjectData.addSubTile(1);
+
         TileObjectData.addTile(Type);
 
         AddMapEntry(new Color(200, 200, 200), Language.GetText("MapObject.Sapling"));
@@ -55,19 +59,24 @@ public class ExampleSapling : ModTile
 
     public override void RandomUpdate(int i, int j, bool underground)
     {
+        // A random chance to slow down growth. 
         if (!WorldGen.genRand.NextBool(20))
         {
             return;
         }
 
+        // For natural spawns, we usually leave treeHeightAddon as 0 and ignoreWalls as false.
         WorldGen.AttemptToGrowTreeFromSapling(i, j, underground: underground, treeHeightAddon: 0, ignoreWalls: false);
     }
 
+    // Overridden to handle both ExampleTree (GrowTree) and palm tree (GrowPalmTree) styles based on TileFrameX.
     public override bool GrowSapling(int i, int j, bool underground, int treeHeightAddon, bool ignoreWalls)
     {
         Tile tile = Framing.GetTileSafely(i, j);
         bool growSuccess;
 
+        // Style 0 is for the ExampleTree sapling, and style 1 is for the palm tree sapling, so here we check frameX to call the correct method.
+        // Any pixels before 54 on the tilesheet are for ExampleTree while any pixels above it are for the palm tree
         if (tile.TileFrameX < 54)
         {
             growSuccess = WorldGen.GrowTree(i, j, treeHeightAddon, ignoreWalls);

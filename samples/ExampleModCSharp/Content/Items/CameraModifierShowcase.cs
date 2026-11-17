@@ -6,6 +6,7 @@ using Terraria.ModLoader;
 namespace ExampleMod.Content.Items
 {
 
+    // Showcases a usage of ExampleCameraModifier.cs in-game.
     public class CameraModifierShowcase : ModItem
     {
         public override string Texture => $"Terraria/Images/Projectile_{ProjectileID.JimsDrone}";
@@ -24,6 +25,7 @@ namespace ExampleMod.Content.Items
 
         public override bool? UseItem(Player player) {
 
+            // Pans the camera targeting the current mouse location, lasting 300 frames
             Main.instance.CameraModifiers.Add(new ExampleCameraModifier(Main.MouseWorld, 300, FullName));
             return true;
         }

@@ -5,6 +5,7 @@ using Terraria.Localization;
 namespace ExampleMod.Common.ItemDropRules.DropConditions
 {
     
+    // Drop condition where items drop only on Journey mode.
     public class ExampleJourneyModeDropCondition : IItemDropRuleCondition
     {
         private static LocalizedText Description;
@@ -18,7 +19,7 @@ namespace ExampleMod.Common.ItemDropRules.DropConditions
         }
 
         public bool CanShowItemDropInUI() {
-            return Main.IsJourneyMode; 
+            return Main.IsJourneyMode; // We don't want players to see this drop listed while in normal worlds.
         }
 
         public string GetConditionDescription() {

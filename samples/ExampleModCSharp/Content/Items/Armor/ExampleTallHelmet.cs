@@ -5,6 +5,9 @@ using Terraria.ModLoader;
 namespace ExampleMod.Content.Items.Armor
 {
 
+    // This class shows an example of making a tall helmet using ArmorIDs.Head.Sets.IsTallHat.
+    // Tall helmets like the Wizard Hat are drawn with slightly different logic, so be sure to consult an existing Head animation sprite.
+    // If the drawing logic of IsTallHat is insufficient, modders can make a custom PlayerDrawLayer to manually draw instead.
     [AutoloadEquip(EquipType.Head)]
     public class ExampleTallHelmet : ModItem
     {

@@ -3,6 +3,11 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using Terraria.ModLoader.Config;
 
+// This file contains fake ModConfig class that showcase defining subpages
+// that can be used to separate config section into sub-configs for easier management.
+
+// Because this config was designed to show off various UI capabilities,
+// this config have no effect on the mod and provides purely teaching example.
 namespace ExampleMod.Common.Configs.ModConfigShowcases
 {
     [BackgroundColor(148, 72, 188)]
@@ -12,20 +17,24 @@ namespace ExampleMod.Common.Configs.ModConfigShowcases
 
         [Header("SeparatePageExamples")]
 
+        // Using SeparatePage, an object will be presented to the user as a button. That button will lead to a separate page where the usual UI will be presented. Useful for organization.
         [SeparatePage]
         public Gradient gradient = new Gradient();
 
+        // This example has multiple levels of subpages, check it out. In this example, the SubConfigExample class itself is annotated with [SeparatePage]
         public SubConfigExample subConfigExample = new SubConfigExample();
 
         [SeparatePage]
         public Dictionary<ItemDefinition, SubConfigExample> DictionaryofSubConfigExample = new Dictionary<ItemDefinition, SubConfigExample>();
 
+        // These 2 examples show how [SeparatePage] works on annotating both a field for a class and annotating a List of a class
         [SeparatePage]
         public List<Pair> SeparateListOfPairs = new List<Pair>();
 
         [SeparatePage]
         public Pair pair = new Pair();
 
+        // C# allows inner classes (used here), which might be useful for organization if you want.
         [SeparatePage]
         public class SubConfigExample
         {

@@ -9,6 +9,7 @@ using Terraria.ModLoader;
 
 namespace ExampleMod.Common.GlobalBuffs;
 
+// Showcases how to work with all buffs
 public class ExampleGlobalBuff : GlobalBuff
 {
     public static LocalizedText RemainingTimeText { get; private set; }
@@ -22,6 +23,7 @@ public class ExampleGlobalBuff : GlobalBuff
 
     public override void Update(int type, Player player, ref int buffIndex)
     {
+        // If the player gets the Chilled debuff while he already has more than 5 other buffs/debuffs, limit the max duration to 3 seconds
         if (type == BuffID.Chilled && buffIndex >= 5)
         {
             int limit = 3 * 60;
@@ -34,6 +36,7 @@ public class ExampleGlobalBuff : GlobalBuff
 
     public override bool PreDraw(SpriteBatch spriteBatch, int type, int buffIndex, ref BuffDrawParams drawParams)
     {
+        // Make the campfire buff have a different color and shake slightly
         if (type == BuffID.Campfire)
         {
             drawParams.DrawColor = Main.DiscoColor * Main.buffAlpha[buffIndex];
@@ -44,17 +47,20 @@ public class ExampleGlobalBuff : GlobalBuff
             drawParams.TextPosition += shake;
         }
 
+        // If the buff is not drawn in the hook/mount/pet equip page, and the buff is one of the three specified:
         if (Main.EquipPage != 2 && (type == BuffID.Regeneration || type == BuffID.Ironskin || type == BuffID.Swiftness))
         {
+            // Make text go up and down 6 pixels on each buff, offset by 4 ticks for each
             int interval = 60;
             float time = ((int)Main.GameUpdateCount + 4 * buffIndex) % interval / (float)interval;
 
             int offset = (int)(6 * time);
 
-            ref Vector2 textPos = ref drawParams.TextPosition;
+            ref Vector2 textPos = ref drawParams.TextPosition; // You can use ref locals to keep modifying the same variable
             textPos.Y += offset;
         }
 
+        // Return true to let the game draw the buff icon.
         return true;
     }
 
@@ -63,6 +69,7 @@ public class ExampleGlobalBuff : GlobalBuff
 
     public override void ModifyBuffText(int type, ref string buffName, ref string tip, ref int rare)
     {
+        // This code adds a more extensible remaining time tooltip for suitable buffs
         Player player = Main.LocalPlayer;
         int buffIndex = player.FindBuffIndex(type);
         if (buffIndex < 0 || buffIndex >= player.buffTime.Length)
@@ -76,6 +83,7 @@ public class ExampleGlobalBuff : GlobalBuff
             tip += "\n" + RemainingTimeText.Format(text);
         }
 
+        // This code showcases adjusting buffName. Try it out by activating a Slice of Cake block
         if (player.HasBuff(BuffID.SugarRush) && buffName.Length > 2)
         {
             if (Main.GameUpdateCount % 10 == 0 || randomBuffTypeCache != type)
@@ -102,6 +110,7 @@ public class ExampleGlobalBuff : GlobalBuff
 
     public override bool RightClick(int type, int buffIndex)
     {
+        // This code makes it so while the player is standing still, he cannot remove the "ExampleDefenseBuff" by right clicking the icon
         if (type == ModContent.BuffType<ExampleDefenseBuff>() && Main.LocalPlayer.velocity == Vector2.Zero)
         {
             Main.NewText(CannotCancelText.Value);

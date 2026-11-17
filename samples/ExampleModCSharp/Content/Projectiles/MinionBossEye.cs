@@ -36,14 +36,17 @@ namespace ExampleMod.Content.Projectiles
             Projectile.ignoreWater = true;
             Projectile.netImportant = true;
             Projectile.aiStyle = -1;
-            CooldownSlot = ImmunityCooldownID.BossNoCheese;
+            CooldownSlot = ImmunityCooldownID.BossNoCheese; // use the boss immunity cooldown counter, to prevent ignoring boss attacks by taking damage from other sources
         }
 
         public override Color? GetAlpha(Color lightColor) {
+            // When overriding GetAlpha, you usually want to take the projectiles alpha into account. As it is a value between 0 and 255,
+            // it's annoying to convert it into a float to multiply. Luckily the Opacity property handles that for us (0f transparent, 1f opaque)
             return Color.White * Projectile.Opacity;
         }
 
         private void FadeInAndOut() {
+            // Fade in (we have Projectile.alpha = 255 in SetDefaults which means it spawns transparent)
             int fadeSpeed = 10;
             if (!FadedIn && Projectile.alpha > 0) {
                 Projectile.alpha -= fadeSpeed;
@@ -53,6 +56,7 @@ namespace ExampleMod.Content.Projectiles
                 }
             }
             else if (FadedIn && Projectile.timeLeft < 255f / fadeSpeed) {
+                // Fade out so it aligns with the projectile despawning
                 Projectile.alpha += fadeSpeed;
                 if (Projectile.alpha > 255) {
                     Projectile.alpha = 255;
@@ -66,15 +70,20 @@ namespace ExampleMod.Content.Projectiles
             if (!PlayedSpawnSound) {
                 PlayedSpawnSound = true;
 
+                // Common practice regarding spawn sounds for projectiles is to put them into AI, playing sounds in the same place where they are spawned
+                // is not multiplayer compatible (either no one will hear it, or only you and not others)
                 SoundEngine.PlaySound(SoundID.Item8, Projectile.position);
             }
 
+            // Accelerate
             Projectile.velocity *= 1.01f;
 
+            // If the sprite points upwards, this will make it point towards the move direction (for other sprite orientations, change MathHelper.PiOver2)
             Projectile.rotation = Projectile.velocity.ToRotation() + MathHelper.PiOver2;
         }
 
         public override void OnHitPlayer(Player target, Player.HurtInfo info) {
+            // When hitting a player, a "crowd control" debuff similar to the Frozen/Webbed/Stoned effect will be given
             target.AddBuff(ModContent.BuffType<ExampleCrowdControlledDebuff>(), 90);
         }
     }

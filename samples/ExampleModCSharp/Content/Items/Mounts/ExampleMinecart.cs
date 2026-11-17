@@ -16,6 +16,7 @@ public class ExampleMinecart : ModItem
         Item.rare = ItemRarityID.Blue;
     }
 
+    // Please see Content/ExampleRecipes.cs for a detailed explanation of recipe creation.
     public override void AddRecipes()
     {
         CreateRecipe()

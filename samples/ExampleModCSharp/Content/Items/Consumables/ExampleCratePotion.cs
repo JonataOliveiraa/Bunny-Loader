@@ -24,10 +24,11 @@ public class ExampleCratePotion : ModItem
         Item.consumable = true;
         Item.rare = ItemRarityID.Green;
         Item.value = Item.buyPrice(silver: 8);
-        Item.buffType = ModContent.BuffType<Buffs.ExampleCrateBuff>();
-        Item.buffTime = 3 * 60 * 60;
+        Item.buffType = ModContent.BuffType<Buffs.ExampleCrateBuff>(); // Specify an existing buff to be applied when used.
+        Item.buffTime = 3 * 60 * 60; // The amount of time the buff declared in Item.buffType will last in ticks. Set to 3 minutes, as 60 ticks = 1 second.
     }
 
+    // Please see Content/ExampleRecipes.cs for a detailed explanation of recipe creation.
     public override void AddRecipes()
     {
         CreateRecipe()

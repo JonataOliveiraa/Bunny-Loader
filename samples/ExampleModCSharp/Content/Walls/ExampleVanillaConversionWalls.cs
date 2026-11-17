@@ -10,6 +10,8 @@ using Terraria.ObjectData;
 
 namespace ExampleMod.Content.Walls
 {
+    // These three classes showcase how to create wall that act as corruption/crimson/hallow versions of vanilla walls.
+    // For this example, we will be making vanilla's desert fossil walls convertible into the three spreading biomes
     public class HallowedFossilWall : ModWall
     {
         public override void SetStaticDefaults() {
@@ -17,8 +19,11 @@ namespace ExampleMod.Content.Walls
             DustType = DustID.Pearlsand;
             AddMapEntry(new Color(157, 76, 152));
 
+            // We need to register a conversion from the vanilla desert fossil wall into our modded variants, our method here automatically registers the conversion and fallback values here
+            // Note: WallID.DesertFossil is unused, WallID.DesertFossilEcho is the only fossil wall that can be placed ingame
             WallLoader.RegisterSimpleConversion(WallID.DesertFossilEcho, BiomeConversionID.Hallow, Type);
 
+            // Yellow (desert) solution should convert the infected desert fossil wall back into purity, so we do that manually
             WallLoader.RegisterConversion(Type, BiomeConversionID.Sand, WallID.DesertFossilEcho);
         }
     }

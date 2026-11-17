@@ -13,12 +13,14 @@ public class ExampleMinecartMount : ModMount
     {
         MountID.Sets.Cart[Type] = true;
 
+        // Helper method setting many common properties for a minecart
         Mount.SetAsMinecart(
             MountData,
             ModContent.BuffType<ExampleMinecartBuff>(),
             MountData.frontTexture
         );
 
+        // Change properties on MountData here further, for example:
         MountData.spawnDust = 21;
 
         MountData.delegations.MinecartDust = DelegateMethods.Minecart.SparksMeow;
@@ -28,6 +30,7 @@ public class ExampleMinecartMount : ModMount
 
     public override void UpdateEffects(Player player)
     {
+        // Visuals copied from Diamond Minecart
         if (Main.rand.NextBool(10))
         {
             Vector2 randomOffset = Main.rand.NextVector2Square(-1f, 1f) * new Vector2(22f, 10f);

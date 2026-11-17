@@ -11,7 +11,7 @@ namespace ExampleMod.Content;
 
 public class ExampleModMenu : ModMenu
 {
-    private const string menuAssetPath = "ExampleMod/Assets/Textures/Menu";
+    private const string menuAssetPath = "ExampleMod/Assets/Textures/Menu"; // Creates a constant variable representing the texture path, so we don't have to write it out multiple times
 
     private Asset<Texture2D> logoTexture = null!;
     private Asset<Texture2D> sunTexture = null!;
@@ -30,6 +30,13 @@ public class ExampleModMenu : ModMenu
 
     public override Asset<Texture2D> MoonTexture => moonTexture;
 
+    /*
+    In ExampleMod we preload all "extra" textures, as recommended in https://github.com/tModLoader/tModLoader/wiki/Assets#asset-loading-timing.
+    It is possible to load textures on demand instead, which might be useful in rare situations such as rarely used large textures. That would look like this:
+    private Asset<Texture2D> moonTexture;
+    public override Asset<Texture2D> MoonTexture => moonTexture ??= ModContent.Request<Texture2D>($"{menuAssetPath}/ExampliumMoon");
+    */
+
     public override int Music => MusicLoader.GetMusicSlot(Mod, "Assets/Music/MysteriousMystery");
 
     public override ModSurfaceBackgroundStyle MenuBackgroundStyle => ModContent.GetInstance<ExampleSurfaceBackgroundStyle>();
@@ -38,12 +45,12 @@ public class ExampleModMenu : ModMenu
 
     public override void OnSelected()
     {
-        SoundEngine.PlaySound(SoundID.Thunder);
+        SoundEngine.PlaySound(SoundID.Thunder); // Plays a thunder sound when this ModMenu is selected
     }
 
     public override bool PreDrawLogo(SpriteBatch spriteBatch, ref Vector2 logoDrawCenter, ref float logoRotation, ref float logoScale, ref Color drawColor)
     {
-        drawColor = Color.White;
+        drawColor = Color.White; // Changes the draw color of the logo
         return true;
     }
 }

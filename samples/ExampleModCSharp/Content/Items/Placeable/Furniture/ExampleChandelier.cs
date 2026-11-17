@@ -3,6 +3,7 @@ using Terraria.ModLoader;
 
 namespace ExampleMod.Content.Items.Placeable.Furniture;
 
+// One special thing about ExampleChandelier is it places a random style of the ExampleChandelier tile. This behavior is provided by the TileObjectData.RandomStyleRange of the tile, not the item.
 public class ExampleChandelier : ModItem
 {
     public override void SetDefaults()

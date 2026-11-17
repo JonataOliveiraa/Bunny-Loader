@@ -12,6 +12,6 @@ public class ExampleDefenseBuff : ModBuff
 
     public override void Update(Player player, ref int buffIndex)
     {
-        player.statDefense += DefenseBonus;
+        player.statDefense += DefenseBonus; // Grant a +10 defense boost to the player while the buff is active.
     }
 }

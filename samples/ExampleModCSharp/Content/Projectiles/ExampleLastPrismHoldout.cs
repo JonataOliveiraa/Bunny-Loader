@@ -13,34 +13,49 @@ public class ExampleLastPrismHoldout : ModProjectile
 {
     public override string Texture => "Terraria/Images/Projectile_" + ProjectileID.LastPrism;
 
+    // The vanilla Last Prism is an animated item with 5 frames of animation. We copy that here.
     const int NumAnimationFrames = 5;
 
+    // This controls how many individual beams are fired by the Prism.
     public const int NumBeams = 10;
 
+    // This value controls how many frames it takes for the Prism to reach "max charge". 60 frames = 1 second.
     public const float MaxCharge = 180f;
 
+    // This value controls how many frames it takes for the beams to begin dealing damage. Before then they can't hit anything.
     public const float DamageStart = 30f;
 
+    // This value controls how sluggish the Prism turns while being used. Vanilla Last Prism is 0.08f.
+    // Higher values make the Prism turn faster.
     const float AimResponsiveness = 0.08f;
 
+    // This value controls how frequently the Prism emits sound once it's firing.
     const int SoundInterval = 20;
 
+    // These values place caps on the mana consumption rate of the Prism.
+    // When first used, the Prism consumes mana once every MaxManaConsumptionDelay frames.
+    // Every time mana is consumed, the pace becomes one frame faster, meaning mana consumption smoothly increases.
+    // When capped out, the Prism consumes mana once every MinManaConsumptionDelay frames.
     const float MaxManaConsumptionDelay = 15f;
 
     const float MinManaConsumptionDelay = 5f;
 
+    // This property encloses the internal AI variable Projectile.ai[0]. It makes the code easier to read.
     float FrameCounter
     {
         get => Projectile.ai[0];
         set => Projectile.ai[0] = value;
     }
 
+    // This property encloses the internal AI variable Projectile.ai[1].
     float NextManaFrame
     {
         get => Projectile.ai[1];
         set => Projectile.ai[1] = value;
     }
 
+    // This property encloses the internal AI variable Projectile.localAI[0].
+    // localAI is not automatically synced over the network, but that does not cause any problems in this case.
     float ManaConsumptionRate
     {
         get => Projectile.localAI[0];
@@ -49,8 +64,10 @@ public class ExampleLastPrismHoldout : ModProjectile
 
     public override void SetStaticDefaults() => Main.projFrames[Type] = NumAnimationFrames;
 
+    // Use CloneDefaults to clone all basic Projectile statistics from the vanilla Last Prism.
     public override void SetDefaults() => Projectile.CloneDefaults(ProjectileID.LastPrism);
 
+    // Held projectiles should set this to false otherwise they will deal contact damage.
     public override bool? CanDamage() => false;
 
     public override void AI()
@@ -58,23 +75,43 @@ public class ExampleLastPrismHoldout : ModProjectile
         Player player = Main.player[Projectile.owner];
         Vector2 rrp = player.RotatedRelativePoint(player.MountedCenter, true);
 
+        // Update the Prism's damage every frame so that it is dynamically affected by Mana Sickness.
         UpdateDamageForManaSickness(player);
+
+        // Update the frame counter.
         FrameCounter += 1f;
+
+        // Update Projectile visuals and sound.
         UpdateAnimation();
         PlaySounds();
+
+        // Update the Prism's position in the world and relevant variables of the player holding it.
         UpdatePlayerVisuals(player, rrp);
 
+        // Update the Prism's behavior: project beams on frame 1, consume mana, and despawn if out of mana.
         if (Projectile.owner == Main.myPlayer)
         {
+            // Slightly re-aim the Prism every frame so that it gradually sweeps to point towards the mouse.
             UpdateAim(rrp, player.HeldItem.shootSpeed);
+
+            // player.CheckMana returns true if the mana cost can be paid. Since the second argument is true, the mana is actually consumed.
+            // If mana shouldn't consumed this frame, the || operator short-circuits its evaluation player.CheckMana never executes.
             bool manaIsAvailable = !ShouldConsumeMana() || player.CheckMana(player.HeldItem.mana, true, false);
+
+            // The Prism immediately stops functioning if the player is Cursed (player.noItems) or "Crowd Controlled", e.g. the Frozen debuff.
+            // player.channel indicates whether the player is still holding down the mouse button to use the item.
             bool stillInUse = player.channel && manaIsAvailable && !player.noItems && !player.CCed;
+
+            // Spawn in the Prism's lasers on the first frame if the player is capable of using the item.
             if (stillInUse && FrameCounter == 1f)
                 FireBeams();
+
+            // If the Prism cannot continue to be used, then destroy it immediately.
             else if (!stillInUse)
                 Projectile.Kill();
         }
 
+        // This ensures that the Prism never times out while in use.
         Projectile.timeLeft = 2;
     }
 
@@ -84,7 +121,11 @@ public class ExampleLastPrismHoldout : ModProjectile
     void UpdateAnimation()
     {
         Projectile.frameCounter++;
+
+        // As the Prism charges up and focuses the beams, its animation plays faster.
         int framesPerAnimationUpdate = FrameCounter >= MaxCharge ? 2 : FrameCounter >= MaxCharge * 0.66f ? 3 : 4;
+
+        // If necessary, change which specific frame of the animation is displayed.
         if (Projectile.frameCounter >= framesPerAnimationUpdate)
         {
             Projectile.frameCounter = 0;
@@ -95,9 +136,12 @@ public class ExampleLastPrismHoldout : ModProjectile
 
     void PlaySounds()
     {
+        // The Prism makes sound intermittently while in use, using the vanilla Projectile variable soundDelay.
         if (Projectile.soundDelay <= 0)
         {
             Projectile.soundDelay = SoundInterval;
+
+            // On the very first frame, the sound playing is skipped. This way it doesn't overlap the starting hiss sound.
             if (FrameCounter > 1f)
                 SoundEngine.PlaySound(SoundID.Item15, Projectile.position);
         }
@@ -105,26 +149,39 @@ public class ExampleLastPrismHoldout : ModProjectile
 
     void UpdatePlayerVisuals(Player player, Vector2 playerHandPos)
     {
+        // Place the Prism directly into the player's hand at all times.
         Projectile.Center = playerHandPos;
+        // The beams emit from the tip of the Prism, not the side. As such, rotate the sprite by pi/2 (90 degrees).
         Projectile.rotation = Projectile.velocity.ToRotation() + MathHelper.PiOver2;
         Projectile.spriteDirection = Projectile.direction;
+
+        // The Prism is a holdout Projectile, so change the player's variables to reflect that.
+        // Constantly resetting player.itemTime and player.itemAnimation prevents the player from switching items or doing anything else.
         player.ChangeDir(Projectile.direction);
         player.heldProj = Projectile.whoAmI;
         player.itemTime = 2;
         player.itemAnimation = 2;
+
+        // If you do not multiply by Projectile.direction, the player's hand will point the wrong direction while facing left.
         player.itemRotation = (Projectile.velocity * Projectile.direction).ToRotation();
     }
 
     bool ShouldConsumeMana()
     {
+        // If the mana consumption timer hasn't been initialized yet, initialize it and consume mana on frame 1.
         if (ManaConsumptionRate == 0f)
         {
             NextManaFrame = ManaConsumptionRate = MaxManaConsumptionDelay;
             return true;
         }
+
+        // Should mana be consumed this frame?
         bool consume = FrameCounter == NextManaFrame;
+
+        // If mana is being consumed this frame, update the rate of mana consumption and write down the next frame mana will be consumed.
         if (consume)
         {
+            // MathHelper.Clamp(X,A,B) guarantees that A <= X <= B. If X is outside the range, it will be set to A or B accordingly.
             ManaConsumptionRate = MathHelper.Clamp(ManaConsumptionRate - 1f, MinManaConsumptionDelay, MaxManaConsumptionDelay);
             NextManaFrame += ManaConsumptionRate;
         }
@@ -133,7 +190,9 @@ public class ExampleLastPrismHoldout : ModProjectile
 
     void UpdateAim(Vector2 source, float speed)
     {
+        // Get the player's current aiming direction as a normalized vector.
         Vector2 aim = (Main.MouseWorld - source).SafeNormalize(-Vector2.UnitY);
+        // Change a portion of the Prism's current velocity so that it points to the mouse. This gives smooth movement over time.
         aim = Vector2.Lerp(Projectile.velocity.SafeNormalize(-Vector2.UnitY), aim, AimResponsiveness).SafeNormalize(-Vector2.UnitY);
         aim *= speed;
         if (aim != Projectile.velocity)
@@ -143,14 +202,18 @@ public class ExampleLastPrismHoldout : ModProjectile
 
     void FireBeams()
     {
+        // If for some reason the beam velocity can't be correctly normalized, set it to a default value.
         Vector2 beamVelocity = Projectile.velocity.SafeNormalize(-Vector2.UnitY);
         int damage = Projectile.damage;
         float knockback = Projectile.knockBack;
         for (int b = 0; b < NumBeams; ++b)
             Projectile.NewProjectile(Projectile.GetSource_FromThis(), Projectile.Center, beamVelocity, ModContent.ProjectileType<ExampleLastPrismBeam>(), damage, knockback, Projectile.owner, b, Projectile.whoAmI);
+
+        // After creating the beams, mark the Prism as having an important network event. This will make Terraria sync its data to other players ASAP.
         Projectile.netUpdate = true;
     }
 
+    // Because the Prism is a holdout Projectile and stays glued to its user, it needs custom drawcode.
     public override bool PreDraw(Player player, ref Color lightColor)
     {
         SpriteEffects effects = Projectile.spriteDirection == -1 ? SpriteEffects.FlipHorizontally : SpriteEffects.None;

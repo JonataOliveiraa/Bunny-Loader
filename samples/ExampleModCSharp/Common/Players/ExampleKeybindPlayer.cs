@@ -8,6 +8,7 @@ using Terraria.ModLoader;
 
 namespace ExampleMod.Common.Players;
 
+// See Common/Systems/KeybindSystem for keybind registration.
 public class ExampleKeybindPlayer : ModPlayer
 {
     private int LearningExampleKeybindHeldTimer;
@@ -25,6 +26,7 @@ public class ExampleKeybindPlayer : ModPlayer
 
     public override void ProcessTriggers(TriggersSet triggersSet)
     {
+        // The most common way to use keybinds is to use JustPressed to run code whenever the keybind is pressed
         if (KeybindSystem.RandomBuffKeybind.JustPressed)
         {
             int buff = Main.rand.Next(BuffID.Count);
@@ -32,6 +34,9 @@ public class ExampleKeybindPlayer : ModPlayer
             Main.NewText(RandomBuffText.Format(Lang.GetBuffName(buff)));
         }
 
+        // These examples show other potential behaviors of keybinds, such as a double tap and being held down.
+
+        // We can use Current and a timer to run code after the keybind has been held for some time
         if (KeybindSystem.LearningExampleKeybind.Current)
         {
             LearningExampleKeybindHeldTimer++;
@@ -43,12 +48,14 @@ public class ExampleKeybindPlayer : ModPlayer
             LearningExampleKeybindHeldTimer = 0;
         }
 
+        // We can use JustPressed and a timer to implement a double tap behavior as well.
         LearningExampleKeybindDoubleTapTimer = Math.Max(0, LearningExampleKeybindDoubleTapTimer - 1);
         if (KeybindSystem.LearningExampleKeybind.JustPressed)
         {
             if (LearningExampleKeybindDoubleTapTimer > 0)
                 Main.NewText(LearningExampleDoubleTapText);
             else
+                // On 1st press, set timer for 15, if a 2nd press happens before it reaches 0, it will be a double tap.
                 LearningExampleKeybindDoubleTapTimer = 15;
         }
     }

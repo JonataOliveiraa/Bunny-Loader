@@ -12,23 +12,35 @@ using Terraria.ModLoader;
 namespace ExampleMod.Content.CustomModType
 {
 
+    // Note: To fully understand this example, please start by reading https://github.com/tModLoader/tModLoader/tree/stable/ExampleMod/Content/CustomModType/README.md
+
+    /// <summary>
+    /// This class handles applying and updating the active ModVictoryPose.
+    /// <para/> It also handles the default trigger for starting a pose, defeating an enemy. When a regular enemy is defeated, there is a chance that the player will start a pose. For bosses it is guaranteed.
+    /// <para/> Other mods can use the API exposed in <see cref="VictoryPoseLoader"/> to implement their own systems for triggering a pose.
+    /// </summary>
     internal class VictoryPosePlayer : ModPlayer
     {
 
+        /// <summary> The pose that is currently playing. </summary>
         public ModVictoryPose activeVictoryPose;
 
+        /// <summary> How long the active ModVictoryPose has been active. Will be -1 if there is no active pose. Can be used during <see cref="ModVictoryPose.Update(Player)"/> to drive effects. </summary>
         public int ElapsedPoseTime { get; internal set; }
 
         public override void OnHitNPC(NPC target, NPC.HitInfo hit, int damageDone) {
 
+            // Detect when we defeat an enemy by doing the final hit.
             if (!target.active && Player.whoAmI == Main.myPlayer) {
 
+                // Start a victory pose
                 StartRandomPose(target.boss);
             }
         }
 
         private void StartRandomPose(bool boss) {
 
+            // Always pose after defeating a boss, pose 1 out of 100 times for normal enemies.
             if (!boss && Main.rand.NextBool(99, 100)) {
                 return;
             }
@@ -36,17 +48,21 @@ namespace ExampleMod.Content.CustomModType
             ModVictoryPose newPose;
             if (boss) {
 
+                // Choose from all the poses
                 newPose = Main.rand.Next(VictoryPoseLoader.victoryPoses);
             }
             else {
 
+                // Choose from only the NonBoss set
                 int randomNonBossVictoryPoseIndex = Main.rand.Next(VictoryPoseID.Sets.NonBoss.GetTrueIndexes());
                 newPose = VictoryPoseLoader.victoryPoses[randomNonBossVictoryPoseIndex];
             }
 
+            // Attempt to start the chosen pose. Since forced is false, we will not interrupt an ongoing pose.
             VictoryPoseLoader.StartPose(newPose, forced: false);
         }
 
+        // Handles starting a pose, but does not do network sync, that needs to be done by calling code.
         internal bool StartPose(ModVictoryPose newPose, bool forced = false) {
             if (activeVictoryPose != null) {
                 if (forced) {
@@ -77,6 +93,8 @@ namespace ExampleMod.Content.CustomModType
 
         private void StartPoseDirect(ModVictoryPose newPose) {
 
+            // The "direct" version of this method is intended for network scenarios.
+            // Even if there is an activeVictoryPose, we will immediately end it since we can assume the pose from the network is more correct. (in cases of network desync or lag)
             StartPose(newPose, forced: true);
         }
 
@@ -88,6 +106,7 @@ namespace ExampleMod.Content.CustomModType
 
         public override void PostUpdate() {
 
+            // Here we manage the lifetime of a victory pose
             if (activeVictoryPose == null) {
                 return;
             }
@@ -103,6 +122,7 @@ namespace ExampleMod.Content.CustomModType
             int player = reader.ReadByte();
             if ((Main.netMode & NetmodeID.Server) != 0) {
 
+                // This check forces the affected player to be whichever client sent the message to the server, this prevents other clients from spoofing a message for another player. This is a typical approach for untrusted messages from clients.
                 player = whoAmI;
             }
 
@@ -114,6 +134,7 @@ namespace ExampleMod.Content.CustomModType
             }
 
             if ((Main.netMode & NetmodeID.Server) != 0) {
+                // If the server receives this message, it sends it to all other clients to sync the effects.
                 SendStartVictoryPoseMessage(player, pose);
             }
         }
@@ -137,6 +158,7 @@ namespace ExampleMod.Content.CustomModType
             }
 
             if ((Main.netMode & NetmodeID.Server) != 0) {
+                // If the server receives this message, it sends it to all other clients to sync the effects.
                 SendCancelVictoryPoseMessage(player);
             }
         }
@@ -149,6 +171,7 @@ namespace ExampleMod.Content.CustomModType
         }
     }
 
+    // A slightly tweaked CreativeSacrificeParticle. IParticle are similar to Dust, but can be customized completely.
     public class PoseIconParticle : IParticle
     {
         public Vector2 AccelerationPerFrame;

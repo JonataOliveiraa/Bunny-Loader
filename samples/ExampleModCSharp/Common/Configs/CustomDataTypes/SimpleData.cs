@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using Terraria.ModLoader.Config;
 
+// This file defines custom data type that contains variety of simple data types
+// and can be used in ModConfig classes.
 namespace ExampleMod.Common.Configs.CustomDataTypes
 {
     [BackgroundColor(255, 7, 7)]

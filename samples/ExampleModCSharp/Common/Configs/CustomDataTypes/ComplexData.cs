@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using Terraria.ModLoader.Config;
 
+// This file defines custom data type that contains variety of other data types and can be used in ModConfig classes.
 namespace ExampleMod.Common.Configs.CustomDataTypes
 {
     public class ComplexData

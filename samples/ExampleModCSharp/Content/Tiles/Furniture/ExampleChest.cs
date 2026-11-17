@@ -19,6 +19,7 @@ namespace ExampleMod.Content.Tiles.Furniture
         public static LocalizedText LockedText { get; private set; }
 
         public override void SetStaticDefaults() {
+            // Properties
             Main.tileSpelunker[Type] = true;
             Main.tileContainer[Type] = true;
             Main.tileShine2[Type] = true;
@@ -39,13 +40,19 @@ namespace ExampleMod.Content.Tiles.Furniture
             AdjTiles = [TileID.Containers];
             VanillaFallbackOnModDeletion = TileID.Containers;
 
+            // Other tiles with just one map entry use CreateMapEntryName() to use the default translationkey, "MapEntry"
+            // Since ExampleChest needs multiple, we register our own MapEntry keys
             AddMapEntry(new Color(200, 200, 200), this.GetLocalization("MapEntry0"));
             AddMapEntry(new Color(0, 141, 63), this.GetLocalization("MapEntry1"));
 
+            // Style 1 is ExampleChest when locked. We want that tile style to drop the ExampleChest item as well. Use the Chest Lock item to lock this chest.
+            // No item places ExampleChest in the locked style, so the automatically determined item drop is unknown, this is why RegisterItemDrop is necessary in this situation.
             RegisterItemDrop(ModContent.ItemType<Items.Placeable.Furniture.ExampleChest>(), 1);
 
+            // Sometimes mods remove content, such as tile styles, or tiles accidentally get corrupted. We can, if desired, register a fallback item for any tile style that doesn't have an automatically determined item drop. This is done by omitting the tileStyles parameter.
             RegisterItemDrop(ItemID.Chest);
 
+            // Placement
             TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
             TileObjectData.newTile.Origin = new Point16(0, 1);
             TileObjectData.newTile.CoordinateHeights = [16, 18];
@@ -65,6 +72,21 @@ namespace ExampleMod.Content.Tiles.Furniture
 
             LockedText = this.GetLocalization("Locked");
         }
+
+        // This example shows using GetItemDrops to manually decide item drops. This example is for a tile with a TileObjectData.
+        // This example is commented out because the RegisterItemDrop line in SetStaticDefaults above handles this situation and is the recommended approach, but the code is still useful to learn from if conditional drops need to be implemented.
+        /*
+        public override IEnumerable<Item> GetItemDrops(int i, int j) {
+            Tile tile = Main.tile[i, j];
+            int style = TileObjectData.GetTileStyle(tile);
+            if (style == 0) {
+                yield return new Item(ModContent.ItemType<Items.Placeable.Furniture.ExampleChest>());
+            }
+            if (style == 1) {
+                yield return new Item(ModContent.ItemType<Items.Placeable.Furniture.ExampleChest>());
+            }
+        }
+        */
 
         public override ushort GetMapOption(int i, int j) {
             return (ushort)(Main.tile[i, j].TileFrameX / 36);
@@ -96,7 +118,9 @@ namespace ExampleMod.Content.Tiles.Furniture
         public override bool LockChest(int i, int j, ref short frameXAdjustment, ref bool manual) {
             int style = TileObjectData.GetTileStyle(Main.tile[i, j]);
 
+            // We need to return true only if the tile style is the unlocked variant of a chest that supports locking.
             if (style == 0) {
+                // We can check other conditions as well, such as how biome chests can't be locked until Plantera is defeated
                 return true;
             }
             return false;
@@ -107,6 +131,7 @@ namespace ExampleMod.Content.Tiles.Furniture
         }
 
         public override void KillMultiTile(int i, int j, int frameX, int frameY) {
+            // We override KillMultiTile to handle additional logic other than the item drop. In this case, unregistering the Chest from the world
             Chest.DestroyChest(i, j);
         }
 
@@ -152,9 +177,11 @@ namespace ExampleMod.Content.Tiles.Furniture
             }
             else {
                 if (isLocked) {
+                    // Make sure to change the code in UnlockChest if you don't want the chest to only unlock at night.
                     int key = ModContent.ItemType<ExampleChestKey>();
                     if (player.HasItemInInventoryOrOpenVoidBag(key) && Chest.Unlock(left, top) && player.ConsumeItem(key, includeVoidBag: true)) {
                         if ((Main.netMode & NetmodeID.MultiplayerClient) != 0) {
+                            // The 1 value of the number2 parameter is for unlocking chests.
                             NetMessage.SendData(MessageID.LockAndUnlock, number2: 1f, number3: left, number4: top);
                         }
                     }
@@ -197,7 +224,7 @@ namespace ExampleMod.Content.Tiles.Furniture
                 player.cursorItemIconText = Language.GetTextValue("LegacyChestType.0");
             }
             else {
-                string defaultName = TileLoader.DefaultContainerName(tile.TileType, tile.TileFrameX, tile.TileFrameY);
+                string defaultName = TileLoader.DefaultContainerName(tile.TileType, tile.TileFrameX, tile.TileFrameY); // This gets the ContainerName text for the currently selected language
                 player.cursorItemIconText = Main.chest[chest].name.Length > 0 ? Main.chest[chest].name : defaultName;
                 if (player.cursorItemIconText == defaultName) {
                     player.cursorItemIconID = ModContent.ItemType<Items.Placeable.Furniture.ExampleChest>();

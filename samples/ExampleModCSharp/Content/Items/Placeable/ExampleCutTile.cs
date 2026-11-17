@@ -8,6 +8,7 @@ public class ExampleCutTile : ModItem
 {
     public override void SetStaticDefaults()
     {
+        // Prevent the tile from dropping this item
         ItemID.Sets.DisableAutomaticPlaceableDrop[Type] = true;
     }
 

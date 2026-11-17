@@ -13,26 +13,26 @@ namespace ExampleMod.Content.Projectiles
     public class ExampleGravityDebuffBullet : ModProjectile
     {
         public override void SetStaticDefaults() {
-            ProjectileID.Sets.TrailCacheLength[Type] = 5;
-            ProjectileID.Sets.TrailingMode[Type] = 0;
+            ProjectileID.Sets.TrailCacheLength[Type] = 5; // The length of old position to be recorded
+            ProjectileID.Sets.TrailingMode[Type] = 0; // The recording mode
         }
 
         public override void SetDefaults() {
-            Projectile.width = 8;
-            Projectile.height = 8;
-            Projectile.aiStyle = ProjAIStyleID.Arrow;
-            Projectile.friendly = true;
-            Projectile.hostile = false;
-            Projectile.DamageType = DamageClass.Ranged;
-            Projectile.penetrate = 5;
-            Projectile.timeLeft = 600;
-            Projectile.alpha = 255;
-            Projectile.light = 0.5f;
-            Projectile.ignoreWater = true;
-            Projectile.tileCollide = true;
-            Projectile.extraUpdates = 1;
+            Projectile.width = 8; // The width of projectile hitbox
+            Projectile.height = 8; // The height of projectile hitbox
+            Projectile.aiStyle = ProjAIStyleID.Arrow; // The ai style of the projectile, please reference the source code of Terraria
+            Projectile.friendly = true; // Can the projectile deal damage to enemies?
+            Projectile.hostile = false; // Can the projectile deal damage to the player?
+            Projectile.DamageType = DamageClass.Ranged; // Is the projectile shoot by a ranged weapon?
+            Projectile.penetrate = 5; // How many monsters the projectile can penetrate. (OnTileCollide below also decrements penetrate for bounces as well)
+            Projectile.timeLeft = 600; // The live time for the projectile (60 = 1 second, so 600 is 10 seconds)
+            Projectile.alpha = 255; // The transparency of the projectile, 255 for completely transparent. (aiStyle 1 quickly fades the projectile in) Make sure to delete this if you aren't using an aiStyle that fades in. You'll wonder why your projectile is invisible.
+            Projectile.light = 0.5f; // How much light emit around the projectile
+            Projectile.ignoreWater = true; // Does the projectile's speed be influenced by water?
+            Projectile.tileCollide = true; // Can the projectile collide with tiles?
+            Projectile.extraUpdates = 1; // Set to above 0 if you want the projectile to update multiple time in a frame
 
-            AIType = ProjectileID.Bullet;
+            AIType = ProjectileID.Bullet; // Act exactly like default Bullet
         }
 
         public override bool PreDraw(Player player, ref Color lightColor) {
@@ -56,6 +56,7 @@ namespace ExampleMod.Content.Projectiles
 
         public override void OnKill(int timeLeft) {
 
+            // This code and the similar code above in OnTileCollide spawn dust from the tiles collided with. SoundID.Item10 is the bounce sound you hear.
             Collision.HitTiles(Projectile.position + Projectile.velocity, Projectile.velocity, Projectile.width, Projectile.height);
             SoundEngine.PlaySound(SoundID.Item10, Projectile.position);
         }

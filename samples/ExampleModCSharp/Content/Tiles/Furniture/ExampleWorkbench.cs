@@ -12,19 +12,22 @@ public sealed class ExampleWorkbench : ModTile
 {
     public override void SetStaticDefaults()
     {
+        // Properties
         Main.tileTable[Type] = true;
         Main.tileSolidTop[Type] = true;
         Main.tileNoAttach[Type] = true;
         Main.tileLavaDeath[Type] = true;
         Main.tileFrameImportant[Type] = true;
         TileID.Sets.DisableSmartCursor[Type] = true;
-        TileID.Sets.HasOutlines[Type] = true;
-        TileID.Sets.IgnoredByNpcStepUp[Type] = true;
+        TileID.Sets.HasOutlines[Type] = true; // Crafting stations usually have interact outlines
+        TileID.Sets.IgnoredByNpcStepUp[Type] = true; // This line makes NPCs not try to step up this tile during their movement. Only use this for furniture with solid tops.
         DustType = ModContent.DustType<Sparkle>();
         AdjTiles = new[]
         {
             (int)TileID.WorkBenches
         };
+
+        // Placement
         TileObjectData.newTile.CopyFrom(TileObjectData.Style2x1);
         TileObjectData.newTile.CoordinateHeights = new[]
         {
@@ -32,6 +35,8 @@ public sealed class ExampleWorkbench : ModTile
         };
         TileObjectData.addTile(Type);
         TileID.Sets.RoomNeeds.CountsAsTable[Type] = true;
+
+        // Etc
         AddMapEntry(new Color(200, 200, 200), CreateMapEntryName());
     }
 

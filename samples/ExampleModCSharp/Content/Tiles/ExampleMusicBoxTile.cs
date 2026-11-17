@@ -11,6 +11,7 @@ using Terraria.ObjectData;
 
 namespace ExampleMod.Content.Tiles
 {
+    // See ExampleMod/Content/Items/Placeable/ExampleMusicBox.cs for more explanation on music.
     public class ExampleMusicBoxTile : ModTile
     {
         public override void SetStaticDefaults() {
@@ -41,6 +42,7 @@ namespace ExampleMod.Content.Tiles
         }
 
         public override void EmitParticles(int i, int j, Tile tileCache, short tileFrameX, short tileFrameY, Color tileLight, bool visible) {
+            // This code spawns the music notes when the music box is open.
             Tile tile = Main.tile[i, j];
 
             if (!visible || tile.TileFrameX != 36 || tile.TileFrameY % 36 != 0 || (int)Main.timeForVisualEffects % 7 != 0 || !Main.rand.NextBool(3)) {

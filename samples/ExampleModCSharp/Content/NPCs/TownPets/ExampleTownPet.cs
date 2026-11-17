@@ -17,6 +17,7 @@ namespace ExampleMod.Content.NPCs.TownPets
     [AutoloadHead]
     public class ExampleTownPet : ModNPC
     {
+        // Where our additional head sprites will be stored.
         internal static int HeadIndex1;
         internal static int HeadIndex2;
         internal static int HeadIndex3;
@@ -27,6 +28,7 @@ namespace ExampleMod.Content.NPCs.TownPets
         private static ITownNPCProfile NPCProfile;
 
         public override void Load() {
+            // Adds our variant heads to the NPCHeadLoader.
             HeadIndex1 = Mod.AddNPCHeadTexture(Type, $"{Texture}_1_Head");
             HeadIndex2 = Mod.AddNPCHeadTexture(Type, $"{Texture}_2_Head");
             HeadIndex3 = Mod.AddNPCHeadTexture(Type, $"{Texture}_3_Head");
@@ -36,48 +38,51 @@ namespace ExampleMod.Content.NPCs.TownPets
         }
 
         public override void SetStaticDefaults() {
-            Main.npcFrameCount[Type] = 27;
-            NPCID.Sets.ExtraFramesCount[Type] = 20;
-            NPCID.Sets.AttackFrameCount[Type] = 0;
-            NPCID.Sets.DangerDetectRange[Type] = 250;
-            NPCID.Sets.AttackType[Type] = -1;
-            NPCID.Sets.AttackTime[Type] = -1;
-            NPCID.Sets.AttackAverageChance[Type] = 1;
-            NPCID.Sets.HatOffsetY[Type] = -2;
-            NPCID.Sets.ShimmerTownTransform[Type] = false;
-            NPCID.Sets.SpecificDebuffImmunity[Type][BuffID.Shimmer] = true;
-            NPCID.Sets.SpecificDebuffImmunity[Type][BuffID.Confused] = true;
-            NPCID.Sets.ExtraTextureCount[Type] = 0;
-            NPCID.Sets.NPCFramingGroup[Type] = 8;
+            Main.npcFrameCount[Type] = 27; // The number of frames our sprite has.
+            NPCID.Sets.ExtraFramesCount[Type] = 20; // The number of frames after the walking frames.
+            NPCID.Sets.AttackFrameCount[Type] = 0; // Town Pets don't have any attacking frames.
+            NPCID.Sets.DangerDetectRange[Type] = 250; // How far away the NPC will detect danger. Measured in pixels.
+            NPCID.Sets.AttackType[Type] = -1; // Town Pets do not attack. The default for this set is -1, so it is safe to remove this line if you wish.
+            NPCID.Sets.AttackTime[Type] = -1; // Town Pets do not attack. The default for this set is -1, so it is safe to remove this line if you wish.
+            NPCID.Sets.AttackAverageChance[Type] = 1; // Town Pets do not attack. The default for this set is 1, so it is safe to remove this line if you wish.
+            NPCID.Sets.HatOffsetY[Type] = -2; // An offset for where the party hat sits on the sprite.
+            NPCID.Sets.ShimmerTownTransform[Type] = false; // Town Pets don't have a Shimmer variant.
+            NPCID.Sets.SpecificDebuffImmunity[Type][BuffID.Shimmer] = true; // But they are still immune to Shimmer.
+            NPCID.Sets.SpecificDebuffImmunity[Type][BuffID.Confused] = true; // And Confused.
+            NPCID.Sets.ExtraTextureCount[Type] = 0; // Even though we have several variation textures, we don't use this set. The default for this set is 0, so it is safe to remove this line if you wish.
+            NPCID.Sets.NPCFramingGroup[Type] = 8; // How the party hat is animated to match the walking animation. Town Cat = 4, Town Dog = 5, Town Bunny = 6, Town Slimes = 7, No offset = 8
 
-            NPCID.Sets.IsTownPet[Type] = true;
-            NPCID.Sets.CannotSitOnFurniture[Type] = false;
-            NPCID.Sets.TownNPCBestiaryPriority.Add(Type);
-            NPCID.Sets.PlayerDistanceWhilePetting[Type] = 32;
-            NPCID.Sets.IsPetSmallForPetting[Type] = true;
+            NPCID.Sets.IsTownPet[Type] = true; // Our NPC is a Town Pet
+            NPCID.Sets.CannotSitOnFurniture[Type] = false; // True by default which means they cannot sit in chairs. True means they can sit on furniture like the Town Cat.
+            NPCID.Sets.TownNPCBestiaryPriority.Add(Type); // Puts our NPC with all of the other Town NPCs.
+            NPCID.Sets.PlayerDistanceWhilePetting[Type] = 32; // Distance the player stands from the Town Pet to pet.
+            NPCID.Sets.IsPetSmallForPetting[Type] = true; // If set to true, the player's arm will be angled down while petting.
 
+            // Influences how the NPC looks in the Bestiary
             NPCID.Sets.NPCBestiaryDrawModifiers drawModifiers = new() {
-                Velocity = 0.25f,
+                Velocity = 0.25f, // Draws the NPC in the bestiary as if its walking +0.25 tiles in the x direction
             };
 
             NPCID.Sets.NPCBestiaryDrawOffset.Add(Type, drawModifiers);
 
-            NPCProfile = new ExampleTownPetProfile();
+            NPCProfile = new ExampleTownPetProfile(); // Assign our profile.
 
+            // Here we define which portrait to use for the Town NPC when the portrait style setting is set to detailed.
             NPCID.Sets.NPCPortraits.Add(Type, NPCID.Sets.PrioritizedPortrait()
-                .With(NPCID.Sets.VariantPortraitCondition(0), NPCID.Sets.BasicPortrait($"{Texture}_Portrait"))
+                .With(NPCID.Sets.VariantPortraitCondition(0), NPCID.Sets.BasicPortrait($"{Texture}_Portrait")) // Each variant of Example Town Pet gets its own portrait.
                 .With(NPCID.Sets.VariantPortraitCondition(1), NPCID.Sets.BasicPortrait($"{Texture}_1_Portrait"))
                 .With(NPCID.Sets.VariantPortraitCondition(2), NPCID.Sets.BasicPortrait($"{Texture}_2_Portrait"))
                 .With(NPCID.Sets.VariantPortraitCondition(3), NPCID.Sets.BasicPortrait($"{Texture}_3_Portrait"))
                 .With(NPCID.Sets.VariantPortraitCondition(4), NPCID.Sets.BasicPortrait($"{Texture}_4_Portrait"))
                 .With(NPCID.Sets.VariantPortraitCondition(5), NPCID.Sets.BasicPortrait($"{Texture}_5_Portrait"))
                 .With(NPCID.Sets.VariantPortraitCondition(6), NPCID.Sets.BasicPortrait($"{Texture}_6_Portrait"))
-                .Default(NPCID.Sets.BasicPortrait($"{Texture}_Portrait")));
-            NPCID.Sets.NPCPortraitsCloseUpOffsets.Add(Type, new Vector2(-24f, 16f));
+                .Default(NPCID.Sets.BasicPortrait($"{Texture}_Portrait"))); // The default portrait to use.
+            NPCID.Sets.NPCPortraitsCloseUpOffsets.Add(Type, new Vector2(-24f, 16f)); // Here we can change the offsets of Town NPC when the portrait style setting is set to profile.
+            //NPCID.Sets.NPCPortraitsFullBodyRetroOffsets.Add(Type, new Vector2(0f, 0f)); // Here we can change the offsets of Town NPC when the portrait style setting is set to retro.
         }
 
         public override void SetDefaults() {
-            NPC.townNPC = true;
+            NPC.townNPC = true; // Town Pets are still considered Town NPCs
             NPC.friendly = true;
             NPC.width = 20;
             NPC.height = 20;
@@ -88,8 +93,8 @@ namespace ExampleMod.Content.NPCs.TownPets
             NPC.HitSound = SoundID.NPCHit1;
             NPC.DeathSound = SoundID.NPCDeath6;
             NPC.knockBackResist = 0.5f;
-            NPC.housingCategory = 1;
-            AnimationType = NPCID.TownBunny;
+            NPC.housingCategory = 1; // This means it can share a house with a normal Town NPC.
+            AnimationType = NPCID.TownBunny; // This example matches the animations of the Town Bunny.
         }
         public override void SetBestiary(BestiaryDatabase database, BestiaryEntry bestiaryEntry) {
             bestiaryEntry.Info.AddRange(
@@ -100,6 +105,7 @@ namespace ExampleMod.Content.NPCs.TownPets
         }
 
         public override bool CanTownNPCSpawn(int numTownNPCs) {
+            // If we've used the License, our Town Pet can freely respawn.
             if (ExampleTownPetSystem.boughtExampleTownPet) {
                 return true;
             }
@@ -107,9 +113,14 @@ namespace ExampleMod.Content.NPCs.TownPets
         }
 
         public override ITownNPCProfile TownNPCProfile() {
+            // Vanilla Town Pets use Profiles.VariantNPCProfile() to set the variants, but that doesn't work for us because
+            // it uses Main.Assets.Request<T>() which won't find mod assets (ModContent.Request<T>() is needed instead).
+            // So, we make our own NPCProfile. (See Below)
             return NPCProfile;
         }
 
+        // Create a bunch of lists for our names. Each variant gets its own list of names.
+        // You can these lists as long or as short as you'd like. 
         public readonly List<string> NameList0 = new() {
             "Monochromatic", "Grayscale", "Unpainted"
         };
@@ -130,10 +141,12 @@ namespace ExampleMod.Content.NPCs.TownPets
         };
 
         public override List<string> SetNPCNameList() {
-            return NPC.townNpcVariationIndex switch {
+            return NPC.townNpcVariationIndex switch { // Change the name based on the variation.
                 0 => NameList0,
-                1 => NameList1,
+                1 => NameList1, // Variant 1 will be the Shimmered variant if your NPC has a shimmer variant.
 
+                // The Green (2) variant shows one approach to localizing Town NPC names.
+                // One additional benefit of this approach is a separate mod can add a Mods.ExampleMod.NPCs.ExampleTownPet.Names.Green.Emerald key and it will automatically be used as a name option.
                 2 => Language.FindAll(Lang.CreateDialogFilter(this.GetLocalizationKey("Names.Green."))).Select(x => x.Value).ToList(),
                 3 => NameList3,
                 4 => NameList4,
@@ -144,30 +157,63 @@ namespace ExampleMod.Content.NPCs.TownPets
         }
 
         public override string GetChat() {
+            // Rather than list out each dialogue localization key and selecting one at random, we use this approach to easily select one based on the localization key prefix. This approach also means that additional keys added by other mods will automatically be supported as well.
             return Language.SelectRandom(Lang.CreateDialogFilter("Mods.ExampleMod.Dialogue.ExampleTownPet")).Value;
         }
 
         public override bool PreAI() {
+            // If your Town Pet can sit in chairs with NPCID.Sets.CannotSitOnFurniture[Type] = false
+            // We want to move the Town NPC up visually to match the height of the chair.
+            // NPC.ai[0] is set to 5f for Town NPC AI when they are sitting in a chair.
             if (NPC.ai[0] == 5f) {
-                DrawOffsetY = -10;
+                DrawOffsetY = -10; // Remember: Negative Y is up. So, this is moving the NPC up visually by 10 pixels.
             }
             else {
-                DrawOffsetY = 0;
+                DrawOffsetY = 0; // Reset it back to 0 when not sitting in a chair.
             }
+
+            // Do not try to add or subtract from the DrawOffsetY. It'll cause the sprite to change its height every frame which will make it go off of the screen.
+
+            // If your Town Pet doesn't sit in furniture, you can remove this entire PreAI() method.
 
             return base.PreAI();
         }
 
         public override void ChatBubblePosition(ref Vector2 position, ref SpriteEffects spriteEffects) {
-            if (NPC.ai[0] == 5f) {
-                position.Y -= 18f;
+            // If your Town Pet can sit in chairs with NPCID.Sets.CannotSitOnFurniture[Type] = false
+            // and you've done the above DrawOffsetY to raise it up to the chair's height,
+            // you'll notice the chat bubble that appears when hovering over them doesn't get raised up.
+            // So, let's move it up as well.
+            if (NPC.ai[0] == 5f) { // (Sitting in a chair.)
+                position.Y -= 18f; // Move upwards.
             }
         }
 
-        public override void PartyHatPosition(ref Vector2 position, ref SpriteEffects spriteEffects) {
-            int frame = NPC.frame.Y / NPC.frame.Height;
-            int xOffset = 8;
+        /*
+        public override void EmoteBubblePosition(ref Vector2 position, ref SpriteEffects spriteEffects) {
+            // Here is an example of how we can modify the emote bubble.
 
+            // Flip the emote bubble and move it.
+            spriteEffects = NPC.spriteDirection == -1 ? SpriteEffects.FlipHorizontally : SpriteEffects.None;
+            position.X += NPC.width * NPC.direction;
+
+            // (Town Pets can't use emotes, so this example here won't actually do anything.)
+            // (For a working example, see ExampleMod/Common/GlobalNPCs/GuideGlobalNPC.cs)
+        }
+        */
+
+        public override void PartyHatPosition(ref Vector2 position, ref SpriteEffects spriteEffects) {
+            // With this hook, we have full control over the position of the party hat.
+            // We have already set NPCID.Sets.HatOffsetY[Type] = -2 in SetStaticDefaults which will move the party hat up 2 pixels at all times.
+            // We also set PCID.Sets.NPCFramingGroup[Type] = 8 in SetStaticDefaults.
+            // NPCFramingGroup is used vertically offset the party hat to match the animations of the NPC.
+            // Group 8 has no inherit offsets for the party hat.
+
+            int frame = NPC.frame.Y / NPC.frame.Height; // The current frame.
+            int xOffset = 8; // Move the party hat forward so it is actually on the Town Pet's head.
+
+            // Then move the party hat left/right depending on the frame.
+            // These numbers were achieved by measuring the sprite relative to the "normal" position of the party hat.
             switch (frame) {
                 case 1:
                 case 2:
@@ -206,8 +252,11 @@ namespace ExampleMod.Content.NPCs.TownPets
             }
             position.X += xOffset * NPC.spriteDirection;
 
+            // We set NPCID.Sets.HatOffsetY[Type] = -2 so that means every frame is moved up 2 additional units.
             int yOffset = 0;
 
+            // Then move the party hat up/down depending on the frame.
+            // These numbers were achieved by measuring the sprite relative to the "normal" position of the party hat.
             switch (frame) {
                 case 3:
                 case 4:
@@ -251,6 +300,7 @@ namespace ExampleMod.Content.NPCs.TownPets
             }
             position.Y += yOffset;
 
+            // Move it up to match the location of the head when sitting in a chair.
             if (NPC.ai[0] == 5f) {
                 position.Y += -10;
             }
@@ -259,8 +309,9 @@ namespace ExampleMod.Content.NPCs.TownPets
 
     public class ExampleTownPetProfile : ITownNPCProfile
     {
-        private static readonly string filePath = "ExampleMod/Content/NPCs/TownPets/ExampleTownPet";
+        private static readonly string filePath = "ExampleMod/Content/NPCs/TownPets/ExampleTownPet"; // The path to our base texture.
 
+        // Load all of our textures only one time during mod load time.
         private readonly Asset<Texture2D> variant0 = ModContent.Request<Texture2D>(filePath);
         private readonly Asset<Texture2D> variant1 = ModContent.Request<Texture2D>($"{filePath}_1");
         private readonly Asset<Texture2D> variant2 = ModContent.Request<Texture2D>($"{filePath}_2");
@@ -271,17 +322,23 @@ namespace ExampleMod.Content.NPCs.TownPets
         private readonly int headIndex0 = ModContent.GetModHeadSlot($"{filePath}_Head");
 
         public int RollVariation() {
-            int random = Main.rand.Next(7);
+            int random = Main.rand.Next(7); // 7 variants; 0 through 6.
+
+            // If your Town Pet has a shimmer variant:
+            // townNpcVariationIndex of 1 makes it shimmered, even when it isn't.
+            // if (random == 1) {
+            //	random = 7; // So variation 1 becomes number 7.
+            // }
 
             return random;
         }
 
-        public string GetNameForVariant(NPC npc) => NPC.getNewNPCName(npc.type);
+        public string GetNameForVariant(NPC npc) => NPC.getNewNPCName(npc.type); // Reroll the name each time the Town Pet spawns or changes variant.
 
         public Asset<Texture2D> GetTextureNPCShouldUse(NPC npc) {
             return npc.townNpcVariationIndex switch {
                 0 => variant0,
-                1 => variant1,
+                1 => variant1, // Variant 1 will be the Shimmered variant if your NPC has a shimmer variant.
                 2 => variant2,
                 3 => variant3,
                 4 => variant4,
@@ -294,7 +351,7 @@ namespace ExampleMod.Content.NPCs.TownPets
         public int GetHeadTextureIndex(NPC npc) {
             return npc.townNpcVariationIndex switch {
                 0 => headIndex0,
-                1 => ExampleTownPet.HeadIndex1,
+                1 => ExampleTownPet.HeadIndex1, // Variant 1 will be the Shimmered variant if your NPC has a shimmer variant.
                 2 => ExampleTownPet.HeadIndex2,
                 3 => ExampleTownPet.HeadIndex3,
                 4 => ExampleTownPet.HeadIndex4,

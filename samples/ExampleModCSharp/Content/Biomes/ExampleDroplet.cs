@@ -10,6 +10,8 @@ public class ExampleDroplet : ModGore
     {
         ChildSafety.SafeGore[Type] = true;
         GoreID.Sets.IsDrip[Type] = true;
+
+        // Rather than copy in all the droplet specific gore logic, this gore will pretend to be another gore to inherit that logic.
         UpdateType = GoreID.WaterDrip;
     }
 }

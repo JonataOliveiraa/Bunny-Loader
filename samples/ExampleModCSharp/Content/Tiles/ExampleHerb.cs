@@ -11,6 +11,7 @@ using Terraria.ObjectData;
 
 namespace ExampleMod.Content.Tiles;
 
+// An enum for the 3 stages of herb growth
 public enum PlantStage : byte
 {
     Planted,
@@ -18,9 +19,16 @@ public enum PlantStage : byte
     Grown
 }
 
+// A plant with 3 stages, planted, growing and grown
+// Sadly, modded plants are unable to be grown by the flower boots
+// TODO smart cursor support for herbs, see SmartCursorHelper.Step_AlchemySeeds
+// TODO Staff of Regrowth:
+// - Player.PlaceThing_Tiles_BlockPlacementForAssortedThings: check where type == 84 (grown herb)
+// - Player.ItemCheck_GetTileCutIgnoreList: maybe generalize?
+// TODO vanilla seeds to replace fully grown herb
 public class ExampleHerb : ModTile
 {
-    private const int FrameWidth = 18;
+    private const int FrameWidth = 18; // A constant for readability and to kick out those magic numbers
 
     public override void SetStaticDefaults()
     {
@@ -30,6 +38,12 @@ public class ExampleHerb : ModTile
         Main.tileNoFail[Type] = true;
         TileID.Sets.ReplaceTileBreakUp[Type] = true;
         TileID.Sets.IgnoredInHouseScore[Type] = true;
+
+        // We do not use this because our tile should only be spelunkable when it's fully grown. That's why we use the IsTileSpelunkable hook instead
+        //Main.tileSpelunker[Type] = true;
+
+        // Do NOT use this, it causes many unintended side effects
+        //Main.tileAlch[Type] = true;
 
         LocalizedText name = CreateMapEntryName();
         AddMapEntry(new Color(128, 128, 128), name);
@@ -52,19 +66,21 @@ public class ExampleHerb : ModTile
 
     public override bool CanPlace(int i, int j)
     {
-        Tile tile = Framing.GetTileSafely(i, j);
+        Tile tile = Framing.GetTileSafely(i, j); // Safe way of getting a tile instance
 
         if (tile.HasTile)
         {
             int tileType = tile.TileType;
             if (tileType == Type)
             {
-                PlantStage stage = GetStage(i, j);
+                PlantStage stage = GetStage(i, j); // The current stage of the herb
 
+                // Can only place on the same herb again if it's grown already
                 return stage == PlantStage.Grown;
             }
             else
             {
+                // Support for vanilla herbs/grasses:
                 if (Main.tileCut[tileType] || TileID.Sets.BreakableWhenPlacing[tileType] || tileType == TileID.WaterDrip || tileType == TileID.LavaDrip || tileType == TileID.HoneyDrip || tileType == TileID.SandDrip)
                 {
                     bool foliageGrass = tileType == TileID.Plants || tileType == TileID.Plants2;
@@ -100,7 +116,7 @@ public class ExampleHerb : ModTile
 
     public override void SetDrawPositions(int i, int j, ref int width, ref int offsetY, ref int height, ref short tileFrameX, ref short tileFrameY)
     {
-        offsetY = -2;
+        offsetY = -2; // This is -1 for tiles using StyleAlch, but vanilla sets to -2 for herbs, which causes a slight visual offset between the placement preview and the placed tile.
     }
 
     public override bool CanDrop(int i, int j)
@@ -109,6 +125,7 @@ public class ExampleHerb : ModTile
 
         if (stage == PlantStage.Planted)
         {
+            // Do not drop anything when just planted
             return false;
         }
         return true;
@@ -129,11 +146,13 @@ public class ExampleHerb : ModTile
 
         if (nearestPlayer.active && (nearestPlayer.HeldItem.type == ItemID.StaffofRegrowth || nearestPlayer.HeldItem.type == ItemID.AcornAxe))
         {
+            // Increased yields with Staff of Regrowth, even when not fully grown
             herbItemStack = Main.rand.Next(1, 3);
             seedItemStack = Main.rand.Next(1, 6);
         }
         else if (stage == PlantStage.Grown)
         {
+            // Default yields, only when fully grown
             herbItemStack = 1;
             seedItemStack = Main.rand.Next(1, 4);
         }
@@ -153,6 +172,7 @@ public class ExampleHerb : ModTile
     {
         PlantStage stage = GetStage(i, j);
 
+        // Only glow if the herb is grown
         return stage == PlantStage.Grown;
     }
 
@@ -161,10 +181,13 @@ public class ExampleHerb : ModTile
         Tile tile = Framing.GetTileSafely(i, j);
         PlantStage stage = GetStage(i, j);
 
+        // Only grow to the next stage if there is a next stage. We don't want our tile turning pink!
         if (stage != PlantStage.Grown)
         {
+            // Increase the x frame to change the stage
             tile.TileFrameX += FrameWidth;
 
+            // If in multiplayer, sync the frame change
             if (Main.netMode != NetmodeID.SinglePlayer)
             {
                 NetMessage.SendTileSquare(-1, i, j, 1);
@@ -172,6 +195,7 @@ public class ExampleHerb : ModTile
         }
     }
 
+    // A helper method to quickly get the current stage of the herb (assuming the tile at the coordinates is our herb)
     private static PlantStage GetStage(int i, int j)
     {
         Tile tile = Framing.GetTileSafely(i, j);

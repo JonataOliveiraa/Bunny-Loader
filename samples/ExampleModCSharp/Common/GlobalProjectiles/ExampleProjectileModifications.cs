@@ -6,13 +6,16 @@ using Terraria.ModLoader;
 
 namespace ExampleMod.Common.GlobalProjectiles;
 
+// Here is a class dedicated to showcasing projectile modifications
 public class ExampleProjectileModifications : GlobalProjectile
 {
     public override bool InstancePerEntity => true;
     public bool applyBuffOnHit;
+    // These are set when the user specifies that they want a trail.
     private Color trailColor;
     private bool trailActive;
 
+    // Here, a method is provided for setting the above fields.
     public void SetTrail(Color color)
     {
         trailColor = color;

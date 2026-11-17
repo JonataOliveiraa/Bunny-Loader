@@ -12,6 +12,7 @@ public class ExamplePlatform : ModTile
 {
     public override void SetStaticDefaults()
     {
+        // Properties
         Main.tileLighted[Type] = true;
         Main.tileFrameImportant[Type] = true;
         Main.tileSolidTop[Type] = true;
@@ -29,6 +30,7 @@ public class ExamplePlatform : ModTile
         AdjTiles = [TileID.Platforms];
         VanillaFallbackOnModDeletion = TileID.Platforms;
 
+        // Placement
         TileObjectData.newTile.CoordinateHeights = [16];
         TileObjectData.newTile.CoordinateWidth = 16;
         TileObjectData.newTile.CoordinatePadding = 2;

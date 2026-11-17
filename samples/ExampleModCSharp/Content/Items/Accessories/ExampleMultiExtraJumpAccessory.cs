@@ -12,6 +12,7 @@ using Terraria.ModLoader;
 namespace ExampleMod.Content.Items.Accessories
 {
 
+    // Showcases a more complicated extra jump, where the player can jump mid-air with it three (3) times
     public class ExampleMultiExtraJumpAccessory : ModItem
     {
         public override void SetDefaults() {
@@ -32,9 +33,11 @@ namespace ExampleMod.Content.Items.Accessories
 
         public override void ModifyTooltips(List<TooltipLine> tooltips) {
 
+            // Find the line that contains the dummy string from the localization text
             int index = tooltips.FindIndex(static line => line.Text.Contains("<JUMPS>"));
             if (index >= 0) {
 
+                // ... and then replace it
                 ref string text = ref tooltips[index].Text;
                 text = text.Replace("<JUMPS>", $"{Main.LocalPlayer.GetModPlayer<MultipleUseExtraJumpPlayer>().jumpsRemaining}");
             }
@@ -47,6 +50,7 @@ namespace ExampleMod.Content.Items.Accessories
 
         public override float GetDurationMultiplier(Player player) {
 
+            // Each successive jump has weaker power
             return player.GetModPlayer<MultipleUseExtraJumpPlayer>().jumpsRemaining switch {
                 1 => 0.2f,
                 2 => 0.5f,
@@ -57,13 +61,16 @@ namespace ExampleMod.Content.Items.Accessories
 
         public override void OnRefreshed(Player player) {
 
+            // Reset the jump counter
             player.GetModPlayer<MultipleUseExtraJumpPlayer>().jumpsRemaining = 3;
         }
 
         public override void OnStarted(Player player, ref bool playSound) {
 
+            // Get the jump counter
             ref int jumps = ref player.GetModPlayer<MultipleUseExtraJumpPlayer>().jumpsRemaining;
 
+            // Spawn rings of fire particles
             int offsetY = player.height;
             if (player.gravDir == -1f)
                 offsetY = 0;
@@ -109,6 +116,7 @@ namespace ExampleMod.Content.Items.Accessories
                 }
             }
 
+            // Play a different sound
             playSound = false;
 
             float pitch = jumps switch {
@@ -120,8 +128,10 @@ namespace ExampleMod.Content.Items.Accessories
 
             SoundEngine.PlaySound(((SoundStyle)SoundID.Item8) with { Pitch = pitch, PitchVariance = 0.04f }, player.Bottom);
 
+            // Decrement the jump counter
             jumps--;
 
+            // Allow the jump to be used again while the jump counter is > 0
             if (jumps > 0)
                 player.GetJumpState(this).Available = true;
         }

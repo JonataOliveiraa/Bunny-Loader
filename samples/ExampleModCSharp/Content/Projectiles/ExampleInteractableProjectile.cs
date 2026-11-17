@@ -13,9 +13,14 @@ using Terraria.ModLoader;
 namespace ExampleMod.Content.Projectiles
 {
 
+    // This example demonstrates an interactable projectile, similar to the Void Lens or Flying Piggy Bank (Money Trough)
+    // Interactable projectiles can be right clicked to provide some effect. They also support smart cursor.
+    // Vanilla interactable projectiles allow portable access to player-specific banks, but this in not yet supported for modded projectiles.
+    // This example is a clone of the Flying Piggy Bank projectile except it simply plays sounds when interacted with instead of accessing a player bank.
     public class ExampleInteractableProjectile : ModProjectile
     {
 
+        // An outline texture indicating the smart cursor selecting this projectile
         private static Asset<Texture2D> highlightTexture;
 
         public override void Load() {
@@ -32,17 +37,23 @@ namespace ExampleMod.Content.Projectiles
             Projectile.width = 30;
             Projectile.height = 24;
             Projectile.tileCollide = false;
-            Projectile.timeLeft = 10800;
+            Projectile.timeLeft = 10800; // Stays active for 3 minutes, or 3 * 60 * 60 game updates
             Projectile.drawLayer = ProjectileDrawLayerID.BehindProjectiles;
 
+            // Draw the projectile higher to line up the hitbox with the body of the projectile, not the flapping wings.
             DrawOriginOffsetY = -5;
         }
 
         public override void PostDraw(Player player, Color lightColor) {
 
+            // We use PostDraw to draw the highlight texture over the normal texture.
+
+            // TryInteracting return values:
+            // 0: Not highlighted, 1: draw faded highlight, 2: draw selected highlight selected
             int highlightTextureDrawMode = TryInteracting();
             if (highlightTextureDrawMode == 0) {
 
+                // If not in range, or if smart cursor is off, we don't draw the highlight texture at all.
                 return;
             }
 
@@ -51,8 +62,10 @@ namespace ExampleMod.Content.Projectiles
                 bool isProjectileSelected = highlightTextureDrawMode == 2;
                 Color selectionGlowColor = Colors.GetSelectionGlowColor(isProjectileSelected, lightValue);
 
+                // GetDefaultDrawData calculates the vanilla draw parameters:
                 var drawData = Projectile.GetDefaultDrawData(player, lightColor);
 
+                // Adjust the draw parameters to use the highlight texture and selection color and draw them.
                 Main.EntitySpriteDraw(drawData with {
                     texture = highlightTexture.Value,
                     color = selectionGlowColor
@@ -60,6 +73,7 @@ namespace ExampleMod.Content.Projectiles
             }
         }
 
+        // This method handles interacting with this projectile and also returns a value indicating how the highlight texture should be drawn.
         private int TryInteracting() {
             if (Main.gamePaused || Main.gameMenu) {
                 return 0;
@@ -77,10 +91,10 @@ namespace ExampleMod.Content.Projectiles
             bool interactingWithThisProjectile = mouseDirectlyOver || Main.SmartInteractProj == Projectile.whoAmI;
             if (!interactingWithThisProjectile || localPlayer.lastMouseInterface) {
                 if (cursorHighlights) {
-                    return 1;
+                    return 1; // Draw faded highlight texture
                 }
                 else {
-                    return 0;
+                    return 0; // Don't draw highlight texture
                 }
             }
 
@@ -88,6 +102,7 @@ namespace ExampleMod.Content.Projectiles
             if (mouseDirectlyOver) {
                 localPlayer.noThrow = 2;
 
+                // Show the corresponding item icon on the cursor when directly over the interactable projectile.
                 localPlayer.cursorItemIconEnabled = true;
                 localPlayer.cursorItemIconID = ModContent.ItemType<ExampleInteractableProjectileItem>();
             }
@@ -101,11 +116,12 @@ namespace ExampleMod.Content.Projectiles
                 localPlayer.tileInteractionHappened = true;
                 localPlayer.releaseUseTile = false;
 
+                // This is where custom interaction logic would go. This example simply plays a sound.
                 SoundEngine.PlaySound(Main.rand.NextBool(10) ? (SoundStyle)SoundID.Duck : SoundID.Item59);
             }
 
             if (cursorHighlights) {
-                return 2;
+                return 2; // Draw highlight texture
             }
             else {
                 return 0;
@@ -114,8 +130,9 @@ namespace ExampleMod.Content.Projectiles
 
         public override void AI() {
 
+            // This animation goes 0, 1, 2, 3, 4, 3, 2, 1 and repeats.
             Projectile.frameCounter++;
-            Projectile.frame = Projectile.frameCounter / 4;
+            Projectile.frame = Projectile.frameCounter / 4; // 4 ticks per frame
             if (Projectile.frame >= 5) {
                 Projectile.frame = 8 - Projectile.frame;
             }
@@ -123,8 +140,10 @@ namespace ExampleMod.Content.Projectiles
                 Projectile.frameCounter = 0;
             }
 
+            // Let the game know to check for interactable projectiles
             Main.CurrentFrameFlags.HadAnActiveInteractibleProjectile = true;
 
+            // Replace older projectiles when a new one is spawned.
             if (Projectile.owner == Main.myPlayer) {
                 for (int i = 0; i < 1000; i++) {
                     Projectile otherProjectile = Main.projectile[i];
@@ -139,9 +158,11 @@ namespace ExampleMod.Content.Projectiles
                 }
             }
 
+            // When initially spawned, the projectile slows down until it stops.
             if (Projectile.ai[0] == 0f) {
                 if (Projectile.velocity.Length() < 0.1f) {
 
+                    // Once slowed down enough, stop completely and start bobbing
                     Projectile.velocity.X = 0f;
                     Projectile.velocity.Y = 0f;
                     Projectile.ai[0] = 1f;
@@ -149,15 +170,18 @@ namespace ExampleMod.Content.Projectiles
                     return;
                 }
 
+                // Deaccelerate while facing in the direction of travel.
                 Projectile.velocity *= 0.94f;
                 Projectile.direction = Projectile.velocity.X < 0f ? -1 : 1;
                 Projectile.spriteDirection = Projectile.direction;
                 return;
             }
 
+            // Always face the player when stopped.
             Projectile.direction = Main.player[Projectile.owner].Center.X < Projectile.Center.X ? -1 : 1;
             Projectile.spriteDirection = Projectile.direction;
 
+            // ai[1] is a timer that helps the projectile hover in-place while bobbing up and down slightly.
             Projectile.ai[1] += 1f;
             float acceleration = 0.005f;
             if (Projectile.ai[1] > 0f) {

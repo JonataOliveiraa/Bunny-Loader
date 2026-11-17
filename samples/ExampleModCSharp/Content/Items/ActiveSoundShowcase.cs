@@ -8,6 +8,9 @@ using Terraria.ModLoader;
 
 namespace ExampleMod.Content.Items
 {
+    // This example showcases how to loop and adjust sounds as they are playing. These are referred to as active sounds.
+    // The weapon will shoot a projectile that will behave differently depending on how far away from the player the cursor is.
+    // This allows the modder to experiment with each behavior independently to see how they work in game.
     public class ActiveSoundShowcase : ModItem
     {
         public override string Texture => $"Terraria/Images/Projectile_{ProjectileID.TiedEighthNote}";

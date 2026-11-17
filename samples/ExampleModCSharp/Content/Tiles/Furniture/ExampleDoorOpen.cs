@@ -17,25 +17,31 @@ public class ExampleDoorOpen : ModTile
 {
     public override void SetStaticDefaults()
     {
+        // Properties
         Main.tileFrameImportant[Type] = true;
         Main.tileSolid[Type] = false;
         Main.tileLavaDeath[Type] = true;
         Main.tileNoSunLight[Type] = true;
-        TileID.Sets.HousingWalls[Type] = true;
+        TileID.Sets.HousingWalls[Type] = true; // needed for non-solid blocks to count as walls
         TileID.Sets.HasOutlines[Type] = true;
         TileID.Sets.DisableSmartCursor[Type] = true;
         TileID.Sets.CloseDoorID[Type] = ModContent.TileType<ExampleDoorClosed>();
-        TileID.Sets.DrawTileInSolidLayer[Type] = true;
+        TileID.Sets.DrawTileInSolidLayer[Type] = true; // needed to draw at the correct "layer" for npc that draw below solid tiles like worms
 
         TileID.Sets.RoomNeeds.CountsAsDoor[Type] = true;
 
         DustType = ModContent.DustType<Sparkle>();
         AdjTiles = [TileID.OpenDoor];
 
+        // Tiles usually drop their corresponding item automatically, but RegisterItemDrop is needed here since the ExampleDoor item places ExampleDoorClosed, not this tile.
         RegisterItemDrop(ModContent.ItemType<ExampleDoor>(), 0);
 
+        // Names
         AddMapEntry(new Color(200, 200, 200), Language.GetText("MapObject.Door"));
 
+        // Placement
+        // The TileID.OpenDoor TileObjectData has incorrect anchor and StyleMultiplier values, so we will not be copying from it in this case
+        // TileObjectData.newTile.CopyFrom(TileObjectData.GetTileData(TileID.OpenDoor, 0));
         TileObjectData.newTile.Width = 2;
         TileObjectData.newTile.Height = 3;
         TileObjectData.newTile.Origin = new Point16(0, 0);
@@ -48,7 +54,7 @@ public class ExampleDoorOpen : ModTile
         TileObjectData.newTile.CoordinatePadding = 2;
         TileObjectData.newTile.StyleHorizontal = true;
         TileObjectData.newTile.StyleMultiplier = 2;
-        TileObjectData.newTile.StyleWrapLimit = 2;
+        TileObjectData.newTile.StyleWrapLimit = 2; // Since the wrap limit is 2, a 2nd style will be below the first on the spritesheet even though this is StyleHorizontal = true
         TileObjectData.newTile.Direction = TileObjectDirection.PlaceRight;
         TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
         TileObjectData.newAlternate.Origin = new Point16(0, 1);

@@ -7,6 +7,10 @@ using Terraria.ModLoader;
 
 namespace ExampleMod.Content.Items.Consumables
 {
+    /// <summary>
+    /// A potion that applies the ExampleWeaponImbue buff to the player.
+    /// See also ExampleWeaponImbue and ExampleWeaponEnchantmentPlayer.
+    /// </summary>
     public class ExampleFlask : ModItem
     {
         public override void SetStaticDefaults() {

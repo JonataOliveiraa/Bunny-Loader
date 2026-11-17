@@ -4,6 +4,7 @@ using Terraria;
 using Terraria.DataStructures;
 using Terraria.ModLoader;
 
+// Related to GlobalItem: WeaponWithGrowingDamage
 namespace ExampleMod.Common.GlobalProjectiles
 {
     public class ProjectileWithGrowingDamage : GlobalProjectile
@@ -14,11 +15,14 @@ namespace ExampleMod.Common.GlobalProjectiles
 
         public override bool IsLoadingEnabled(Mod mod) {
             
+            // To experiment with this example, you'll need to enable it in the config.
             return ModContent.GetInstance<ExampleModConfig>().WeaponWithGrowingDamageToggle;
         }
 
         public override void OnSpawn(Projectile projectile, IEntitySource source) {
 
+            // Don't try to store the itemSource.Item. Terraria can re-use an item instance with SetDefaults(),
+            // meaning the instance you save could become air or another item. It is much safer to store the GlobalItem instance.
             if (EntitySource_ItemUse.Is(source)) {
                 var itemSource = new EntitySource_ItemUse(source.Pointer);
                 itemSource.Item.TryGetGlobalItem(out sourceGlobalItem);

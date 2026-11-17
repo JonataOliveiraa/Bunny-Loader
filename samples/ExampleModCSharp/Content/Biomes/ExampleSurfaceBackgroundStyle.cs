@@ -4,6 +4,7 @@ namespace ExampleMod.Backgrounds;
 
 public class ExampleSurfaceBackgroundStyle : ModSurfaceBackgroundStyle
 {
+    // Use this to keep far Backgrounds like the mountains.
     public override void ModifyFarFades(float[] fades, float transitionSpeed)
     {
         for (int i = 0; i < fades.Length; i++)
@@ -51,7 +52,7 @@ public class ExampleSurfaceBackgroundStyle : ModSurfaceBackgroundStyle
             case 2:
                 return BackgroundTextureLoader.GetBackgroundSlot(Mod, "Assets/Textures/Backgrounds/ExampleBiomeSurfaceMid2");
             case 3:
-                return BackgroundTextureLoader.GetBackgroundSlot("ExampleMod/Assets/Textures/Backgrounds/ExampleBiomeSurfaceMid3");
+                return BackgroundTextureLoader.GetBackgroundSlot("ExampleMod/Assets/Textures/Backgrounds/ExampleBiomeSurfaceMid3"); // You can use the full path version of GetBackgroundSlot too
             default:
                 return -1;
         }

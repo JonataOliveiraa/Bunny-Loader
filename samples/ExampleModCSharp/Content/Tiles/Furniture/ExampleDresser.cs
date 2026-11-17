@@ -15,6 +15,7 @@ namespace ExampleMod.Content.Tiles.Furniture
     public class ExampleDresser : ModTile
     {
         public override void SetStaticDefaults() {
+            // Properties
             Main.tileSolidTop[Type] = true;
             Main.tileFrameImportant[Type] = true;
             Main.tileNoAttach[Type] = true;
@@ -32,8 +33,10 @@ namespace ExampleMod.Content.Tiles.Furniture
             AdjTiles = [TileID.Dressers];
             DustType = ModContent.DustType<Sparkle>();
 
+            // Names
             AddMapEntry(new Color(200, 200, 200), CreateMapEntryName());
 
+            // Placement
             TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
             TileObjectData.newTile.HookCheckIfCanPlace = new PlacementHook(Chest.FindEmptyChest, -1, 0, true);
             TileObjectData.newTile.HookPostPlaceMyPlayer = new PlacementHook(Chest.AfterPlacement_Hook, -1, 0, false);
@@ -128,6 +131,7 @@ namespace ExampleMod.Content.Tiles.Furniture
             return true;
         }
 
+        // This is not a hook, this is just a normal method used by the MouseOver and MouseOverFar hooks to avoid repeating code.
         public void MouseOverNearAndFarSharedLogic(Player player, int i, int j) {
             Tile tile = Main.tile[i, j];
             int left = i;
@@ -142,7 +146,7 @@ namespace ExampleMod.Content.Tiles.Furniture
                 player.cursorItemIconText = Language.GetTextValue("LegacyDresserType.0");
             }
             else {
-                string defaultName = TileLoader.DefaultContainerName(tile.TileType, tile.TileFrameX, tile.TileFrameY);
+                string defaultName = TileLoader.DefaultContainerName(tile.TileType, tile.TileFrameX, tile.TileFrameY); // This gets the ContainerName text for the currently selected language
 
                 if (Main.chest[chestIndex].name != "") {
                     player.cursorItemIconText = Main.chest[chestIndex].name;

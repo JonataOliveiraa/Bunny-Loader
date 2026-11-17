@@ -10,6 +10,8 @@ using Terraria.ObjectData;
 
 namespace ExampleMod.Content.Tiles
 {
+    // These three classes showcase how to create tiles that act as corruption/crimson/hallow versions of vanilla tiles.
+    // For this example, we will be making vanilla's desert fossil tiles convertible into the three spreading biomes
     public class HallowedFossilTile : ModTile
     {
         public override void SetStaticDefaults() {
@@ -22,13 +24,15 @@ namespace ExampleMod.Content.Tiles
             TileID.Sets.ChecksForMerge[Type] = true;
             Main.tileMerge[TileID.HallowSandstone][Type] = true;
 
+            // We need to register a conversion from the vanilla desert fossil into our modded variants, so our custom code can be called when the game attempts to convert the vanilla tile
             TileLoader.RegisterSimpleConversion(TileID.DesertFossil, BiomeConversionID.Hallow, Type);
-            TileID.Sets.Infectable[TileID.DesertFossil] = true;
+            TileID.Sets.Infectable[TileID.DesertFossil] = true; // Adding desert fossil to infectable tiles, without it no infection will spread over to it.
 
-            TileLoader.RegisterConversion(Type, BiomeConversionID.Sand, TileID.DesertFossil);
+            TileLoader.RegisterConversion(Type, BiomeConversionID.Sand, TileID.DesertFossil); // Yellow (desert) solution also converts evil/hallowed tiles back into purity, so don't forget that check!
         }
 
         public override void RandomUpdate(int i, int j, bool underground) {
+            // We use this helper method to mimic vanilla behavior for spreading tiles, letting our hallowed fossil infect convert nearby tiles into hallowed versions of themselves
             WorldGen.SpreadInfectionToNearbyTile(i, j, BiomeConversionID.Hallow);
         }
     }
@@ -46,6 +50,9 @@ namespace ExampleMod.Content.Tiles
             Main.tileMerge[TileID.CorruptSandstone][Type] = true;
 
             TileLoader.RegisterSimpleConversion(TileID.DesertFossil, BiomeConversionID.Corruption, Type);
+
+            //TileID.Sets.Infectable[TileID.DesertFossil] = true; Since desert fossil was already added to infectable tiles in HallowedFossilTile, we don't need to add it again.
+            //Still, having a commented out version of the code here is a reminder that this is needed for the tile to be infectable.
 
             TileLoader.RegisterConversion(Type, BiomeConversionID.Sand, TileID.DesertFossil);
         }
@@ -68,6 +75,9 @@ namespace ExampleMod.Content.Tiles
             Main.tileMerge[TileID.CrimsonSandstone][Type] = true;
 
             TileLoader.RegisterSimpleConversion(TileID.DesertFossil, BiomeConversionID.Crimson, Type);
+
+            //TileID.Sets.Infectable[TileID.DesertFossil] = true; Since desert fossil was already added to infectable tiles in HallowedFossilTile, we don't need to add it again.
+            //Still, having a commented out version of the code here is a reminder that this is needed for the tile to be infectable.
 
             TileLoader.RegisterConversion(Type, BiomeConversionID.Sand, TileID.DesertFossil);
         }

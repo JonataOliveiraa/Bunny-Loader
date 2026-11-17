@@ -14,6 +14,8 @@ public class ExampleTree : ModTree
     private Asset<Texture2D> branchesTexture;
     private Asset<Texture2D> topsTexture;
 
+    // This is a blind copy-paste from Vanilla's PurityPalmTree settings.
+    // TODO: This needs some explanations
     public override TreePaintingSettings TreeShaderSettings => new TreePaintingSettings
     {
         UseSpecialGroups = true,
@@ -25,12 +27,14 @@ public class ExampleTree : ModTree
 
     public override void SetStaticDefaults()
     {
+        // Makes Example Tree grow on ExampleBlock
         GrowsOnTileId = [ModContent.TileType<ExampleBlock>()];
         texture = ModContent.Request<Texture2D>("ExampleMod/Content/Tiles/Plants/ExampleTree");
         branchesTexture = ModContent.Request<Texture2D>("ExampleMod/Content/Tiles/Plants/ExampleTree_Branches");
         topsTexture = ModContent.Request<Texture2D>("ExampleMod/Content/Tiles/Plants/ExampleTree_Tops");
     }
 
+    // This is the primary texture for the trunk. Branches and foliage use different settings.
     public override Asset<Texture2D> GetTexture()
     {
         return texture;
@@ -44,10 +48,13 @@ public class ExampleTree : ModTree
 
     public override void SetTreeFoliageSettings(int i, int j, Tile tile, int xoffset, ref int treeFrame, int floorY, ref int topTextureFrameWidth, ref int topTextureFrameHeight)
     {
+        // This is where fancy code could go, but let's save that for an advanced example
     }
 
+    // Branch Textures
     public override Asset<Texture2D> GetBranchTextures() => branchesTexture;
 
+    // Top Textures
     public override Asset<Texture2D> GetTopTextures() => topsTexture;
 
     public override int DropWood()

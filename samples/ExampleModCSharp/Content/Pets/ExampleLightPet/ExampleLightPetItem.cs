@@ -24,6 +24,7 @@ public class ExampleLightPetItem : ModItem
         Item.buffType = ModContent.BuffType<ExampleLightPetBuff>();
     }
 
+    // Please see Content/ExampleRecipes.cs for a detailed explanation of recipe creation.
     public override void AddRecipes()
     {
         CreateRecipe()

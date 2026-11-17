@@ -9,6 +9,10 @@ using Terraria.ModLoader;
 namespace ExampleMod.Common.Players
 {
 
+    /// <summary>
+    /// Handles the effects and weapon visuals of the Example Weapon Imbue.
+    /// See also ExampleFlask and ExampleWeaponImbue.
+    /// </summary>
     public class ExampleWeaponEnchantmentPlayer : ModPlayer
     {
         public bool exampleWeaponImbue = false;
@@ -29,6 +33,7 @@ namespace ExampleMod.Common.Players
             }
         }
 
+        // MeleeEffects and EmitEnchantmentVisualsAt apply the visual effects of the weapon imbue to items and projectiles respectively.
         public override void MeleeEffects(Item item, Rectangle hitbox) {
             if (exampleWeaponImbue && item.DamageType.CountsAsClass<MeleeDamageClass>() && !item.noMelee && !item.noUseGraphic) {
                 if (Main.rand.NextBool(5)) {

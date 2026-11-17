@@ -8,13 +8,20 @@ using Terraria.ModLoader;
 namespace ExampleMod.Common.CustomVisualEquipType
 {
 
+    // Note: To fully understand this example, please start by reading https://github.com/tModLoader/tModLoader/tree/stable/ExampleMod/Common/CustomVisualEquipType/README.md
+
+    /// <summary>
+    /// EarringsLoader manages loading earring equipment textures for each item using this custom EquipType. 
+    /// </summary>
     public class EarringsLoader : ModSystem
     {
 
+        /// <summary> Maps an item type to it's corresponding earring equipment texture. </summary>
         internal static readonly Dictionary<int, Asset<Texture2D>> earringItemToTexture = new();
 
         public override void ResizeArrays() {
 
+            // After all content is loaded, autoload earring equipment textures
             for (int i = ItemID.Count; i < ItemLoader.ItemCount; i++) {
                 ModItem modItem = ItemLoader.GetItem(i);
                 if (modItem != null && System.Reflection.CustomAttributeExtensions.GetCustomAttribute<AutoloadEquip_EarringAttribute>(modItem.GetType()) != null) {
@@ -22,6 +29,7 @@ namespace ExampleMod.Common.CustomVisualEquipType
                 }
             }
 
+            // Add an earring equipment texture to a vanilla item.
             AddEarringTexture(ItemID.AnglerEarring, "ExampleMod/Common/CustomVisualEquipType/AnglerEarring_Earrings");
         }
 

@@ -20,6 +20,7 @@ public class Blocky : ModBuff
     {
         ExampleCostumePlayer p = player.GetModPlayer<ExampleCostumePlayer>();
 
+        // We use blockyAccessoryPrevious here instead of blockyAccessory because UpdateBuffs happens before UpdateEquips but after ResetEffects.
         if (player.townNPCs >= 1 && p.BlockyAccessoryPrevious)
         {
             p.BlockyPower = true;
@@ -31,6 +32,14 @@ public class Blocky : ModBuff
 
             player.jumpSpeedBoost += 4.8f;
             player.extraFall += 45;
+
+            // Some other effects:
+            // player.lifeRegen++;
+            // player.GetCritChance(DamageClass.Melee) += 2;
+            // player.GetDamage(DamageClass.Melee) += 0.051f;
+            // player.GetAttackSpeed(DamageClass.Melee) += 0.051f;
+            // player.statDefense += 3;
+            // player.moveSpeed += 0.05f;
         }
         else
         {

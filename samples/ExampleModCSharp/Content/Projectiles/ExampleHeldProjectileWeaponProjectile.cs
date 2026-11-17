@@ -11,6 +11,8 @@ using Terraria.ModLoader;
 namespace ExampleMod.Content.Projectiles
 {
 
+    // The held projectile of the ExampleHeldProjectileWeapon item. This is where the custom logic of this weapon is implemented.
+    // Also note that this projectile has a _Glow texture that will automatically be drawn over the regular texture.
     public class ExampleHeldProjectileWeaponProjectile : ModProjectile
     {
         public ref float HoldTimer => ref Projectile.ai[0];
@@ -29,21 +31,25 @@ namespace ExampleMod.Content.Projectiles
             Projectile.penetrate = -1;
             Projectile.tileCollide = false;
             Projectile.usesOwnerLight = true;
-            Projectile.drawLayer = ProjectileDrawLayerID.HeldProj;
+            Projectile.drawLayer = ProjectileDrawLayerID.HeldProj; // Draws over the player's body and under the player's hands
             Projectile.DamageType = DamageClass.Ranged;
             Projectile.ignoreWater = true;
 
+            // Adjust the drawing to change how it appears when held
             DrawOffsetX = -17;
             DrawOriginOffsetY = -4;
         }
 
+        // Held projectiles should set this to false otherwise they will deal contact damage.
         public override bool? CanDamage() => false;
 
         public override void AI() {
 
+            // See ExampleDrillProjectile.cs for comments on code common to held projectiles. The comments in this file will focus on the unique aspects of this projectile.
             Player player = Main.player[Projectile.owner];
             Vector2 playerCenter = player.RotatedRelativePoint(player.MountedCenter);
 
+            // HoldTimer counts how long the weapon has been used. It helps control how fast the weapon animates and shoots arrows.
             HoldTimer += 1f;
             int animationSpeed = Math.Min((int)HoldTimer / 40, 3);
             int initialShootDelay = 24;
@@ -56,15 +62,18 @@ namespace ExampleMod.Content.Projectiles
                 shouldShootArrow = true;
             }
 
+            // Typical cycling animation, except the speed of the animation will get faster as time passes.
             Projectile.frameCounter += 1 + animationSpeed;
             if (Projectile.frameCounter >= 4) {
                 Projectile.frameCounter = 0;
                 Projectile.frame = ++Projectile.frame % Main.projFrames[Type];
             }
 
+            // Sound and dust are separate from the code shooting arrows because they need to run on other clients as well.
             if (Projectile.soundDelay <= 0) {
                 Projectile.soundDelay = initialShootDelay - shootDelayAdjustmentRate * animationSpeed;
 
+                // Prevents a shoot sound from playing when the projectile initially spawns
                 if (HoldTimer != 1f) {
                     SoundEngine.PlaySound(SoundID.Item5, Projectile.position);
                 }
@@ -89,16 +98,19 @@ namespace ExampleMod.Content.Projectiles
                         Projectile.netUpdate = true;
                     }
 
+                    // Set the projectile velocity, which is actually the holdout offset for held projectiles.
                     Projectile.velocity = holdoutOffset;
 
                     int projectileCount = 2;
                     if (ShootCount == 3) {
 
+                        // Every 4th shot, fire a single special arrow instead
                         projectileCount = 1;
                     }
 
                     for (int j = 0; j < projectileCount; j++) {
 
+                        // Calculate a spawn location, taking into account the muzzle placement and a random variation
                         var spawnLocation = playerCenter + holdoutOffset + Main.rand.NextVector2Circular(6, 6);
                         bool ammoConsumed = player.PickAmmo(heldItem, out int projToShoot, out float speed, out int damage, out float knockBack, out int usedAmmoItemId);
 
@@ -129,6 +141,9 @@ namespace ExampleMod.Content.Projectiles
             Projectile.timeLeft = 2;
         }
 
+        // This hook lets us change how the held projectile looks while a mannequin is holding it.
+        // The following code is adapted from vanilla's Projectile.AI_DisplayDoll for aiStyle 75 (HeldProjectile)
+        // Due to how our sprite is oriented and our custom holdout distance, we need to customize the rotation and holdout distance and can't just use ProjAIStyleID.HeldProjectile for this one.
         public override bool DisplayDollSettings(Player doll, TEDisplayDoll.DisplayDollPose pose, ref int aiStyle, ref int aiType) {
             Projectile.spriteDirection = Projectile.direction;
             Vector2 projectileDirection = Vector2.UnitX * ExampleHeldProjectileWeapon.HoldoutDistance;
@@ -136,15 +151,15 @@ namespace ExampleMod.Content.Projectiles
             if (pose.ItemAimRadians.HasValue)
                 armRotation = pose.ItemAimRadians.Value;
 
-            projectileDirection = projectileDirection.RotatedBy(armRotation);
+            projectileDirection = projectileDirection.RotatedBy(armRotation); // The rotation of the mannequin's hand.
             if (Projectile.direction == -1) {
                 projectileDirection.X *= -1f;
             }
 
             Projectile.velocity = projectileDirection;
-            Projectile.position += projectileDirection;
-            Projectile.rotation = projectileDirection.ToRotation();
-            Projectile.rotation += Projectile.spriteDirection == -1 ? MathHelper.Pi : 0;
+            Projectile.position += projectileDirection; // Move the projectile's location while being held by the mannequin.
+            Projectile.rotation = projectileDirection.ToRotation(); // Set the projectile's rotation based on the mannequin's hand.
+            Projectile.rotation += Projectile.spriteDirection == -1 ? MathHelper.Pi : 0; // Correct the rotation when facing left.
 
             return false;
         }

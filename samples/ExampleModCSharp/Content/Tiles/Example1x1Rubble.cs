@@ -8,8 +8,16 @@ using Terraria.ObjectData;
 
 namespace ExampleMod.Content.Tiles;
 
+// This file contains 3 classes and shows off using inheritance to share code between classes.
+// Terraria has many tiles that are purely decorative and do not drop items when broken.
+// These tiles go by many names, such as ambient tiles, background tiles, piles, detritus, and rubble. We will use the term rubble because of the recently added Rubblemaker item. 
+// The Rubblemaker (https://terraria.wiki.gg/wiki/Rubblemaker) is a special item that can place these decorative tiles. The tile placed by the Rubblemaker looks the same as the original rubble tile but behaves slightly differently.
+
+// Example1x1RubbleBase is an abstract class, it is not an actual tile, but the other 2 classes in this file will reuse the Texture and SetStaticDefaults code shown here because they inherit from it. 
+
 public abstract class Example1x1RubbleBase : ModTile
 {
+    // We want both tiles to use the same texture
     public override string Texture => "ExampleMod/Content/Tiles/Example1x1Rubble";
 
     public override void SetStaticDefaults()
@@ -29,27 +37,34 @@ public abstract class Example1x1RubbleBase : ModTile
     }
 }
 
+// This is the fake tile that will be placed by the Rubblemaker.
 public class Example1x1RubbleFake : Example1x1RubbleBase
 {
     public override void SetStaticDefaults()
     {
+        // Call to base SetStaticDefaults. Must inherit static defaults from base type 
         base.SetStaticDefaults();
 
+        // Add rubble variant, all existing styles, to Rubblemaker, allowing to place this tile by consuming ExampleBlock
         FlexibleTileWand.RubblePlacementSmall.AddVariations(ModContent.ItemType<Items.Placeable.ExampleBlock>(), Type, 0, 1, 2, 3, 4, 5);
 
+        // Tiles placed by Rubblemaker drop the item used to place them.
         RegisterItemDrop(ModContent.ItemType<Items.Placeable.ExampleBlock>());
     }
 }
 
+// This is the natural tile, this version is placed during world generation in the RubbleWorldGen class.
 public class Example1x1RubbleNatural : Example1x1RubbleBase
 {
     public override void SetStaticDefaults()
     {
         base.SetStaticDefaults();
 
+        // Only the natural version is broken automatically by placing other tiles over it or block swapping under it.
         TileID.Sets.BreakableWhenPlacing[Type] = true;
         TileID.Sets.ReplaceTileBreakUp[Type] = true;
 
+        // By default, the TileObjectData.Style1x1 tile we copied in Example1x1RubbleBase has LavaDeath = true. Natural rubble tiles don't have this behavior, so we want to be immune to lava.
         TileObjectData.GetTileData(Type, 0).LavaDeath = false;
     }
 

@@ -7,12 +7,13 @@ namespace ExampleMod.Content.Pets.ExamplePet;
 
 public class ExamplePetItem : ModItem
 {
+    // Names and descriptions of all ExamplePetX classes are defined using .hjson files in the Localization folder
     public override void SetDefaults()
     {
-        Item.CloneDefaults(ItemID.ZephyrFish);
+        Item.CloneDefaults(ItemID.ZephyrFish); // Copy the Defaults of the Zephyr Fish Item.
 
-        Item.shoot = ModContent.ProjectileType<ExamplePetProjectile>();
-        Item.buffType = ModContent.BuffType<ExamplePetBuff>();
+        Item.shoot = ModContent.ProjectileType<ExamplePetProjectile>(); // "Shoot" your pet projectile.
+        Item.buffType = ModContent.BuffType<ExamplePetBuff>(); // Apply buff upon usage of the Item.
     }
 
     public override bool? UseItem(Player player)
@@ -25,6 +26,7 @@ public class ExamplePetItem : ModItem
         return true;
     }
 
+    // Please see Content/ExampleRecipes.cs for a detailed explanation of recipe creation.
     public override void AddRecipes()
     {
         CreateRecipe()

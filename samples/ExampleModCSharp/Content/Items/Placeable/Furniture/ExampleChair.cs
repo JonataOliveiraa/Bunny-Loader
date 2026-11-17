@@ -13,6 +13,7 @@ public class ExampleChair : ModItem
         Item.value = 150;
     }
 
+    // Please see Content/ExampleRecipes.cs for a detailed explanation of recipe creation.
     public override void AddRecipes()
     {
         CreateRecipe()

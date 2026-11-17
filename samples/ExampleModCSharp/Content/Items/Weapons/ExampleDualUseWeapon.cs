@@ -6,6 +6,8 @@ using Terraria.ModLoader;
 
 namespace ExampleMod.Content.Items.Weapons;
 
+// This weapon has two attacks: a normal use and an alternate use (right click on PC, the alternate attack button on the phone).
+// The normal use is a slow, strong swing that sets enemies on fire. The alternate use is a faster thrust that inflicts Ichor and shoots bees.
 public class ExampleDualUseWeapon : ModItem
 {
     public override void SetDefaults()
@@ -30,11 +32,14 @@ public class ExampleDualUseWeapon : ModItem
         Item.shootSpeed = 5f;
     }
 
+    // Returning true here allows the alternate use. While it is being used, player.altFunctionUse is 2.
     public override bool AltFunctionUse(Player player)
     {
         return true;
     }
 
+    // CanUseItem runs before every use, so it's a good place to switch the item's stats between the two attacks.
+    // Every stat changed in one branch must be set in the other as well, otherwise it would keep the value from the last use.
     public override bool CanUseItem(Player player)
     {
         if (player.altFunctionUse == 2)
@@ -51,11 +56,12 @@ public class ExampleDualUseWeapon : ModItem
             Item.useTime = 40;
             Item.useAnimation = 40;
             Item.damage = 100;
-            Item.shoot = ProjectileID.None;
+            Item.shoot = ProjectileID.None; // The normal swing doesn't shoot anything.
         }
         return base.CanUseItem(player);
     }
 
+    // Each attack inflicts a different debuff, for 1 second (60 ticks).
     public override void OnHitNPC(Player player, NPC target, NPC.HitInfo hit, int damageDone)
     {
         if (player.altFunctionUse == 2)
@@ -68,6 +74,7 @@ public class ExampleDualUseWeapon : ModItem
         }
     }
 
+    // Emits dusts matching the debuff of the current attack: Ichor drops for the thrust, fire for the swing.
     public override void MeleeEffects(Player player, Rectangle hitbox)
     {
         if (!Main.rand.NextBool(3))
@@ -88,6 +95,7 @@ public class ExampleDualUseWeapon : ModItem
         }
     }
 
+    // Only the thrust shoots. The bees fly forwards in a 30 degree spread and deal 10% of the weapon's damage.
     public override void ModifyShootStats(Player player, ref Vector2 position, ref Vector2 velocity, ref int type, ref int damage, ref float knockback)
     {
         velocity = new Vector2(velocity.Length() * (velocity.X > 0 ? 1 : -1), 0f).RotatedByRandom(MathHelper.ToRadians(30));

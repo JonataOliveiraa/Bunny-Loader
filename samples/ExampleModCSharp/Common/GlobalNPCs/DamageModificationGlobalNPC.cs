@@ -15,11 +15,13 @@ internal class DamageModificationGlobalNPC : GlobalNPC
 
     public override void ModifyIncomingHit(NPC npc, ref NPC.HitModifiers modifiers)
     {
+        // For best results, defense debuffs should be multiplicative
         if (exampleDefenseDebuff) modifiers.Defense *= ExampleDefenseDebuff.DefenseMultiplier;
     }
 
     public override void DrawEffects(NPC npc, ref Color drawColor)
     {
+        // This simple color effect indicates that the buff is active
         if (exampleDefenseDebuff) drawColor.G = 0;
     }
 }

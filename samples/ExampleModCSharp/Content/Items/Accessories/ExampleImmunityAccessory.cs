@@ -17,6 +17,8 @@ public class ExampleImmunityAccessory : ModItem
 
     public override void UpdateAccessory(Player player, bool hideVisual)
     {
+        // Set the HasExampleImmunityAcc bool to true to ensure we have this accessory
+        // And apply the changes in ModPlayer.PostHurt correctly
         player.GetModPlayer<ExampleImmunityPlayer>().HasExampleImmunityAcc = true;
     }
 }

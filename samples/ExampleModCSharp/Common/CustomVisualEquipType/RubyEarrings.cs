@@ -5,6 +5,7 @@ using Terraria.ModLoader;
 namespace ExampleMod.Common.CustomVisualEquipType
 {
 
+    // A vanity accessory showcasing our custom earring EquipType
     [AutoloadEquip_Earring]
     public class RubyEarrings : ModItem
     {

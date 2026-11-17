@@ -8,10 +8,14 @@ using Terraria.ModLoader;
 
 namespace ExampleMod.Content.Projectiles.Minions;
 
+// The projectile shot by ExampleSentry.
+// The most important things needed for a projectile spawned by a sentry are:
+//		ProjectileID.Sets.SentryShot and Projectile.DamageType = DamageClass.Summon
 public class ExampleSentryShot : ModProjectile
 {
     public override void SetStaticDefaults()
     {
+        // It is important that projectiles shot by sentries are in this set to properly work with effects that are triggered by sentry attacks.
         ProjectileID.Sets.SentryShot[Type] = true;
     }
 

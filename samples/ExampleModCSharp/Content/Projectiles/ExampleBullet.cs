@@ -14,31 +14,33 @@ public class ExampleBullet : ModProjectile
 {
     public override void SetStaticDefaults()
     {
-        ProjectileID.Sets.TrailCacheLength[Type] = 5;
-        ProjectileID.Sets.TrailingMode[Type] = 0;
+        ProjectileID.Sets.TrailCacheLength[Type] = 5; // The length of old position to be recorded
+        ProjectileID.Sets.TrailingMode[Type] = 0; // The recording mode
     }
 
     public override void SetDefaults()
     {
-        Projectile.width = 8;
-        Projectile.height = 8;
-        Projectile.aiStyle = ProjAIStyleID.Arrow;
-        Projectile.friendly = true;
-        Projectile.hostile = false;
-        Projectile.DamageType = DamageClass.Ranged;
-        Projectile.penetrate = 5;
-        Projectile.timeLeft = 600;
-        Projectile.alpha = 255;
-        Projectile.light = 0.5f;
-        Projectile.ignoreWater = true;
-        Projectile.tileCollide = true;
-        Projectile.extraUpdates = 1;
+        Projectile.width = 8; // The width of projectile hitbox
+        Projectile.height = 8; // The height of projectile hitbox
+        Projectile.aiStyle = ProjAIStyleID.Arrow; // The ai style of the projectile, please reference the source code of Terraria
+        Projectile.friendly = true; // Can the projectile deal damage to enemies?
+        Projectile.hostile = false; // Can the projectile deal damage to the player?
+        Projectile.DamageType = DamageClass.Ranged; // Is the projectile shoot by a ranged weapon?
+        Projectile.penetrate = 5; // How many monsters the projectile can penetrate. (OnTileCollide below also decrements penetrate for bounces as well)
+        Projectile.timeLeft = 600; // The live time for the projectile (60 = 1 second, so 600 is 10 seconds)
+        Projectile.alpha = 255; // The transparency of the projectile, 255 for completely transparent. (aiStyle 1 quickly fades the projectile in) Make sure to delete this if you aren't using an aiStyle that fades in. You'll wonder why your projectile is invisible.
+        Projectile.light = 0.5f; // How much light emit around the projectile
+        Projectile.ignoreWater = true; // Does the projectile's speed be influenced by water?
+        Projectile.tileCollide = true; // Can the projectile collide with tiles?
+        Projectile.extraUpdates = 1; // Set to above 0 if you want the projectile to update multiple time in a frame
 
-        AIType = ProjectileID.Bullet;
+        AIType = ProjectileID.Bullet; // Act exactly like default Bullet
     }
 
     public override bool OnTileCollide(Vector2 oldVelocity)
     {
+        // If collide with tile, reduce the penetrate.
+        // So the projectile can reflect at most 5 times
         Projectile.penetrate--;
         if (Projectile.penetrate <= 0)
         {
@@ -49,11 +51,13 @@ public class ExampleBullet : ModProjectile
             Collision.HitTiles(Projectile.position, Projectile.velocity, Projectile.width, Projectile.height);
             SoundEngine.PlaySound(SoundID.Item10, Projectile.position);
 
+            // If the projectile hits the left or right side of the tile, reverse the X velocity
             if (Math.Abs(Projectile.velocity.X - oldVelocity.X) > float.Epsilon)
             {
                 Projectile.velocity.X = -oldVelocity.X;
             }
 
+            // If the projectile hits the top or bottom side of the tile, reverse the Y velocity
             if (Math.Abs(Projectile.velocity.Y - oldVelocity.Y) > float.Epsilon)
             {
                 Projectile.velocity.Y = -oldVelocity.Y;
@@ -65,6 +69,9 @@ public class ExampleBullet : ModProjectile
 
     public override bool PreDraw(Player player, ref Color lightColor)
     {
+        // Draws an afterimage trail. See https://github.com/tModLoader/tModLoader/wiki/Basic-Projectile#afterimage-trail for more information.
+
+        // GetDefaultDrawData calculates the draw parameters (such as texture, frame, origin, etc.) that would be used for the normal projectile drawing.
         var drawData = Projectile.GetDefaultDrawData(player, lightColor);
 
         for (int k = Projectile.oldPos.Length - 1; k > 0; k--)
@@ -74,19 +81,24 @@ public class ExampleBullet : ModProjectile
                 continue;
             }
 
+            // Adjust the position and color of the default draw parameters for the afterimage trail. The position is adjusted to be the old position, and the color is adjusted to be more transparent the older the position is.
             DrawData adjustedDrawData = drawData with {
+                // The position is adjusted by subtracting the current position and adding the old position, so that the afterimage is drawn at the old position while still taking into account the existing draw origin and offset values, if applicable.
                 position = drawData.position - Projectile.position + Projectile.oldPos[k],
                 color = drawData.color * ((Projectile.oldPos.Length - k) / (float)Projectile.oldPos.Length)
             };
 
+            // Draw the adjusted draw parameters.
             Main.EntitySpriteDraw(adjustedDrawData);
         }
 
+        // Since we return true, the vanilla drawing code will run as well, which draws the projectile normally. If you return false, the vanilla drawing code will not run, and you would have to draw the projectile yourself.
         return true;
     }
 
     public override void OnKill(int timeLeft)
     {
+        // This code and the similar code above in OnTileCollide spawn dust from the tiles collided with. SoundID.Item10 is the bounce sound you hear.
         Collision.HitTiles(Projectile.position + Projectile.velocity, Projectile.velocity, Projectile.width, Projectile.height);
         SoundEngine.PlaySound(SoundID.Item10, Projectile.position);
     }

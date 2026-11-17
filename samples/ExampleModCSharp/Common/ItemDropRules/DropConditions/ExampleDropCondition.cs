@@ -4,6 +4,7 @@ using Terraria.Localization;
 
 namespace ExampleMod.Common.ItemDropRules.DropConditions;
 
+// Very simple drop condition: drop during daytime
 public sealed class ExampleDropCondition : IItemDropRuleCondition
 {
     public bool CanDrop(DropAttemptInfo info) => Main.dayTime;

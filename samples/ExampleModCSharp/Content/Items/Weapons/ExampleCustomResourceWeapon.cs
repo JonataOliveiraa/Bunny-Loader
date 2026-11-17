@@ -8,9 +8,11 @@ using Terraria.ModLoader;
 
 namespace ExampleMod.Content.Items.Weapons;
 
+// This weapon is special because it consumes "Example Resource" instead of mana or ammo.
+// Holding this item will cause the ExampleResourceBar UI to show, displaying the player's custom resource amounts tracked in ExampleResourcePlayer.
 public class ExampleCustomResourceWeapon : ModItem
 {
-    private int exampleResourceCost;
+    private int exampleResourceCost; // Add our custom resource cost
 
     public static LocalizedText UsesXExampleResourceText { get; private set; }
 
@@ -38,7 +40,7 @@ public class ExampleCustomResourceWeapon : ModItem
         Item.shootSpeed = 7;
         Item.crit = 32;
 
-        exampleResourceCost = 5;
+        exampleResourceCost = 5; // Set our custom resource cost to 5
     }
 
     public override void ModifyTooltips(List<TooltipLine> tooltips)
@@ -46,12 +48,14 @@ public class ExampleCustomResourceWeapon : ModItem
         tooltips.Add(new TooltipLine(Mod, "ExampleResourceCost", UsesXExampleResourceText.Format(exampleResourceCost)));
     }
 
+    // Make sure you can't use the item if you don't have enough resource
     public override bool CanUseItem(Player player)
     {
         var exampleResourcePlayer = player.GetModPlayer<ExampleResourcePlayer>();
         return exampleResourcePlayer.exampleResourceCurrent >= exampleResourceCost;
     }
 
+    // Reduce resource on use
     public override bool? UseItem(Player player)
     {
         var exampleResourcePlayer = player.GetModPlayer<ExampleResourcePlayer>();

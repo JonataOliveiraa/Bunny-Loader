@@ -10,7 +10,7 @@ public class ExampleTreeLeaf : ModGore
 
     public override void SetStaticDefaults()
     {
-        ChildSafety.SafeGore[Type] = true;
-        GoreID.Sets.SpecialAI[Type] = 3;
+        ChildSafety.SafeGore[Type] = true; // Leaf gore should appear regardless of the "Blood and Gore" setting
+        GoreID.Sets.SpecialAI[Type] = 3; // Falling leaf behavior
     }
 }

@@ -11,7 +11,7 @@ public class ExampleShortsword : ModItem
     {
         Item.damage = 8;
         Item.knockBack = 4f;
-        Item.useStyle = ItemUseStyleID.Rapier;
+        Item.useStyle = ItemUseStyleID.Rapier; // Makes the player do the proper arm motion
         Item.useAnimation = 12;
         Item.useTime = 12;
         Item.width = 32;
@@ -19,18 +19,28 @@ public class ExampleShortsword : ModItem
         Item.UseSound = SoundID.Item1;
         Item.DamageType = DamageClass.MeleeNoSpeed;
         Item.autoReuse = false;
-        Item.noUseGraphic = true;
-        Item.noMelee = true;
+        Item.noUseGraphic = true; // The sword is actually a "projectile", so the item should not be visible when used
+        Item.noMelee = true; // The projectile will do the damage and not the item
 
         Item.rare = ItemRarityID.White;
         Item.value = Item.sellPrice(0, 0, 0, 10);
 
-        Item.shoot = ModContent.ProjectileType<ExampleShortswordProjectile>();
-        Item.shootSpeed = 2.1f;
+        Item.shoot = ModContent.ProjectileType<ExampleShortswordProjectile>(); // The projectile is what makes a shortsword work
+        Item.shootSpeed = 2.1f; // This value bleeds into the behavior of the projectile as velocity, keep that in mind when tweaking values
     }
 
+    // Since this weapon is a projectile (uses noUseGraphic), it isn't naturally considered a melee weapon for the purposes of prefixes. This allows the expected prefixes to be applied.
     public override bool MeleePrefix() => true;
 
+    /* Here is an example of using ApplyPrefix to apply item-specific tweaks to a specific prefix.
+    public override void ApplyPrefix(int pre) {
+        if(pre == PrefixID.Agile) {
+            Item.crit += 10;
+        }
+    }
+    */
+
+    // Please see Content/ExampleRecipes.cs for a detailed explanation of recipe creation.
     public override void AddRecipes()
     {
         CreateRecipe()

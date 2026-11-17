@@ -6,6 +6,7 @@ using Terraria.ModLoader;
 namespace ExampleMod.Content.Items.Tools
 {
 
+    // Spawns an interactable projectile near the player.
     public class ExampleInteractableProjectileItem : ModItem
     {
         public override void SetDefaults() {

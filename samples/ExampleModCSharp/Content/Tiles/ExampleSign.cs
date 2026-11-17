@@ -18,6 +18,7 @@ public class ExampleSign : ModTile
 
     public override void SetStaticDefaults()
     {
+        // These are all used by TileID.Signs, hover over them to read their documentation and see the purpose of each
         Main.tileSign[Type] = true;
         Main.tileFrameImportant[Type] = true;
         Main.tileLavaDeath[Type] = true;
@@ -30,11 +31,16 @@ public class ExampleSign : ModTile
 
         VanillaFallbackOnModDeletion = TileID.Signs;
 
+        // TileObjectData assignment
+        // The TileID.Signs TileObjectData doesn't set StyleMultiplier to 5, so we will not be copying from it in this case
+        // Using Style2x2 as a base, we will create a TileObjectData with 5 alternate placements, each anchoring to a different anchor.
+        // We also adjust the Origin for the alternates to match vanilla. Style2x2 starts with a origin at 0, 1 and a AnchorBottom, these will both be adjusted in the alternates.
         TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
         TileObjectData.newTile.StyleHorizontal = true;
-        TileObjectData.newTile.StyleMultiplier = 5;
-        TileObjectData.newTile.AnchorBottom = AnchorData.Empty;
+        TileObjectData.newTile.StyleMultiplier = 5; // Since each style has 5 placement styles, we set this to 5.
+        TileObjectData.newTile.AnchorBottom = AnchorData.Empty; // Clear out existing bottom anchor inherited from Style2x2 temporarily so that we don't have to set it to empty in each of the alternates.
 
+        // To reduce code repetition, we'll use the same AnchorData value multiple times. This works because the tile is as tall as it is wide.
         AnchorData SolidOrSolidSideAnchor2TilesLong = new AnchorData(AnchorType.SolidTile | AnchorType.SolidSide, 2, 0);
 
         TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
@@ -57,9 +63,11 @@ public class ExampleSign : ModTile
         TileObjectData.newAlternate.AnchorWall = true;
         TileObjectData.addAlternate(4);
 
+        // Finally, we restore the default AnchorBottom, the extra AnchorTypes here allow placing on tables, platforms, and other tiles.
         TileObjectData.newTile.AnchorBottom = new AnchorData(AnchorType.SolidTile | AnchorType.SolidWithTop | AnchorType.Table | AnchorType.SolidSide, 2, 0);
         TileObjectData.addTile(Type);
 
+        // Map entry and extra localization
         LocalizedText name = CreateMapEntryName();
         AddMapEntry(new Color(200, 200, 200), name);
 
@@ -68,6 +76,7 @@ public class ExampleSign : ModTile
 
     public override void PlaceInWorld(int i, int j, Item item)
     {
+        // This code sets a default value for the sign, this is not typical and can be removed from normal sign tiles.
         int signId = Sign.ReadSign(i, j, true);
         if (signId != -1)
         {
@@ -77,6 +86,7 @@ public class ExampleSign : ModTile
 
     public override bool RightClick(int i, int j)
     {
+        // Normal sign right click behavior happens automatically because of Main.tileSign, this code just shows how to retrieve the text of the sign and should be removed from normal sign tiles.
         int signId = Sign.ReadSign(i, j);
         if (signId != -1)
         {
@@ -88,6 +98,7 @@ public class ExampleSign : ModTile
 
     public override void KillMultiTile(int i, int j, int frameX, int frameY)
     {
+        // Destroy the associated Sign data.
         Sign.KillSign(i, j);
     }
 

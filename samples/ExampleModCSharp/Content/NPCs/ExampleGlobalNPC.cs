@@ -7,11 +7,13 @@ namespace ExampleMod.Content.NPCs
 {
     public class ExampleGlobalNPC : GlobalNPC
     {
+        // TODO, npc.netUpdate when this changes, and GlobalNPC gets a SendExtraAI hook
         public bool HasBeenHitByPlayer;
 
         public override bool InstancePerEntity => true;
 
         public override bool AppliesToEntity(NPC entity, bool lateInstantiation) {
+            // after ModNPC has run (lateInstantiation), check if the entity is a townNPC
             return lateInstantiation && entity.townNPC;
         }
 
@@ -25,12 +27,14 @@ namespace ExampleMod.Content.NPCs
             HasBeenHitByPlayer = true;
         }
 
+        // If the merchant has been hit by a player, they will double their sell price
         public override void ModifyActiveShop(NPC npc, string shopName, Item[] items) {
             if (!npc.GetGlobalNPC<ExampleGlobalNPC>().HasBeenHitByPlayer) {
                 return;
             }
 
             foreach (Item item in items) {
+                // Skip 'air' items and null items.
                 if (item.IsNull || item.type == ItemID.None) {
                     continue;
                 }

@@ -4,6 +4,7 @@ using Terraria.ModLoader;
 
 namespace ExampleMod.Content.Items.Weapons.Melee;
 
+// A basic melee weapon. It's the same as ExampleSword, but uses Item.SetWeaponValues to set the damage, knockback and critical strike chance in one line.
 public class ExampleMeleeWeapon : ModItem
 {
     public override void SetDefaults()
@@ -17,10 +18,10 @@ public class ExampleMeleeWeapon : ModItem
         Item.autoReuse = true;
 
         Item.DamageType = DamageClass.Melee;
-        Item.SetWeaponValues(50, 6, 6);
+        Item.SetWeaponValues(50, 6, 6); // 50 damage, 6 knockback and 6% bonus critical strike chance.
 
         Item.value = Item.sellPrice(gold: 1);
-        Item.rare = 2;
+        Item.rare = 2; // The rarity of the item. 2 is ItemRarityID.Green.
         Item.UseSound = SoundID.Item1;
     }
 
