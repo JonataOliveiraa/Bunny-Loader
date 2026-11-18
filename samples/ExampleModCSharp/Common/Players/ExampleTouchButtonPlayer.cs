@@ -51,6 +51,10 @@ public class ExampleTouchButtonPlayer : ModPlayer
             HoldCharge = 0;
         }
 
+        // The animation of a touch button keeps running on its own. Tapping the animated button stops its loading circle, and tapping it again starts it back.
+        if (TouchButtonSystem.ExampleAnimatedButton.JustPressed)
+            TouchButtonSystem.LoadingAnimation.NotActuallyAnimating = !TouchButtonSystem.LoadingAnimation.NotActuallyAnimating;
+
         // While the joystick is being pushed, show where the shot will go with a dust in front of the player.
         Vector2 aim = TouchButtonSystem.ExampleAimJoystick.Direction;
         if (TouchButtonSystem.ExampleAimJoystick.Aiming && aim != Vector2.Zero)

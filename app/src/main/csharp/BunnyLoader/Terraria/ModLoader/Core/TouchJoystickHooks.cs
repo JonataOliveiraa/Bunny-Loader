@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using BunnyLoader.Hooks;
 using BunnyLoader.Interop;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using ContolType = VirtualControlsHardwareConfigurationMapping_Layout.ContolType;
 
 namespace Terraria.ModLoader.Core;
@@ -149,7 +150,11 @@ internal static unsafe class TouchJoystickHooks
             if (layout.IsNull) return;
             Hold? current = hold != null && hold.Joystick == joystick ? hold : null;
             Vector2 offset = current?.Offset ?? Vector2.Zero, centre = current?.Centre ?? Vector2.Zero;
-            GUIAxis.Draw(layout, TouchButtonLoader.Texture(joystick), ref offset, ref centre, current != null, false, !TouchButtonLoader.Enabled(joystick), (Action?)null);
+            Texture2D icon = TouchButtonLoader.Texture(joystick);
+            bool disabled = !TouchButtonLoader.Enabled(joystick);
+            if (!icon.IsNull && TouchButtonLoader.Animated(joystick))
+                GUIAxis.Draw(layout, icon, TouchButtonLoader.Frame(joystick, icon), ref offset, ref centre, current != null, false, disabled);
+            else GUIAxis.Draw(layout, icon, ref offset, ref centre, current != null, false, disabled, (Action?)null);
         }
         catch (Exception e) { ItemHooks.Report($"{joystick.FullName}: draw", e); }
     }

@@ -1,0 +1,17 @@
+{
+  "uid": "3d2b6cd4-efa8-4b40-a1c6-7a1c87098956",
+  "id": "CsAnimButton",
+  "name": "Test: animated touch button icons (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Binds the Example Animated Button and a 10-frame test button, checks the frames drawn and taps to pause the loading circle.",
+  "description": "Compile with tools/tests/build-cs.sh csanimbutton. Run with SAMPLE=1 tools/tests/run-taps.sh csanimbutton.",
+  "updated": "2026-11-18",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

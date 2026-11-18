@@ -1124,6 +1124,7 @@ Terraria.ModLoader.ModTouchButton.Mod|The mod that registered it.
 Terraria.ModLoader.ModTouchButton.Name|The button's name.
 Terraria.ModLoader.ModTouchButton.FullName|`Mod/Name`.
 Terraria.ModLoader.ModTouchButton.Icon|The icon's path, or null for the default.
+Terraria.ModLoader.ModTouchButton.Animation|Turns the icon into a vertical sprite sheet, like an animated item. Null shows the whole image. See [Touch buttons](Touch-Buttons).
 Terraria.ModLoader.ModTouchButton.Label|The button's name in the editor list.
 Terraria.ModLoader.ModTouchButton.Visible|Whether it shows now. Null always shows.
 Terraria.ModLoader.ModTouchButton.Enabled|Whether it reacts now. Null always reacts.

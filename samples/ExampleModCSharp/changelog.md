@@ -1,5 +1,10 @@
 # Novidades
 
+## 0.44.0
+
+- Botão Animado de Exemplo: um botão de toque com um círculo de carregamento
+  que gira; tocar nele para e volta a girar o círculo.
+
 ## 0.43.1
 
 - Relógio e placa de exemplo ganham o contorno de destaque com o cursor

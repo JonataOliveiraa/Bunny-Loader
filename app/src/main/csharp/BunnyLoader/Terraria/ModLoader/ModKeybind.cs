@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Microsoft.Xna.Framework;
+using Terraria.DataStructures;
 using Terraria.GameInput;
 using Terraria.Localization;
 
@@ -95,6 +96,8 @@ public class ModTouchButton : ModKeybind
     public new string FullName => base.FullName;
 
     public string? Icon { get; set; }
+
+    public DrawAnimation? Animation { get; set; }
 
     public Func<string>? Label { get; set; }
 

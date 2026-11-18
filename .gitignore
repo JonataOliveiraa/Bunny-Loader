@@ -99,6 +99,7 @@ app/src/main/csharp/**/obj/
 tools/tests/*/src/bin/
 tools/tests/*/src/obj/
 tools/tests/*/*.dll
+tools/tests/csanimbutton/Assets/TouchButtons/Penetrator.png
 
 # Saída do compilador dos mods com fontes (bin/MeuMod.dll + selo)
 tools/tests/*/bin/

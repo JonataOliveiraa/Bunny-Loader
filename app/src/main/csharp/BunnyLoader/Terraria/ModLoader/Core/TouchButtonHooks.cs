@@ -202,7 +202,12 @@ internal static unsafe class TouchButtonHooks
             {
                 var state = pressed != 0 ? GUIQuickActionButton.InteractionState.Pressed
                     : TouchButtonLoader.Enabled(button!) ? GUIQuickActionButton.InteractionState.Normal : GUIQuickActionButton.InteractionState.Disabled;
-                try { GUIQuickActionButton.Draw(new QuickActionButton_Layout(layout), texture, state, ref *scale); }
+                try
+                {
+                    var quick = new QuickActionButton_Layout(layout);
+                    if (TouchButtonLoader.Animated(button!)) GUIQuickActionButton.DrawFrame(quick, texture, TouchButtonLoader.Frame(button!, texture), state, ref *scale);
+                    else GUIQuickActionButton.Draw(quick, texture, state, ref *scale);
+                }
                 catch (Exception e) { ItemHooks.Report($"{button!.FullName}: draw", e); }
                 return;
             }
@@ -231,7 +236,7 @@ internal static unsafe class TouchButtonHooks
             if (!texture.IsNull)
             {
                 *iconTexture = texture.Pointer;
-                *frameOut = new Rectangle(0, 0, texture.Width, texture.Height);
+                *frameOut = TouchButtonLoader.Frame(button!, texture);
                 return;
             }
             actionType = TouchButtonLoader.QuickUnbound;
@@ -267,12 +272,13 @@ internal static unsafe class TouchButtonHooks
         if (controlType >= TouchButtonLoader.FirstAction)
         {
             Texture2D texture = default;
-            if (TouchButtonLoader.ByAction(controlType) is ModTouchButton button) texture = TouchButtonLoader.Texture(button);
+            ModTouchButton? button = TouchButtonLoader.ByAction(controlType);
+            if (button != null) texture = TouchButtonLoader.Texture(button);
             else if (TouchButtonOptions.IsPageAction(controlType)) texture = BunnyHead();
             if (!texture.IsNull)
             {
                 *tex = texture.Pointer;
-                *frameOut = new Rectangle(0, 0, texture.Width, texture.Height);
+                *frameOut = button != null ? TouchButtonLoader.Frame(button, texture) : new Rectangle(0, 0, texture.Width, texture.Height);
                 return;
             }
             controlType = TouchButtonLoader.Unbound;
