@@ -396,6 +396,8 @@ class ModRepository(private val context: Context) {
     /** A pasta de um mod instalado, se ele está no disco. */
     fun dirOf(uid: String): File? = File(modsDir, uid).takeIf { it.isDirectory }
 
+    fun nameOf(uid: String): String? = dirOf(uid)?.let(::readManifest)?.let { it.name.ifBlank { it.id } }
+
     companion object {
         const val BL_VERSION = 3
         /** A extração é quase todo o trabalho do import: o resto (conferir, mover) é o fim da barra. */

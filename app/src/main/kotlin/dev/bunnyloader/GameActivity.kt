@@ -209,7 +209,7 @@ class GameActivity : Activity() {
             Toast.makeText(this, "Nucleo nao iniciado - rodando sem mods", Toast.LENGTH_SHORT).show()
         }
         runCatching {
-            DiscordPresence.start(this, enabledMods.count { !it.substringAfter('=').startsWith('@') })
+            DiscordPresence.start(this, enabledMods.filterNot { it.substringAfter('=').startsWith('@') }.map { it.substringBefore('=') })
         }.onFailure { logFailure("DiscordPresence.start", it) }
     }
 
