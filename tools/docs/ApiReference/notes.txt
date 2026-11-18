@@ -163,6 +163,7 @@ ReLogic.Content.Asset|A texture, sound or effect that may still be loading. `Val
 ReLogic.Content.AssetArray|A game table of assets, such as `TextureAssets.Item`.
 ReLogic.Content.AssetRequestMode|Whether a request loads in the background or now.
 ReLogic.Content.AssetState|Where an asset is in its loading.
+ReLogic.Content.AssetRequestMode~|For a mod's PNG, `AsyncLoad` decodes it on a background thread and uploads it within a frame budget, and `ImmediateLoad` on the game thread loads it at once.
 Terraria.ModLoader.IO.BinaryIO|Reads and writes colors, vectors, items and compact numbers in a packet.
 Terraria.ModLoader.IO.BitReader|Reads back what a `BitWriter` wrote.
 Terraria.ModLoader.IO.BitWriter|Packs many `bool` into a few bytes.
@@ -1045,6 +1046,18 @@ Terraria.Localization.LocalizedText.Format|The text with its arguments filled in
 Terraria.ModLoader.Mod.Uid|The pack's unique ID.
 Terraria.ModLoader.Mod.Folder|The folder of the installed pack.
 Terraria.ModLoader.Mod.CreateRecipe|Starts a recipe owned by this mod.
+Terraria.ModLoader.Mod.Code|The mod's assembly.
+Terraria.ModLoader.Mod.PreJITFilter|Which members of this mod are compiled before their first call.
+Terraria.ModLoader.PreJITFilter|Decides which members of a mod are compiled before their first call. Override `ShouldJIT` for other rules.
+Terraria.ModLoader.PreJITFilter~|The phone compiles them a little per frame from the title screen on, on the game thread, so a static initializer a method touches may run there.
+Terraria.ModLoader.PreJITFilter.ShouldJIT|Whether to compile this member ahead. By default, whether all its `MemberJitAttribute` agree.
+Terraria.ModLoader.MemberJitAttribute|Base of the attributes that keep a member out of the compilation ahead of use.
+Terraria.ModLoader.MemberJitAttribute.ShouldJIT|Whether the member it marks is compiled ahead.
+Terraria.ModLoader.NoJITAttribute|Leaves a class, method or property to be compiled at its first call.
+Terraria.ModLoader.NoJITAttribute.ShouldJIT|Always `false`.
+Terraria.ModLoader.JITWhenModsEnabledAttribute|Compiles a member ahead only when all the named mods are enabled. Put it on code that touches a mod that may be missing.
+Terraria.ModLoader.JITWhenModsEnabledAttribute.Names|The mods that must be enabled.
+Terraria.ModLoader.JITWhenModsEnabledAttribute.ShouldJIT|Whether all the named mods are enabled.
 Terraria.ModLoader.ModContent.GetModHeadSlot|The head slot of a texture from `Mod.AddNPCHeadTexture`.
 Terraria.ModLoader.ModContent.GetModBossHeadSlot|The head slot of a texture from `Mod.AddBossHeadTexture`.
 Terraria.ModLoader.ModContent.GetModTile|The `ModTile` of a number, or null.
@@ -1577,8 +1590,6 @@ Terraria.ModLoader.Default.ModLoaderModItem!|Base of tModLoader's own items.
 Terraria.ModLoader.Default.StartBag!|tModLoader's bag of starting items. `ModPlayer.AddStartingItems` puts them straight in the inventory.
 Terraria.ModLoader.Default.PylonShopNPC!|tModLoader's rule for selling pylons in shops. Here the same rule is internal, and `NPCShopDatabase.NoPylons` lists the exceptions.
 Terraria.ModLoader.ExtendsFromModAttribute!|Weak references to other mods are not part of Bunny Loader.
-Terraria.ModLoader.*JIT*!|tModLoader compiles mods at load time with the JIT. Here a mod's DLL runs on Mono with no such filters.
-Terraria.ModLoader.MemberJitAttribute!|tModLoader compiles mods at load time with the JIT. Here a mod's DLL runs on Mono with no such filters.
 Terraria.ModLoader.GlobalBlockType!|`GlobalTile` and `GlobalWall` derive directly from `ModType` here.
 Terraria.ModLoader.GlobalList!|Internal to tModLoader. Here the lists of globals live in `Terraria.ModLoader.Core`.
 Terraria.ModLoader.GlobalRecipe!|Not implemented. Change recipes with `ModSystem.PostAddRecipes`.
@@ -1695,7 +1706,6 @@ Terraria.ModLoader.Mod.TranslationForMods!|Translation mods are not part of Bunn
 Terraria.ModLoader.Mod.RootContentSource!|Internal to tModLoader's asset system.
 Terraria.ModLoader.Mod.NetID!|Internal here.
 Terraria.ModLoader.Mod.ModSourceBestiaryInfoElement!|Internal here.
-Terraria.ModLoader.Mod.PreJITFilter!|tModLoader compiles mods at load time with the JIT. Not used here.
 Terraria.ModLoader.Mod.AddConfig!|Configs are found by themselves. Use `ModContent.GetInstance<T>()`.
 Terraria.ModLoader.Mod.GetConfig!|Not implemented. Use `ModContent.GetInstance<T>()` or `ConfigManager.GetConfig`.
 Terraria.ModLoader.Mod.HasAsset!|Not implemented. Use `ModContent.HasAsset`.

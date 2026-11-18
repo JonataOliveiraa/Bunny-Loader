@@ -35,6 +35,10 @@ struct Refs {
     const MethodInfo* cultureName = nullptr;
     const MethodInfo* arraySet = nullptr;
     const MethodInfo* destroy = nullptr;
+    const MethodInfo* writableData = nullptr;
+    const MethodInfo* rawDataSize = nullptr;
+    const MethodInfo* apply = nullptr;
+    const MethodInfo* getFormat = nullptr;
     int32_t valueOffset = -1, widthOffset = -1, heightOffset = -1, unityOffset = -1;
     int32_t nameOffset = -1, sourceOffset = -1, stateOffset = -1, disposedOffset = -1;
     const MethodInfo* assetLoad = nullptr;
@@ -76,6 +80,10 @@ Refs& refs() {
     r.unityCtor = sig(r.unityTex, "void .ctor(int width, int height)");
     r.unityCtorNoMips = sig(r.unityTex, "void .ctor(int width, int height, TextureFormat textureFormat, bool mipChain)");
     r.loadImage = sig(conv, "bool LoadImage(Texture2D tex, byte[] data, bool markNonReadable)");
+    r.writableData = r.unityTex ? a.class_get_method_from_name(r.unityTex, "GetWritableImageData", 1) : nullptr;
+    r.rawDataSize = r.unityTex ? a.class_get_method_from_name(r.unityTex, "GetRawImageDataSize", 0) : nullptr;
+    r.apply = sig(r.unityTex, "void Apply(bool updateMipmaps, bool makeNoLongerReadable)");
+    r.getFormat = r.unityTex ? a.class_get_method_from_name(r.unityTex, "get_format", 0) : nullptr;
     r.setFilterMode = unityTexBase ? a.class_get_method_from_name(unityTexBase, "set_filterMode", 1) : nullptr;
     r.setWrapMode = unityTexBase ? a.class_get_method_from_name(unityTexBase, "set_wrapMode", 1) : nullptr;
     r.getWidth = unityTexBase ? a.class_get_method_from_name(unityTexBase, "get_width", 0) : nullptr;
@@ -223,13 +231,147 @@ Il2CppObject* loadTextureAsset(const std::string& path, const unsigned char* dat
     }
     Il2CppObject* gt = loadGameTexture(path, data, size, assetName, 0, width, height);
     if (!gt) return nullptr;
+    return wrapTextureAsset(gt, assetName);
+}
 
+Il2CppObject* wrapTextureAsset(Il2CppObject* gameTexture, const std::string& assetName) {
+    auto& a = il2cpp::api();
+    const Refs& r = refs();
+    if (!r.ok || !gameTexture) return nullptr;
     Il2CppObject* asset = a.object_new(r.assetCls);
     void* c5[1] = {a.string_new(assetName.c_str())};
     if (!invoke(r.assetCtor, asset, c5, "Asset.ctor")) return nullptr;
-    void* c6[2] = {gt, nullptr};
+    void* c6[2] = {gameTexture, nullptr};
     if (!invoke(r.assetSubmit, asset, c6, "Asset.SubmitLoadedContent")) return nullptr;
     return asset;
+}
+
+namespace {
+
+void* unboxPointer(Il2CppObject* o) {
+    return o ? *reinterpret_cast<void**>(reinterpret_cast<char*>(o) + sizeof(Il2CppObject)) : nullptr;
+}
+
+uint64_t unboxU64(Il2CppObject* o) {
+    return o ? *reinterpret_cast<uint64_t*>(reinterpret_cast<char*>(o) + sizeof(Il2CppObject)) : 0;
+}
+
+void destroyUnityTexture(Il2CppObject* ut) {
+    const Refs& r = refs();
+    if (!r.destroy || !ut) return;
+    void* args[1] = {ut};
+    invoke(r.destroy, nullptr, args, "Object.Destroy");
+}
+
+Il2CppObject* newRawTexture(int width, int height) {
+    const Refs& r = refs();
+    Il2CppObject* ut = il2cpp::api().object_new(r.unityTex);
+    int w = width, h = height, rgba32 = 4;
+    uint8_t mipChain = 0;
+    void* args[4] = {&w, &h, &rgba32, &mipChain};
+    return invoke(r.unityCtorNoMips, ut, args, "Texture2D(w,h,RGBA32,false)") ? ut : nullptr;
+}
+
+uint8_t* pixelsOf(Il2CppObject* ut, uint64_t* size) {
+    const Refs& r = refs();
+    int frame = 0;
+    void* args[1] = {&frame};
+    auto* data = static_cast<uint8_t*>(unboxPointer(invokeValue(r.writableData, ut, args, "Texture2D.GetWritableImageData")));
+    *size = unboxU64(invokeValue(r.rawDataSize, ut, nullptr, "Texture2D.GetRawImageDataSize"));
+    return data;
+}
+
+}
+
+bool rawTextureUploadAvailable() {
+    const Refs& r = refs();
+    return r.ok && r.unityCtorNoMips && r.writableData && r.rawDataSize && r.apply;
+}
+
+Il2CppObject* textureAssetFromPixels(const uint8_t* rgba, int width, int height, const std::string& assetName) {
+    auto& a = il2cpp::api();
+    const Refs& r = refs();
+    if (!rawTextureUploadAvailable() || !rgba || width <= 0 || height <= 0) return nullptr;
+    Il2CppObject* ut = newRawTexture(width, height);
+    if (!ut) return nullptr;
+    uint64_t size = 0;
+    uint8_t* data = pixelsOf(ut, &size);
+    const uint64_t expected = static_cast<uint64_t>(width) * static_cast<uint64_t>(height) * 4u;
+    if (!data || size != expected) {
+        BL_ERROR("mod content: %s: the texture holds %llu bytes of pixels, %llu expected", assetName.c_str(),
+                 static_cast<unsigned long long>(size), static_cast<unsigned long long>(expected));
+        destroyUnityTexture(ut);
+        return nullptr;
+    }
+    std::memcpy(data, rgba, expected);
+    uint8_t mips = 0, noLongerReadable = 0;
+    void* c0[2] = {&mips, &noLongerReadable};
+    if (!invoke(r.apply, ut, c0, "Texture2D.Apply")) return nullptr;
+    if (r.setFilterMode) {
+        int point = 0;
+        void* c1[1] = {&point};
+        invoke(r.setFilterMode, ut, c1, "Texture.filterMode");
+    }
+    if (r.setWrapMode) {
+        int clamp = 1;
+        void* c1[1] = {&clamp};
+        invoke(r.setWrapMode, ut, c1, "Texture.wrapMode");
+    }
+    Il2CppObject* gt = a.object_new(r.gameTex);
+    void* c2[1] = {ut};
+    if (!invoke(r.gameCtor, gt, c2, "game Texture2D")) return nullptr;
+    return wrapTextureAsset(gt, assetName);
+}
+
+void checkTextureAgainstUnity(const std::string& path, const uint8_t* rgba, int width, int height,
+                              const std::string& assetName) {
+    const Refs& r = refs();
+    if (!rawTextureUploadAvailable() || !r.getFormat || !r.getWidth || !r.getHeight) return;
+    Il2CppArray* bytes = readBytes(path, nullptr, 0);
+    Il2CppObject* ut = bytes ? newRawTexture(2, 2) : nullptr;
+    if (!ut) return;
+    uint8_t readable = 0;
+    void* c0[3] = {ut, bytes, &readable};
+    Il2CppObject* ok = invokeValue(r.loadImage, nullptr, c0, "ImageConversion.LoadImage");
+    if (!ok || !*(reinterpret_cast<uint8_t*>(ok) + sizeof(Il2CppObject))) {
+        BL_INFO("texture check %s: Unity does not decode it", assetName.c_str());
+        destroyUnityTexture(ut);
+        return;
+    }
+    const int format = unboxInt(invokeValue(r.getFormat, ut, nullptr, "Texture2D.format"));
+    const int uw = unboxInt(invokeValue(r.getWidth, ut, nullptr, "Texture.width"));
+    const int uh = unboxInt(invokeValue(r.getHeight, ut, nullptr, "Texture.height"));
+    uint64_t size = 0;
+    const uint8_t* data = pixelsOf(ut, &size);
+    const uint64_t pixels = static_cast<uint64_t>(width) * static_cast<uint64_t>(height);
+    if (uw != width || uh != height || !data || size != pixels * 4 || (format != 4 && format != 5)) {
+        BL_INFO("texture check %s: Unity gives %dx%d format %d with %llu bytes, ours is %dx%d RGBA32",
+                assetName.c_str(), uw, uh, format, static_cast<unsigned long long>(size), width, height);
+        destroyUnityTexture(ut);
+        return;
+    }
+    uint64_t differ = 0, first = 0;
+    uint8_t theirs[4]{};
+    for (uint64_t i = 0; i < pixels; ++i) {
+        const uint8_t* p = data + i * 4;
+        const uint8_t u[4] = {format == 4 ? p[0] : p[1], format == 4 ? p[1] : p[2], format == 4 ? p[2] : p[3], format == 4 ? p[3] : p[0]};
+        if (std::memcmp(u, rgba + i * 4, 4) != 0) {
+            if (!differ++) {
+                first = i;
+                std::memcpy(theirs, u, 4);
+            }
+        }
+    }
+    if (!differ) {
+        BL_INFO("texture check %s: identical to Unity (%dx%d, Unity format %d)", assetName.c_str(), width, height, format);
+    } else {
+        const uint8_t* o = rgba + first * 4;
+        BL_INFO("texture check %s: %llu of %llu pixels differ (Unity format %d); first at x=%d y=%d: ours %u,%u,%u,%u Unity %u,%u,%u,%u",
+                assetName.c_str(), static_cast<unsigned long long>(differ), static_cast<unsigned long long>(pixels), format,
+                static_cast<int>(first % width), static_cast<int>(first / width), o[0], o[1], o[2], o[3],
+                theirs[0], theirs[1], theirs[2], theirs[3]);
+    }
+    destroyUnityTexture(ut);
 }
 
 Il2CppObject* missingTextureAsset(int* width, int* height) {

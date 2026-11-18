@@ -6,6 +6,7 @@ import android.media.MediaPlayer
 import android.media.SoundPool
 import android.util.Log
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
 
 /**
  * Sons e musicas de mod, tocados pelo Android.
@@ -31,6 +32,10 @@ object ModAudio {
     private val loaded: MutableSet<Int> = ConcurrentHashMap.newKeySet()
     private val failed: MutableSet<Int> = ConcurrentHashMap.newKeySet()
     private val durations = ConcurrentHashMap<Int, Int>()
+
+    private val metadata by lazy {
+        Executors.newSingleThreadExecutor { task -> Thread(task, "bl-sfx-metadata").apply { isDaemon = true } }
+    }
 
     private val effects by lazy {
         SfxQueue(object : SfxQueue.Backend {
@@ -66,7 +71,7 @@ object ModAudio {
     @JvmStatic
     fun load(path: String): Int {
         val id = pool.load(path, 1)
-        if (id > 0) durations[id] = durationOf(path)
+        if (id > 0) metadata.execute { durations[id] = durationOf(path) }
         return id
     }
 

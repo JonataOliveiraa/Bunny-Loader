@@ -114,7 +114,7 @@ public static class ModContent
 
     public static Asset<T> Request<T>(string name, AssetRequestMode mode = AssetRequestMode.AsyncLoad) where T : struct, IGameObject
     {
-        if (name != null && Requested<T>.ByName.TryGetValue(name, out Asset<T>? known)) return known;
+        if (name != null && Requested<T>.ByName.TryGetValue(name, out Asset<T>? known)) return known.OnRequest(mode, false);
         Asset<T>.CheckSupported();
         (string modName, string path) = SplitName(name!);
         if (modName == "Terraria") return typeof(T) == typeof(Microsoft.Xna.Framework.Graphics.SpriteFont) ? (Asset<T>)(object)VanillaFont(path) : VanillaAsset<T>.Get(path);
@@ -553,6 +553,8 @@ public static class ModContent
         }
         try { BunnyLoader.Hooks.HookGates.ContentReady(); }
         catch (Exception e) { Log.Error($"hook gates: setup failed: {e}"); }
+        try { PreJit.Start(Host.Mods); }
+        catch (Exception e) { Log.Error($"pre-JIT: setup failed: {e}"); }
         Log.Info($"startup: C# compiled {JitInfo.GetCompiledMethodCount(false)} methods, {JitInfo.GetCompiledILBytes(false) / 1024} KB of IL, {JitInfo.GetCompilationTime(false).TotalMilliseconds:F0} ms of JIT");
     }
 

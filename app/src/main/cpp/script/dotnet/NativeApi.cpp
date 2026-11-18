@@ -34,6 +34,7 @@
 #include "content/dusts/ModDusts.h"
 #include "content/common/ContentAssets.h"
 #include "content/common/ModContent.h"
+#include "content/common/ModTextures.h"
 #include "content/textures/FontPacks.h"
 #include "content/common/ModLanguage.h"
 #include "content/common/ModNet.h"
@@ -234,6 +235,9 @@ struct NativeApi {
     void** (*installGateHook)(void* method, void* replacement, const gate::Spec* spec, int32_t* id);
     int32_t (*setGateAlways)(int32_t id, int32_t always);
     int32_t (*tileRandomBatch)(runtime::TileRandomBatchCallback callback);
+    void (*prefetchModTexture)(const char* file, const char* assetName);
+    void* (*loadedModTexture)(const char* assetName);
+    void (*onFrame)(runtime::FrameHook callback);
 };
 
 struct Extra {
@@ -600,17 +604,16 @@ int32_t nativeIsGameThread() {
 
 void* nativeRequestModTexture(const char* file, const char* assetName) {
     if (!file || !assetName || !nativeIsGameThread()) return nullptr;
-    static std::map<std::string, uint32_t> loaded;
-    auto& a = il2cpp::api();
-    auto it = loaded.find(assetName);
-    if (it != loaded.end()) {
-        if (Il2CppObject* asset = a.gchandle_get_target(it->second)) return asset;
-    }
-    int w = 0, h = 0;
-    Il2CppObject* asset = runtime::content::loadTextureAsset(file, nullptr, 0, assetName, &w, &h);
-    if (!asset) return nullptr;
-    loaded[assetName] = a.gchandle_new(asset, false);
-    return asset;
+    return runtime::content::modTexture(file, assetName);
+}
+
+void nativePrefetchModTexture(const char* file, const char* assetName) {
+    if (file && assetName) runtime::content::prefetchModTexture(file, assetName);
+}
+
+void* nativeLoadedModTexture(const char* assetName) {
+    if (!assetName || !nativeIsGameThread()) return nullptr;
+    return runtime::content::loadedModTexture(assetName);
 }
 
 void* nativeRequestVanillaTexture(const char* name, int32_t* missingOnMobile) {
@@ -1245,6 +1248,9 @@ const NativeApi kNativeApi{
     },
     [](int32_t id, int32_t always) -> int32_t { return gate::setAlways(id, always != 0) ? 1 : 0; },
     [](runtime::TileRandomBatchCallback callback) -> int32_t { return runtime::setTileRandomBatch(profile::wrap(callback, "TileRandomBatch")) ? 1 : 0; },
+    nativePrefetchModTexture,
+    nativeLoadedModTexture,
+    [](runtime::FrameHook callback) { runtime::addFrameHook(callback); },
 };
 
 }

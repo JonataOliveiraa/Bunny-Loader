@@ -1,0 +1,17 @@
+{
+  "uid": "48940435-1ce8-4fcd-871e-ea50d43d16c2",
+  "id": "CsPreJit",
+  "name": "Teste: pré-compilação dos mods (C#)",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Pré-compilação dos métodos do mod antes do primeiro uso, como o JIT de carga do tML.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csprejit. No mundo, loga 'csprejit <caso>: ok | FAIL' e 'csprejit END'.",
+  "updated": "2026-11-18",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

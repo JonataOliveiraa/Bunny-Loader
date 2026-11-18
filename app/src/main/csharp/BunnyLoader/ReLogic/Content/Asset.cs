@@ -108,7 +108,38 @@ public sealed unsafe class Asset<T> where T : struct, IGameObject
 
     public string Name { get; }
 
-    public AssetState State => Volatile.Read(ref asset) != IntPtr.Zero ? AssetState.Loaded : AssetState.NotLoaded;
+    public AssetState State => Volatile.Read(ref asset) != IntPtr.Zero || Arrived() ? AssetState.Loaded : AssetState.NotLoaded;
+
+    bool Arrived()
+    {
+        if (file == null || typeof(T) != typeof(Texture2D) || Host.Native()->IsGameThread() == 0) return false;
+        byte* n = Host.Utf8(Name);
+        IntPtr loaded;
+        try { loaded = Host.Native()->LoadedModTexture(n); }
+        finally { Host.FreeUtf8(n); }
+        if (loaded == IntPtr.Zero) return false;
+        Volatile.Write(ref asset, loaded);
+        return true;
+    }
+
+    internal Asset<T> OnRequest(AssetRequestMode mode, bool created)
+    {
+        if (file == null || typeof(T) != typeof(Texture2D) || mode == AssetRequestMode.DoNotLoad || Volatile.Read(ref asset) != IntPtr.Zero) return this;
+        if (mode == AssetRequestMode.ImmediateLoad && Host.Native()->IsGameThread() != 0) Wait();
+        else if (created || mode == AssetRequestMode.ImmediateLoad) Prefetch();
+        return this;
+    }
+
+    void Prefetch()
+    {
+        byte* f = Host.Utf8(file!), n = Host.Utf8(Name);
+        try { Host.Native()->PrefetchModTexture(f, n); }
+        finally
+        {
+            Host.FreeUtf8(f);
+            Host.FreeUtf8(n);
+        }
+    }
 
     public bool IsLoaded => State == AssetState.Loaded;
 

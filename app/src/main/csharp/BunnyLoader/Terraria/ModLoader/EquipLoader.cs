@@ -165,6 +165,7 @@ public static unsafe class EquipLoader
             if (items.Length < total) SetItemTypes(type, items.Resized(total));
         }
 
+        foreach (EquipTexture texture in list) PrefetchTexture(texture);
         for (int i = 0; i < list.Count; i++)
         {
             EquipTexture texture = list[i];
@@ -188,6 +189,17 @@ public static unsafe class EquipLoader
             if (HasItemTypes(type)) GetItemTypes(type)[slot] = item.Type;
         }
         Log.Info($"equip textures: {list.Count} {type} (slots {vanilla}..{total - 1})");
+    }
+
+    static void PrefetchTexture(EquipTexture texture)
+    {
+        byte* file = Host.Utf8(texture.Texture), name = Host.Utf8(texture.Name);
+        try { Host.Native()->PrefetchModTexture(file, name); }
+        finally
+        {
+            Host.FreeUtf8(file);
+            Host.FreeUtf8(name);
+        }
     }
 
     static IntPtr RequestTexture(EquipTexture texture)

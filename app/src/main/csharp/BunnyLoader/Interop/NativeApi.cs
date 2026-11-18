@@ -161,6 +161,9 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<IntPtr, IntPtr, GateSpec*, int*, IntPtr*> InstallGateHook;
     public delegate* unmanaged<int, int, int> SetGateAlways;
     public delegate* unmanaged<delegate* unmanaged<int*, int, void>, int> TileRandomBatch;
+    public delegate* unmanaged<byte*, byte*, void> PrefetchModTexture;
+    public delegate* unmanaged<byte*, IntPtr> LoadedModTexture;
+    public delegate* unmanaged<delegate* unmanaged<int, int>, void> OnFrame;
 }
 
 [StructLayout(LayoutKind.Sequential)]

@@ -25,10 +25,12 @@ public sealed class ModAssets
         string extension = Extension<T>();
         lock (requested)
         {
-            if (byName.TryGetValue((assetName, extension), out object? seen)) return (Asset<T>)seen;
+            if (byName.TryGetValue((assetName, extension), out object? seen)) return ((Asset<T>)seen).OnRequest(mode, false);
         }
         string relative = Relative(assetName);
         string key = relative + extension;
+        Asset<T> result;
+        bool created = false;
         lock (requested)
         {
             if (!requested.TryGetValue(key, out object? have))
@@ -37,10 +39,12 @@ public sealed class ModAssets
                 if (file == null) throw new FileNotFoundException($"{mod.Name}: asset '{assetName}' not found in {mod.Folder}");
                 have = new Asset<T>($"{mod.Name}/{relative}", file);
                 requested[key] = have;
+                created = true;
             }
             byName[(assetName, extension)] = have;
-            return (Asset<T>)have;
+            result = (Asset<T>)have;
         }
+        return result.OnRequest(mode, created);
     }
 
     public bool HasAsset<T>(string assetName) where T : struct, IGameObject =>

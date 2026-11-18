@@ -23,4 +23,4 @@ target_include_directories(bunny PRIVATE
 
 target_compile_options(bunny PRIVATE -O2 -fno-exceptions -fno-rtti)
 
-target_link_libraries(bunny shadowhook::shadowhook log dl)
+target_link_libraries(bunny shadowhook::shadowhook log dl z)
