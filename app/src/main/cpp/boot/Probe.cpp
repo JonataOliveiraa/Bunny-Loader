@@ -2,6 +2,7 @@
 #include "content/common/GameTexts.h"
 #include "content/common/ModNet.h"
 #include "boot/FramePacing.h"
+#include "boot/LibWatcher.h"
 #include "graphics/RenderHook.h"
 #include "boot/QuickStart.h"
 #include "core/Log.h"
@@ -75,8 +76,13 @@ void probeThread() {
     struct Finished {
         ~Finished() { markProbeFinished(); }
     } finished;
+    const auto settleDeadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(kSettleMs);
     BL_DEBUG("probe: waiting for the game to settle (at most %d ms)...", kSettleMs);
-    waitForGameLoaded(std::chrono::milliseconds(kSettleMs));
+    if (loader::watcherInstalled() && !loader::waitForIl2cppInit(settleDeadline)) {
+        BL_WARN("probe: il2cpp_init has not finished after %d ms; waiting for it", kSettleMs);
+        loader::waitForIl2cppInit();
+    }
+    waitForGameLoaded(settleDeadline);
 
     for (int i = 0; i < kRetries; ++i) {
         if (il2cppReady()) {

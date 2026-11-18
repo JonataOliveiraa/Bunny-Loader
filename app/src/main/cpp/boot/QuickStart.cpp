@@ -520,9 +520,9 @@ bool gameInitialized() {
            !staticBool(g_intro.showSplash);
 }
 
-void waitForGameLoaded(std::chrono::milliseconds max) {
+void waitForGameLoaded(std::chrono::steady_clock::time_point deadline) {
     std::unique_lock<std::mutex> lock(g_loadedMutex);
-    g_loadedCv.wait_for(lock, max, [] { return g_gameLoaded; });
+    g_loadedCv.wait_until(lock, deadline, [] { return g_gameLoaded; });
 }
 
 bool isCoreReady() { return g_coreReady.load(std::memory_order_acquire); }
