@@ -3,11 +3,14 @@ package dev.bunnyloader.game
 import android.app.Activity
 import android.os.Handler
 import android.os.HandlerThread
+import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import dev.bunnyloader.BuildConfig
 import dev.bunnyloader.mods.ModRepository
 import dev.bunnyloader.nativebridge.NativeBridge
 import dev.bunnyloader.ui.Prefs
+import java.util.concurrent.atomic.AtomicBoolean
 
 object DiscordPresence {
     private const val TAG = "BunnyDiscord"
@@ -16,9 +19,15 @@ object DiscordPresence {
     private const val CALLBACK_INTERVAL_MS = 500L
     private const val NAMED_MODS = 2
     private const val MAX_NAME_LENGTH = 40
+    private const val FLUSH_ROUNDS = 5
+    private const val FLUSH_STEP_MS = 50L
+    private const val FLUSH_TIMEOUT_MS = 1500L
 
     private var thread: HandlerThread? = null
     private var handler: Handler? = null
+    private var state = ""
+    private var startedAt = 0L
+    private var hidden = false
 
     fun start(activity: Activity, modUids: List<String>) {
         if (handler != null) return
@@ -36,7 +45,8 @@ object DiscordPresence {
             return
         }
         val repo = ModRepository(activity.applicationContext)
-        val startedAt = System.currentTimeMillis()
+        startedAt = System.currentTimeMillis()
+        hidden = false
 
         val worker = HandlerThread("BunnyDiscord").also { it.start() }
         val h = Handler(worker.looper)
@@ -48,7 +58,8 @@ object DiscordPresence {
                 return@post
             }
             val names = modUids.asSequence().mapNotNull(repo::nameOf).take(NAMED_MODS).toList()
-            nativeUpdate(APP_NAME, modsLine(names, modUids.size), LARGE_IMAGE, APP_NAME, startedAt)
+            state = modsLine(names, modUids.size)
+            nativeUpdate(APP_NAME, state, LARGE_IMAGE, APP_NAME, startedAt)
             h.post(object : Runnable {
                 override fun run() {
                     nativeRunCallbacks()
@@ -58,11 +69,36 @@ object DiscordPresence {
         }
     }
 
-    fun stop() {
+    fun show() {
         val h = handler ?: return
+        if (!hidden) return
+        hidden = false
+        h.post { nativeUpdate(APP_NAME, state, LARGE_IMAGE, APP_NAME, startedAt) }
+    }
+
+    fun hide() {
+        val h = handler ?: return
+        if (hidden) return
+        hidden = true
+        h.post { nativeClear() }
+    }
+
+    fun stop(then: () -> Unit = {}) {
+        val h = handler ?: return then()
         handler = null
         h.removeCallbacksAndMessages(null)
-        h.post { nativeClear(); nativeRunCallbacks() }
+        val main = Handler(Looper.getMainLooper())
+        val done = AtomicBoolean()
+        val finish = Runnable { if (done.compareAndSet(false, true)) then() }
+        h.post {
+            nativeClear()
+            repeat(FLUSH_ROUNDS) {
+                nativeRunCallbacks()
+                SystemClock.sleep(FLUSH_STEP_MS)
+            }
+            main.post(finish)
+        }
+        main.postDelayed(finish, FLUSH_TIMEOUT_MS)
         thread?.quitSafely()
         thread = null
     }

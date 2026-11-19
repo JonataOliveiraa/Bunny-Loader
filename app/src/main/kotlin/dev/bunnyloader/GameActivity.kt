@@ -289,20 +289,21 @@ class GameActivity : Activity() {
 
     // --- ciclo de vida (espelha a UnityPlayerActivity) -----------------------
 
-    override fun onStart() { super.onStart(); host?.start() }
+    override fun onStart() { super.onStart(); host?.start(); DiscordPresence.show() }
     override fun onResume() { super.onResume(); host?.resume(); ModAudio.resumeAll() }
     override fun onPause() { super.onPause(); host?.pause(); ModAudio.pauseAll() }
-    override fun onStop() { super.onStop(); host?.stop() }
+    override fun onStop() { super.onStop(); host?.stop(); DiscordPresence.hide() }
 
     override fun onDestroy() {
         if (currentRef?.get() === this) currentRef = null
         val hadHost = host != null
-        DiscordPresence.stop()
-        host?.destroy()
+        DiscordPresence.stop {
+            host?.destroy()
+            // So derruba o processo se a Unity chegou a subir; num erro de boot,
+            // matar na hora atrapalha a leitura do log.
+            if (hadHost) Process.killProcess(Process.myPid())
+        }
         super.onDestroy()
-        // So derruba o processo se a Unity chegou a subir; num erro de boot,
-        // matar na hora atrapalha a leitura do log.
-        if (hadHost) Process.killProcess(Process.myPid())
     }
 
     override fun onNewIntent(intent: Intent) {
