@@ -152,12 +152,31 @@ public static class ModContent
         return true;
     }
 
+    static readonly ConcurrentDictionary<string, bool> AssetExists = new(StringComparer.Ordinal);
+
     public static bool HasAsset(string assetName)
     {
+        if (AssetExists.TryGetValue(assetName, out bool known)) return known;
         (string modName, string path) = SplitName(assetName);
+        bool exists;
         if (modName != "Terraria")
-            return Host.FindMod(modName) is Mod mod &&
-                (mod.Assets.HasAsset<Microsoft.Xna.Framework.Graphics.Texture2D>(path) || mod.Assets.HasAsset<Microsoft.Xna.Framework.Graphics.SpriteFont>(path));
+        {
+            if (Host.FindMod(modName) is not Mod mod) return false;
+            exists = mod.Assets.HasAsset<Microsoft.Xna.Framework.Graphics.Texture2D>(path) || mod.Assets.HasAsset<Microsoft.Xna.Framework.Graphics.SpriteFont>(path);
+        }
+        else
+        {
+            if (!OnGameThread()) return VanillaExists(path);
+            exists = VanillaExists(path);
+        }
+        AssetExists[assetName] = exists;
+        return exists;
+    }
+
+    static unsafe bool OnGameThread() => Host.Native()->IsGameThread() != 0;
+
+    static bool VanillaExists(string path)
+    {
         try
         {
             VanillaAsset<Microsoft.Xna.Framework.Graphics.Texture2D>.Get(path).Wait();

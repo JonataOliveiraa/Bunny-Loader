@@ -89,53 +89,76 @@ internal static unsafe class ItemPickupHooks
         }
     }
 
-    static bool Until(Item item, string name, bool stop, Func<GlobalItem, bool> global, Func<ModItem, bool> mod)
+    enum PickupHook
     {
+        CanPickup,
+        OnPickup,
+        GrabStyle,
+        ItemSpace,
+    }
+
+    static bool Until(Item item, Player player, PickupHook hook, bool stop)
+    {
+        WorldItem w = hook == PickupHook.ItemSpace ? default : WorldItemOf(item);
         foreach (GlobalItem? g in ItemHooks.GlobalsOf(item))
         {
             if (g == null) continue;
             try
             {
-                if (global(g) == stop) return true;
+                if (Call(g, hook, w, item, player) == stop) return true;
             }
-            catch (Exception e) { ItemHooks.Report($"{g.FullName}.{name}", e); }
+            catch (Exception e) { ItemHooks.Report($"{g.FullName}.{hook}", e); }
         }
         if (ItemHooks.ModItemOf(item) is not ModItem m) return false;
-        try { return mod(m) == stop; }
+        try { return Call(m, hook, w, player) == stop; }
         catch (Exception e)
         {
-            ItemHooks.Report($"{m.FullName}.{name}", e);
+            ItemHooks.Report($"{m.FullName}.{hook}", e);
             return false;
         }
     }
 
-    static bool CanPickup(Item item, Player player) =>
-        !Until(item, nameof(ModItem.CanPickup), false, g => g.CanPickup(WorldItemOf(item), player), m => m.CanPickup(WorldItemOf(item), player));
+    static bool Call(GlobalItem g, PickupHook hook, WorldItem w, Item item, Player player) => hook switch
+    {
+        PickupHook.CanPickup => g.CanPickup(w, player),
+        PickupHook.OnPickup => g.OnPickup(w, player),
+        PickupHook.GrabStyle => g.GrabStyle(w, player),
+        _ => g.ItemSpace(item, player),
+    };
 
-    static bool OnPickup(Item item, Player player) =>
-        !Until(item, nameof(ModItem.OnPickup), false, g => g.OnPickup(WorldItemOf(item), player), m => m.OnPickup(WorldItemOf(item), player));
+    static bool Call(ModItem m, PickupHook hook, WorldItem w, Player player) => hook switch
+    {
+        PickupHook.CanPickup => m.CanPickup(w, player),
+        PickupHook.OnPickup => m.OnPickup(w, player),
+        PickupHook.GrabStyle => m.GrabStyle(w, player),
+        _ => m.ItemSpace(player),
+    };
 
-    static bool GrabStyle(Item item, Player player) =>
-        Until(item, nameof(ModItem.GrabStyle), true, g => g.GrabStyle(WorldItemOf(item), player), m => m.GrabStyle(WorldItemOf(item), player));
+    static bool CanPickup(Item item, Player player) => !Until(item, player, PickupHook.CanPickup, false);
+
+    static bool OnPickup(Item item, Player player) => !Until(item, player, PickupHook.OnPickup, false);
+
+    static bool GrabStyle(Item item, Player player) => Until(item, player, PickupHook.GrabStyle, true);
 
     static bool ItemSpace(Item item, Player player)
     {
         if (item.uniqueStack && player.HasItem(item.type)) return false;
-        return Until(item, nameof(ModItem.ItemSpace), true, g => g.ItemSpace(item, player), m => m.ItemSpace(player));
+        return Until(item, player, PickupHook.ItemSpace, true);
     }
 
     static int GrabRange(Item item, Player player, int baseRange)
     {
         int range = baseRange;
+        WorldItem w = WorldItemOf(item);
         if (ItemHooks.ModItemOf(item) is ModItem m)
         {
-            try { m.GrabRange(WorldItemOf(item), player, ref range); }
+            try { m.GrabRange(w, player, ref range); }
             catch (Exception e) { ItemHooks.Report($"{m.FullName}.GrabRange", e); }
         }
         foreach (GlobalItem? g in ItemHooks.GlobalsOf(item))
         {
             if (g == null) continue;
-            try { g.GrabRange(WorldItemOf(item), player, ref range); }
+            try { g.GrabRange(w, player, ref range); }
             catch (Exception e) { ItemHooks.Report($"{g.FullName}.GrabRange", e); }
         }
         return range;

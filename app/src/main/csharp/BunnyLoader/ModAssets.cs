@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using BunnyLoader.Interop;
@@ -16,6 +17,8 @@ public sealed class ModAssets
     readonly Dictionary<string, object> requested = new();
 
     readonly Dictionary<(string Name, string Extension), object> byName = new();
+
+    readonly ConcurrentDictionary<string, string?> located = new(StringComparer.Ordinal);
 
     internal ModAssets(Mod mod) => this.mod = mod;
 
@@ -63,7 +66,11 @@ public sealed class ModAssets
 
     string? Find(string relative, string extension)
     {
-        string? path = mod.ResolveFile(relative + extension);
-        return path != null && File.Exists(path) ? path : null;
+        string key = relative + extension;
+        if (located.TryGetValue(key, out string? known)) return known;
+        string? path = mod.ResolveFile(key);
+        string? found = path != null && File.Exists(path) ? path : null;
+        located[key] = found;
+        return found;
     }
 }

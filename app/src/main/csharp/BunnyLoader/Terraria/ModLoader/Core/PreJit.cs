@@ -19,12 +19,13 @@ internal static unsafe class PreJit
     static readonly OpCode[] TwoByte = new OpCode[256];
     static readonly Assembly Loader = typeof(Mod).Assembly;
 
-    static IEnumerator<MethodBase>? cursor;
+    static IEnumerator<MethodBase?>? cursor;
     static readonly Queue<MethodBase> Callees = new();
     static readonly HashSet<IntPtr> Seen = new();
+    static readonly Dictionary<Module, HashSet<int>> SeenTokens = new();
     static readonly List<string> Failures = new();
-    static int compiled, calleesCompiled, failed, frames;
-    static long ticks;
+    static int compiled, calleesCompiled, failed, frames, worldFrames;
+    static long ticks, stepCost, worstTicks, worldTicks;
     static TimeSpan jitAtStart;
 
     static PreJit()
@@ -64,16 +65,17 @@ internal static unsafe class PreJit
         long start = Stopwatch.GetTimestamp(), limit = budgetMicros * Stopwatch.Frequency / 1_000_000;
         frames++;
         bool more = true;
+        long now = start;
         do
         {
+            long before = now;
             if (Callees.TryDequeue(out MethodBase? callee))
             {
                 if (Compile(callee)) calleesCompiled++;
             }
             else if (cursor.MoveNext())
             {
-                MethodBase method = cursor.Current;
-                if (Compile(method))
+                if (cursor.Current is MethodBase method && Compile(method))
                 {
                     compiled++;
                     Scan(method);
@@ -83,8 +85,17 @@ internal static unsafe class PreJit
             {
                 more = false;
             }
-        } while (more && Stopwatch.GetTimestamp() - start < limit);
-        ticks += Stopwatch.GetTimestamp() - start;
+            now = Stopwatch.GetTimestamp();
+            stepCost = stepCost == 0 ? now - before : (stepCost * 7 + (now - before)) / 8;
+        } while (more && now - start + stepCost < limit);
+        long spent = now - start;
+        ticks += spent;
+        if (!Main.gameMenu)
+        {
+            worldFrames++;
+            worldTicks += spent;
+            if (spent > worstTicks) worstTicks = spent;
+        }
         if (!more) Finish();
         return more;
     }
@@ -92,13 +103,15 @@ internal static unsafe class PreJit
     static void Finish()
     {
         double jit = (JitInfo.GetCompilationTime(false) - jitAtStart).TotalMilliseconds;
-        double spent = ticks * 1000.0 / Stopwatch.Frequency;
-        Log.Info($"pre-JIT: {compiled} mod method(s) and {calleesCompiled} loader method(s) they call, in {frames} frame(s) ({spent:F0} ms in the frame budget, {jit:F0} ms of JIT meanwhile){(failed > 0 ? $"; {failed} failed" : "")}");
+        double spent = ticks * 1000.0 / Stopwatch.Frequency, worst = worstTicks * 1000.0 / Stopwatch.Frequency;
+        double inWorld = worldFrames == 0 ? 0 : worldTicks * 1000.0 / Stopwatch.Frequency / worldFrames;
+        Log.Info($"pre-JIT: {compiled} mod method(s) and {calleesCompiled} loader method(s) they call, in {frames} frame(s) ({spent:F0} ms in the frame budget, {jit:F0} ms of JIT meanwhile); {worldFrames} frame(s) in a world at {inWorld:F2} ms each (worst {worst:F1} ms){(failed > 0 ? $"; {failed} failed" : "")}");
         foreach (string failure in Failures) Log.Warn($"pre-JIT: {failure}");
         if (failed > Failures.Count) Log.Warn($"pre-JIT: {failed - Failures.Count} more failure(s) not shown");
         cursor = null;
         Callees.Clear();
         Seen.Clear();
+        SeenTokens.Clear();
         Failures.Clear();
     }
 
@@ -122,20 +135,23 @@ internal static unsafe class PreJit
         if (Failures.Count < FailuresShown) Failures.Add($"{type?.FullName}.{member}: {e.GetType().Name}: {e.Message}");
     }
 
-    static IEnumerable<MethodBase> Methods(IReadOnlyList<Mod> mods)
+    static IEnumerable<MethodBase?> Methods(IReadOnlyList<Mod> mods)
     {
         var rest = new List<MethodBase>();
         foreach (Mod mod in mods)
         {
             Assembly code = mod.Code;
             if (code == Loader) continue;
+            PreJITFilter filter = mod.PreJITFilter;
+            bool plain = filter.GetType() == typeof(PreJITFilter);
             foreach (Type type in LoadableTypes(code))
             {
-                foreach (MethodBase method in Collect(type, mod.PreJITFilter))
+                foreach (MethodBase method in Collect(type, filter, plain))
                 {
                     if (Overrides(method, code)) yield return method;
                     else rest.Add(method);
                 }
+                yield return null;
             }
         }
         foreach (MethodBase method in rest) yield return method;
@@ -147,24 +163,27 @@ internal static unsafe class PreJit
         catch (ReflectionTypeLoadException e) { return e.Types.OfType<Type>().ToArray(); }
     }
 
-    static bool ShouldJit(Type type, PreJITFilter filter) =>
-        filter.ShouldJIT(type) && (type.DeclaringType is null || ShouldJit(type.DeclaringType, filter));
+    static bool ShouldJit(MemberInfo member, PreJITFilter filter, bool plain) =>
+        plain && !member.IsDefined(typeof(MemberJitAttribute), true) || filter.ShouldJIT(member);
 
-    static List<MethodBase> Collect(Type type, PreJITFilter filter)
+    static bool ShouldJit(Type type, PreJITFilter filter, bool plain) =>
+        ShouldJit((MemberInfo)type, filter, plain) && (type.DeclaringType is null || ShouldJit(type.DeclaringType, filter, plain));
+
+    static List<MethodBase> Collect(Type type, PreJITFilter filter, bool plain)
     {
         var list = new List<MethodBase>();
         try
         {
-            if (type.ContainsGenericParameters || !ShouldJit(type, filter)) return list;
+            if (type.ContainsGenericParameters || !ShouldJit(type, filter, plain)) return list;
             foreach (MethodInfo method in type.GetMethods(Declared))
-                if (!method.IsSpecialName && Compilable(method) && filter.ShouldJIT(method)) list.Add(method);
+                if (!method.IsSpecialName && Compilable(method) && ShouldJit(method, filter, plain)) list.Add(method);
             foreach (ConstructorInfo constructor in type.GetConstructors(Declared))
-                if (!constructor.IsStatic && Compilable(constructor) && filter.ShouldJIT(constructor)) list.Add(constructor);
+                if (!constructor.IsStatic && Compilable(constructor) && ShouldJit(constructor, filter, plain)) list.Add(constructor);
             foreach (PropertyInfo property in type.GetProperties(Declared))
             {
-                if (!filter.ShouldJIT(property)) continue;
+                if (!ShouldJit(property, filter, plain)) continue;
                 foreach (MethodInfo accessor in property.GetAccessors(true))
-                    if (accessor.DeclaringType == type && Compilable(accessor) && filter.ShouldJIT(accessor)) list.Add(accessor);
+                    if (accessor.DeclaringType == type && Compilable(accessor) && ShouldJit(accessor, filter, plain)) list.Add(accessor);
             }
         }
         catch (Exception e)
@@ -222,6 +241,8 @@ internal static unsafe class PreJit
 
     static void Want(Module module, int token)
     {
+        if (!SeenTokens.TryGetValue(module, out HashSet<int>? tokens)) SeenTokens[module] = tokens = new HashSet<int>();
+        if (!tokens.Add(token)) return;
         MethodBase? callee;
         try { callee = module.ResolveMethod(token); }
         catch { return; }

@@ -15,11 +15,13 @@ public sealed class Images : ModSystem
 
     public static Asset<Texture2D> Async = null!;
     public static Asset<Texture2D> Lazy = null!;
+    public static Asset<Texture2D> Touched = null!;
 
     public override void Load()
     {
         Async = Mod.Assets.Request<Texture2D>("Images/Rgba8");
         Lazy = Mod.Assets.Request<Texture2D>("Images/Gray4", AssetRequestMode.DoNotLoad);
+        Touched = Mod.Assets.Request<Texture2D>("Images/Interlaced");
     }
 
     public override void PostDrawInterface(SpriteBatch spriteBatch)

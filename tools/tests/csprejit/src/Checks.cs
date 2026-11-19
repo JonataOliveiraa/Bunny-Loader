@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Runtime;
 using log4net;
 using Microsoft.Xna.Framework.Graphics;
@@ -82,6 +83,57 @@ public static class Checks
             else sizes += $" {name}={texture.Width}x{texture.Height}";
         }
         Report("every PNG format comes out with its size", right == Images.All.Length, $"right={right}/{Images.All.Length}{sizes}");
+        double async = NanosPerValue(Images.Async), immediate = NanosPerValue(now), touched = NanosPerValue(Images.Touched);
+        double asyncAgain = NanosPerValue(Images.Async), immediateAgain = NanosPerValue(now);
+        double request = NanosPerRequest("CsPreJit/Images/Rgba8");
+        Report("Value costs the same after AsyncLoad and ImmediateLoad", Math.Min(async, asyncAgain) <= Math.Min(immediate, immediateAgain) * 1.5 + 50,
+            $"async={async:F0}/{asyncAgain:F0} ns immediate={immediate:F0}/{immediateAgain:F0} ns async first read by Value={touched:F0} ns ModContent.Request(path).Value={request:F0} ns");
+        double missing = NanosPerMissing("CsPreJit/Images/NoSuchImage"), present = NanosPerMissing("CsPreJit/Images/Rgba8");
+        double missingAgain = NanosPerMissing("CsPreJit/Images/NoSuchImage"), presentAgain = NanosPerMissing("CsPreJit/Images/Rgba8");
+        double has = NanosPerHas("CsPreJit/Images/NoSuchImage");
+        Report("RequestIfExists answers a missing image as fast as an existing one", Math.Min(missing, missingAgain) <= Math.Min(present, presentAgain) * 3 + 500,
+            $"missing={missing:F0}/{missingAgain:F0} ns existing={present:F0}/{presentAgain:F0} ns HasAsset(missing)={has:F0} ns");
+    }
+
+    static double NanosPerMissing(string path)
+    {
+        const int Reads = 20000;
+        int found = ModContent.RequestIfExists(path, out Asset<Texture2D> _) ? 1 : 0;
+        long start = Stopwatch.GetTimestamp();
+        for (int i = 0; i < Reads; i++) found += ModContent.RequestIfExists(path, out Asset<Texture2D> _) ? 1 : 0;
+        long ticks = Stopwatch.GetTimestamp() - start;
+        return ticks * 1e9 / Stopwatch.Frequency / Reads + (found < 0 ? 1 : 0);
+    }
+
+    static double NanosPerHas(string path)
+    {
+        const int Reads = 20000;
+        int found = ModContent.HasAsset(path) ? 1 : 0;
+        long start = Stopwatch.GetTimestamp();
+        for (int i = 0; i < Reads; i++) found += ModContent.HasAsset(path) ? 1 : 0;
+        long ticks = Stopwatch.GetTimestamp() - start;
+        return ticks * 1e9 / Stopwatch.Frequency / Reads + (found < 0 ? 1 : 0);
+    }
+
+    static double NanosPerRequest(string path)
+    {
+        const int Reads = 20000;
+        int width = ModContent.Request<Texture2D>(path).Value.Width;
+        long start = Stopwatch.GetTimestamp();
+        for (int i = 0; i < Reads; i++) width += ModContent.Request<Texture2D>(path).Value.IsNull ? 0 : 1;
+        long ticks = Stopwatch.GetTimestamp() - start;
+        return ticks * 1e9 / Stopwatch.Frequency / Reads + (width < 0 ? 1 : 0);
+    }
+
+    static double NanosPerValue(Asset<Texture2D> asset)
+    {
+        const int Reads = 20000;
+        int width = 0;
+        for (int i = 0; i < 100; i++) width += asset.Value.Width;
+        long start = Stopwatch.GetTimestamp();
+        for (int i = 0; i < Reads; i++) width += asset.Value.IsNull ? 0 : 1;
+        long ticks = Stopwatch.GetTimestamp() - start;
+        return ticks * 1e9 / Stopwatch.Frequency / Reads + (width < 0 ? 1 : 0);
     }
 
     static void Report(string name, bool ok, string detail)

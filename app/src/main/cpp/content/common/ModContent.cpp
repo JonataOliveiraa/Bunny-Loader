@@ -26,16 +26,30 @@ bool g_done = false;
 bool g_finished = false;
 
 constexpr int kLoadingBudgetMicros = 10000;
-constexpr int kMenuBudgetMicros = 6000;
-constexpr int kWorldBudgetMicros = 1500;
+constexpr int kMenuBudgetMicros = 8000;
+constexpr int kStatusBudgetMicros = 50000;
+constexpr int kWorldBudgetMicros = 1000;
+constexpr int kStatusMenuMode = 10;
+
+int currentMenuMode() {
+    static const MethodInfo* getter = [] {
+        Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
+        return main ? il2cpp::api().class_get_method_from_name(main, "get_menuMode", 0) : nullptr;
+    }();
+    if (!getter) return -1;
+    Il2CppObject* exc = nullptr;
+    Il2CppObject* boxed = il2cpp::api().runtime_invoke(getter, nullptr, nullptr, &exc);
+    if (exc || !boxed) return -1;
+    return *reinterpret_cast<int32_t*>(reinterpret_cast<char*>(boxed) + sizeof(Il2CppObject));
+}
 
 int frameBudgetMicros() {
     if (!g_finished) return kLoadingBudgetMicros;
-    return inWorld() ? kWorldBudgetMicros : kMenuBudgetMicros;
+    if (inWorld()) return kWorldBudgetMicros;
+    return currentMenuMode() == kStatusMenuMode ? kStatusBudgetMicros : kMenuBudgetMicros;
 }
 
-void runFrameHooks() {
-    const int budget = frameBudgetMicros();
+void runFrameHooks(int budget) {
     for (auto& slot : g_frameHooks) {
         FrameHook hook = slot.load(std::memory_order_acquire);
         if (hook && hook(budget) == 0) slot.store(nullptr, std::memory_order_release);
@@ -99,9 +113,10 @@ bool contentSettled() {
 }
 
 void tickContentReady() {
-    content::pumpModTextures(frameBudgetMicros());
+    const int budget = frameBudgetMicros();
+    content::pumpModTextures(budget);
     if (g_finished) {
-        runFrameHooks();
+        runFrameHooks(budget);
         return;
     }
     if (!g_hooks[0].load(std::memory_order_acquire)) return;
