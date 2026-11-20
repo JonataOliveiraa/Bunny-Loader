@@ -1,0 +1,14 @@
+{
+  "uid": "1d2a9a4c-aacd-4e3b-b6eb-486322dc695b",
+  "id": "CsTouchSize",
+  "name": "Test: touch control sizes",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Dumps the game's touch control styles (axis, button, group) and checks the size steps of the controls editor.",
+  "description": "Compile with tools/tests/build-cs.sh cstouchsize. Logs cstouchsize <case>: ok | FAIL and cstouchsize END pass=N fail=M.",
+  "updated": "2026-11-19",
+  "blVersion": 3,
+  "gameVersion": [301720, 301720],
+  "dependencies": []
+}
