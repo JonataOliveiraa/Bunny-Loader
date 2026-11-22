@@ -684,7 +684,7 @@ const MethodInfo* requestTextureMethod(Il2CppClass* repository) {
     if (!virt) virt = make;
     Il2CppObject* made = a.runtime_invoke(virt, reflected, params, &exc);
     if (exc || !made) {
-        BL_ERROR("vanilla texture: MakeGenericMethod(Texture2D) lancou");
+        BL_ERROR("vanilla texture: MakeGenericMethod(Texture2D) threw");
         return nullptr;
     }
     inflated = a.method_get_from_reflection(made);

@@ -37,7 +37,7 @@ namespace {
 
 bool checkExc(JNIEnv* env, const char* where) {
     if (!env->ExceptionCheck()) return false;
-    BL_ERROR("botao: excecao Java em %s", where);
+    BL_ERROR("button: Java exception in %s", where);
     env->ExceptionDescribe();
     env->ExceptionClear();
     return true;
@@ -439,7 +439,7 @@ void installCheatButton() {
     bool attached = false;
     if (vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) != JNI_OK) {
         if (vm->AttachCurrentThread(&env, nullptr) != JNI_OK || !env) {
-            BL_ERROR("botao: AttachCurrentThread falhou");
+            BL_ERROR("button: AttachCurrentThread failed");
             return;
         }
         attached = true;

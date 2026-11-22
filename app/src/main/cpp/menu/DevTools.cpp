@@ -30,7 +30,7 @@ bool invokeStatic(const MethodInfo* m, void** args, const char* what, Il2CppObje
     if (!m) { BL_ERROR("restart: %s not found", what); return false; }
     Il2CppObject* exc = nullptr;
     Il2CppObject* r = il2cpp::api().runtime_invoke(m, nullptr, args, &exc);
-    if (exc) { BL_ERROR("reiniciar: %s lancou excecao", what); return false; }
+    if (exc) { BL_ERROR("restart: %s threw an exception", what); return false; }
     if (ret) *ret = r;
     return true;
 }

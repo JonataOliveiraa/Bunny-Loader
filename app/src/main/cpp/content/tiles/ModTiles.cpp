@@ -763,7 +763,7 @@ void tickModTiles() {
     if (mergeMissing) {
         Il2CppObject* exc = nullptr;
         il2cpp::api().runtime_invoke(refs().setupMerge, nullptr, nullptr, &exc);
-        if (exc) BL_ERROR("tiles de mod: Main.SetupTileMerge lancou excecao");
+        if (exc) BL_ERROR("mod tiles: Main.SetupTileMerge threw an exception");
     }
     fixTileMerge(to);
     fixGlowMask(to);

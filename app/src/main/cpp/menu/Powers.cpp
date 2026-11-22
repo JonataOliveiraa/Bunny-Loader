@@ -814,7 +814,7 @@ void unlockBestiary() {
 
     Il2CppObject* exc = nullptr;
     const int total = unboxInt(a.runtime_invoke(getCount, credits, nullptr, &exc));
-    if (exc) { BL_ERROR("poderes: bestiario: Count lancou excecao"); return; }
+    if (exc) { BL_ERROR("powers: bestiary: Count threw an exception"); return; }
 
     int found = 0, failed = 0;
     for (int32_t netId = kFirstNpcNetId; netId < kLastNpcNetId && found < total; ++netId) {
@@ -828,7 +828,7 @@ void unlockBestiary() {
     const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
         Clock::now() - start).count();
     if (failed > 0) {
-        BL_ERROR("poderes: bestiario: %d de %d entradas falharam", failed, found);
+        BL_ERROR("powers: bestiary: %d of %d entries failed", failed, found);
     } else {
         BL_INFO("powers: bestiary unlocked (%d of %d NPCs) in %lld ms", found, total,
                 static_cast<long long>(ms));
@@ -837,7 +837,7 @@ void unlockBestiary() {
 
 State installHook(const char* name, const MethodInfo* target, void* fn, void** orig) {
     if (hook::install(target, fn, orig)) {
-        BL_INFO("poderes: hook em %s", name);
+        BL_INFO("powers: hook on %s", name);
         return State::Ok;
     }
     BL_ERROR("powers: failed to hook %s", name);
@@ -929,7 +929,7 @@ void applyInfection(int command) {
         void* args[] = {&i};
         Il2CppObject* exc = nullptr;
         il2cpp::api().runtime_invoke(I.onJoin, power, args, &exc);
-        if (exc) BL_ERROR("poderes: OnPlayerJoining(%d) lancou excecao", i);
+        if (exc) BL_ERROR("powers: OnPlayerJoining(%d) threw an exception", i);
     }
 }
 
@@ -1000,7 +1000,7 @@ void applyTimeOfDay(int request) {
     Il2CppObject* exc = nullptr;
     void* args[] = {&t.time, &t.day};
     il2cpp::api().runtime_invoke(W.skipToTime, nullptr, args, &exc);
-    if (exc) { BL_ERROR("poderes: SkipToTime lancou excecao"); return; }
+    if (exc) { BL_ERROR("powers: SkipToTime threw an exception"); return; }
     g_haveFrozenTime = false;
     broadcastWorld(true);
     BL_INFO("poderes: hora -> %d (%s)", t.time, t.day ? "dia" : "noite");
@@ -1015,7 +1015,7 @@ void applyHardmode(int command) {
     if (command == 1 && !now) {
         Il2CppObject* exc = nullptr;
         il2cpp::api().runtime_invoke(W.startHardmode, nullptr, nullptr, &exc);
-        if (exc) BL_ERROR("poderes: StartHardmode lancou excecao");
+        if (exc) BL_ERROR("powers: StartHardmode threw an exception");
         else BL_INFO("poderes: hardmode ligado");
     } else if (command == 2 && now) {
         writeStatic<bool>(W.hardMode, false);
@@ -1030,7 +1030,7 @@ void applyDifficulty(int level) {
     Il2CppObject* exc = nullptr;
     void* args[] = {&mode};
     il2cpp::api().runtime_invoke(W.setGameMode, nullptr, args, &exc);
-    if (exc) BL_ERROR("poderes: set_GameMode lancou excecao");
+    if (exc) BL_ERROR("powers: set_GameMode threw an exception");
     else BL_INFO("powers: game mode -> %d", mode);
     broadcastWorld(false);
 }
@@ -1080,7 +1080,7 @@ constexpr int32_t kInvasionLife = 200;
 bool invokeStatic(const MethodInfo* method, void** args, const char* name) {
     Il2CppObject* exc = nullptr;
     il2cpp::api().runtime_invoke(method, nullptr, args, &exc);
-    if (exc) BL_ERROR("poderes: %s lancou excecao", name);
+    if (exc) BL_ERROR("powers: %s threw an exception", name);
     return !exc;
 }
 
@@ -1374,7 +1374,7 @@ void teleportToMapPoint(int32_t mx, int32_t my) {
     void* args[] = {&spot, &style, &extra};
     Il2CppObject* exc = nullptr;
     il2cpp::api().runtime_invoke(W.teleport, p, args, &exc);
-    if (exc) { BL_ERROR("poderes: Player.Teleport lancou excecao"); return; }
+    if (exc) { BL_ERROR("powers: Player.Teleport threw an exception"); return; }
     BL_INFO("powers: teleport: touch (%d,%d) screen %dx%d map (%.1f,%.1f) x%.2f (interface "
             "x%.3f) -> tile (%.1f,%.1f) -> (%.0f,%.0f)%s", mx, my, sw, sh, center.x, center.y,
             scale, k, tx, ty, spot.x, spot.y, found ? "" : " (no air nearby)");

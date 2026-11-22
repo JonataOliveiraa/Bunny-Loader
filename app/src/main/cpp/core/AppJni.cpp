@@ -62,7 +62,7 @@ JNIEnv* appJniEnv() {
 
 bool appJniCleared(JNIEnv* env, const char* where) {
     if (!env->ExceptionCheck()) return true;
-    BL_ERROR("jni: excecao Java em %s", where);
+    BL_ERROR("jni: Java exception in %s", where);
     env->ExceptionDescribe();
     env->ExceptionClear();
     return false;

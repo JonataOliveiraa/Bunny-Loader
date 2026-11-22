@@ -205,7 +205,7 @@ void runSelftestOnce() {
 
     Il2CppObject* exc = nullptr;
     int me = unboxInt(il2cpp::api().runtime_invoke(g_getMyPlayer, nullptr, nullptr, &exc));
-    if (exc) BL_ERROR("cheats: selftest runtime_invoke get_myPlayer() lancou excecao");
+    if (exc) BL_ERROR("cheats: selftest runtime_invoke get_myPlayer() threw an exception");
     else BL_DEBUG("cheats: selftest runtime_invoke get_myPlayer() = %d (ok)", me);
 }
 
@@ -475,7 +475,7 @@ void classifyModItems(const ItemFields& o) {
         g_itemStack[static_cast<size_t>(id)] = unique ? 1 : (declared > 1 ? declared : 9999);
         ++done;
     }
-    if (done) BL_DEBUG("cheats: %d item(ns) de mod classificado(s)", done);
+    if (done) BL_DEBUG("cheats: %d mod item(s) classified", done);
 }
 
 struct Classification {
@@ -792,7 +792,7 @@ void giveBuff(int type, int seconds) {
     void* args[3] = {&t, &time, &fromNet};
     Il2CppObject* exc = nullptr;
     a.runtime_invoke(addBuff, p, args, &exc);
-    if (exc) BL_ERROR("cheats: AddBuff(%d) lancou excecao", type);
+    if (exc) BL_ERROR("cheats: AddBuff(%d) threw an exception", type);
 }
 
 void allowDeprecatedItems() {
@@ -923,7 +923,7 @@ void spawnNpcs(int type, int count, int player) {
 
         Il2CppObject* exc = nullptr;
         const int idx = unboxInt(a.runtime_invoke(g_newNpc, nullptr, args, &exc));
-        if (exc) { BL_ERROR("spawnNpcs: NewNPC lancou excecao (type=%d)", type); return; }
+        if (exc) { BL_ERROR("spawnNpcs: NewNPC threw an exception (type=%d)", type); return; }
         if (idx < 0 || idx >= kMaxNpcs) break;
 
         Il2CppArray* npcs = nullptr;
@@ -983,7 +983,7 @@ int giveToInventory(Il2CppObject* p, int type, int stack) {
         int t = type;
         void* args[2] = {&t, nullptr};
         a.runtime_invoke(g_setDefaults, it, args, &exc);
-        if (exc) { BL_ERROR("giveItem: SetDefaults(%d) lancou excecao", type); return nullptr; }
+        if (exc) { BL_ERROR("giveItem: SetDefaults(%d) threw an exception", type); return nullptr; }
         a.gc_wbarrier_set_field(reinterpret_cast<Il2CppObject*>(inv), reinterpret_cast<void**>(&slots[slot]), it);
         return it;
     };
@@ -1047,7 +1047,7 @@ void giveItem(int type, int stack, int player) {
 
     Il2CppObject* exc = nullptr;
     int idx = unboxInt(a.runtime_invoke(g_newItem, nullptr, args, &exc));
-    if (exc) { BL_ERROR("giveItem: NewItem lancou excecao"); return; }
+    if (exc) { BL_ERROR("giveItem: NewItem threw an exception"); return; }
     BL_INFO("giveItem: type=%d x%d given at (%d,%d) -> item[%d] (player %d)", t, n, x, y, idx, player);
 }
 

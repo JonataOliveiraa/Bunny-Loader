@@ -31,7 +31,7 @@ bool setWaterStyleCount(int total) {
                  fade, draw, describeMethodCode(m).c_str());
         return false;
     }
-    BL_INFO("agua de mod: Main.DrawWaters anda por %d estilos (eram %d)", total, g_count);
+    BL_INFO("mod water: Main.DrawWaters walks %d styles (was %d)", total, g_count);
     g_count = total;
     return true;
 }

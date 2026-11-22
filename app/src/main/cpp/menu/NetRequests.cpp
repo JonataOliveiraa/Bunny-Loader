@@ -112,7 +112,7 @@ void sendData(int msgType, int number, float number2, float number3) {
     void* args[11] = { &type, &remote, &ignore, nullptr, &n, &n2, &n3, &n4, &n5, &n6, &n7 };
     Il2CppObject* exc = nullptr;
     il2cpp::api().runtime_invoke(g_sendData, nullptr, args, &exc);
-    if (exc) BL_ERROR("rede: SendData(%d, %d) lancou excecao", msgType, number);
+    if (exc) BL_ERROR("net: SendData(%d, %d) threw an exception", msgType, number);
 }
 
 bool sendToServer(const std::string& command) {
@@ -126,10 +126,10 @@ bool sendToServer(const std::string& command) {
     void* ctorArgs[1] = { a.string_new(text.c_str()) };
     Il2CppObject* exc = nullptr;
     a.runtime_invoke(g_chatMessageCtor, msg, ctorArgs, &exc);
-    if (exc) { BL_ERROR("rede: ChatMessage(...) lancou excecao"); return false; }
+    if (exc) { BL_ERROR("net: ChatMessage(...) threw an exception"); return false; }
     void* args[1] = { msg };
     a.runtime_invoke(g_sendFromClient, nullptr, args, &exc);
-    if (exc) { BL_ERROR("rede: SendChatMessageFromClient lancou excecao"); return false; }
+    if (exc) { BL_ERROR("net: SendChatMessageFromClient threw an exception"); return false; }
     BL_INFO("network: request to the server: %s", command.c_str());
     return true;
 }

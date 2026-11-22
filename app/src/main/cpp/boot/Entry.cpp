@@ -19,7 +19,7 @@ void bl_on_load() {
     }
 
     if (bl::loader::installWatcher()) {
-        BL_INFO("watcher instalado; aguardando il2cpp_init");
+        BL_INFO("watcher installed; waiting for il2cpp_init");
     } else {
         BL_WARN("watcher not installed (expected on the emulator); continuing with the probe");
     }

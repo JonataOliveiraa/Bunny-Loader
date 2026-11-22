@@ -66,7 +66,7 @@ Il2CppObject* call(Il2CppObject* self, const char* name, int argc, void** args, 
     Il2CppObject* exc = nullptr;
     Il2CppObject* r = m ? a.runtime_invoke(m, self, args, &exc) : nullptr;
     if (!m || exc) {
-        BL_ERROR("mod item sorting: %s.%s %s", what, name, m ? "lancou excecao" : "not found");
+        BL_ERROR("mod item sorting: %s.%s %s", what, name, m ? "threw an exception" : "not found");
         *failed = true;
         return nullptr;
     }

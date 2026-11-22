@@ -147,7 +147,7 @@ Il2CppArray* readStatic(FieldInfo* f) {
 bool invoke(const MethodInfo* m, void* self, void** args, const char* what) {
     Il2CppObject* exc = nullptr;
     il2cpp::api().runtime_invoke(m, self, args, &exc);
-    if (exc) BL_ERROR("NPCs de mod: %s lancou excecao", what);
+    if (exc) BL_ERROR("mod NPCs: %s threw an exception", what);
     return exc == nullptr;
 }
 

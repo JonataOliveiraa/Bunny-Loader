@@ -176,10 +176,18 @@ object BootLog {
                 causes.forEach { append("  ").append(it.trim()).append('\n') }
                 append(">>> tail:\n")
             }
-            lines.filterNot { it.contains("native: #") || it.contains("runtime.cc:") }
+            lines.filterNot { it.contains("native: #") || it.contains("runtime.cc:") || isUnityNoise(it) }
                 .takeLast(25).forEach { append(it).append('\n') }
         }
     }.getOrElse { "(not captured)\n" }
+
+    private val unityFrame = Regex("""^[\w.`<>\[\],+]+:[\w.`<>|]+\(.*\)$""")
+
+    private fun isUnityNoise(line: String): Boolean {
+        if (!line.startsWith("I/Unity")) return false
+        val text = line.substringAfter("):", "").trim()
+        return text.isEmpty() || unityFrame.matches(text)
+    }
 
     /** Why the app's processes died (Android 11+); native crashes also carry the tombstone. */
     private fun exitReasons(ctx: Context): String = runCatching {
