@@ -1620,15 +1620,17 @@ public class CheatBridge {
     static final class StripDrawable extends Drawable implements Runnable {
         private final Bitmap strip;
         private final int frames, frameMs;
+        private final boolean pingPong;
         private final Paint paint = new Paint();
         private final Rect src = new Rect();
         private int frame;
         private boolean running;
 
-        StripDrawable(Bitmap strip, int frames, int ticksPerFrame) {
+        StripDrawable(Bitmap strip, int frames, int step) {
             this.strip = strip;
             this.frames = frames;
-            this.frameMs = Math.max(1, ticksPerFrame) * 1000 / 60;
+            this.frameMs = Math.abs(step) * 1000 / 60;
+            this.pingPong = step < 0;
             paint.setFilterBitmap(false);
         }
 
@@ -1637,16 +1639,17 @@ public class CheatBridge {
 
         @Override public void draw(Canvas c) {
             int h = strip.getHeight() / frames;
-            src.set(0, frame * h, strip.getWidth(), frame * h + h);
+            int shown = frame < frames ? frame : 2 * frames - 2 - frame;
+            src.set(0, shown * h, strip.getWidth(), shown * h + h);
             c.drawBitmap(strip, src, getBounds(), paint);
-            if (!running && isVisible()) {
+            if (frameMs > 0 && !running && isVisible()) {
                 running = true;
                 scheduleSelf(this, SystemClock.uptimeMillis() + frameMs);
             }
         }
 
         @Override public void run() {
-            frame = (frame + 1) % frames;
+            frame = (frame + 1) % (pingPong ? 2 * frames - 2 : frames);
             invalidateSelf();
             if (running) scheduleSelf(this, SystemClock.uptimeMillis() + frameMs);
         }

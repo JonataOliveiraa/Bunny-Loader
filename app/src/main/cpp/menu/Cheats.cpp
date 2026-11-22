@@ -218,6 +218,7 @@ std::vector<std::u16string> g_npcNames;
 std::vector<int> g_npcFrames;
 std::vector<int> g_itemTextureCopy;
 std::vector<int> g_itemAnimation;
+constexpr int kMaxIconTicks = 600;
 const MethodInfo* g_itemNameOf = nullptr;
 const MethodInfo* g_npcNameOf = nullptr;
 int g_nameProgress = -1;
@@ -700,21 +701,39 @@ void readItemIconTables(Il2CppClass* main) {
     }
     FieldInfo* f = main ? il2cpp::findField(main, "itemAnimations") : nullptr;
     Il2CppClass* anim = il2cpp::findClass({"Terraria.DataStructures", "DrawAnimation", {}});
+    Il2CppClass* vertical = il2cpp::findClass({"Terraria.DataStructures", "DrawAnimationVertical", {}});
+    Il2CppClass* orb = il2cpp::findClass({"Terraria.DataStructures", "DrawAnimationScryingOrb", {}});
     const int32_t offFrames = anim ? il2cpp::fieldOffset(anim, "FrameCount") : -1;
     const int32_t offTicks = anim ? il2cpp::fieldOffset(anim, "TicksPerFrame") : -1;
+    const int32_t offPingPong = vertical ? il2cpp::fieldOffset(vertical, "PingPong") : -1;
+    const int32_t offStill = vertical ? il2cpp::fieldOffset(vertical, "NotActuallyAnimating") : -1;
     Il2CppArray* arr = nullptr;
     if (f) a.field_static_get_value(f, &arr);
-    if (!arr || offFrames < 0 || offTicks < 0) {
+    if (!arr || offFrames < 0 || offTicks < 0 || offPingPong < 0 || offStill < 0) {
         BL_WARN("cheats: Main.itemAnimations unavailable; animated item icons stay still");
         return;
     }
     auto** items = static_cast<Il2CppObject**>(arrayData(arr));
     g_itemAnimation.assign(arr->length * 2, 0);
+    int moving = 0;
     for (size_t i = 0; i < arr->length; ++i) {
         if (!items[i]) continue;
-        g_itemAnimation[i * 2] = field<int32_t>(items[i], offFrames);
-        g_itemAnimation[i * 2 + 1] = field<int32_t>(items[i], offTicks);
+        const int frames = field<int32_t>(items[i], offFrames);
+        const int ticks = field<int32_t>(items[i], offTicks);
+        Il2CppClass* kind = a.object_get_class(items[i]);
+        int step = 0;
+        if (frames > 1 && ticks > 0 && ticks <= kMaxIconTicks) {
+            if (kind && a.class_is_assignable_from(vertical, kind)) {
+                if (!field<bool>(items[i], offStill)) step = field<bool>(items[i], offPingPong) ? -ticks : ticks;
+            } else if (kind && kind == orb) {
+                step = -ticks;
+            }
+        }
+        g_itemAnimation[i * 2] = frames;
+        g_itemAnimation[i * 2 + 1] = step;
+        if (step) ++moving;
     }
+    BL_DEBUG("cheats: %d animated item icon(s)", moving);
 }
 
 void readNamesSlice() {
