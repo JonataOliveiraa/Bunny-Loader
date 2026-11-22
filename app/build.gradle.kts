@@ -447,8 +447,21 @@ val writeDotnetReferences by tasks.registering {
     }
 }
 
+val writeAotKey by tasks.registering {
+    dependsOn(buildBunnyLoaderCs)
+    val api = layout.buildDirectory.file("csharp/BunnyLoader/BunnyLoader.dll")
+    val out = layout.buildDirectory.file("generated/dotnetAotKey/aot-key.txt")
+    inputs.file(api)
+    inputs.property("mono", monoVersion)
+    outputs.file(out)
+    doLast {
+        val key = sha256(api.get().asFile).take(16) + "-" + monoVersion
+        out.get().asFile.apply { parentFile.mkdirs() }.writeText(key + "\n")
+    }
+}
+
 val syncDotnetAssets by tasks.registering(Sync::class) {
-    dependsOn(fetchMonoRuntime, buildBunnyLoaderCs, writeDotnetReferences)
+    dependsOn(fetchMonoRuntime, buildBunnyLoaderCs, writeDotnetReferences, writeAotKey)
     inputs.property("libs", monoShippedLibs)
     from(monoPack.map { zipTree(it) }) {
         include("runtimes/android-arm64/native/System.Private.CoreLib.dll")
@@ -464,6 +477,7 @@ val syncDotnetAssets by tasks.registering(Sync::class) {
         include(compilerAssemblies.map { "$it.dll" })
     }
     from(writeDotnetReferences)
+    from(writeAotKey)
     includeEmptyDirs = false
     into(movableAssets.map { it.dir("dotnet") })
 }

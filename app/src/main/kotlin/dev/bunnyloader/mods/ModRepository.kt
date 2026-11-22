@@ -337,6 +337,15 @@ class ModRepository(private val context: Context) {
         return builds
     }
 
+    fun modAssemblies(): List<File> = list()
+        .filter { !it.isOutdated && it.packType == PackType.MOD }
+        .mapNotNull { m ->
+            val dir = dirOf(m.uid) ?: return@mapNotNull null
+            val entry = entryOf(dir) ?: return@mapNotNull null
+            val dll = if (entry.extension.equals("cs", ignoreCase = true)) File(dir, "bin/${m.id}.dll") else entry
+            dll.takeIf { it.isFile && it.extension.equals("dll", ignoreCase = true) }
+        }
+
     private fun nativeEntry(m: ModManifest): String? = when (m.packType) {
         PackType.TEXTURE -> "@texture"
         PackType.FONT -> "@font"

@@ -640,6 +640,7 @@ class Shell(context: Context) {
                         offerUpdateNotices(remote)
                     }
                 }
+                dev.bunnyloader.game.AotImages.requestSync(sourceContext)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

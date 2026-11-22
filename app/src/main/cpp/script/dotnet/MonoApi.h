@@ -34,6 +34,7 @@ struct MonoApi {
     void* (*mono_threads_enter_gc_unsafe_region_unbalanced)(void** stackdata) = nullptr;
     char* (*mono_get_runtime_build_info)() = nullptr;
     void (*mono_free)(void* ptr) = nullptr;
+    void (*mono_aot_register_module)(void** info) = nullptr;
 
     bool load();
     bool loaded() const { return loaded_; }

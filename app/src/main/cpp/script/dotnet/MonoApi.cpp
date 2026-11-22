@@ -44,6 +44,7 @@ bool MonoApi::load() {
     resolve(mono_threads_enter_gc_unsafe_region_unbalanced, "mono_threads_enter_gc_unsafe_region_unbalanced");
     resolve(mono_get_runtime_build_info, "mono_get_runtime_build_info");
     resolve(mono_free, "mono_free");
+    resolve(mono_aot_register_module, "mono_aot_register_module");
     loaded_ = ok;
     return ok;
 }

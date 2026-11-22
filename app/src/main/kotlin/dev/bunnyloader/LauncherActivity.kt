@@ -107,6 +107,11 @@ class LauncherActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        dev.bunnyloader.game.AotImages.requestSync(this)
+    }
+
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) hideNavigationBar()

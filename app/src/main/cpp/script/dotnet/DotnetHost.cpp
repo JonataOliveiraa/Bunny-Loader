@@ -1,4 +1,5 @@
 #include "script/dotnet/DotnetHost.h"
+#include "script/dotnet/JitRecorder.h"
 #include "script/dotnet/MonoApi.h"
 #include "script/dotnet/NativeApi.h"
 #include "core/Config.h"
@@ -9,6 +10,7 @@
 #include <signal.h>
 #include <stdlib.h>
 
+#include <cstdio>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -96,8 +98,64 @@ private:
     std::vector<SignalSnapshot> saved_;
 };
 
+std::string aotModuleSymbol(const std::string& file) {
+    std::string name = file.substr(0, file.size() - strlen(".dll.so"));
+    for (char& c : name) {
+        const bool keep = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_';
+        if (!keep) c = '_';
+    }
+    return "mono_aot_module_" + name + "_info";
+}
+
+std::string aotFolder(const std::string& dotnetDir) {
+    FILE* f = fopen((dotnetDir + "/aot-key.txt").c_str(), "r");
+    if (!f) return "";
+    char key[128] = {};
+    const bool read = fgets(key, sizeof(key), f) != nullptr;
+    fclose(f);
+    if (!read) return "";
+    std::string k = key;
+    while (!k.empty() && (k.back() == '\n' || k.back() == '\r' || k.back() == ' ')) k.pop_back();
+    for (char c : k) {
+        const bool ok = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-' || c == '.';
+        if (!ok) return "";
+    }
+    const size_t slash = dotnetDir.rfind('/');
+    if (k.empty() || slash == std::string::npos) return "";
+    return dotnetDir.substr(0, slash) + "/aot/" + k;
+}
+
+void registerAotModules(const std::string& dir) {
+    if (dir.empty()) return;
+    DIR* d = opendir(dir.c_str());
+    if (!d) return;
+    int count = 0;
+    while (dirent* e = readdir(d)) {
+        const std::string name = e->d_name;
+        if (name.size() <= 7 || name.compare(name.size() - 7, 7, ".dll.so") != 0) continue;
+        const std::string path = dir + "/" + name;
+        void* lib = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
+        if (!lib) {
+            BL_WARN("dotnet: AOT image %s did not open: %s", name.c_str(), dlerror());
+            continue;
+        }
+        const std::string symbol = aotModuleSymbol(name);
+        auto* slot = reinterpret_cast<void**>(dlsym(lib, symbol.c_str()));
+        if (!slot || !*slot) {
+            BL_WARN("dotnet: AOT image %s has no %s", name.c_str(), symbol.c_str());
+            dlclose(lib);
+            continue;
+        }
+        mono().mono_aot_register_module(reinterpret_cast<void**>(*slot));
+        ++count;
+    }
+    closedir(d);
+    if (count) BL_INFO("dotnet: %d AOT image(s) registered from %s", count, dir.c_str());
+}
+
 MonoDomain* initRuntime(const std::string& dir) {
     auto& m = mono();
+    prepareJitRecorder();
     setenv("MONO_THREADS_SUSPEND", "coop", 1);
     m.mono_set_signal_chaining(1);
     m.mono_set_crash_chaining(1);
@@ -124,6 +182,8 @@ MonoDomain* initRuntime(const std::string& dir) {
         BL_ERROR("dotnet: monovm_initialize failed");
         return nullptr;
     }
+    startJitRecorder();
+    registerAotModules(aotFolder(dir));
     MonoDomain* domain = m.mono_jit_init_version("BunnyLoader", "v4.0.30319");
     if (!domain) BL_ERROR("dotnet: mono_jit_init_version failed");
     return domain;
