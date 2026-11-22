@@ -81,6 +81,7 @@ internal static unsafe class TouchControlSizes
     static List<Row>? saved;
     static readonly HashSet<string> reported = new();
     static bool undoPending;
+    static bool probing;
 
     static string FilePath => Path.Combine(Main.SavePath ?? "", "BunnyLoader.touchsizes.json");
 
@@ -89,9 +90,9 @@ internal static unsafe class TouchControlSizes
         On_VirtualControlsStyles_Layout.GetAxisConfiguration += (orig, self, id) =>
         {
             VirtualControlsAxisConfiguration_Layout found = orig(self, id);
-            if (found.IsNull && !string.IsNullOrEmpty(id)) Guard("axis style", () =>
+            if (found.IsNull && !probing && !string.IsNullOrEmpty(id)) Guard("axis style", () =>
             {
-                string resolved = IsOurs(id) ? id! : Resolve(self, Table.Axis, id!);
+                string resolved = IsOurs(id) ? id! : Resolve(self, Table.Axis, id!, anyPrefix: true);
                 found = IsOurs(resolved) ? AxisConfig(self, resolved) : resolved != id ? orig(self, resolved) : default;
             });
             return found;
@@ -99,9 +100,9 @@ internal static unsafe class TouchControlSizes
         On_VirtualControlsStyles_Layout.GetButtonConfiguration += (orig, self, id) =>
         {
             VirtualControlsButtonConfiguration_Layout found = orig(self, id);
-            if (found.IsNull && !string.IsNullOrEmpty(id)) Guard("button style", () =>
+            if (found.IsNull && !probing && !string.IsNullOrEmpty(id)) Guard("button style", () =>
             {
-                string resolved = IsOurs(id) ? id! : Resolve(self, Table.Button, id!);
+                string resolved = IsOurs(id) ? id! : Resolve(self, Table.Button, id!, anyPrefix: true);
                 found = IsOurs(resolved) ? ButtonConfig(self, resolved) : resolved != id ? orig(self, resolved) : default;
             });
             return found;
@@ -109,9 +110,9 @@ internal static unsafe class TouchControlSizes
         On_VirtualControlsStyles_Layout.GetGroupConfiguration += (orig, self, id) =>
         {
             VirtualControlsGroupConfiguration_Layout found = orig(self, id);
-            if (found.IsNull && !string.IsNullOrEmpty(id)) Guard("group style", () =>
+            if (found.IsNull && !probing && !string.IsNullOrEmpty(id)) Guard("group style", () =>
             {
-                string resolved = IsOurs(id) ? id! : Resolve(self, Table.Group, id!);
+                string resolved = IsOurs(id) ? id! : Resolve(self, Table.Group, id!, anyPrefix: true);
                 found = IsOurs(resolved) ? GroupConfig(self, resolved) : resolved != id ? orig(self, resolved) : default;
             });
             return found;
@@ -616,24 +617,17 @@ internal static unsafe class TouchControlSizes
 
     static bool Exists(VirtualControlsStyles_Layout styles, Table table, string id)
     {
-        switch (table)
+        probing = true;
+        try
         {
-            case Table.Axis:
-                GameArray<VirtualControlsAxisConfiguration_Layout> axes = styles.AxisTypes;
-                for (int i = 0; !axes.IsNull && i < axes.Length; i++)
-                    if (!axes[i].IsNull && axes[i].Id == id) return true;
-                return false;
-            case Table.Group:
-                GameArray<VirtualControlsGroupConfiguration_Layout> groups = styles.GroupTypes;
-                for (int i = 0; !groups.IsNull && i < groups.Length; i++)
-                    if (!groups[i].IsNull && groups[i].Id == id) return true;
-                return false;
-            default:
-                GameArray<VirtualControlsButtonConfiguration_Layout> buttons = styles.ButtonTypes;
-                for (int i = 0; !buttons.IsNull && i < buttons.Length; i++)
-                    if (!buttons[i].IsNull && buttons[i].Id == id) return true;
-                return false;
+            return table switch
+            {
+                Table.Axis => !styles.GetAxisConfiguration(id).IsNull,
+                Table.Group => !styles.GetGroupConfiguration(id).IsNull,
+                _ => !styles.GetButtonConfiguration(id).IsNull,
+            };
         }
+        finally { probing = false; }
     }
 
     static void Migrate(VirtualControlsStyles_Layout styles)
