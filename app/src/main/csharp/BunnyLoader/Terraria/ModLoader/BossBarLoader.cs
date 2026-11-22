@@ -86,7 +86,7 @@ public static unsafe class BossBarLoader
             foreach (ModBossBarStyle candidate in bossBarStyles)
                 if (candidate != vanillaStyle && candidate.FullName == name) { Select(candidate); return; }
         }
-        catch (Exception e) { Log.Error($"BossBarLoader: {file} is broken ({e.Message}); using the vanilla boss bar"); }
+        catch (Exception e) { Log.Warn($"BossBarLoader: {file} is broken ({e.Message}); using the vanilla boss bar"); }
     }
 
     static void SaveStyle()

@@ -49,7 +49,7 @@ internal static class ScreenEffectsSetting
         }
         catch (Exception e)
         {
-            Log.Error($"ScreenEffects: {file} is broken ({e.Message}); screen effects stay on");
+            Log.Warn($"ScreenEffects: {file} is broken ({e.Message}); screen effects stay on");
         }
     }
 

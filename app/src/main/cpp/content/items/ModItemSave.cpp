@@ -10,8 +10,10 @@
 #include "content/items/ModItemData.h"
 #include "content/items/ModItems.h"
 #include "content/items/ModPrefixes.h"
+#include "content/tiles/ModTileSave.h"
 #include "il2cpp/GuardedCall.h"
 #include "core/Config.h"
+#include <atomic>
 #include <fstream>
 
 #include <cstdio>
@@ -539,6 +541,24 @@ ChestSlot slotOf(Il2CppArray* items, int slot) {
     return {static_cast<char*>(arrayData(items)) + static_cast<size_t>(slot) * g_chest.stride};
 }
 
+using ChestPrefixFn = bool (*)(void*, int32_t, bool*, const MethodInfo*);
+ChestPrefixFn g_origChestPrefix = nullptr;
+std::atomic<int> g_chestPrefixSkipped{0};
+bool hkChestPrefix(void* slot, int32_t prefix, bool* topTier, const MethodInfo* method) {
+    if (g_chest.ok && slot) {
+        const int type = ChestSlot{static_cast<char*>(slot)}.type();
+        if (type >= itemTypeCount()) {
+            if (g_chestPrefixSkipped.fetch_add(1) == 0) {
+                BL_WARN("mod item save: a chest holds item %d, which is not loaded; its prefix "
+                        "is skipped so the world still opens", type);
+            }
+            if (topTier) *topTier = false;
+            return false;
+        }
+    }
+    return g_origChestPrefix(slot, prefix, topTier, method);
+}
+
 std::vector<ChestData> snapshotChest(Il2CppObject* chest, bool erase) {
     std::vector<ChestData> snapshot;
     auto* items = chest ? reinterpret_cast<Il2CppArray*>(objectAt(chest, g_chest.items)) : nullptr;
@@ -662,7 +682,13 @@ int32_t hkSaveChests(Il2CppObject* writer, const MethodInfo* m) {
                     items.size(), kept);
         }
     }
-    return g_origSaveChests(writer, m);
+    std::vector<std::pair<int, int>> positions;
+    if (g_chest.ok) {
+        forEachChest([&](Il2CppObject* chest, Il2CppArray*) {
+            positions.push_back({field<int32_t>(chest, g_chest.x), field<int32_t>(chest, g_chest.y)});
+        });
+    }
+    return withKeptChestTiles(positions, [&] { return g_origSaveChests(writer, m); });
 }
 
 using FixFn = void (*)(const MethodInfo*);
@@ -741,7 +767,7 @@ void hkFixAgainstExploits(const MethodInfo* m) {
     if (!saved.empty() || stray) {
         BL_INFO("mod item save: world: %d item(s) in chests restored (%d as \"?\"), %d "
                 "mod prefix(es) on game items, %zu only in the file, %d invalid number(s) "
-                "limpo(s)", restored, unloaded, prefixes, kept.size(), stray);
+                "cleared", restored, unloaded, prefixes, kept.size(), stray);
     }
     g_origFix(m);
 }
@@ -957,6 +983,11 @@ void installModItemSave() {
         hook::install(method(chest, "Chest CloneWithSeparateItems()"), hkCloneChest, &g_origCloneChest) &&
         hook::install(method(chest, "void Clear()"), hkClearChests, &g_origClearChests);
     if (!okData) BL_ERROR("ModItem: chest data hooks incomplete");
+    if (!okWorld || !hook::install(method(chestItem, "bool Prefix(int prefixWeWant, out bool rolledPrefixIsTopTier)"),
+                                   hkChestPrefix, &g_origChestPrefix)) {
+        BL_ERROR("mod item save: ChestItem.Prefix is not hooked; a world with a prefixed item "
+                 "from a mod that is gone fails to load");
+    }
     BL_DEBUG("mod item save: ready (player%s)", okWorld ? " and world chests" : "");
 }
 

@@ -114,7 +114,7 @@ internal static class TouchButtonLayouts
         }
         catch (Exception e)
         {
-            Log.Error($"TouchButtons: {file} is broken ({e.Message}); starting with no mod buttons in the layouts");
+            Log.Warn($"TouchButtons: {file} is broken ({e.Message}); starting with no mod buttons in the layouts");
         }
         return saved;
     }

@@ -593,7 +593,7 @@ internal static unsafe class TouchControlSizes
         }
         catch (Exception e)
         {
-            Log.Error($"TouchControlSizes: {file} is broken ({e.Message}); the touch controls keep the game's sizes");
+            Log.Warn($"TouchControlSizes: {file} is broken ({e.Message}); the touch controls keep the game's sizes");
         }
         return saved;
     }
