@@ -1,4 +1,5 @@
 #include "boot/QuickStart.h"
+#include "content/common/ModTextures.h"
 
 #include "content/common/GameRefs.h"
 #include "content/common/ModContent.h"
@@ -197,6 +198,8 @@ void showTitle() {
     BL_INFO("startup: title on screen at %.1f s", sinceStart());
 }
 
+constexpr int kSplashUploadMicros = 8000;
+
 void hkDrawSplash(Il2CppObject* self, Il2CppObject* gameTime, const MethodInfo* m) {
     const bool expired = sinceStart() > kHoldLimitSeconds;
     if (expired && (g_titleHeld || !g_probeFinished.load(std::memory_order_acquire))) {
@@ -206,6 +209,7 @@ void hkDrawSplash(Il2CppObject* self, Il2CppObject* gameTime, const MethodInfo* 
     }
     if (g_titleHeld) {
         drawLoadingScreen(self);
+        runtime::content::pumpModTextures(kSplashUploadMicros);
         if (runtime::contentFinished() || expired) showTitle();
         return;
     }
@@ -226,6 +230,7 @@ void hkDrawSplash(Il2CppObject* self, Il2CppObject* gameTime, const MethodInfo* 
     const bool held = !loaded && holdSplashTimer(self);
 
     g_origDrawSplash(self, gameTime, m);
+    if (g_gameLoaded) runtime::content::pumpModTextures(kSplashUploadMicros);
 
     if (!g_gameLoaded && staticBool(g_intro.asyncLoadComplete)) {
         {

@@ -731,7 +731,18 @@ void hkLoadWorldTiles(Il2CppObject* reader, Il2CppArray* importance, const Metho
 }
 
 constexpr int kChestTile = 21;
+constexpr int kDresserTile = 88;
 constexpr int kChestTile2 = 467;
+
+int32_t* tileReferenceCounts() {
+    static FieldInfo* field = [] {
+        Il2CppClass* data = il2cpp::findClass({"Terraria", "TileData", {}});
+        return data ? il2cpp::findField(data, "TileReferenceCount") : nullptr;
+    }();
+    int32_t* counts = nullptr;
+    if (field) il2cpp::api().field_static_get_value(field, &counts);
+    return counts;
+}
 
 }
 
@@ -739,6 +750,8 @@ int32_t withKeptChestTiles(const std::vector<std::pair<int, int>>& chests, const
     const std::string path = activeWorldPath();
     TileArrays t;
     std::vector<std::pair<int64_t, uint32_t>> swapped;
+    int32_t* counts = nullptr;
+    uint32_t chestDef = 0;
     if (!chests.empty() && !path.empty() && tileArrays(&t) && t.lookup && t.type && t.sHeader) {
         std::unordered_set<int64_t> kept;
         {
@@ -752,45 +765,61 @@ int32_t withKeptChestTiles(const std::vector<std::pair<int, int>>& chests, const
         const auto cell = [&](int x, int y) { return static_cast<int64_t>(y) * t.width + x; };
         const auto active = [&](int64_t pos) { return (t.sHeader[t.lookup[pos]] & kTileActiveBit) != 0; };
         std::vector<int64_t> cells;
+        std::unordered_set<int64_t> taken;
+        size_t held = 0;
         if (!kept.empty()) {
             for (const auto& [x, y] : chests) {
-                bool held = inside(x, y) && inside(x + 1, y + 1);
-                for (int dx = 0; held && dx < 2; ++dx) {
-                    for (int dy = 0; held && dy < 2; ++dy) {
+                bool ok = inside(x, y) && inside(x + 1, y + 1);
+                for (int dx = 0; ok && dx < 2; ++dx) {
+                    for (int dy = 0; ok && dy < 2; ++dy) {
                         const int64_t pos = cell(x + dx, y + dy);
-                        held = !active(pos) && kept.count(pos) > 0;
+                        ok = !active(pos) && kept.count(pos) > 0;
                     }
                 }
-                if (!held) continue;
+                if (!ok) continue;
+                ++held;
                 for (int dx = 0; dx < 2; ++dx) {
-                    for (int dy = 0; dy < 2; ++dy) cells.push_back(cell(x + dx, y + dy));
+                    for (int dy = 0; dy < 2; ++dy) {
+                        if (taken.insert(cell(x + dx, y + dy)).second) cells.push_back(cell(x + dx, y + dy));
+                    }
                 }
             }
         }
-        int64_t chestDef = -1;
+        bool found = false;
         for (const auto& [x, y] : chests) {
             if (cells.empty()) break;
             if (!inside(x, y)) continue;
             const uint32_t def = t.lookup[cell(x, y)];
-            if ((t.type[def] == kChestTile || t.type[def] == kChestTile2) && (t.sHeader[def] & kTileActiveBit)) {
+            const int type = t.type[def];
+            if ((type == kChestTile || type == kDresserTile || type == kChestTile2) && (t.sHeader[def] & kTileActiveBit)) {
                 chestDef = def;
+                found = true;
                 break;
             }
         }
-        if (!cells.empty() && chestDef < 0) {
-            BL_WARN("mod tiles: %zu chest(s) stand on tiles from a mod that is not loaded and the world has no game "
-                    "chest to stand in for them; the game drops them from this save", cells.size() / 4);
+        counts = cells.empty() ? nullptr : tileReferenceCounts();
+        if (!cells.empty() && (!found || !counts)) {
+            BL_WARN("mod tiles: %zu chest(s) stand on tiles from a mod that is not loaded and %s; the game drops "
+                    "them from this save", held, found ? "the tile reference counts are out of reach"
+                                                       : "the world has no game chest to stand in for them");
         } else if (!cells.empty()) {
             for (int64_t pos : cells) {
-                swapped.push_back({pos, t.lookup[pos]});
-                t.lookup[pos] = static_cast<uint32_t>(chestDef);
+                const uint32_t old = t.lookup[pos];
+                swapped.push_back({pos, old});
+                --counts[old];
+                ++counts[chestDef];
+                t.lookup[pos] = chestDef;
             }
-            BL_INFO("mod tiles: %zu chest(s) on tiles from a mod that is not loaded stay in the save",
-                    cells.size() / 4);
+            BL_INFO("mod tiles: %zu chest(s) on tiles from a mod that is not loaded stay in the save", held);
         }
     }
     const int32_t r = run();
-    for (auto it = swapped.rbegin(); it != swapped.rend(); ++it) t.lookup[it->first] = it->second;
+    for (auto it = swapped.rbegin(); it != swapped.rend(); ++it) {
+        if (t.lookup[it->first] != chestDef) continue;
+        t.lookup[it->first] = it->second;
+        --counts[chestDef];
+        ++counts[it->second];
+    }
     return r;
 }
 

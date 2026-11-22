@@ -289,6 +289,10 @@ bool rawTextureUploadAvailable() {
 }
 
 Il2CppObject* textureAssetFromPixels(const uint8_t* rgba, int width, int height, const std::string& assetName) {
+    return wrapTextureAsset(gameTextureFromPixels(rgba, width, height, assetName), assetName);
+}
+
+Il2CppObject* gameTextureFromPixels(const uint8_t* rgba, int width, int height, const std::string& assetName) {
     auto& a = il2cpp::api();
     const Refs& r = refs();
     if (!rawTextureUploadAvailable() || !rgba || width <= 0 || height <= 0) return nullptr;
@@ -320,7 +324,7 @@ Il2CppObject* textureAssetFromPixels(const uint8_t* rgba, int width, int height,
     Il2CppObject* gt = a.object_new(r.gameTex);
     void* c2[1] = {ut};
     if (!invoke(r.gameCtor, gt, c2, "game Texture2D")) return nullptr;
-    return wrapTextureAsset(gt, assetName);
+    return gt;
 }
 
 void checkTextureAgainstUnity(const std::string& path, const uint8_t* rgba, int width, int height,

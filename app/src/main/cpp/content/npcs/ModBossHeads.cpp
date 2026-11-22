@@ -3,6 +3,7 @@
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "content/common/ContentAssets.h"
+#include "content/common/ModTextures.h"
 #include "content/common/TypeTables.h"
 
 #include <map>
@@ -113,7 +114,7 @@ int loadPending() {
         if (h.tried) continue;
         h.tried = true;
         int w = 0, hgt = 0;
-        Il2CppObject* asset = content::loadTextureAsset(h.texture, nullptr, 0, h.assetName, &w, &hgt);
+        Il2CppObject* asset = content::modTextureAsset(h.texture, nullptr, 0, h.assetName, &w, &hgt);
         if (!asset) {
             BL_ERROR("mod boss icons: could not load %s (slot %d)", h.texture.c_str(), h.slot);
             continue;

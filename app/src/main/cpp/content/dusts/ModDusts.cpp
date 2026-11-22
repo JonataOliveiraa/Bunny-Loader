@@ -1,5 +1,6 @@
 #include "content/dusts/ModDusts.h"
 #include "content/common/ContentAssets.h"
+#include "content/common/ModTextures.h"
 #include "content/common/GameRefs.h"
 #include "content/common/TypeTables.h"
 #include "core/Log.h"
@@ -7,6 +8,7 @@
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 
+#include <unordered_set>
 #include <atomic>
 #include <cstring>
 #include <mutex>
@@ -31,6 +33,7 @@ struct Entry {
 
 std::mutex g_mx;
 std::vector<Entry> g_regs;
+std::unordered_set<std::string> g_regNames;
 std::atomic<int> g_total{0};
 std::atomic<int> g_installed{0};
 bool g_failed = false;
@@ -532,15 +535,20 @@ bool gameReady() {
 }
 
 int registerModDust(ModDustDef def) {
-    std::lock_guard<std::mutex> l(g_mx);
-    for (const Entry& e : g_regs) {
-        if (e.def.mod == def.mod && e.def.name == def.name) return -1;
+    const std::string assetName = def.mod + "/" + def.name;
+    const std::string texture = def.texture;
+    int type;
+    {
+        std::lock_guard<std::mutex> l(g_mx);
+        if (!g_regNames.insert(assetName).second) return -1;
+        Entry e;
+        e.def = std::move(def);
+        g_regs.push_back(std::move(e));
+        g_total.store(static_cast<int>(g_regs.size()), std::memory_order_release);
+        type = kVanillaDustCount + static_cast<int>(g_regs.size()) - 1;
     }
-    Entry e;
-    e.def = std::move(def);
-    g_regs.push_back(std::move(e));
-    g_total.store(static_cast<int>(g_regs.size()), std::memory_order_release);
-    return kVanillaDustCount + static_cast<int>(g_regs.size()) - 1;
+    content::prefetchModTexture(texture, assetName);
+    return type;
 }
 
 void setModDustUpdateType(int type, int updateType) {
@@ -624,7 +632,7 @@ void tickModDusts() {
             while (k < paths.size() && paths[k] != e.def.texture) ++k;
             if (k == paths.size()) {
                 int w = 0, h = 0;
-                Il2CppObject* asset = content::loadTextureAsset(e.def.texture, nullptr, 0,
+                Il2CppObject* asset = content::modTextureAsset(e.def.texture, nullptr, 0,
                                                                 e.def.mod + "/" + e.def.name, &w, &h);
                 if (!asset) {
                     BL_ERROR("mod dust %s: texture did not load (%s); using the game's sheet",

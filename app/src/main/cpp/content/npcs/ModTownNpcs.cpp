@@ -5,6 +5,7 @@
 #include "il2cpp/Resolver.h"
 #include "hook/CodePatch.h"
 #include "content/common/ContentAssets.h"
+#include "content/common/ModTextures.h"
 #include "content/common/GameRefs.h"
 #include "content/npcs/ModNpcs.h"
 #include "content/common/TypeTables.h"
@@ -241,7 +242,7 @@ void installTownNpcs(int totalTypes) {
     }
     for (Head& h : g_heads) {
         int w = 0, hgt = 0;
-        Il2CppObject* asset = content::loadTextureAsset(h.texture, nullptr, 0, h.assetName, &w, &hgt);
+        Il2CppObject* asset = content::modTextureAsset(h.texture, nullptr, 0, h.assetName, &w, &hgt);
         if (!asset) continue;
         h.asset = il2cpp::api().gchandle_new(asset, false);
         if (h.variant == 0) g_slotOf[h.type] = h.slot;

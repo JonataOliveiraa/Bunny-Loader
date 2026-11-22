@@ -3,12 +3,14 @@
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "content/common/ContentAssets.h"
+#include "content/common/ModTextures.h"
 #include "content/common/GameRefs.h"
 #include "content/common/TypeTables.h"
 #include "content/tiles/ModTileMap.h"
 #include "content/tiles/ModTiles.h"
 #include "content/walls/UnloadedWallTexture.h"
 
+#include <unordered_set>
 #include <atomic>
 #include <cstring>
 #include <mutex>
@@ -24,6 +26,7 @@ struct Entry {
 
 std::mutex g_mx;
 std::vector<Entry> g_regs;
+std::unordered_set<std::string> g_regNames;
 std::atomic<WallsInstalledHook> g_managedInstalledHook{nullptr};
 std::atomic<int> g_total{0};
 std::atomic<int> g_installed{0};
@@ -119,15 +122,20 @@ bool gameReady(int size) {
 }
 
 int registerModWall(ModWallDef def) {
-    std::lock_guard<std::mutex> l(g_mx);
-    for (const Entry& e : g_regs) {
-        if (e.def.mod == def.mod && e.def.name == def.name) return -1;
+    const std::string assetName = def.mod + "/" + def.name;
+    const std::string texture = (def.textureData ? std::string() : def.texture);
+    int type;
+    {
+        std::lock_guard<std::mutex> l(g_mx);
+        if (!g_regNames.insert(assetName).second) return -1;
+        Entry e;
+        e.def = std::move(def);
+        g_regs.push_back(std::move(e));
+        g_total.store(static_cast<int>(g_regs.size()), std::memory_order_release);
+        type = kVanillaWallCount + static_cast<int>(g_regs.size()) - 1;
     }
-    Entry e;
-    e.def = std::move(def);
-    g_regs.push_back(std::move(e));
-    g_total.store(static_cast<int>(g_regs.size()), std::memory_order_release);
-    return kVanillaWallCount + static_cast<int>(g_regs.size()) - 1;
+    content::prefetchModTexture(texture, assetName);
+    return type;
 }
 
 bool isModWall(int type) {
@@ -183,7 +191,7 @@ void tickModWalls() {
             Entry& e = g_regs[static_cast<size_t>(i)];
             const int type = kVanillaWallCount + i;
             int w = 0, h = 0;
-            Il2CppObject* asset = content::loadTextureAsset(e.def.texture, e.def.textureData, e.def.textureSize,
+            Il2CppObject* asset = content::modTextureAsset(e.def.texture, e.def.textureData, e.def.textureSize,
                                                             e.def.mod + "/" + e.def.name, &w, &h);
             if (asset) e.asset = il2cpp::api().gchandle_new(asset, false);
             else BL_ERROR("mod walls: %s/%s has no texture (%s)", e.def.mod.c_str(), e.def.name.c_str(),

@@ -6,11 +6,13 @@
 #include "il2cpp/Resolver.h"
 #include "hook/CodePatch.h"
 #include "content/common/ContentAssets.h"
+#include "content/common/ModTextures.h"
 #include "content/common/GameRefs.h"
 #include "content/common/TypeTables.h"
 #include "content/tiles/ModTileMap.h"
 #include "content/tiles/TileEvents.h"
 
+#include <unordered_set>
 #include <atomic>
 #include <cstdlib>
 #include <cstring>
@@ -28,6 +30,7 @@ struct Entry {
 
 std::mutex g_mx;
 std::vector<Entry> g_regs;
+std::unordered_set<std::string> g_regNames;
 std::atomic<TilesInstalledHook> g_managedInstalledHook{nullptr};
 std::atomic<int> g_total{0};
 std::atomic<int> g_installed{0};
@@ -691,15 +694,20 @@ void ensureTileDrawHook() {
 }
 
 int registerModTile(ModTileDef def) {
-    std::lock_guard<std::mutex> l(g_mx);
-    for (const Entry& e : g_regs) {
-        if (e.def.mod == def.mod && e.def.name == def.name) return -1;
+    const std::string assetName = def.mod + "/" + def.name;
+    const std::string texture = def.texture;
+    int type;
+    {
+        std::lock_guard<std::mutex> l(g_mx);
+        if (!g_regNames.insert(assetName).second) return -1;
+        Entry e;
+        e.def = std::move(def);
+        g_regs.push_back(std::move(e));
+        g_total.store(static_cast<int>(g_regs.size()), std::memory_order_release);
+        type = kVanillaTileCount + static_cast<int>(g_regs.size()) - 1;
     }
-    Entry e;
-    e.def = std::move(def);
-    g_regs.push_back(std::move(e));
-    g_total.store(static_cast<int>(g_regs.size()), std::memory_order_release);
-    return kVanillaTileCount + static_cast<int>(g_regs.size()) - 1;
+    content::prefetchModTexture(texture, assetName);
+    return type;
 }
 
 bool isModTile(int type) {
@@ -768,7 +776,7 @@ void tickModTiles() {
         for (int i = installed; i < total; ++i) {
             Entry& e = g_regs[static_cast<size_t>(i)];
             int w = 0, h = 0;
-            Il2CppObject* asset = content::loadTextureAsset(e.def.texture, nullptr, 0,
+            Il2CppObject* asset = content::modTextureAsset(e.def.texture, nullptr, 0,
                                                             e.def.mod + "/" + e.def.name, &w, &h);
             if (asset) e.asset = il2cpp::api().gchandle_new(asset, false);
             applyTexture(kVanillaTileCount + i, e);

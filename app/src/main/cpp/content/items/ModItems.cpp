@@ -6,12 +6,14 @@
 #include "hook/HookManager.h"
 #include "hook/CodePatch.h"
 #include "content/common/ContentAssets.h"
+#include "content/common/ModTextures.h"
 #include "content/common/ModLanguage.h"
 #include "content/common/GameRefs.h"
 #include "content/common/TypeTables.h"
 #include "content/items/ModItemSorting.h"
 #include "content/items/EmptyTexture.h"
 
+#include <unordered_set>
 #include <algorithm>
 #include <atomic>
 #include <cstdio>
@@ -33,6 +35,7 @@ struct Entry {
 
 std::mutex g_mx;
 std::vector<Entry> g_regs;
+std::unordered_set<std::string> g_regNames;
 std::atomic<int> g_total{0};
 std::atomic<int> g_installed{0};
 bool g_failed = false;
@@ -225,7 +228,7 @@ void loadFlame(Entry& reg) {
         }
     }
     if (reg.def.flameTexture.empty()) return;
-    Il2CppObject* flame = content::loadTextureAsset(reg.def.flameTexture, nullptr, 0,
+    Il2CppObject* flame = content::modTextureAsset(reg.def.flameTexture, nullptr, 0,
                                                     reg.def.mod + "/" + reg.def.name + "_Flame", &w, &h);
     if (flame) reg.flameAsset = a.gchandle_new(flame, false);
 }
@@ -488,15 +491,22 @@ void growInstanceTables(int size) {
 }
 
 int registerModItem(ModItemDef def) {
-    std::lock_guard<std::mutex> l(g_mx);
-    for (const Entry& r : g_regs) {
-        if (r.def.mod == def.mod && r.def.name == def.name) return -1;
+    const std::string assetName = def.mod + "/" + def.name;
+    const std::string texture = (def.textureData ? std::string() : def.texture);
+    const std::string flame = def.flameTexture;
+    int type;
+    {
+        std::lock_guard<std::mutex> l(g_mx);
+        if (!g_regNames.insert(assetName).second) return -1;
+        Entry reg;
+        reg.def = std::move(def);
+        g_regs.push_back(std::move(reg));
+        g_total.store(static_cast<int>(g_regs.size()), std::memory_order_release);
+        type = kVanillaItemCount + static_cast<int>(g_regs.size()) - 1;
     }
-    Entry reg;
-    reg.def = std::move(def);
-    g_regs.push_back(std::move(reg));
-    g_total.store(static_cast<int>(g_regs.size()), std::memory_order_release);
-    return kVanillaItemCount + static_cast<int>(g_regs.size()) - 1;
+    content::prefetchModTexture(texture, assetName);
+    content::prefetchModTexture(flame, assetName + "_Flame");
+    return type;
 }
 
 bool isModItem(int type) {
@@ -640,7 +650,7 @@ void tickModItems() {
         for (int i = installed; i < total; ++i) {
             Entry& reg = g_regs[static_cast<size_t>(i)];
             const int type = kVanillaItemCount + i;
-            Il2CppObject* asset = reg.def.texture.empty() && !reg.def.textureData ? nullptr : content::loadTextureAsset(
+            Il2CppObject* asset = reg.def.texture.empty() && !reg.def.textureData ? nullptr : content::modTextureAsset(
                 reg.def.texture, reg.def.textureData, reg.def.textureSize,
                 reg.def.mod + "/" + reg.def.name, &reg.width, &reg.height);
             if (!asset) asset = content::missingTextureAsset(&reg.width, &reg.height);

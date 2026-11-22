@@ -135,6 +135,7 @@ void tickContentReady() {
         if (ContentReadyHook hook = slot.load(std::memory_order_acquire)) more |= hook() != 0;
     }
     g_finished = !more;
+    if (g_finished) content::finishTextureWarmList();
 }
 
 bool contentFinished() {

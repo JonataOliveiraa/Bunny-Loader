@@ -21,6 +21,7 @@
 #include "content/items/ModItems.h"
 #include "content/npcs/ModNpcs.h"
 #include "content/walls/ModWalls.h"
+#include "content/common/ModTextures.h"
 #include "menu/CheatButton.h"
 #include "menu/DevTools.h"
 #include "script/api/Console.h"
@@ -110,6 +111,11 @@ void probeThread() {
             script::installConsoleLog();
 
             runtime::registerGameTexts();
+            if (!config().enabledMods.empty() && !config().dotnetDir.empty()) {
+                std::string key = std::to_string(config().gameVersion);
+                for (const ModSpec& m : config().enabledMods) key += "|" + m.id + "=" + m.entry;
+                runtime::content::prefetchWarmTextures(config().dotnetDir + "/texwarm.txt", key);
+            }
             mods::loadAll(config().modsDir, config().enabledMods);
             dotnet::host().finishLoading();
             runtime::installNetGuard();

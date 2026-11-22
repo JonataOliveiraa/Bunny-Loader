@@ -600,11 +600,11 @@ internal static unsafe class TouchControlSizes
 
     static Table TableOf(SlotType type) => type == SlotType.Axis ? Table.Axis : type == SlotType.Group ? Table.Group : Table.Button;
 
-    internal static string Resolve(VirtualControlsStyles_Layout styles, Table table, string id)
+    internal static string Resolve(VirtualControlsStyles_Layout styles, Table table, string id, bool anyPrefix = false)
     {
         Refresh(styles);
         string fallback = table switch { Table.Axis => Axis.Prefix, Table.Group => Group.Prefix, _ => Action.Prefix };
-        Family? family = FamilyOf(table, PrefixOf(id)) ?? FamilyOf(table, fallback);
+        Family? family = FamilyOf(table, PrefixOf(id)) ?? (anyPrefix ? FamilyOf(table, fallback) : null);
         if (family == null || family.Steps.Length == 0) return id;
         int size = SizeOf(id);
         if (size <= 0) size = family.Reference;
@@ -645,7 +645,7 @@ internal static unsafe class TouchControlSizes
                 if (string.IsNullOrEmpty(id) || IsOurs(id)) continue;
                 Table table = TableOf(style.ControlType);
                 if (Exists(styles, table, id)) continue;
-                string resolved = Resolve(styles, table, id);
+                string resolved = Resolve(styles, table, id, anyPrefix: true);
                 if (resolved != id) style.ControlTypeId = resolved;
             }
     }
