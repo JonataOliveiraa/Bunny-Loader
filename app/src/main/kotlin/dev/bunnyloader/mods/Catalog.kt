@@ -200,7 +200,7 @@ class Catalog(private val context: Context) {
                 // marca gravada não tentava de novo. Sem a marca, a próxima
                 // abertura tenta outra vez.
                 allCopied = false
-                Log.w(TAG, "catalogo: nao recopiei ${entry.manifest.name} (${entry.uid}) na atualizacao", it)
+                Log.w(TAG, "catalog: did not recopy ${entry.manifest.name} (${entry.uid}) on update", it)
             }
         }
         if (allCopied) prefs.edit().putLong(APP_STAMP, stamp).apply()

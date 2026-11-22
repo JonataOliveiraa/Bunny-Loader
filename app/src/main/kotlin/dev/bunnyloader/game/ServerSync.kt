@@ -93,11 +93,11 @@ object ServerSync {
     @JvmStatic
     fun offer(text: String) {
         val offer = runCatching { json.decodeFromString<Offer>(text) }.getOrElse {
-            Log.e(TAG, "sincronizar mods: oferta ilegível", it)
+            Log.e(TAG, "mod sync: unreadable offer", it)
             return
         }
         val context = GameActivity.current?.applicationContext ?: run {
-            Log.e(TAG, "sincronizar mods: sem a tela do jogo")
+            Log.e(TAG, "mod sync: no game screen")
             return
         }
         synchronized(lock) {
@@ -119,7 +119,7 @@ object ServerSync {
                         missing = it.missing,
                     )
                 }.onFailure {
-                    Log.e(TAG, "sincronizar mods: conferência falhou", it)
+                    Log.e(TAG, "mod sync: check failed", it)
                     state = State("error", message = "Não consegui conferir os mods do servidor: ${it.message}")
                 }
             }
@@ -157,7 +157,7 @@ object ServerSync {
                 writeSession(context, repo, offer)
             }
             result.onSuccess { relaunch(context) }.onFailure { e ->
-                Log.e(TAG, "sincronizar mods: parou", e)
+                Log.e(TAG, "mod sync: stopped", e)
                 update { State("error", message = "A sincronização parou: ${e.message}") }
             }
         }.start()
@@ -209,7 +209,7 @@ object ServerSync {
         offer.mods.forEach { require(repo.hasEntry(it.uid)) { "${label(it)} ficou sem o arquivo de entrada" } }
         val session = Session(specs, offer.address, offer.port, offer.password, offer.player)
         File(context.filesDir, SESSION).writeText(json.encodeToString(session))
-        Log.i(TAG, "sincronizar mods: sessão gravada (${specs.size} pacotes, ${offer.address}:${offer.port})")
+        Log.i(TAG, "mod sync: session saved (${specs.size} packages, ${offer.address}:${offer.port})")
     }
 
     /** Como o Reiniciar do Mod Menu: a RestartActivity do launcher e o fim deste processo. */

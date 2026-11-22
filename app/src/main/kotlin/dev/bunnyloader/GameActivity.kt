@@ -78,7 +78,7 @@ class GameActivity : Activity() {
         // O launcher já barra o JOGAR; esta é a segunda trava, para nenhum
         // caminho (reinício, atalho) abrir o jogo sem passar pela checagem.
         val eligibility = Eligibility.check(this)
-        BootLog.add(this, "elegibilidade: $eligibility")
+        BootLog.add(this, "eligibility: $eligibility")
         if (eligibility != Eligibility.Status.OK) {
             MenuLocalization.initialize(this)
             Toast.makeText(this, MenuLocalization.text(eligibility.messageKey), Toast.LENGTH_LONG).show()
@@ -91,13 +91,13 @@ class GameActivity : Activity() {
         // da Unity.
         if (!BundledRuntime.isPresent(this)) {
             fail(
-                "Esta build não contém o runtime do jogo (libil2cpp.so ausente " +
-                    "em nativeLibraryDir).",
+                "This build does not contain the game runtime (libil2cpp.so missing " +
+                    "from nativeLibraryDir).",
                 null,
             )
             return
         }
-        BootLog.add(this, "runtime integrado: " + BundledRuntime.describe(this))
+        BootLog.add(this, "bundled runtime: " + BundledRuntime.describe(this))
         BundledRuntime.pairipCheck(this)?.let { fail(it, null); return }
 
         // Carrega a pilha nativa POR NOME: as .so estão no nosso próprio
@@ -105,14 +105,14 @@ class GameActivity : Activity() {
         // ginástica de cópia e de caminho absoluto existia só porque os
         // binários viviam em outro app.
         BundledRuntime.load()?.let {
-            fail("Não consegui carregar o runtime do jogo: $it", null)
+            fail("Could not load the game runtime: $it", null)
             return
         }
-        BootLog.add(this, "runtime carregado")
+        BootLog.add(this, "runtime loaded")
 
         // Depois das libs do jogo carregadas: a sonda precisa achar a libil2cpp.
         if (ENABLE_NATIVE_CORE) startNativeCore() else
-            BootLog.add(this, "nucleo nativo DESLIGADO")
+            BootLog.add(this, "native core DISABLED")
 
         val unity = UnityHost(this, classLoader)
         unity.onQuit = { finish() }
@@ -120,16 +120,16 @@ class GameActivity : Activity() {
         val view = try {
             unity.create(this)
         } catch (t: Throwable) {
-            fail("Falha ao criar a UnityPlayer", t)
+            fail("Failed to create the UnityPlayer", t)
             return
         }
 
         mUnityPlayer = unity.playerInstance()
-        BootLog.add(this, "UnityPlayer criada")
+        BootLog.add(this, "UnityPlayer created")
         host = unity
         setContentView(view)
         view.requestFocus()
-        BootLog.add(this, "=== UnityPlayer no ar ===")
+        BootLog.add(this, "=== UnityPlayer running ===")
     }
 
     /**
@@ -157,7 +157,7 @@ class GameActivity : Activity() {
 
     private fun startNativeCore() {
         if (!NativeBridge.ensureLoaded()) {
-            Log.i(TAG, "nucleo nativo ausente (bl.nativeBuild=false) - seguindo sem mods")
+            Log.i(TAG, "native core missing (bl.nativeBuild=false) - continuing without mods")
             return
         }
         val repo = ModRepository(this)
@@ -166,7 +166,7 @@ class GameActivity : Activity() {
         // A volta a um servidor depois da sincronização de mods: os mods dele,
         // nesta abertura só.
         val session = ServerSync.takeSession(this)
-        if (session != null) Log.i(TAG, "sincronizar mods: abrindo com os ${session.mods.size} pacotes do servidor")
+        if (session != null) Log.i(TAG, "mod sync: opening with the server's ${session.mods.size} packages")
         val enabledMods = session?.mods ?: repo.enabledSpecs()
         val ok = runCatching {
             NativeBridge.init(
@@ -356,8 +356,8 @@ class GameActivity : Activity() {
 
     private fun fail(what: String, t: Throwable?) {
         BootLog.fail(this, what, t)
-        if (t != null) logFailure(what, t) else Log.e(TAG, "FALHA em $what")
-        val detail = t?.describe() ?: "sem detalhes"
+        if (t != null) logFailure(what, t) else Log.e(TAG, "FAILED: $what")
+        val detail = t?.describe() ?: "no details"
         Toast.makeText(this, "$what: $detail", Toast.LENGTH_LONG).show()
         finish()
     }

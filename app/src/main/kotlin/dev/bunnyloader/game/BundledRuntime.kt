@@ -68,11 +68,11 @@ object BundledRuntime {
      */
     fun pairipCheck(ctx: Context): String? {
         val unity = File(libDir(ctx), "libunity.so")
-        if (!unity.isFile) return "libunity.so ausente"
+        if (!unity.isFile) return "libunity.so missing"
         val deps = ElfInfo.needed(unity)
         if (deps.isEmpty()) return null  // ELF ilegível: não é motivo para barrar
         return if (deps.any { it == "libpairipcore.so" }) {
-            "a libunity integrada depende de libpairipcore.so — runtime errado nesta build"
+            "the bundled libunity depends on libpairipcore.so - wrong runtime in this build"
         } else {
             null
         }
@@ -82,5 +82,5 @@ object BundledRuntime {
     fun describe(ctx: Context): String =
         libDir(ctx).listFiles()?.filter { it.name.endsWith(".so") }?.sortedBy { it.name }
             ?.joinToString(", ") { "${it.name}=${it.length()}" }
-            ?: "(nativeLibraryDir vazio/inacessível)"
+            ?: "(nativeLibraryDir empty or unreadable)"
 }

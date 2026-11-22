@@ -33,11 +33,11 @@ fun Throwable.describe(): String {
 
 /** Loga a cadeia inteira, não só a ponta. */
 fun logFailure(what: String, t: Throwable) {
-    Log.e(TAG, "FALHA em $what -> ${t.describe()}", t)
+    Log.e(TAG, "FAILED: $what -> ${t.describe()}", t)
     var cause: Throwable? = t
     var depth = 0
     while (cause != null && depth < 8) {
-        Log.e(TAG, "  [causa $depth] ${cause.javaClass.name}: ${cause.message}")
+        Log.e(TAG, "  [cause $depth] ${cause.javaClass.name}: ${cause.message}")
         val next = if (cause is InvocationTargetException) cause.targetException else cause.cause
         if (next === cause) break
         cause = next

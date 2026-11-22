@@ -53,21 +53,21 @@ class UnityHost(
      *   dentro de InvocationTargetException, que tem message nula.
      */
     fun create(context: Context): View {
-        Log.i(TAG, "UnityHost: carregando com.unity3d.player.UnityPlayer")
+        Log.i(TAG, "UnityHost: loading com.unity3d.player.UnityPlayer")
         playerClass = try {
             loader.loadClass("com.unity3d.player.UnityPlayer")
         } catch (t: Throwable) {
             throw IllegalStateException("nao carregou a classe UnityPlayer: ${t.describe()}", t)
         }
-        Log.i(TAG, "UnityHost: classe ok (super=${playerClass.superclass?.name})")
+        Log.i(TAG, "UnityHost: class ok (super=${playerClass.superclass?.name})")
 
         player = newPlayer(context)
-        Log.i(TAG, "UnityHost: UnityPlayer instanciada")
+        Log.i(TAG, "UnityHost: UnityPlayer instantiated")
 
         val view = runCatching { method("getView")?.invoke(player) as? View }.getOrNull()
             ?: player as? View
             ?: error("UnityPlayer nao e uma View e getView() nao respondeu")
-        Log.i(TAG, "UnityHost: view obtida (${view.javaClass.name})")
+        Log.i(TAG, "UnityHost: got view (${view.javaClass.name})")
         return view
     }
 
@@ -123,11 +123,11 @@ class UnityHost(
 
     private fun call(name: String) {
         runCatching { method(name)?.invoke(player) }
-            .onFailure { Log.w(TAG, "UnityPlayer.$name() falhou: ${it.describe()}") }
+            .onFailure { Log.w(TAG, "UnityPlayer.$name() failed: ${it.describe()}") }
     }
 
     private fun <T> call(name: String, type: Class<*>, arg: T) {
         runCatching { method(name, type)?.invoke(player, arg) }
-            .onFailure { Log.w(TAG, "UnityPlayer.$name() falhou: ${it.describe()}") }
+            .onFailure { Log.w(TAG, "UnityPlayer.$name() failed: ${it.describe()}") }
     }
 }

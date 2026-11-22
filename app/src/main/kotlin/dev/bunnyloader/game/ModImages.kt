@@ -33,7 +33,7 @@ object ModImages {
         val bitmap = try {
             BitmapFactory.decodeFile(path, options)
         } catch (e: Throwable) {
-            Log.e(TAG, "efeitos de tela: imagem $path nao decodificou: $e")
+            Log.e(TAG, "screen effects: image $path did not decode: $e")
             null
         } ?: return null
 
@@ -81,7 +81,7 @@ object ModImages {
             bitmap.recycle()
             true
         } catch (e: Throwable) {
-            Log.e(TAG, "efeitos de tela: LUT neutra em $path nao foi gravada: $e")
+            Log.e(TAG, "screen effects: neutral LUT at $path was not written: $e")
             false
         }
     }

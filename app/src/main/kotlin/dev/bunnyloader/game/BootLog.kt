@@ -7,23 +7,21 @@ import android.os.Build
 import android.util.Log
 import dev.bunnyloader.TAG
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
- * Trilha do boot hospedado, gravada em arquivo.
- *
- * A GameActivity roda no processo `:game`, e quando ela falha só sobra um Toast
- * que some. Sem adb no aparelho do usuário não dá para ler o logcat, então cada
- * passo vai também para um arquivo no filesDir (compartilhado entre os dois
- * processos do app) e o launcher mostra o conteúdo na tela.
+ * Trail of the hosted boot, written to a file in filesDir (shared by both app
+ * processes) so the launcher can show it without adb.
  */
 object BootLog {
     private const val FILE = "hosted-boot.log"
-    /** Quantas linhas dos mods o relatório mostra (as últimas). */
     private const val MOD_LINES = 200
+    private const val EXIT_REASONS = 5
 
     private fun file(ctx: Context) = File(ctx.filesDir, FILE)
 
-    /** Começa uma trilha nova (chamar no início do boot). */
     fun reset(ctx: Context) {
         runCatching { file(ctx).writeText("") }
     }
@@ -33,32 +31,26 @@ object BootLog {
         runCatching { file(ctx).appendText(line + "\n") }
     }
 
-    /** Registra uma falha com a causa raiz desembrulhada (reflection esconde). */
     fun fail(ctx: Context, what: String, t: Throwable?) {
         val root = t?.let { generateSequence(it) { c -> c.cause }.last() }
-        val detail = root?.let { "${it.javaClass.simpleName}: ${it.message}" } ?: "sem detalhes"
-        add(ctx, "FALHA: $what")
+        val detail = root?.let { "${it.javaClass.simpleName}: ${it.message}" } ?: "no details"
+        add(ctx, "FAILED: $what")
         add(ctx, "  -> $detail")
         root?.stackTrace?.take(6)?.forEach { add(ctx, "     at $it") }
     }
 
-    /**
-     * Captura exceções de QUALQUER thread do processo.
-     *
-     * Os try/catch da GameActivity só cobrem o onCreate; a Unity estoura depois,
-     * nas threads dela, e aí só sobra "CRASH (Java)" no exit reason — sem stack.
-     */
+    /** Catches exceptions from any thread; Unity throws on its own threads after onCreate. */
     fun installCrashHandler(ctx: Context) {
         val previous = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, t ->
             runCatching {
-                add(ctx, "CRASH na thread '${thread.name}'")
+                add(ctx, "CRASH on thread '${thread.name}'")
                 var e: Throwable? = t
                 var depth = 0
                 while (e != null && depth++ < 3) {
                     add(ctx, "  ${e.javaClass.name}: ${e.message}")
                     e.stackTrace.take(24).forEach { add(ctx, "    at $it") }
-                    e = e.cause?.also { add(ctx, "  causado por:") }
+                    e = e.cause?.also { add(ctx, "  caused by:") }
                 }
             }
             previous?.uncaughtException(thread, t)
@@ -67,14 +59,7 @@ object BootLog {
 
     private fun logcatFile(ctx: Context) = File(ctx.filesDir, "hosted-logcat.log")
 
-    /**
-     * Captura o logcat DO PRÓPRIO processo para arquivo.
-     *
-     * A Unity imprime o motivo do erro no logcat imediatamente antes de abortar,
-     * e um app pode ler os próprios logs sem permissão especial. Isso é bem mais
-     * confiável que o tombstone, que desde o Android 12 vem em protobuf e chegou
-     * truncado aqui.
-     */
+    /** Captures this process's own logcat; Unity prints the reason right before aborting. */
     fun captureLogcat(ctx: Context) {
         val out = logcatFile(ctx)
         runCatching { out.writeText("") }
@@ -85,10 +70,6 @@ object BootLog {
                     arrayOf("logcat", "-v", "brief", "--pid=$pid"),
                 )
                 p.inputStream.bufferedReader().forEachLine { line ->
-                    // TAG é o primeiro da lista de propósito: sem ele o filtro
-                    // descartava as linhas do nosso próprio núcleo (giveItem,
-                    // cheats, mods), que são justamente as que o usuário
-                    // precisa conseguir mandar quando algo não funciona.
                     val keep = line.contains(TAG) ||
                         line.contains("Unity") || line.contains("IL2CPP") ||
                         line.contains("DEBUG") || line.contains("libc") ||
@@ -96,7 +77,6 @@ object BootLog {
                         line.contains("Error") || line.contains("error") ||
                         line.contains("JNI") || line.contains("dlopen") ||
                         line.contains("art")
-                    // Limite de tamanho: interessa a causa, não o histórico todo.
                     if (keep && out.length() < 60_000) out.appendText(line + "\n")
                 }
             }
@@ -104,158 +84,146 @@ object BootLog {
     }
 
     /**
-     * O relatório do Diagnóstico (Configurações): o que um jogador que sofreu um
-     * crash copia ou fotografa e manda para quem faz o Bunny Loader ou o mod.
-     *
-     * Na ordem de quem vai ler: o que é o aparelho e o que estava ligado, os
-     * erros da última partida, e só depois o detalhe técnico do boot. Num print
-     * de celular cabe o começo; por isso a causa vem antes do histórico.
+     * The Diagnostics report a player copies and sends after a crash: header,
+     * why the game closed, then the session details. The cause comes first so a
+     * phone screenshot already shows it.
      */
-    fun read(ctx: Context): String =
+    fun read(ctx: Context): String = clean(
         header(ctx) +
-            "\n--- por que o jogo fechou (últimas vezes) ---\n" + exitReasons(ctx) +
-            "\n--- última partida: erros e avisos ---\n" + sessionProblems(ctx) +
-            "\n--- última partida: linhas dos mods ---\n" + sessionModLines(ctx) +
-            "\n--- boot do jogo ---\n" +
-            (runCatching { file(ctx).readText() }.getOrDefault("").ifBlank { "(sem registro ainda)" }) +
-            "\n--- logcat do processo do jogo ---\n" + lastLogcat(ctx)
+            section("Why the game closed (latest first)") + exitReasons(ctx) +
+            section("Last session: errors and warnings") + sessionProblems(ctx) +
+            section("Last session: mod log lines") + sessionModLines(ctx) +
+            section("Game boot") +
+            (runCatching { file(ctx).readText() }.getOrDefault("").ifBlank { "(no entries yet)\n" }) +
+            section("Game process logcat") + lastLogcat(ctx),
+    )
 
-    /** Versões, aparelho, data e os mods ligados: sem isso ninguém reproduz nada. */
+    private fun section(title: String) = "\n--- $title ---\n"
+
+    private fun clean(text: String): String = buildString(text.length) {
+        for (c in text) {
+            if (c == '\n' || c == '\t' || (!Character.isISOControl(c) && c != '�')) append(c)
+        }
+    }.lines().joinToString("\n") { it.trimEnd() }.trimEnd() + "\n"
+
     private fun header(ctx: Context): String = buildString {
-        append("=== Bunny Loader: relatório ===\n")
+        append("=== Bunny Loader report ===\n")
         append("Bunny Loader v").append(dev.bunnyloader.BuildConfig.VERSION_NAME)
         append(" · Terraria ").append(BundledRuntime.VERSION_NAME)
         append(" (").append(BundledRuntime.VERSION_CODE).append(")\n")
-        append("Aparelho: ").append(Build.MANUFACTURER).append(' ').append(Build.MODEL)
+        append("Device: ").append(Build.MANUFACTURER).append(' ').append(Build.MODEL)
         append(" · Android ").append(Build.VERSION.RELEASE).append(" (API ").append(Build.VERSION.SDK_INT).append(')')
         append(" · ").append(Build.SUPPORTED_ABIS.firstOrNull() ?: "?").append('\n')
-        append("Gerado em: ").append(
-            java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.US).format(java.util.Date()),
-        ).append('\n')
+        append("Generated: ").append(timestamp(System.currentTimeMillis())).append('\n')
         val mods = runCatching {
             val repo = dev.bunnyloader.mods.ModRepository(ctx)
-            repo.list().filter { repo.isEnabled(it.uid) }
-                .joinToString(", ") { "${it.name} ${it.version} (${it.id})" }
-        }.getOrDefault("(não deu para ler)")
-        append("Mods ligados: ").append(mods.ifBlank { "nenhum" }).append('\n')
+            repo.list().filter { repo.isEnabled(it.uid) }.map { "${it.name} ${it.version} (${it.id})" }
+        }.getOrNull()
+        when {
+            mods == null -> append("Enabled mods: (could not read)\n")
+            mods.isEmpty() -> append("Enabled mods: none\n")
+            else -> {
+                append("Enabled mods (").append(mods.size).append("):\n")
+                mods.forEach { append("  - ").append(it).append('\n') }
+            }
+        }
     }
 
-    /**
-     * O log de sessão mais novo (`logs/bunny_<data>.txt`, o mesmo que o modder
-     * abre): as linhas de erro e aviso, e o fim dele. Depois de um crash, o
-     * mais novo é o da partida que caiu — o launcher não abre um novo.
-     */
+    private fun timestamp(millis: Long): String =
+        SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date(millis))
+
+    /** Newest session log (`logs/bunny_<date>.txt`); after a crash it is the session that fell. */
     private fun lastSessionLog(ctx: Context): File? {
         val base = ctx.getExternalFilesDir(null)?.parentFile ?: return null
         return File(base, "logs").listFiles { f -> f.name.startsWith("bunny_") && f.name.endsWith(".txt") }
             .orEmpty().maxByOrNull { it.name }
     }
 
-    /**
-     * O que os mods escreveram (bl.log, Log.Info do C#): é onde um teste ou uma
-     * medição deixa o resultado para quem só tem o celular.
-     */
     private fun sessionModLines(ctx: Context): String = runCatching {
-        val last = lastSessionLog(ctx) ?: return@runCatching "(nenhum log de sessão)\n"
+        val last = lastSessionLog(ctx) ?: return@runCatching "(no session log)\n"
         val lines = last.readLines().filter { "[mod]" in it }.takeLast(MOD_LINES)
-        if (lines.isEmpty()) "(nenhuma)\n" else lines.joinToString("\n", postfix = "\n")
-    }.getOrElse { "(erro lendo: ${it.javaClass.simpleName})\n" }
+        if (lines.isEmpty()) "(none)\n" else lines.joinToString("\n", postfix = "\n")
+    }.getOrElse { "(could not read: ${it.javaClass.simpleName})\n" }
 
     private fun sessionProblems(ctx: Context): String = runCatching {
-        val last = lastSessionLog(ctx) ?: return@runCatching "(nenhum log de sessão)"
+        val last = lastSessionLog(ctx) ?: return@runCatching "(no session log)\n"
         val lines = last.readLines()
-        // "12:03:04.567 E texto": a letra depois da hora é o nível.
         val problems = lines.filter { it.length > 13 && (it[13] == 'E' || it[13] == 'W') }.takeLast(30)
         buildString {
             append(last.name).append('\n')
-            if (problems.isEmpty()) append("(nenhum erro ou aviso)\n")
+            if (problems.isEmpty()) append("(no errors or warnings)\n")
             else problems.forEach { append(it).append('\n') }
-            append(">>> fim do log:\n")
+            append(">>> end of log:\n")
             lines.takeLast(15).forEach { append(it).append('\n') }
         }
-    }.getOrElse { "(erro lendo: ${it.javaClass.simpleName})" }
+    }.getOrElse { "(could not read: ${it.javaClass.simpleName})\n" }
 
-    /**
-     * A CAUSA primeiro, depois o resto.
-     *
-     * Quando a Unity aborta via JNI FatalError, a ART despeja um stack enorme
-     * logo depois — e cortar pelo fim justamente esconde a mensagem, que vem
-     * antes. Então destacamos as linhas de causa e só depois mostramos a cauda.
-     */
+    /** Cause lines first: after a JNI FatalError, ART dumps a huge stack that buries the message. */
     private fun lastLogcat(ctx: Context): String = runCatching {
         val lines = logcatFile(ctx).readLines()
-        if (lines.isEmpty()) return@runCatching "(vazio)"
+        if (lines.isEmpty()) return@runCatching "(empty)\n"
         val causes = lines.filter { l ->
             l.contains("FatalError called") || l.contains("JNI DETECTED") ||
                 l.contains("Abort message") || l.contains("UnsatisfiedLink") ||
                 l.contains("dlopen") || l.contains("Unable to") ||
                 l.contains("Failed to") || l.contains("E/Unity") ||
                 l.contains("E Unity") || l.contains("could not") ||
-                l.startsWith("E/$TAG")  // erro do próprio núcleo
+                l.startsWith("E/$TAG")
         }.distinct().take(15)
         buildString {
             if (causes.isNotEmpty()) {
-                append(">>> CAUSA:\n")
-                causes.forEach { append("  ").append(it.trim()).append("\n") }
-                append(">>> resto:\n")
+                append(">>> likely cause:\n")
+                causes.forEach { append("  ").append(it.trim()).append('\n') }
+                append(">>> tail:\n")
             }
-            // Sem os quadros de stack repetidos, que não acrescentam nada.
             lines.filterNot { it.contains("native: #") || it.contains("runtime.cc:") }
-                .takeLast(25).forEach { append(it).append("\n") }
+                .takeLast(25).forEach { append(it).append('\n') }
         }
-    }.getOrElse { "(sem captura)" }
+    }.getOrElse { "(not captured)\n" }
 
-    /**
-     * Motivo das últimas mortes de processo do app. Crash NATIVO não passa por
-     * try/catch nem aparece na trilha acima; esta API pública (Android 11+)
-     * entrega o motivo e, para crash nativo, o tombstone.
-     */
+    /** Why the app's processes died (Android 11+); native crashes also carry the tombstone. */
     private fun exitReasons(ctx: Context): String = runCatching {
-        if (Build.VERSION.SDK_INT < 30) return@runCatching "(precisa Android 11+)"
+        if (Build.VERSION.SDK_INT < 30) return@runCatching "(requires Android 11+)\n"
         val am = ctx.getSystemService(ActivityManager::class.java)
-        val list = am.getHistoricalProcessExitReasons(ctx.packageName, 0, 5)
-        if (list.isEmpty()) return@runCatching "(nenhum registro)"
-        list.joinToString("\n") { info ->
-            buildString {
-                append(info.processName).append(": ").append(reasonName(info.reason))
-                append(" status=").append(info.status)
-                info.description?.let { append("\n   ").append(it) }
-                append(tombstone(info))
+        val list = am.getHistoricalProcessExitReasons(ctx.packageName, 0, EXIT_REASONS)
+        if (list.isEmpty()) return@runCatching "(no records)\n"
+        var tombstoneShown = false
+        buildString {
+            list.forEach { info ->
+                append('[').append(timestamp(info.timestamp)).append("] ")
+                append(info.processName.removePrefix(ctx.packageName).ifEmpty { "launcher" })
+                append(": ").append(reasonName(info.reason))
+                append(" (status ").append(info.status).append(')')
+                info.description?.trim()?.takeIf { it.isNotEmpty() && !it.equals("crash", ignoreCase = true) }
+                    ?.let { append(" - ").append(it.lineSequence().first().take(160)) }
+                append('\n')
+                if (info.reason == ApplicationExitInfo.REASON_CRASH_NATIVE && !tombstoneShown) {
+                    tombstoneShown = true
+                    append(tombstone(info)).append('\n')
+                }
             }
         }
-    }.getOrElse { "(erro lendo: ${it.javaClass.simpleName})" }
+    }.getOrElse { "(could not read: ${it.javaClass.simpleName})\n" }
 
-    /**
-     * Para crash NATIVO o sistema guarda o tombstone (mensagem de abort +
-     * backtrace) e o entrega por getTraceInputStream(). É a única forma de saber
-     * por que o processo abortou sem ter adb no aparelho.
-     */
-    private fun tombstone(info: ApplicationExitInfo): String {
-        if (info.reason != ApplicationExitInfo.REASON_CRASH_NATIVE) return ""
-        return runCatching {
-            val text = info.traceInputStream?.bufferedReader()?.use { it.readText() }
-                ?: return "\n   (sem tombstone)"
-            val frame = Regex("""^\s+#\d\d """)
-            val useful = text.lineSequence()
-                .filter {
-                    it.contains("signal") || it.contains("Abort message") ||
-                        it.contains("Cause:") || frame.containsMatchIn(it)
-                }
-                .take(18)
-                .joinToString("\n") { "   " + it.trim() }
-            if (useful.isBlank()) "\n   (tombstone sem linhas úteis)" else "\n$useful"
-        }.getOrElse { "\n   (tombstone ilegível: ${it.javaClass.simpleName})" }
-    }
+    private fun tombstone(info: ApplicationExitInfo): String = runCatching {
+        val stream = info.traceInputStream ?: return "   (no tombstone)"
+        TombstoneReader.read(stream)
+    }.getOrElse { "   (unreadable tombstone: ${it.javaClass.simpleName})" }
 
     private fun reasonName(r: Int): String = when (r) {
-        ApplicationExitInfo.REASON_CRASH -> "CRASH (Java)"
-        ApplicationExitInfo.REASON_CRASH_NATIVE -> "CRASH NATIVO"
-        ApplicationExitInfo.REASON_ANR -> "ANR"
-        ApplicationExitInfo.REASON_LOW_MEMORY -> "SEM MEMORIA"
-        ApplicationExitInfo.REASON_SIGNALED -> "SINAL"
-        ApplicationExitInfo.REASON_EXIT_SELF -> "saiu sozinho"
-        ApplicationExitInfo.REASON_USER_REQUESTED -> "usuario"
-        ApplicationExitInfo.REASON_OTHER -> "outro"
-        else -> "codigo $r"
+        ApplicationExitInfo.REASON_CRASH -> "Java crash"
+        ApplicationExitInfo.REASON_CRASH_NATIVE -> "native crash"
+        ApplicationExitInfo.REASON_ANR -> "ANR (not responding)"
+        ApplicationExitInfo.REASON_LOW_MEMORY -> "killed for low memory"
+        ApplicationExitInfo.REASON_SIGNALED -> "killed by signal"
+        ApplicationExitInfo.REASON_EXIT_SELF -> "exited normally"
+        ApplicationExitInfo.REASON_USER_REQUESTED -> "closed by the user"
+        ApplicationExitInfo.REASON_USER_STOPPED -> "force-stopped by the user"
+        ApplicationExitInfo.REASON_DEPENDENCY_DIED -> "dependency died"
+        ApplicationExitInfo.REASON_EXCESSIVE_RESOURCE_USAGE -> "excessive resource usage"
+        ApplicationExitInfo.REASON_INITIALIZATION_FAILURE -> "initialization failure"
+        ApplicationExitInfo.REASON_PERMISSION_CHANGE -> "permission changed"
+        ApplicationExitInfo.REASON_OTHER -> "other"
+        else -> "reason $r"
     }
 }
