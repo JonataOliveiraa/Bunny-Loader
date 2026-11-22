@@ -11,12 +11,15 @@
 #include "content/items/ModItems.h"
 #include "content/items/ModPrefixes.h"
 #include "il2cpp/GuardedCall.h"
+#include "core/Config.h"
 #include <fstream>
 
 #include <cstdio>
 #include <cstdlib>
+#include <dirent.h>
 #include <map>
 #include <mutex>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -858,6 +861,32 @@ Il2CppObject* expandChestItem(int chestIndex, int slot) {
     const int type = field<int32_t>(item, g_refs.type);
     if (isModItem(type)) loadModItemData(item, chestData(data, type));
     return item;
+}
+
+int countMissingItemKeys() {
+    const std::string& mods = config().modsDir;
+    const size_t cut = mods.find_last_of('/');
+    if (cut == std::string::npos || cut == 0) return 0;
+    const std::string root = mods.substr(0, cut);
+    std::set<std::string> missing;
+    const auto scan = [&](const std::string& dir, const std::string& suffix) {
+        DIR* d = opendir(dir.c_str());
+        if (!d) return;
+        while (dirent* e = readdir(d)) {
+            const std::string name = e->d_name;
+            if (name.size() <= suffix.size() ||
+                name.compare(name.size() - suffix.size(), suffix.size(), suffix) != 0) continue;
+            for (const SavedItem& s : readFile(dir + "/" + name)) {
+                if (s.container == kBuffContainer || isVanillaPrefixEntry(s)) continue;
+                if (s.key.find('/') == std::string::npos || modItemTypeByKey(s.key) >= 0) continue;
+                missing.insert(s.key);
+            }
+        }
+        closedir(d);
+    };
+    scan(root + "/Players", ".plr.bl");
+    scan(root + "/Worlds", ".wld.bl");
+    return static_cast<int>(missing.size());
 }
 
 bool storeChestItemData(int chestIndex, int slot, Il2CppObject* item) {

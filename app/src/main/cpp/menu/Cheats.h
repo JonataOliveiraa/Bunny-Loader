@@ -21,6 +21,8 @@ std::mutex& namesLock();
 int namesGeneration();
 
 const std::vector<int>& npcFrames();
+const std::vector<int>& itemTextureCopies();
+const std::vector<int>& itemAnimations();
 void requestSpawn(int type, int count = 1);
 void requestBuff(int type, int seconds);
 

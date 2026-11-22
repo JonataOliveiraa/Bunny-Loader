@@ -9,5 +9,6 @@ public sealed class CsSourceRefMod : Mod
     {
         bool ok = TargetApi.Loaded && TargetApi.Answer == 42 && ModLoader.GetMod("CsModTarget").Call("Add", 1, 1) is 2;
         Logger.Info($"cssourceref dependency types and Call: {(ok ? "ok" : "FAIL")}");
+        Logger.Info($"cssourceref END pass={(ok ? 1 : 0)} fail={(ok ? 0 : 1)}");
     }
 }

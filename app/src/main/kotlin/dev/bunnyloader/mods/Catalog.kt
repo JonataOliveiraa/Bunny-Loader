@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -236,8 +237,25 @@ class Catalog(private val context: Context) {
 
     fun loadAvatarBitmap(path: String): ImageBitmap? = loadBitmap(path, 192)
 
+    fun cachedIconBitmap(path: String): ImageBitmap? =
+        lastKeys["256:$path"]?.let { (media.peek(it) as? Still)?.image }
+
+    fun loadBlurredIcon(path: String, icon: ImageBitmap): ImageBitmap? =
+        (media.get("blur:${cacheKey(path)}") {
+            runCatching {
+                val source = icon.asAndroidBitmap()
+                val width = BLUR_SIDE
+                val height = (BLUR_SIDE * source.height / source.width.coerceAtLeast(1)).coerceAtLeast(1)
+                val small = Bitmap.createScaledBitmap(source, width, height, true)
+                small.prepareToDraw()
+                Still(small.asImageBitmap(), small.allocationByteCount)
+            }.getOrNull()
+        } as? Still)?.image
+
+    private val lastKeys = java.util.concurrent.ConcurrentHashMap<String, String>()
+
     private fun loadBitmap(path: String, maxSide: Int): ImageBitmap? =
-        (media.get("bitmap:$maxSide:${cacheKey(path)}") {
+        (media.get("bitmap:$maxSide:${cacheKey(path)}".also { lastKeys["$maxSide:$path"] = it }) {
             runCatching {
                 val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                 openImage(path).use { BitmapFactory.decodeStream(it, null, bounds) }
@@ -418,6 +436,7 @@ class Catalog(private val context: Context) {
         /** O que a ficha desenha: vitrine, fotos dos autores, Markdown, capa e fundo. */
         val IMAGE_EXTENSIONS = listOf("png", "gif", "webp", "jpg", "jpeg", "bmp")
         private const val PAGE_GIF_SIDE = 512
+        private const val BLUR_SIDE = 12
         private const val VIEWER_SIDE = 2048
         private const val PAGE_GIF_PIXELS = 2_000_000
 

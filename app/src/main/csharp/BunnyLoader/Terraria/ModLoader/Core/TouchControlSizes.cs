@@ -79,6 +79,7 @@ internal static unsafe class TouchControlSizes
     static readonly int[] cloneLayout = { -1 };
     static IntPtr familiesFrom;
     static List<Row>? saved;
+    static readonly HashSet<string> reported = new();
     static bool undoPending;
 
     static string FilePath => Path.Combine(Main.SavePath ?? "", "BunnyLoader.touchsizes.json");
@@ -88,19 +89,31 @@ internal static unsafe class TouchControlSizes
         On_VirtualControlsStyles_Layout.GetAxisConfiguration += (orig, self, id) =>
         {
             VirtualControlsAxisConfiguration_Layout found = orig(self, id);
-            if (found.IsNull && IsOurs(id)) Guard("axis style", () => found = AxisConfig(self, id!));
+            if (found.IsNull && !string.IsNullOrEmpty(id)) Guard("axis style", () =>
+            {
+                string resolved = IsOurs(id) ? id! : Resolve(self, Table.Axis, id!);
+                found = IsOurs(resolved) ? AxisConfig(self, resolved) : resolved != id ? orig(self, resolved) : default;
+            });
             return found;
         };
         On_VirtualControlsStyles_Layout.GetButtonConfiguration += (orig, self, id) =>
         {
             VirtualControlsButtonConfiguration_Layout found = orig(self, id);
-            if (found.IsNull && IsOurs(id)) Guard("button style", () => found = ButtonConfig(self, id!));
+            if (found.IsNull && !string.IsNullOrEmpty(id)) Guard("button style", () =>
+            {
+                string resolved = IsOurs(id) ? id! : Resolve(self, Table.Button, id!);
+                found = IsOurs(resolved) ? ButtonConfig(self, resolved) : resolved != id ? orig(self, resolved) : default;
+            });
             return found;
         };
         On_VirtualControlsStyles_Layout.GetGroupConfiguration += (orig, self, id) =>
         {
             VirtualControlsGroupConfiguration_Layout found = orig(self, id);
-            if (found.IsNull && IsOurs(id)) Guard("group style", () => found = GroupConfig(self, id!));
+            if (found.IsNull && !string.IsNullOrEmpty(id)) Guard("group style", () =>
+            {
+                string resolved = IsOurs(id) ? id! : Resolve(self, Table.Group, id!);
+                found = IsOurs(resolved) ? GroupConfig(self, resolved) : resolved != id ? orig(self, resolved) : default;
+            });
             return found;
         };
         On_VirtualControlsStyles_Layout.SaveConfiguration += (orig, self, preferences) =>
@@ -585,12 +598,65 @@ internal static unsafe class TouchControlSizes
         return saved;
     }
 
+    static Table TableOf(SlotType type) => type == SlotType.Axis ? Table.Axis : type == SlotType.Group ? Table.Group : Table.Button;
+
+    internal static string Resolve(VirtualControlsStyles_Layout styles, Table table, string id)
+    {
+        Refresh(styles);
+        string fallback = table switch { Table.Axis => Axis.Prefix, Table.Group => Group.Prefix, _ => Action.Prefix };
+        Family? family = FamilyOf(table, PrefixOf(id)) ?? FamilyOf(table, fallback);
+        if (family == null || family.Steps.Length == 0) return id;
+        int size = SizeOf(id);
+        if (size <= 0) size = family.Reference;
+        size = Math.Clamp(size, family.Steps[0], family.Steps[^1]);
+        string resolved = Ensure(styles, family, size);
+        if (reported.Add(id)) Log.Warn($"TouchControlSizes: the game has no touch control style '{id}', using '{resolved}'");
+        return resolved;
+    }
+
+    static bool Exists(VirtualControlsStyles_Layout styles, Table table, string id)
+    {
+        switch (table)
+        {
+            case Table.Axis:
+                GameArray<VirtualControlsAxisConfiguration_Layout> axes = styles.AxisTypes;
+                for (int i = 0; !axes.IsNull && i < axes.Length; i++)
+                    if (!axes[i].IsNull && axes[i].Id == id) return true;
+                return false;
+            case Table.Group:
+                GameArray<VirtualControlsGroupConfiguration_Layout> groups = styles.GroupTypes;
+                for (int i = 0; !groups.IsNull && i < groups.Length; i++)
+                    if (!groups[i].IsNull && groups[i].Id == id) return true;
+                return false;
+            default:
+                GameArray<VirtualControlsButtonConfiguration_Layout> buttons = styles.ButtonTypes;
+                for (int i = 0; !buttons.IsNull && i < buttons.Length; i++)
+                    if (!buttons[i].IsNull && buttons[i].Id == id) return true;
+                return false;
+        }
+    }
+
+    static void Migrate(VirtualControlsStyles_Layout styles)
+    {
+        foreach (VirtualControlsHardwareConfiguration_Layout hardware in Hardware(styles))
+            foreach (VirtualControlsSlotTypeMapping_Layout style in Styles(hardware))
+            {
+                string? id = style.ControlTypeId;
+                if (string.IsNullOrEmpty(id) || IsOurs(id)) continue;
+                Table table = TableOf(style.ControlType);
+                if (Exists(styles, table, id)) continue;
+                string resolved = Resolve(styles, table, id);
+                if (resolved != id) style.ControlTypeId = resolved;
+            }
+    }
+
     static void Apply(VirtualControlsStyles_Layout styles)
     {
         if (styles.IsNull) return;
+        Refresh(styles);
+        Migrate(styles);
         List<Row> rows = Saved();
         if (rows.Count == 0) return;
-        Refresh(styles);
         foreach (VirtualControlsHardwareConfiguration_Layout hardware in Hardware(styles))
         {
             string? hardwareId = hardware.Id;
@@ -602,8 +668,7 @@ internal static unsafe class TouchControlSizes
                 string slotId = slot.SlotId ?? "#" + i;
                 Row? row = rows.Find(r => r.Hardware == hardwareId && r.Slot == slotId);
                 if (row == null || row.Size <= 0 || slot.Style.ControlTypeId != row.Style) continue;
-                Table table = slot.Style.ControlType == SlotType.Axis ? Table.Axis : slot.Style.ControlType == SlotType.Group ? Table.Group : Table.Button;
-                if (FamilyOf(table, PrefixOf(row.Style)) is not Family family) continue;
+                if (FamilyOf(TableOf(slot.Style.ControlType), PrefixOf(row.Style)) is not Family family) continue;
                 slot.Style.ControlTypeId = Ensure(styles, family, row.Size);
             }
         }

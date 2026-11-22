@@ -7,6 +7,7 @@ run() {
     local test="$1" env=()
     [ "${NOENV:-0}" = 1 ] || env=(csenv)
     [ "${SAMPLE:-0}" = 1 ] && env+=("$(cd "$here/../.." && (pwd -W 2>/dev/null || pwd))/samples/ExampleModCSharp")
+    [ -n "${EXTRA:-}" ] && env+=(${EXTRA})
     prepare "$dev" 1 "$test" "${env[@]}"
     launch "$dev"
     wait_mods "$dev" && enter_single "$dev" && wait_end "$dev" "$test" "${WAIT:-180}"

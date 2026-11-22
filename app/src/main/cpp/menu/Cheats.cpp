@@ -216,6 +216,8 @@ constexpr auto kBudgetPerFrame = std::chrono::microseconds(2000);
 std::vector<std::u16string> g_itemNames;
 std::vector<std::u16string> g_npcNames;
 std::vector<int> g_npcFrames;
+std::vector<int> g_itemTextureCopy;
+std::vector<int> g_itemAnimation;
 const MethodInfo* g_itemNameOf = nullptr;
 const MethodInfo* g_npcNameOf = nullptr;
 int g_nameProgress = -1;
@@ -690,6 +692,31 @@ void refreshNamesSlice() {
     BL_DEBUG("cheats: language changed; names reloaded (generation %d)", g_namesGeneration.load());
 }
 
+void readItemIconTables(Il2CppClass* main) {
+    auto& a = il2cpp::api();
+    if (Il2CppArray* copies = staticArray("Terraria.ID", "ItemID", "Sets", "TextureCopyLoad")) {
+        const int32_t* v = static_cast<const int32_t*>(arrayData(copies));
+        g_itemTextureCopy.assign(v, v + copies->length);
+    }
+    FieldInfo* f = main ? il2cpp::findField(main, "itemAnimations") : nullptr;
+    Il2CppClass* anim = il2cpp::findClass({"Terraria.DataStructures", "DrawAnimation", {}});
+    const int32_t offFrames = anim ? il2cpp::fieldOffset(anim, "FrameCount") : -1;
+    const int32_t offTicks = anim ? il2cpp::fieldOffset(anim, "TicksPerFrame") : -1;
+    Il2CppArray* arr = nullptr;
+    if (f) a.field_static_get_value(f, &arr);
+    if (!arr || offFrames < 0 || offTicks < 0) {
+        BL_WARN("cheats: Main.itemAnimations unavailable; animated item icons stay still");
+        return;
+    }
+    auto** items = static_cast<Il2CppObject**>(arrayData(arr));
+    g_itemAnimation.assign(arr->length * 2, 0);
+    for (size_t i = 0; i < arr->length; ++i) {
+        if (!items[i]) continue;
+        g_itemAnimation[i * 2] = field<int32_t>(items[i], offFrames);
+        g_itemAnimation[i * 2 + 1] = field<int32_t>(items[i], offTicks);
+    }
+}
+
 void readNamesSlice() {
     if (!g_namesWanted.load(std::memory_order_relaxed)) return;
     if (g_namesReady.load(std::memory_order_relaxed)) { refreshNamesSlice(); return; }
@@ -736,6 +763,7 @@ void readNamesSlice() {
             BL_ERROR("cheats: Main.npcFrameCount did not arrive; the list will show "
                      "each NPC's whole sheet");
         }
+        readItemIconTables(main);
         buildMenuCatalogExtras();
         g_namesReady.store(true, std::memory_order_release);
         int unnamed = 0;
@@ -826,6 +854,8 @@ const std::vector<std::u16string>& npcNames() { return g_npcNames; }
 std::mutex& namesLock() { return g_namesLock; }
 int namesGeneration() { return g_namesGeneration.load(std::memory_order_acquire); }
 const std::vector<int>& npcFrames() { return g_npcFrames; }
+const std::vector<int>& itemTextureCopies() { return g_itemTextureCopy; }
+const std::vector<int>& itemAnimations() { return g_itemAnimation; }
 bool inWorld() { return g_inWorld.load(std::memory_order_relaxed); }
 const std::vector<uint8_t>& itemClasses() { return g_itemClass; }
 const std::vector<uint8_t>& itemSubClasses() { return g_itemSub; }

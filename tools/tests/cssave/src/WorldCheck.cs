@@ -14,6 +14,12 @@ public static class WorldCheck
         {
             Item item = player.inventory[slot];
             if (item.type != type || item.ModItem is not SavedGem gem) continue;
+            if (gem.Uses == 0)
+            {
+                Fill(gem);
+                Report.Info($"the gem in slot {slot} has no saved data (an older save): filled it, save, exit and enter the world again");
+                return;
+            }
             bool ok = SavedGem.Loads > 0 && gem.Uses >= 1 && gem.Label == $"gem-{gem.Uses}" && gem.Flag && gem.Ratio == 0.25f &&
                 gem.Numbers.SequenceEqual(new[] { 3, 1, 4 }) && gem.Inner == "deep";
             Report.Check("reloaded", ok, $"slot={slot} uses={gem.Uses} label={gem.Label} loads={SavedGem.Loads}");
@@ -27,16 +33,20 @@ public static class WorldCheck
             Item item = player.inventory[slot];
             if (item.type > 0 && item.stack > 0) continue;
             item.SetDefaults(type, default);
-            var gem = (SavedGem)item.ModItem!;
-            gem.Uses = 1;
-            gem.Label = "gem-1";
-            gem.Flag = true;
-            gem.Ratio = 0.25f;
-            gem.Numbers = new() { 3, 1, 4 };
-            gem.Inner = "deep";
+            Fill((SavedGem)item.ModItem!);
             Report.Info($"placed a gem in slot {slot}: save, exit and enter the world again");
             return;
         }
         Report.Info("no free inventory slot for the gem");
+    }
+
+    static void Fill(SavedGem gem)
+    {
+        gem.Uses = 1;
+        gem.Label = "gem-1";
+        gem.Flag = true;
+        gem.Ratio = 0.25f;
+        gem.Numbers = new() { 3, 1, 4 };
+        gem.Inner = "deep";
     }
 }

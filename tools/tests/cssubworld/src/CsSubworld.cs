@@ -45,7 +45,7 @@ public sealed class CsSubworldMod : Mod
         Rectangle region = GUITransactionButton.GetRegion(SettingsPauseMenu_Layout.Instance.Home);
         int x = region.X + region.Width / 2, y = region.Y + region.Height / 2;
         Log.Info("cssubworld SHOT pause");
-        Log.Info($"cssubworld TAP {x} {y} {Main.screenHeight} region={region} screen={Main.screenWidth}x{Main.screenHeight}");
+        Log.Info($"cssubworld TAP 1 {x * 1019f / Main.screenWidth:0.0} {y * 1019f / Main.screenWidth:0.0} region={region} screen={Main.screenWidth}x{Main.screenHeight}");
     }
 
     static void Update(On_Player.orig_Update orig, Player self, int i)

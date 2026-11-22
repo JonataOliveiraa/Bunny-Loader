@@ -112,7 +112,7 @@ public sealed class UISystem : ModSystem
 public sealed class CsUIMod : Mod
 {
     const int End = 2400;
-    static int frame, pass, fail;
+    static int frame, pass, fail, requests;
     static float viewBeforeSwipe;
 
     static ILog Log => ModContent.GetInstance<CsUIMod>().Logger;
@@ -122,8 +122,10 @@ public sealed class CsUIMod : Mod
     static void Tap(UIElement e)
     {
         Vector2 c = e.GetDimensions().Center();
-        Log.Info($"csui TAP {c.X:0.0} {c.Y:0.0}");
+        Log.Info($"csui TAP {++requests} {Units(c.X):0.0} {Units(c.Y):0.0}");
     }
+
+    static float Units(float ui) => ui * 1019f / UISystem.UIWidth;
 
     static void Update(On_Player.orig_Update orig, Player self, int i)
     {
@@ -159,7 +161,7 @@ public sealed class CsUIMod : Mod
                 case 500:
                     viewBeforeSwipe = s.List.ViewPosition;
                     CalculatedStyle d = s.List.GetDimensions();
-                    Log.Info($"csui SWIPE {d.X + 60:0.0} {d.Y + d.Height - 20:0.0} {d.X + 60:0.0} {d.Y + 20:0.0} 600");
+                    Log.Info($"csui DRAG {++requests} {Units(d.X + 60):0.0} {Units(d.Y + d.Height - 20):0.0} {Units(d.X + 60):0.0} {Units(d.Y + 20):0.0}");
                     break;
                 case 800:
                     Report("dragging the list scrolls it and is not a click", s.List.ViewPosition > viewBeforeSwipe + 20 && s.ItemClicks == 0 && s.Scrollbar.ViewPosition == s.List.ViewPosition,

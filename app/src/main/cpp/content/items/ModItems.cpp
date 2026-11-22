@@ -10,9 +10,9 @@
 #include "content/common/GameRefs.h"
 #include "content/common/TypeTables.h"
 #include "content/items/ModItemSorting.h"
-#include "content/items/UnloadedIcon.h"
 #include "content/items/EmptyTexture.h"
 
+#include <algorithm>
 #include <atomic>
 #include <cstdio>
 #include <cstdlib>
@@ -37,6 +37,7 @@ std::atomic<int> g_total{0};
 std::atomic<int> g_installed{0};
 bool g_failed = false;
 int g_poolFirst = -1;
+int g_poolSize = 0;
 
 struct Refs {
     bool tried = false, ok = false;
@@ -528,39 +529,42 @@ int modItemTypeByKey(const std::string& key) {
 
 constexpr const char* kLoaderMod = "bunnyloader";
 
-void registerUnloadedPool() {
+void registerUnloadedPool(int missingKeys) {
     if (g_poolFirst >= 0) return;
-    for (int i = 0; i < kUnloadedPoolSize; ++i) {
+    const int size = std::max(kMinUnloadedPoolSize, missingKeys + kUnloadedPoolMargin);
+    int first = -1;
+    for (int i = 0; i < size; ++i) {
         ModItemDef d;
         d.mod = kLoaderMod;
         d.name = "Unloaded" + std::to_string(i);
-        d.textureData = bl_unloaded_icon_png;
-        d.textureSize = bl_unloaded_icon_png_len;
         d.names = {{"pt-BR", "Item não carregado"}, {"en-US", "Unloaded item"}};
         const int type = registerModItem(std::move(d));
-        if (i == 0) g_poolFirst = type;
+        if (i == 0) first = type;
     }
-    BL_DEBUG("mod items: %d \"?\" item(s) reserved from id %d", kUnloadedPoolSize, g_poolFirst);
+    g_poolSize = size;
+    g_poolFirst = first;
+    BL_INFO("mod items: %d \"?\" item(s) reserved from id %d (%d missing in the saves)",
+            size, first, missingKeys);
 }
 
 bool isUnloadedType(int type) {
-    return g_poolFirst >= 0 && type >= g_poolFirst && type < g_poolFirst + kUnloadedPoolSize;
+    return g_poolFirst >= 0 && type >= g_poolFirst && type < g_poolFirst + g_poolSize;
 }
 
 int unloadedTypeFor(const std::string& key) {
-    if (g_poolFirst < 0 || key.empty() || g_poolFirst + kUnloadedPoolSize > itemTypeCount()) return -1;
+    if (g_poolFirst < 0 || key.empty() || g_poolFirst + g_poolSize > itemTypeCount()) return -1;
     Entry named;
     int type = -1;
     {
         std::lock_guard<std::mutex> l(g_mx);
-        for (int i = 0; i < kUnloadedPoolSize; ++i) {
+        for (int i = 0; i < g_poolSize; ++i) {
             Entry& e = g_regs[static_cast<size_t>(g_poolFirst - kVanillaItemCount + i)];
             if (e.unloadedKey == key) return g_poolFirst + i;
             if (type < 0 && e.unloadedKey.empty()) type = g_poolFirst + i;
         }
         if (type < 0) {
             BL_ERROR("mod items: \"?\" reserve used up (%d distinct missing items); %s "
-                     "stays only in the file", kUnloadedPoolSize, key.c_str());
+                     "stays only in the file", g_poolSize, key.c_str());
             return -1;
         }
         Entry& e = g_regs[static_cast<size_t>(type - kVanillaItemCount)];

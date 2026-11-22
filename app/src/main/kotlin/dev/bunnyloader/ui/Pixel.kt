@@ -5,8 +5,16 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.IndicationNodeFactory
+import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.node.DelegatableNode
+import androidx.compose.ui.node.DrawModifierNode
+import androidx.compose.ui.node.invalidateDraw
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -84,10 +92,18 @@ import kotlinx.coroutines.flow.collectLatest
 
 // ------------------------------- sprites -------------------------------
 
+private val resourceImages = HashMap<Int, ImageBitmap>()
+
+@Composable
+fun pixelImage(res: Int): ImageBitmap {
+    val resources = androidx.compose.ui.platform.LocalContext.current.resources
+    return resourceImages.getOrPut(res) { ImageBitmap.imageResource(resources, res) }
+}
+
 @Composable
 fun PixelIcon(res: Int, size: Dp, modifier: Modifier = Modifier, alpha: Float = 1f) {
     Image(
-        bitmap = ImageBitmap.imageResource(res),
+        bitmap = pixelImage(res),
         contentDescription = null,
         filterQuality = FilterQuality.None,
         alpha = alpha,
@@ -104,7 +120,7 @@ fun PixelIcon(res: Int, size: Dp, modifier: Modifier = Modifier, alpha: Float = 
 @Composable
 fun SpriteFrame(res: Int, frameW: Int, frameH: Int, index: Int, size: Dp,
                 modifier: Modifier = Modifier) {
-    val sheet = ImageBitmap.imageResource(res)
+    val sheet = pixelImage(res)
     val cols = (sheet.width / frameW).coerceAtLeast(1)
     val col = index % cols
     val row = index / cols
@@ -290,13 +306,43 @@ fun Modifier.framePanel(
  */
 fun Modifier.pixelClickable(onClick: () -> Unit): Modifier = pixelClickable(PixelCorner.SMALL, onClick)
 
-fun Modifier.pixelClickable(corner: PixelCorner, onClick: () -> Unit): Modifier = composed {
-    val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    drawWithContent {
+fun Modifier.pixelClickable(corner: PixelCorner, onClick: () -> Unit): Modifier =
+    clickable(interactionSource = null, indication = PressBorder.of(corner), onClick = onClick)
+
+private class PressBorder(private val corner: PixelCorner) : IndicationNodeFactory {
+    override fun create(interactionSource: InteractionSource): DelegatableNode = PressBorderNode(interactionSource, corner)
+    override fun equals(other: Any?) = other is PressBorder && other.corner == corner
+    override fun hashCode() = corner.hashCode()
+
+    companion object {
+        private val byCorner = PixelCorner.entries.associateWith(::PressBorder)
+        fun of(corner: PixelCorner) = byCorner.getValue(corner)
+    }
+}
+
+private class PressBorderNode(
+    private val source: InteractionSource,
+    private val corner: PixelCorner,
+) : Modifier.Node(), DrawModifierNode {
+    private var presses = 0
+
+    override fun onAttach() {
+        coroutineScope.launch {
+            source.interactions.collect { interaction ->
+                val before = presses
+                when (interaction) {
+                    is PressInteraction.Press -> presses++
+                    is PressInteraction.Release, is PressInteraction.Cancel -> presses = (presses - 1).coerceAtLeast(0)
+                }
+                if ((before > 0) != (presses > 0)) invalidateDraw()
+            }
+        }
+    }
+
+    override fun ContentDrawScope.draw() {
         drawContent()
-        if (pressed) drawPressBorder(corner)
-    }.clickable(interaction, indication = null, onClick = onClick)
+        if (presses > 0) drawPressBorder(corner)
+    }
 }
 
 fun DrawScope.drawPressBorder(corner: PixelCorner = PixelCorner.NONE) {

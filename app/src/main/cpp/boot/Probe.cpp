@@ -114,7 +114,7 @@ void probeThread() {
             dotnet::host().finishLoading();
             runtime::installNetGuard();
             BL_INFO("probe: %zu mod(s) loaded", mods::loadedCount());
-            registerUnloadedPool();
+            registerUnloadedPool(countMissingItemKeys());
             registerUnloadedWall();
             prepareModNpcs();
 

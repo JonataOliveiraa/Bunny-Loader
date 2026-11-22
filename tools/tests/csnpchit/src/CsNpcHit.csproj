@@ -11,9 +11,10 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../../../app/src/main/csharp/BunnyLoader/BunnyLoader.csproj" Private="false" />
-    <Compile Include="../../../../samples/ExampleModCSharp/content/Content/NPCs/PartyZombie.cs" Link="Content/PartyZombie.cs" />
+    <Compile Include="../../../../samples/ExampleModCSharp/Content/NPCs/PartyZombie.cs" Link="Content/PartyZombie.cs" />
     <Compile Include="../../shared/ExampleSurfaceBiomeStub.cs" Link="Content/ExampleSurfaceBiomeStub.cs" />
-    <Compile Include="../../../../samples/ExampleModCSharp/content/Common/GlobalNPCs/DamageModificationGlobalNPC.cs" Link="Content/DamageModificationGlobalNPC.cs" />
-    <Compile Include="../../../../samples/ExampleModCSharp/content/Content/Buffs/ExampleDefenseDebuff.cs" Link="Content/ExampleDefenseDebuff.cs" />
+    <Compile Include="../../shared/ExampleBuffStubs.cs" Link="Content/ExampleBuffStubs.cs" />
+    <Compile Include="../../../../samples/ExampleModCSharp/Common/GlobalNPCs/DamageModificationGlobalNPC.cs" Link="Content/DamageModificationGlobalNPC.cs" />
+    <Compile Include="../../../../samples/ExampleModCSharp/Content/Buffs/ExampleDefenseDebuff.cs" Link="Content/ExampleDefenseDebuff.cs" />
   </ItemGroup>
 </Project>

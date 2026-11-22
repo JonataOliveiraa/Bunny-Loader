@@ -1,6 +1,7 @@
 package dev.bunnyloader.ui
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -90,12 +91,13 @@ fun ModIcon(entry: Catalog.Entry, catalog: Catalog, size: androidx.compose.ui.un
     // Lido uma vez por ícone, não a cada recomposição: agora pode ser arquivo.
     // Um icon.gif que não dá para animar (grande demais, quebrado) cede ao
     // icon.png ao lado; sem ele, o primeiro quadro, se o Android ler.
-    val still = produceState<ImageBitmap?>(
-        null,
+    val still = produceState(
+        path?.takeIf { !animated }?.let(catalog::cachedIconBitmap),
         path, gif?.done, revision,
     ) {
         value = when {
             path == null || (animated && gif?.done != true) || gif?.animation != null -> null
+            !animated && catalog.cachedIconBitmap(path) != null -> catalog.cachedIconBitmap(path)
             else -> withContext(MediaDispatcher) {
                 if (animated) catalog.loadIconBitmap(path.dropLast(4) + ".png") ?: catalog.loadIconBitmap(path)
                 else catalog.loadIconBitmap(path)
@@ -132,21 +134,43 @@ private fun rememberIconAnimation(catalog: Catalog, path: String, version: Strin
  * (tools/mod-art.py para os nossos). Cortada para caber, nunca esticada, e sem
  * filtro — o pixel da arte continua quadrado.
  *
- * Pacote sem capa (um importado, por exemplo) mostra o ícone da categoria.
+ * Pacote sem capa mostra o próprio ícone ampliado e desfocado; sem ícone, o
+ * da categoria.
  */
 @Composable
 fun ModBanner(entry: Catalog.Entry, catalog: Catalog, modifier: Modifier = Modifier) {
     val media = LocalRemoteMedia.current(entry)
-    if (media.remote != null && media.bannerAsset == null) {
+    val remote = media.remote
+    val hasBanner = media.bannerAsset != null || (remote != null && Catalog.BANNERS.any { it in remote.files })
+    if (remote != null && media.bannerAsset == null && hasBanner) {
         val request = LocalRemoteFiles.current
-        LaunchedEffect(entry.uid, media.remote.download.sha256) { request(entry.uid, listOf(media.remote.bannerFile)) }
+        LaunchedEffect(entry.uid, remote.download.sha256) { request(entry.uid, listOf(remote.bannerFile)) }
     }
-    val own = rememberPackagePicture(catalog, media.bannerAsset,
-        "${media.remote?.download?.sha256 ?: media.manifest.version}:${media.mediaRevision}")
+    if (remote != null && !hasBanner && media.iconAsset == null) {
+        val request = LocalRemoteFiles.current
+        LaunchedEffect(entry.uid, remote.download.sha256) { request(entry.uid, listOf(remote.iconFile)) }
+    }
+    val revision = "${remote?.download?.sha256 ?: media.manifest.version}:${media.mediaRevision}"
+    val own = rememberPackagePicture(catalog, media.bannerAsset, revision)
+    val iconPath = media.iconAsset.takeIf { !hasBanner }
+    val blurred by produceState<IconAnimation?>(null, iconPath, revision) {
+        value = iconPath?.let { path ->
+            withContext(MediaDispatcher) {
+                val icon = if (path.endsWith(".gif", ignoreCase = true)) catalog.loadAnimation(path)?.frames?.firstOrNull()
+                else catalog.loadIconBitmap(path)
+                icon?.let { catalog.loadBlurredIcon(path, it) }?.let { IconAnimation(listOf(it), intArrayOf(0)) }
+            }
+        }
+    }
     Box(modifier.framePanel().padding(2.dp).clipToBounds()) {
         val first = own?.frames?.first()
-        if (own == null || first == null) {
-            PixelIcon(categoryIcon(entry.manifest.category), 64.dp, Modifier.align(Alignment.Center))
+        val soft = blurred
+        if ((own == null || first == null) && soft != null) {
+            PictureFrames(soft, Modifier.fillMaxSize(), PictureFit.Crop, FilterQuality.Low)
+            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.18f)))
+        } else if (own == null || first == null) {
+            if (!hasBanner && iconPath != null) Unit
+            else PixelIcon(categoryIcon(entry.manifest.category), 64.dp, Modifier.align(Alignment.Center))
         } else if (first.width < first.height * 1.8f) {
             // Arte estreita: inteira no meio, sobre ela mesma esmaecida.
             Box(Modifier.fillMaxSize().graphicsLayer { alpha = 0.22f }) {

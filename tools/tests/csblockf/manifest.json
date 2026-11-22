@@ -6,7 +6,7 @@
   "author": "test",
   "category": "Utilidade",
   "summary": "Checks API that used to have no effect.",
-  "description": "Compile with tools/tests/build-cs.sh csblockf.",
+  "description": "Compile with tools/tests/build-cs.sh csblockf. Run with SAMPLE=1.",
   "updated": "2026-11-05",
   "blVersion": 3,
   "gameVersion": [

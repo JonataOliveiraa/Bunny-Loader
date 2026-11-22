@@ -302,6 +302,21 @@ jobjectArray JNICALL jni_modItemTextures(JNIEnv* env, jclass) {
     return toJavaStrings(env, v);
 }
 
+jintArray toJavaInts(JNIEnv* env, const std::vector<int>& v) {
+    if (v.empty()) return nullptr;
+    jintArray out = env->NewIntArray(static_cast<jsize>(v.size()));
+    if (out) env->SetIntArrayRegion(out, 0, static_cast<jsize>(v.size()), v.data());
+    return out;
+}
+
+jintArray JNICALL jni_itemTextureCopies(JNIEnv* env, jclass) {
+    return runtime::namesReady() ? toJavaInts(env, runtime::itemTextureCopies()) : nullptr;
+}
+
+jintArray JNICALL jni_itemAnimations(JNIEnv* env, jclass) {
+    return runtime::namesReady() ? toJavaInts(env, runtime::itemAnimations()) : nullptr;
+}
+
 jint JNICALL jni_vanillaNpcCount(JNIEnv*, jclass) { return runtime::kVanillaNpcCount; }
 
 jint JNICALL jni_vanillaBuffCount(JNIEnv*, jclass) { return runtime::kVanillaBuffCount; }
@@ -468,6 +483,8 @@ void installCheatButton() {
         {"nWorldState", "()[I", reinterpret_cast<void*>(&jni_worldState)},
         {"nVanillaItemCount", "()I", reinterpret_cast<void*>(&jni_vanillaItemCount)},
         {"nModItemTextures", "()[Ljava/lang/String;", reinterpret_cast<void*>(&jni_modItemTextures)},
+        {"nItemTextureCopies", "()[I", reinterpret_cast<void*>(&jni_itemTextureCopies)},
+        {"nItemAnimations", "()[I", reinterpret_cast<void*>(&jni_itemAnimations)},
         {"nModCategories", "()[Ljava/lang/String;", reinterpret_cast<void*>(&jni_modCategories)},
         {"nModCategoryItems", "(I)[I", reinterpret_cast<void*>(&jni_modCategoryItems)},
         {"nVanillaNpcCount", "()I", reinterpret_cast<void*>(&jni_vanillaNpcCount)},

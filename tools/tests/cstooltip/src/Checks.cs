@@ -69,13 +69,16 @@ public static class Checks
         for (int k = 0; k < 50; k++)
         {
             Item item = p.inventory[k];
-            if (item.type == type) return;
+            if (item.type != type) continue;
+            Log.Info($"cstooltip the player already had the Lore Stone in slot {k}: stack={item.stack}");
+            return;
         }
         for (int k = 0; k < 50; k++)
         {
             Item item = p.inventory[k];
             if (item.type > 0 && item.stack > 0) continue;
             item.SetDefaults(type, default);
+            Log.Info($"cstooltip gave the Lore Stone in slot {k}: type={item.type} stack={item.stack}");
             return;
         }
     }

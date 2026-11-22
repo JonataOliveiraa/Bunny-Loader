@@ -21,6 +21,8 @@ internal class MediaCache<K, V>(
     private val loading = mutableSetOf<K>()
     private var bytes = 0
 
+    fun peek(key: K): V? = synchronized(lock) { entries[key]?.value }
+
     /** Blocking: call off the UI thread. Concurrent readers share one decode. */
     fun get(key: K, load: () -> V?): V? {
         synchronized(lock) {

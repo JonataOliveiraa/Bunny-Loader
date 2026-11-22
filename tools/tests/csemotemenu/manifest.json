@@ -6,7 +6,7 @@
   "author": "test",
   "category": "Utilidade",
   "summary": "Checks that a mod emote can be picked from the game's emote window with a real tap.",
-  "description": "Compile with tools/tests/build-cs.sh csemotemenu.",
+  "description": "Compile with tools/tests/build-cs.sh csemotemenu. Run with SAMPLE=1 tools/tests/run-taps.sh csemotemenu.",
   "updated": "2026-11-07",
   "blVersion": 3,
   "gameVersion": [

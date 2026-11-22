@@ -6,7 +6,7 @@
   "author": "test",
   "category": "Utilidade",
   "summary": "Checks the API members and loader fixes asked for by the C# ports.",
-  "description": "Compile with tools/tests/build-cs.sh csapigaps.",
+  "description": "Compile with tools/tests/build-cs.sh csapigaps. Run with SAMPLE=1 NOENV=1: the boss bar check needs a boss, which csenv removes.",
   "updated": "2026-11-07",
   "blVersion": 3,
   "gameVersion": [

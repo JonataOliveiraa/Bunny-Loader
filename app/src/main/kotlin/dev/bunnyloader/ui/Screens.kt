@@ -103,7 +103,7 @@ fun InicioTab(shell: Shell, onOpen: (String) -> Unit) {
             // que parecia ser o limitador nunca chegava a valer. Travando a
             // proporção, a altura segue a largura e o título ocupa o que tem.
             Image(
-                bitmap = ImageBitmap.imageResource(R.drawable.img_title),
+                bitmap = pixelImage(R.drawable.img_title),
                 contentDescription = "Bunny Loader",
                 filterQuality = FilterQuality.None,
                 contentScale = ContentScale.Fit,
@@ -241,7 +241,7 @@ private fun FeaturedCard(
             Box(Modifier.fillMaxWidth()) {
                 ModBanner(entry, shell.catalog,
                     Modifier.fillMaxWidth().heightIn(min = 100.dp, max = 146.dp).aspectRatio(3.6f))
-                if (isNew) NewBadge(Modifier.align(Alignment.TopEnd).padding(8.dp))
+                if (isNew) NewBadge(entry.uid, Modifier.align(Alignment.TopEnd).padding(8.dp))
 
                 Box(Modifier.align(Alignment.BottomStart).offset(x = 12.dp, y = 28.dp)) {
                     ModIcon(entry, shell.catalog, 64.dp)
@@ -398,7 +398,7 @@ private fun ExploreRow(
 ) {
     ModRow(entry, shell.catalog, { onOpen(entry.uid) }, fill = fill, downloads = shell.downloadCounts[entry.uid]) {
         Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            if (isNew) NewBadge()
+            if (isNew) NewBadge(entry.uid)
             StoreStatusTag(entry, shell)
         }
     }
@@ -425,29 +425,45 @@ private fun NewModsTitle() {
     }
 }
 
-/**
- * O selo "NEW" (21x10, ampliado sem filtro). Sobe e desce devagar, só na
- * camada: o cartão em volta não é redesenhado, e para durante a rolagem.
- */
 @Composable
-private fun NewBadge(modifier: Modifier = Modifier) {
-    val paused = LocalAnimationsPaused.current
-    val bob = androidx.compose.animation.core.rememberInfiniteTransition(label = "selo novo")
-    val lift by bob.animateFloat(0f, 1f,
-        androidx.compose.animation.core.infiniteRepeatable(
-            androidx.compose.animation.core.tween(700),
-            androidx.compose.animation.core.RepeatMode.Reverse),
-        label = "selo novo sobe")
-    val step = with(androidx.compose.ui.platform.LocalDensity.current) { 2.dp.toPx() }
-    Image(
-        bitmap = ImageBitmap.imageResource(R.drawable.ic_new),
-        contentDescription = tr("New"),
-        filterQuality = FilterQuality.None,
-        modifier = modifier.size(42.dp, 20.dp).graphicsLayer {
-            // Um pixel da arte (2 dp) por vez: nada de meio pixel borrado.
-            translationY = if (paused()) 0f else -kotlin.math.round(lift) * step
-        },
-    )
+private fun NewBadge(uid: String, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    var visible by remember(uid) { mutableStateOf(NewBadgeClock.remainingMs(context, uid) > 0) }
+    if (visible) {
+        LaunchedEffect(uid) {
+            delay(NewBadgeClock.remainingMs(context, uid))
+            visible = false
+        }
+    }
+    androidx.compose.animation.AnimatedVisibility(
+        visible,
+        modifier = modifier,
+        enter = androidx.compose.animation.EnterTransition.None,
+        exit = androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(NEW_BADGE_FADE_MS)),
+    ) {
+        Image(
+            bitmap = pixelImage(R.drawable.ic_new),
+            contentDescription = tr("New"),
+            filterQuality = FilterQuality.None,
+            modifier = Modifier.size(NEW_BADGE_WIDTH, NEW_BADGE_WIDTH * 10f / 21f),
+        )
+    }
+}
+
+private val NEW_BADGE_WIDTH = 30.dp
+private const val NEW_BADGE_FADE_MS = 220
+
+internal object NewBadgeClock {
+    private const val SHOW_MS = 10L * 60 * 1000
+    private var prefs: android.content.SharedPreferences? = null
+
+    fun remainingMs(context: android.content.Context, uid: String): Long {
+        val store = prefs ?: context.applicationContext
+            .getSharedPreferences("new_badges", android.content.Context.MODE_PRIVATE).also { prefs = it }
+        val now = System.currentTimeMillis()
+        val seen = store.getLong(uid, 0L).takeIf { it > 0 } ?: now.also { store.edit().putLong(uid, it).apply() }
+        return (seen + SHOW_MS - now).coerceAtLeast(0)
+    }
 }
 
 /**
@@ -611,7 +627,7 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
 
         DraggablePackageList(
             state = state,
-            uids = packages.map { it.uid },
+            uids = remember(packages) { packages.map { it.uid } },
             enabledUids = shell.enabled,
             reorderEnabled = manualOrder,
             onDrop = shell::moveModTo,
@@ -730,7 +746,7 @@ private fun SortButton(sort: ExploreSort, onSort: (ExploreSort) -> Unit) {
 /** O interruptor: dois quadros empilhados, desligado em cima e ligado embaixo. */
 @Composable
 fun SwitchSprite(on: Boolean, onToggle: () -> Unit) {
-    val sheet = ImageBitmap.imageResource(R.drawable.ic_switch)
+    val sheet = pixelImage(R.drawable.ic_switch)
     Box(Modifier.pixelClickable(onToggle).padding(4.dp)) {
         SpriteFrame(R.drawable.ic_switch, sheet.width, sheet.height / 2, if (on) 1 else 0, 52.dp)
     }

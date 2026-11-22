@@ -1,0 +1,17 @@
+{
+  "uid": "5a3f38b4-3979-4f05-b6d9-664d918f1a36",
+  "id": "CsTouchProfile",
+  "name": "Test: switching the touch profile",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Switches the active touch controls profile from C# with VirtualControlsStyles_Layout.SetActiveProfile and switches it back.",
+  "description": "Compile with tools/tests/build-cs.sh cstouchprofile. Logs cstouchprofile <case>: ok | FAIL, cstouchprofile SHOT before/after and cstouchprofile END pass=N fail=M.",
+  "updated": "2026-11-13",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

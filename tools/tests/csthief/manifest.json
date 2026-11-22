@@ -6,7 +6,7 @@
   "author": "test",
   "category": "Utilidade",
   "summary": "Checks that the Example Mod zombie thief steals a stack only once.",
-  "description": "Compile with tools/tests/build-cs.sh csthief.",
+  "description": "Compile with tools/tests/build-cs.sh csthief. Run with SAMPLE=1 NOENV=1: the zombie thief is a hostile NPC, which csenv removes.",
   "updated": "2026-11-07",
   "blVersion": 3,
   "gameVersion": [

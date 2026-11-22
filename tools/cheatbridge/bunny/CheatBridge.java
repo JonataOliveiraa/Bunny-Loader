@@ -115,6 +115,8 @@ public class CheatBridge {
     public static native int nVanillaItemCount();
     /** PNG de cada item de mod, indice = tipo - nVanillaItemCount(). */
     public static native String[] nModItemTextures();
+    public static native int[] nItemTextureCopies();
+    public static native int[] nItemAnimations();
     /** Categorias do catalogo de mod, achatadas: nome, icone, nome, icone... */
     public static native String[] nModCategories();
     public static native int[] nModCategoryItems(int category);
@@ -436,6 +438,55 @@ public class CheatBridge {
     // O que um sprite mostra: define a pasta do PNG e a tabela de mod.
     private static final int SPR_ITEM = 0, SPR_NPC = 1, SPR_BUFF = 2;
     private static final String[] SPR_DIR = {"item/", "npc/", "buff/"};
+
+    private static volatile int[] sTextureCopies, sItemAnimations;
+
+    private static int[] textureCopies() {
+        int[] v = sTextureCopies;
+        if (v == null) sTextureCopies = v = nItemTextureCopies();
+        return v;
+    }
+
+    private static int[] itemAnimations() {
+        int[] v = sItemAnimations;
+        if (v == null) sItemAnimations = v = nItemAnimations();
+        return v;
+    }
+
+    private static final String[] VANILLA_PREFIX = {"Terraria/Images/Item_", "Terraria/Images/NPC_", "Terraria/Images/Buff_"};
+
+    private static String vanillaSpriteKey(String texture) {
+        for (int kind = 0; kind < VANILLA_PREFIX.length; kind++) {
+            String prefix = VANILLA_PREFIX[kind];
+            if (!texture.startsWith(prefix)) continue;
+            String id = texture.substring(prefix.length());
+            if (id.endsWith(".png")) id = id.substring(0, id.length() - 4);
+            try { return spriteKey(kind, Integer.parseInt(id)); } catch (NumberFormatException e) { return null; }
+        }
+        return null;
+    }
+
+    private static Bitmap openSprite(Activity a, String key, BitmapFactory.Options o) {
+        for (int hop = 0; hop < 4 && key != null; hop++) {
+            InputStream in = null;
+            try {
+                in = a.getAssets().open("sprites/" + key + ".png");
+                return BitmapFactory.decodeStream(in, null, o);
+            } catch (Throwable t) {
+                if (!key.startsWith(SPR_DIR[SPR_ITEM])) return null;
+                int id = Integer.parseInt(key.substring(SPR_DIR[SPR_ITEM].length()));
+                int[] copies = textureCopies();
+                int from = copies != null && id >= 0 && id < copies.length ? copies[id] : -1;
+                key = from > 0 && from != id ? spriteKey(SPR_ITEM, from) : null;
+            } finally {
+                if (in != null) try { in.close(); } catch (Throwable ignored) { }
+            }
+        }
+        return null;
+    }
+
+    private static final Map<Bitmap, Integer> sItemOfBitmap =
+        Collections.synchronizedMap(new java.util.WeakHashMap<Bitmap, Integer>());
 
     /** O PNG do item, NPC ou buff de mod `id`, ou null se o id e do jogo. */
     private static String modTexture(int kind, int id) {
@@ -1407,18 +1458,21 @@ public class CheatBridge {
         final boolean npc = key.startsWith("npc/");
         final int kind = npc ? SPR_NPC : key.startsWith("buff/") ? SPR_BUFF : SPR_ITEM;
         Bitmap bmp = null;
-        InputStream in = null;
         try {
             // Item, NPC e buff de mod nao tem sprite no APK: vem do PNG do proprio mod.
-            String file = modTexture(kind, Integer.parseInt(key.substring(SPR_DIR[kind].length())));
+            int id = Integer.parseInt(key.substring(SPR_DIR[kind].length()));
+            String file = modTexture(kind, id);
             BitmapFactory.Options o = new BitmapFactory.Options();
             o.inScaled = false;   // pixel art nao escala no decode
-            if (file != null) {
+            String vanilla = file != null ? vanillaSpriteKey(file) : null;
+            if (vanilla != null) {
+                bmp = openSprite(a, vanilla, o);
+            } else if (file != null) {
                 bmp = BitmapFactory.decodeFile(file, o);
             } else {
-                in = a.getAssets().open("sprites/" + key + ".png");
-                bmp = BitmapFactory.decodeStream(in, null, o);
+                bmp = openSprite(a, key, o);
             }
+            if (bmp != null && kind == SPR_ITEM) sItemOfBitmap.put(bmp, id);
             // O PNG de NPC e uma TIRA VERTICAL de quadros. Mostrar a tira
             // inteira espremida num quadradinho deixava a Geleia Azul com duas
             // cabecas. Fica so o primeiro quadro.
@@ -1433,8 +1487,6 @@ public class CheatBridge {
             }
         } catch (Throwable t) {
             bmp = null;           // id sem sprite: a linha fica so com o nome
-        } finally {
-            if (in != null) try { in.close(); } catch (Throwable ignored) { }
         }
         return bmp;
     }
@@ -1542,6 +1594,13 @@ public class CheatBridge {
     /** Pixel art sem borrar: vizinho-mais-proximo. */
     static void setBitmap(Activity a, ImageView v, Bitmap bmp) {
         if (bmp == null) { v.setImageDrawable(null); return; }
+        Integer item = sItemOfBitmap.get(bmp);
+        int[] anim = item != null ? itemAnimations() : null;
+        int frames = anim != null && item * 2 + 1 < anim.length ? anim[item * 2] : 0;
+        if (frames > 1 && bmp.getHeight() >= frames) {
+            v.setImageDrawable(new StripDrawable(bmp, frames, anim[item * 2 + 1]));
+            return;
+        }
         BitmapDrawable d = new BitmapDrawable(a.getResources(), bmp);
         d.getPaint().setFilterBitmap(false);
         v.setImageDrawable(d);
@@ -1556,6 +1615,56 @@ public class CheatBridge {
         }
         return icon(a, s.icon != null ? sprite(a, s.icon)
                                        : spriteJa(a, s.iconKind, s.iconItem), u);
+    }
+
+    static final class StripDrawable extends Drawable implements Runnable {
+        private final Bitmap strip;
+        private final int frames, frameMs;
+        private final Paint paint = new Paint();
+        private final Rect src = new Rect();
+        private int frame;
+        private boolean running;
+
+        StripDrawable(Bitmap strip, int frames, int ticksPerFrame) {
+            this.strip = strip;
+            this.frames = frames;
+            this.frameMs = Math.max(1, ticksPerFrame) * 1000 / 60;
+            paint.setFilterBitmap(false);
+        }
+
+        @Override public int getIntrinsicWidth() { return strip.getWidth(); }
+        @Override public int getIntrinsicHeight() { return strip.getHeight() / frames; }
+
+        @Override public void draw(Canvas c) {
+            int h = strip.getHeight() / frames;
+            src.set(0, frame * h, strip.getWidth(), frame * h + h);
+            c.drawBitmap(strip, src, getBounds(), paint);
+            if (!running && isVisible()) {
+                running = true;
+                scheduleSelf(this, SystemClock.uptimeMillis() + frameMs);
+            }
+        }
+
+        @Override public void run() {
+            frame = (frame + 1) % frames;
+            invalidateSelf();
+            if (running) scheduleSelf(this, SystemClock.uptimeMillis() + frameMs);
+        }
+
+        @Override public boolean setVisible(boolean visible, boolean restart) {
+            boolean changed = super.setVisible(visible, restart);
+            if (!visible) {
+                running = false;
+                unscheduleSelf(this);
+            } else {
+                invalidateSelf();
+            }
+            return changed;
+        }
+
+        @Override public void setAlpha(int alpha) { paint.setAlpha(alpha); }
+        @Override public void setColorFilter(ColorFilter filter) { paint.setColorFilter(filter); }
+        @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
     }
 
     /**

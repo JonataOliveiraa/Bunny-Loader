@@ -1,0 +1,17 @@
+{
+  "uid": "5691cb98-ddac-4197-ace6-8d54a9348ac1",
+  "id": "CsSleep",
+  "name": "Test: sleeping in a bed",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Puts the player to sleep in a bed and captures the screen, to see what the game's HUD shows while sleeping.",
+  "description": "Compile with tools/tests/build-cs.sh cssleep. Logs cssleep <case>: ok | FAIL, cssleep SHOT asleep and cssleep END pass=N fail=M.",
+  "updated": "2026-11-13",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

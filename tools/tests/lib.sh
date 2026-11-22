@@ -55,11 +55,16 @@ prepare() {
     adb -s "$dev" shell "run-as $pkg rm -f shared_prefs/bunny_powers.xml" >/dev/null 2>&1
     [ "$saves" = 1 ] && [ "${KEEPSAVES:-0}" != 1 ] && restore_saves "$dev"
     printf '<?xml version='"'"'1.0'"'"' encoding='"'"'utf-8'"'"' standalone='"'"'yes'"'"' ?>\n<map>\n' > "$tmp/mods.xml"
+    local order=""
     for pack in "$@" csauto; do
         u=$(push "$dev" "$pack") || return 1
         printf '    <boolean name="%s" value="true" />\n' "$u" >> "$tmp/mods.xml"
+        order="$order${order:+,}&quot;$u&quot;"
     done
     printf '</map>\n' >> "$tmp/mods.xml"
+    printf '<?xml version='"'"'1.0'"'"' encoding='"'"'utf-8'"'"' standalone='"'"'yes'"'"' ?>\n<map>\n    <string name="uids">[%s]</string>\n</map>\n' "$order" > "$tmp/mod_order.xml"
+    adb -s "$dev" push "$tmp/mod_order.xml" /data/local/tmp/o.xml >/dev/null
+    adb -s "$dev" shell "chmod 644 /data/local/tmp/o.xml; run-as $pkg cp /data/local/tmp/o.xml shared_prefs/mod_order.xml; rm -f /data/local/tmp/o.xml"
     adb -s "$dev" shell "run-as $pkg cat shared_prefs/settings.xml" > "$tmp/settings.xml"
     pref "$tmp/settings.xml" enableOnInstall false
     pref "$tmp/settings.xml" quickJs "${QJS:-false}"
@@ -78,7 +83,13 @@ launch() {
         adb -s "$dev" logcat -d | grep -q "Displayed $pkg/dev.bunnyloader.LauncherActivity" && break
     done
     sleep 2
-    adb -s "$dev" shell input tap 800 805
+    for _ in 1 2 3 4; do
+        adb -s "$dev" shell input tap 800 805
+        for _ in $(seq 1 8); do
+            sleep 1
+            adb -s "$dev" shell "pidof $pkg:game || pidof $pkg:compile" >/dev/null 2>&1 && return 0
+        done
+    done
 }
 
 state() { adb -s "$1" logcat -d | grep "csauto state" | tail -1 | sed 's/.*csauto state //'; }
@@ -119,9 +130,9 @@ tap_until() {
 enter_single() {
     local dev="$1"
     wait_state "$dev" "mode=0 " 90 title &&
-        tap_until "$dev" 808 330 "mode=1 " players &&
-        tap_until "$dev" 997 327 "mode=6 " worlds &&
-        tap_until "$dev" 997 318 "mode=10 |^world" loading &&
+        tap_until "$dev" 808 330 "mode=1 |mode=6 |mode=10 |^world" players &&
+        { state "$dev" | grep -Eq "mode=6 |mode=10 |^world" || tap_until "$dev" 997 327 "mode=6 |mode=10 |^world" worlds; } &&
+        { state "$dev" | grep -Eq "mode=10 |^world" || tap_until "$dev" 997 318 "mode=10 |^world" loading; } &&
         wait_state "$dev" "^world" 120 world &&
         dismiss_controls "$dev"
 }
@@ -162,7 +173,7 @@ enter_client() {
 wait_mods() {
     local dev="$1" seconds="${2:-180}"
     for _ in $(seq 1 "$seconds"); do
-        adb -s "$dev" logcat -d | grep -qE 'sonda: [0-9]+ mod[(]s[)] carregado[(]s[)]' && return 0
+        adb -s "$dev" logcat -d | grep -qE 'sonda: [0-9]+ mod[(]s[)] carregado[(]s[)]|probe: [0-9]+ mod[(]s[)] loaded' && return 0
         adb -s "$dev" logcat -d | grep -qE "Forwarding signal|FATAL" && break
         sleep 1
     done
@@ -185,7 +196,7 @@ wait_end() {
 
 results() {
     local dev="$1" test="$2"
-    echo "==> $test on $dev $(adb -s "$dev" logcat -d | grep -o '([0-9]* habilitados)' | tail -1)"
+    echo "==> $test on $dev $(adb -s "$dev" logcat -d | grep -oE '[(][0-9]* (habilitados|enabled)[)]' | tail -1)"
     adb -s "$dev" logcat -d | grep -E "BunnyLoader: \[mod\]" | grep -E " $test END( |$)|: FAIL|threw|error" | cut -c50-300 | tail -8
     adb -s "$dev" logcat -d | grep -E "Forwarding signal|FATAL" | head -3
 }

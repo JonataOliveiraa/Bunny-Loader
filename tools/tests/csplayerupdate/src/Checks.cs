@@ -49,8 +49,10 @@ public static class Checks
         int moves = Calls(nameof(UpdatePlayer.PreUpdateMovement));
         Report("PreUpdateMovement runs once per update", moves >= 100 && moves <= frames + 1, $"calls={moves} frames={frames}");
 
+        int pausedBefore = Calls(nameof(UpdatePlayer.UpdateAutopause));
         Main.DoUpdate_WhilePaused();
-        Report("UpdateAutopause runs while paused", Calls(nameof(UpdatePlayer.UpdateAutopause)) == 1, $"calls={Calls(nameof(UpdatePlayer.UpdateAutopause))}");
+        Report("UpdateAutopause runs while paused", Calls(nameof(UpdatePlayer.UpdateAutopause)) == pausedBefore + 1,
+            $"calls={Calls(nameof(UpdatePlayer.UpdateAutopause))} before={pausedBefore}");
 
         int key = Main.ReversedUpDownArmorSetBonuses ? 1 : 0;
         p.KeyDoubleTap(key);

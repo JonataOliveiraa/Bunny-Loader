@@ -42,7 +42,7 @@ adb -s "$dev" shell "chmod 644 /data/local/tmp/BunnyLoader.dll; run-as $pkg cp /
 
 printf '<?xml version='"'"'1.0'"'"' encoding='"'"'utf-8'"'"' standalone='"'"'yes'"'"' ?>\n<map>\n' > "$tmp/mods.xml"
 order=""
-for pack in "$root/samples/ExampleModCSharp" "$here/$test"; do
+for pack in "$root/samples/ExampleModCSharp" "$here/$test" ${2:+"$(pack_dir "$2")"}; do
     tar --force-local --exclude=bin --exclude=obj --exclude=src -C "$pack" -cf "$tmp/pack.tar" .
     u=$(uid "$pack")
     adb -s "$dev" push "$tmp/pack.tar" /data/local/tmp/blpack.tar >/dev/null 2>&1

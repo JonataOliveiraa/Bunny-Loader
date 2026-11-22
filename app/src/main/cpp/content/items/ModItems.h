@@ -30,9 +30,10 @@ std::string modItemKey(int type);
 
 int modItemTypeByKey(const std::string& key);
 
-constexpr int kUnloadedPoolSize = 64;
+constexpr int kMinUnloadedPoolSize = 64;
+constexpr int kUnloadedPoolMargin = 32;
 
-void registerUnloadedPool();
+void registerUnloadedPool(int missingKeys);
 
 bool isUnloadedType(int type);
 

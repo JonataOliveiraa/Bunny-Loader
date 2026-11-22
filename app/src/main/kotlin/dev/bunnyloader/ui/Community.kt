@@ -54,7 +54,7 @@ fun DiscordCard(modifier: Modifier = Modifier) {
                 contentAlignment = Alignment.Center,
             ) {
                 Image(
-                    bitmap = ImageBitmap.imageResource(R.drawable.ic_discord),
+                    bitmap = pixelImage(R.drawable.ic_discord),
                     contentDescription = "Discord",
                     filterQuality = FilterQuality.None,
                     modifier = Modifier.size(52.dp, 36.dp).graphicsLayer {
