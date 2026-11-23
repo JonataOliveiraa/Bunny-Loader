@@ -1,0 +1,19 @@
+{
+    "uid":  "208f0d86-954c-4652-beb6-031ff59d3dca",
+    "id":  "CsShopSavings",
+    "name":  "Test: shop savings with custom currency (C#)",
+    "version":  "1.0.0",
+    "author":  "test",
+    "category":  "Utilidade",
+    "summary":  "A shop other than the Tavernkeep\u0027s with special-currency entries shows that currency\u0027s savings, and the swap is undone.",
+    "description":  "Build with tools/tests/build-cs.sh csshopsavings. Logs csshopsavings \u003ccase\u003e: ok | FAIL and csshopsavings END pass=N fail=M.",
+    "updated":  "2026-11-22",
+    "blVersion":  3,
+    "gameVersion":  [
+                        301720,
+                        301720
+                    ],
+    "dependencies":  [
+
+                     ]
+}

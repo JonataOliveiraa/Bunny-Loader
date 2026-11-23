@@ -9,6 +9,7 @@ internal static class TownShopHooks
     internal static void Install()
     {
         PageIconHooks.Install();
+        ShopSavingsHooks.Install();
         ItemHooks.Once("TownShops", () => On_InventoryStorage.SetupShop += SetupShop);
     }
     internal static void InstallTravel() => ItemHooks.Once("TownTravelShop", () => On_InventoryStorage.SetupTravelShop += Travel);
@@ -33,13 +34,16 @@ internal static class TownShopHooks
     static void SetupShop(On_InventoryStorage.orig_SetupShop orig, InventoryStorage storage, int type)
     {
         orig(storage, type);
-        if (!NPCShopDatabase.ByIndex.TryGetValue(type, out AbstractNPCShop? shop)) return;
-        try
+        if (NPCShopDatabase.ByIndex.TryGetValue(type, out AbstractNPCShop? shop))
         {
-            if (shop is NPCShop ordinary) Fill(storage, ordinary);
-            else FillCustom(storage, shop);
+            try
+            {
+                if (shop is NPCShop ordinary) Fill(storage, ordinary);
+                else FillCustom(storage, shop);
+            }
+            catch (Exception e) { ItemHooks.Report($"NPC shop {shop.FullName}", e); }
         }
-        catch (Exception e) { ItemHooks.Report($"NPC shop {shop.FullName}", e); }
+        ShopSavingsHooks.ShopOpened(storage, type);
     }
 
     static void FillCustom(InventoryStorage storage, AbstractNPCShop shop)
