@@ -175,6 +175,7 @@ void patchLimits(int total) {
 using CtorFn = void (*)(Il2CppObject*, const MethodInfo*);
 CtorFn g_origPlayerCtor = nullptr;
 CtorFn g_origNpcCtor = nullptr;
+bool g_playerCtorHooked = false;
 
 void hkPlayerCtor(Il2CppObject* self, const MethodInfo* m) {
     g_origPlayerCtor(self, m);
@@ -207,7 +208,8 @@ void growInstances(int size) {
     const Refs& r = refs();
     if (!hooked) {
         hooked = true;
-        if (!hook::install(r.playerCtor, hkPlayerCtor, &g_origPlayerCtor)) {
+        g_playerCtorHooked = hook::install(r.playerCtor, hkPlayerCtor, &g_origPlayerCtor);
+        if (!g_playerCtorHooked) {
             BL_ERROR("mod buffs: no hook on the Player constructor; a new player reads past buffImmune");
         }
         if (!hook::install(r.npcCtor, hkNpcCtor, &g_origNpcCtor)) {
@@ -217,6 +219,23 @@ void growInstances(int size) {
     const int players = growAll(r.players, r.playerImmune, size);
     const int npcs = growAll(r.npcs, r.npcImmune, size);
     BL_DEBUG("mod buffs: buffImmune grown in %d player(s) and %d NPC(s)", players, npcs);
+}
+
+void widenPlayerImmunityReset(int total) {
+    if (!g_playerCtorHooked) {
+        BL_ERROR("mod buffs: Player.Update keeps clearing only %d buff immunities: no hook on the Player constructor",
+                 kVanillaBuffCount);
+        return;
+    }
+    auto& a = il2cpp::api();
+    Il2CppClass* player = il2cpp::findClass({"Terraria", "Player", {}});
+    const MethodInfo* update = player ? a.class_get_method_from_name(player, "Update", 1) : nullptr;
+    const int patched = update ? patchMovImmediate(update, kVanillaBuffCount, static_cast<uint32_t>(total)) : 0;
+    if (patched == 1) {
+        BL_DEBUG("mod buffs: Player.Update clears %d buff immunities", total);
+    } else {
+        BL_ERROR("mod buffs: Player.Update: %d immunity reset(s) widened to %d buffs, expected 1", patched, total);
+    }
 }
 
 }
@@ -291,6 +310,7 @@ void tickModBuffs() {
     g_installed.store(total, std::memory_order_release);
     growInstances(to);
     patchLimits(to);
+    widenPlayerImmunityReset(to);
 
     {
         std::lock_guard<std::mutex> l(g_mx);

@@ -273,7 +273,47 @@ internal static unsafe class BuffHooks
 
     static ModBuff? Own(int type, BuffHookFlags flag) => BuffLoader.GetBuff(type) is ModBuff m && (m.HookFlags & flag) != 0 ? m : null;
 
-    internal static void AfterPlayerBuffs(Player self)
+    internal const int LiveSlots = 64;
+
+    internal static int Live(Player player, Span<int> live)
+    {
+        try
+        {
+            var types = player.buffType;
+            var times = player.buffTime;
+            return types.IsNull || times.IsNull ? 0 : Live(types.AsSpan(), times.AsSpan(), live);
+        }
+        catch (Exception e)
+        {
+            ItemHooks.Report("ModBuff.Update (player)", e);
+            return 0;
+        }
+    }
+
+    static int Live(NPC npc, Span<int> live)
+    {
+        try
+        {
+            var types = npc.buffType;
+            var times = npc.buffTime;
+            return types.IsNull || times.IsNull ? 0 : Live(types.AsSpan(), times.AsSpan(), live);
+        }
+        catch (Exception e)
+        {
+            ItemHooks.Report("ModBuff.Update (NPC)", e);
+            return 0;
+        }
+    }
+
+    static int Live(Span<int> types, Span<int> times, Span<int> live)
+    {
+        int slots = Math.Min(types.Length, times.Length), count = 0;
+        for (int b = 0; b < slots && count < live.Length; b++)
+            if (types[b] > 0 && times[b] > 0) live[count++] = types[b];
+        return count;
+    }
+
+    internal static void AfterPlayerBuffs(Player self, ReadOnlySpan<int> live)
     {
         try
         {
@@ -283,7 +323,7 @@ internal static unsafe class BuffHooks
             for (int b = 0; b < types.Length; b++)
             {
                 int type = types[b];
-                if (type <= 0 || times[b] <= 0) continue;
+                if (type <= 0 || (times[b] <= 0 && !live.Contains(type))) continue;
                 int index = b;
                 if (Own(type, BuffHookFlags.UpdatePlayer) is ModBuff m)
                 {
@@ -304,6 +344,8 @@ internal static unsafe class BuffHooks
 
     static void UpdateNPCBuffs(On_NPC.orig_UpdateNPC_BuffSetFlags orig, NPC self, bool lowerBuffTime)
     {
+        Span<int> live = stackalloc int[LiveSlots];
+        live = live[..Live(self, live)];
         orig(self, lowerBuffTime);
         try
         {
@@ -313,7 +355,7 @@ internal static unsafe class BuffHooks
             for (int b = 0; b < types.Length; b++)
             {
                 int type = types[b];
-                if (type <= 0 || times[b] <= 0) continue;
+                if (type <= 0 || (times[b] <= 0 && !live.Contains(type))) continue;
                 int index = b;
                 if (Own(type, BuffHookFlags.UpdateNPC) is ModBuff m)
                 {
@@ -363,31 +405,43 @@ internal static unsafe class BuffHooks
 
     static void AddNPCBuff(On_NPC.orig_AddBuff orig, NPC self, int type, int time, bool quiet)
     {
+        if (!ReApplyNPC(self, type, time))
+        {
+            orig(self, type, time, quiet);
+            return;
+        }
+        try
+        {
+            if (!quiet && Main.NetClientOnly) NetMessage.SendData(Terraria.ID.MessageID.AddNPCBuff, -1, -1, default, self.whoAmI, type, time);
+        }
+        catch (Exception e) { ItemHooks.Report("ModBuff.ReApply (NPC sync)", e); }
+    }
+
+    static bool ReApplyNPC(NPC self, int type, int time)
+    {
         try
         {
             int index = self.FindBuffIndex(type);
-            if (index >= 0)
+            if (index < 0) return false;
+            foreach (GlobalBuff g in BuffLoader.GlobalHooks.ReApplyNPC)
             {
-                foreach (GlobalBuff g in BuffLoader.GlobalHooks.ReApplyNPC)
+                try
                 {
-                    try
-                    {
-                        if (g.ReApply(type, self, time, index)) return;
-                    }
-                    catch (Exception e) { ItemHooks.Report($"{g.FullName}.ReApply", e); }
+                    if (g.ReApply(type, self, time, index)) return true;
                 }
-                if (Own(type, BuffHookFlags.ReApplyNPC) is ModBuff m)
+                catch (Exception e) { ItemHooks.Report($"{g.FullName}.ReApply", e); }
+            }
+            if (Own(type, BuffHookFlags.ReApplyNPC) is ModBuff m)
+            {
+                try
                 {
-                    try
-                    {
-                        if (m.ReApply(self, time, index)) return;
-                    }
-                    catch (Exception e) { ItemHooks.Report($"{m.FullName}.ReApply", e); }
+                    if (m.ReApply(self, time, index)) return true;
                 }
+                catch (Exception e) { ItemHooks.Report($"{m.FullName}.ReApply", e); }
             }
         }
         catch (Exception e) { ItemHooks.Report("ModBuff.ReApply (NPC)", e); }
-        orig(self, type, time, quiet);
+        return false;
     }
 
     static bool ShowsBanners()

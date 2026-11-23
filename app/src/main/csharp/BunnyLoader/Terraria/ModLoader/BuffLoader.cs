@@ -52,6 +52,7 @@ public static unsafe class BuffLoader
             all[index] = buff;
             Volatile.Write(ref buffs, all);
         }
+        NPCLoader.WantDefaults();
         BuffHooks.Install(buff.HookFlags);
     }
 

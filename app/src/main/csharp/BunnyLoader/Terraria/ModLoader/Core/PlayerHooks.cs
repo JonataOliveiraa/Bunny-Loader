@@ -186,8 +186,10 @@ internal static class PlayerHooks
     static void UpdateBuffs(On_Player.orig_UpdateBuffs orig, Player self, int i)
     {
         PlayerLoader.Each(self, HookPreUpdateBuffs, static m => m.PreUpdateBuffs());
+        Span<int> live = buffUpdates ? stackalloc int[BuffHooks.LiveSlots] : Span<int>.Empty;
+        if (buffUpdates) live = live[..BuffHooks.Live(self, live)];
         orig(self, i);
-        if (buffUpdates) BuffHooks.AfterPlayerBuffs(self);
+        if (buffUpdates) BuffHooks.AfterPlayerBuffs(self, live);
         PlayerLoader.Each(self, HookPostUpdateBuffs, static m => m.PostUpdateBuffs());
     }
 
