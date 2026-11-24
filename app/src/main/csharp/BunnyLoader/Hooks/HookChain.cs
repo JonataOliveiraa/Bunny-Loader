@@ -36,8 +36,10 @@ public sealed class HookChain<THook, TOrig> where THook : System.Delegate where 
                 try { install(); }
                 finally { HookGates.Installing = outer; }
                 installed = true;
+                Terraria.ModLoader.Core.PreJit.TrackDispatch(install.Method.DeclaringType);
             }
             HookGates.Subscribed(typeof(THook), hook);
+            Terraria.ModLoader.Core.PreJit.Track(hook);
             hooks.Add(hook);
             Rebuild();
         }

@@ -1,0 +1,14 @@
+{
+  "uid": "1a88ffe6-3331-4e96-bf42-4daf059e17a1",
+  "id": "CsFxc",
+  "name": "Test: compiled .fxc effects (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "FxcEffect and FxcScreenEffect: a .fxc compiled by fxc /T fx_2_0, converted by MojoShader to GLSL ES and drawn as a screen effect.",
+  "description": "Build with tools/tests/build-cs.sh csfxc. Effects/*.fxc come from src/*.fx (fxc /T fx_2_0). Logs csfxc SHOT <name>, csfxc <case>: ok | FAIL and csfxc END pass=N fail=M.",
+  "updated": "2026-11-24",
+  "blVersion": 3,
+  "gameVersion": [301720, 301720],
+  "dependencies": []
+}

@@ -24,12 +24,31 @@ internal static unsafe class ProjectileGrappleHooks
                 On_Projectile.NewProjectile_IEntitySource_float_float_float_float_int_int_float_int_float_float_float_NewProjectileModifier += NewProjectile);
         }
         if (canUse || use) ItemHooks.Once("ProjectileGrappleFire", () => On_Player.FireGrapple += FireGrapple);
+        if (canUse) WantQuickGrapple();
         if (has(nameof(ModProjectile.GrappleRange)) || has(nameof(ModProjectile.NumGrappleHooks)) || has(nameof(ModProjectile.GrappleRetreatSpeed)))
             ItemHooks.Once("ProjectileGrappleAI", () => On_Projectile.AI_007_GrapplingHooks += GrappleAI);
         if (has(nameof(ModProjectile.GrappleCanLatchOnTo)))
             ItemHooks.Once("ProjectileGrappleLatch", () => On_Projectile.AI_007_GrapplingHooks_CanTileBeLatchedOnTo += CanLatch);
         if (has(nameof(ModProjectile.GrapplePullSpeed)) || has(nameof(ModProjectile.GrappleTargetPoint)))
             ItemHooks.Once("ProjectileGrappleForces", () => On_Player.GetGrapplingForces += GrapplingForces);
+    }
+
+    internal static void WantQuickGrapple() => ItemHooks.Once("ProjectileQuickGrapple", () => On_Player.QuickGrapple += QuickGrapple);
+
+    static void QuickGrapple(On_Player.orig_QuickGrapple orig, Player self)
+    {
+        bool blocked = false;
+        try
+        {
+            if (self.mount.Active)
+            {
+                Item item = self.QuickGrapple_GetItemToUse();
+                if (!item.IsNull)
+                    blocked = canUse && ProjectileLoader.CanUseGrapple(item.shoot, self) == false || !ItemHooks.ModCanUseItem(item, self);
+            }
+        }
+        catch (Exception e) { ItemHooks.Report("QuickGrapple", e); }
+        if (!blocked) orig(self);
     }
 
     static void FireGrapple(On_Player.orig_FireGrapple orig, Player self, Item grappleItem)

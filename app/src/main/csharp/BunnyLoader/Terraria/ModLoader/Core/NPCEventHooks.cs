@@ -84,7 +84,11 @@ internal static unsafe class NPCEventHooks
                 NPCGates.Borrowable<On_NPC.hook_HitEffect>(0, NPCMethod.HitEffect);
                 On_NPC.HitEffect += HitEffect;
             });
-        if ((flags & NPCMethod.OnSpawn) != 0) ItemHooks.Once("NPCSpawn", () => On_NPC.NewNPC += NewNPC);
+        if ((flags & NPCMethod.OnSpawn) != 0) ItemHooks.Once("NPCSpawn", () =>
+            {
+                NPCLoader.WantDefaults();
+                On_NPC.NewNPC += NewNPC;
+            });
         if ((flags & NPCMethod.SetDefaultsFromNetId) != 0) ItemHooks.Once("NPCVariantDefaults", () => On_NPC.SetDefaultsFromNetId += VariantDefaults);
         ItemHitHooks.InstallNPC(flags);
         ProjectileHitHooks.InstallNPC(flags);
@@ -233,9 +237,45 @@ internal static unsafe class NPCEventHooks
 
     static int NewNPC(On_NPC.orig_NewNPC orig, IEntitySource source, int X, int Y, int Type, int Start, float ai0, float ai1, float ai2, float ai3, int Target)
     {
+        ForgetSpawn();
         int index = orig(source, X, Y, Type, Start, ai0, ai1, ai2, ai3, Target);
-        if ((uint)index < 200u && Main.npc[index].active) NPCLoader.OnSpawn(Main.npc[index], source);
+        if ((uint)index >= 200u || !Main.npc[index].active) return index;
+        NPC npc = Main.npc[index];
+        NPCLoader.OnSpawn(npc, source);
+        ForgetSpawn();
+        if (npc.active && !source.IsNull)
+        {
+            spawned = npc.Pointer;
+            spawnedTick = Main.GameUpdateCount;
+            spawnedSource = new GameHandle(source.Pointer);
+        }
         return index;
+    }
+
+    static IntPtr spawned;
+    static uint spawnedTick;
+    static GameHandle? spawnedSource;
+
+    static void ForgetSpawn()
+    {
+        spawned = IntPtr.Zero;
+        spawnedSource?.Dispose();
+        spawnedSource = null;
+    }
+
+    internal static void AfterDefaults(NPC npc)
+    {
+        if (spawned == IntPtr.Zero || npc.Pointer != spawned) return;
+        GameHandle? handle = spawnedSource;
+        spawnedSource = null;
+        bool same = Main.GameUpdateCount == spawnedTick && npc.active && npc.type > 0;
+        spawned = IntPtr.Zero;
+        try
+        {
+            IntPtr target = handle?.Target ?? IntPtr.Zero;
+            if (same && target != IntPtr.Zero) NPCLoader.OnSpawn(npc, new IEntitySource(target));
+        }
+        finally { handle?.Dispose(); }
     }
 
     static void VariantDefaults(On_NPC.orig_SetDefaultsFromNetId orig, NPC npc, int id, NPCSpawnParams spawnparams)

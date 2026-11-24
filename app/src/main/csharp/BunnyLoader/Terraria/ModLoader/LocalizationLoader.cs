@@ -40,6 +40,13 @@ internal static unsafe class LocalizationLoader
         LoadLegacyJson(mod, all);
         ResolveReferences(all);
         lock (ByMod) ByMod[mod] = all;
+        string tipPrefix = $"Mods.{mod.Name}.GameTips.";
+        foreach (string key in all.Keys)
+            if (key.StartsWith(tipPrefix, StringComparison.Ordinal))
+            {
+                Core.GameTipHooks.Install();
+                break;
+            }
         foreach ((string key, List<(string Culture, string Text)> texts) in all) Native(key, Pack(texts), replace: true);
     }
 
@@ -98,6 +105,18 @@ internal static unsafe class LocalizationLoader
             string label = Lookup(all, $"Mods.{keybind.Mod.Name}.Keybinds.{keybind.Name}.DisplayName", culture, new HashSet<string>()) ?? keybind.Name;
             return $"[c/FFF014:{label}]";
         });
+
+    internal static List<string> KeysWithPrefix(Mod mod, string prefix)
+    {
+        var keys = new List<string>();
+        lock (ByMod)
+        {
+            if (ByMod.TryGetValue(mod, out var all))
+                foreach (string key in all.Keys)
+                    if (key.StartsWith(prefix, StringComparison.Ordinal) && !key.Contains('$')) keys.Add(key);
+        }
+        return keys;
+    }
 
     public static List<(string Culture, string Text)> Texts(Mod mod, string key)
     {

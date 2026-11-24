@@ -85,8 +85,14 @@ internal static unsafe class ItemHooks
     }
 
     internal static void WantCanUse() =>
-        Once("CanUse", () => canUse = Raw("bool ItemCheck_CheckCanUse_Inner(Item sItem, bool ignoreCursed)",
-            (IntPtr)(delegate* unmanaged<IntPtr, IntPtr, byte, IntPtr, byte>)&CheckCanUse));
+        Once("CanUse", () =>
+        {
+            canUse = Raw("bool ItemCheck_CheckCanUse_Inner(Item sItem, bool ignoreCursed)",
+                (IntPtr)(delegate* unmanaged<IntPtr, IntPtr, byte, IntPtr, byte>)&CheckCanUse);
+            ProjectileGrappleHooks.WantQuickGrapple();
+        });
+
+    internal static bool ModCanUseItem(Item item, Player player) => canUse == null || CanUseItem(item, player);
 
     static readonly Dictionary<(Type, string), bool> OverrideCache = new();
 

@@ -1,0 +1,17 @@
+{
+  "uid": "3c8d4d65-7dfb-40cb-a0dd-f9dc2ad259ea",
+  "id": "CsIssues",
+  "name": "Test: fixes for tModLoader issues found in our API",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Hostile projectiles skip the owner's ModPlayer hit hooks, OnSpawn survives SetDefaults right after NewNPC, quick grapple keeps the mount when CanUseItem refuses, RemoveRecipeGroup drops the placeholder, ChoosePrefix forces any prefix, golf balls call OnTileCollide, and the held copy follows the item at use start.",
+  "description": "Build with tools/tests/build-cs.sh csissues. Run with tools/tests/run-cs.sh csissues. Logs csissues <case>: ok | FAIL and csissues END.",
+  "updated": "2026-11-23",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

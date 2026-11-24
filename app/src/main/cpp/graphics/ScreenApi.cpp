@@ -64,7 +64,7 @@ private:
 
 constexpr int32_t kMaxDraws = 256;
 constexpr int32_t kMaxUniforms = 64;
-constexpr int32_t kMaxUniformFloats = 256;
+constexpr int32_t kMaxUniformFloats = 1024;
 
 bool readFrame(Reader& in, EffectFrame& frame) {
     const int32_t draws = in.i32();

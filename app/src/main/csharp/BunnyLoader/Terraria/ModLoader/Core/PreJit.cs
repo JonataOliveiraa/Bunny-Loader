@@ -24,7 +24,10 @@ internal static unsafe class PreJit
     static readonly HashSet<IntPtr> Seen = new();
     static readonly Dictionary<Module, HashSet<int>> SeenTokens = new();
     static readonly List<string> Failures = new();
-    static int compiled, calleesCompiled, failed, frames, worldFrames;
+    static readonly List<MethodBase> LoaderHooks = new();
+    static readonly List<Type> Dispatchers = new();
+    static bool inLoaderHooks, trackingDone;
+    static int compiled, calleesCompiled, hooksCompiled, failed, frames, worldFrames;
     static long ticks, stepCost, worstTicks, worldTicks;
     static TimeSpan jitAtStart;
 
@@ -36,6 +39,46 @@ internal static unsafe class PreJit
             ushort value = (ushort)op.Value;
             if (value < 0x100) OneByte[value] = op;
             else if ((value & 0xFF00) == 0xFE00) TwoByte[value & 0xFF] = op;
+        }
+    }
+
+    internal static void Track(Delegate hook)
+    {
+        if (trackingDone) return;
+        foreach (Delegate single in hook.GetInvocationList())
+        {
+            MethodInfo method = single.Method;
+            if (method.Module.Assembly != Loader || !Compilable(method)) continue;
+            lock (LoaderHooks) LoaderHooks.Add(method);
+        }
+    }
+
+    internal static void TrackDispatch(Type? type)
+    {
+        if (trackingDone || type == null) return;
+        lock (LoaderHooks) Dispatchers.Add(type);
+    }
+
+    static IEnumerable<MethodBase> DispatchMethods(Type type)
+    {
+        MethodInfo[] methods;
+        Type[] nested;
+        try
+        {
+            methods = type.GetMethods(Declared);
+            nested = type.GetNestedTypes(BindingFlags.NonPublic | BindingFlags.Public);
+        }
+        catch (Exception e)
+        {
+            Fail(type, "(dispatch)", e);
+            yield break;
+        }
+        foreach (MethodInfo method in methods)
+            if (!method.IsAbstract && !method.ContainsGenericParameters) yield return method;
+        foreach (Type inner in nested)
+        {
+            if (inner.ContainsGenericParameters) continue;
+            foreach (MethodBase method in DispatchMethods(inner)) yield return method;
         }
     }
 
@@ -77,7 +120,8 @@ internal static unsafe class PreJit
             {
                 if (cursor.Current is MethodBase method && Compile(method))
                 {
-                    compiled++;
+                    if (inLoaderHooks) hooksCompiled++;
+                    else compiled++;
                     Scan(method);
                 }
             }
@@ -105,13 +149,19 @@ internal static unsafe class PreJit
         double jit = (JitInfo.GetCompilationTime(false) - jitAtStart).TotalMilliseconds;
         double spent = ticks * 1000.0 / Stopwatch.Frequency, worst = worstTicks * 1000.0 / Stopwatch.Frequency;
         double inWorld = worldFrames == 0 ? 0 : worldTicks * 1000.0 / Stopwatch.Frequency / worldFrames;
-        Log.Info($"pre-JIT: {compiled} mod method(s) and {calleesCompiled} loader method(s) they call, in {frames} frame(s) ({spent:F0} ms in the frame budget, {jit:F0} ms of JIT meanwhile); {worldFrames} frame(s) in a world at {inWorld:F2} ms each (worst {worst:F1} ms){(failed > 0 ? $"; {failed} failed" : "")}");
+        Log.Info($"pre-JIT: {compiled} mod method(s), {hooksCompiled} loader hook handler(s) and {calleesCompiled} loader method(s) they call, in {frames} frame(s) ({spent:F0} ms in the frame budget, {jit:F0} ms of JIT meanwhile); {worldFrames} frame(s) in a world at {inWorld:F2} ms each (worst {worst:F1} ms){(failed > 0 ? $"; {failed} failed" : "")}");
         foreach (string failure in Failures) Log.Warn($"pre-JIT: {failure}");
         if (failed > Failures.Count) Log.Warn($"pre-JIT: {failed - Failures.Count} more failure(s) not shown");
         cursor = null;
         Callees.Clear();
         Seen.Clear();
         SeenTokens.Clear();
+        trackingDone = true;
+        lock (LoaderHooks)
+        {
+            LoaderHooks.Clear();
+            Dispatchers.Clear();
+        }
         Failures.Clear();
     }
 
@@ -154,6 +204,20 @@ internal static unsafe class PreJit
                 yield return null;
             }
         }
+        MethodBase[] hooks;
+        Type[] dispatchers;
+        lock (LoaderHooks)
+        {
+            hooks = LoaderHooks.ToArray();
+            dispatchers = Dispatchers.ToArray();
+        }
+        inLoaderHooks = true;
+        foreach (Type type in dispatchers)
+            foreach (MethodBase method in DispatchMethods(type))
+                if (Seen.Add(method.MethodHandle.Value)) yield return method;
+        foreach (MethodBase method in hooks)
+            if (Seen.Add(method.MethodHandle.Value)) yield return method;
+        inLoaderHooks = false;
         foreach (MethodBase method in rest) yield return method;
     }
 

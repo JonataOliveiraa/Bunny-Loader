@@ -1,0 +1,17 @@
+{
+  "uid": "1a1dacfc-0214-4767-8038-44d5ff32e54c",
+  "id": "CsIssuesMp",
+  "name": "Test: multiplayer fixes for tModLoader issues",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "A server-side config larger than one packet reaches the client in parts, and a hurt the client already modified is not modified again on the host's copy of that player.",
+  "description": "Build with tools/tests/build-cs.sh csissuesmp. Run with NOENV=1 tools/tests/run-mp.sh csissuesmp. Logs csissuesmp <case>: ok | FAIL and csissuesmp END on both sides.",
+  "updated": "2026-11-23",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

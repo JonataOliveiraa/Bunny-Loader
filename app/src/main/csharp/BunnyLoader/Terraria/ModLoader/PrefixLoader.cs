@@ -371,7 +371,7 @@ public static unsafe class PrefixLoader
             var item = new Item(self);
             var rand = new UnifiedRandom(random);
             int forced = ChoosePrefix(item, rand);
-            if (forced > 0 && item.CanRollPrefix(forced))
+            if (forced > 0 && forced < PrefixCount)
             {
                 *rolled = forced;
                 return 1;

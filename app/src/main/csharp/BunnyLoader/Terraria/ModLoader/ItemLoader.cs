@@ -52,6 +52,7 @@ public static unsafe partial class ItemLoader
             On_Item.Clone += Clone;
             On_Item.DeepClone += DeepClone;
             On_Item.DefaultToWhip += DefaultToWhip;
+            On_ContentSamples.RefreshItemsOnWorldLoad += RefreshSamplesOnWorldLoad;
             Host.Native()->OnItemsInstalled(&ItemsInstalled);
             Host.Native()->OnItemData(&SaveItemData, &LoadItemData);
             Host.Native()->OnVisualItemCopy(&VisualItemCopied);
@@ -357,6 +358,27 @@ public static unsafe partial class ItemLoader
             }
         }
         throw new FileNotFoundException($"{content.FullName}: texture '{path}' not found in {content.Mod.Folder}");
+    }
+
+    static void RefreshSamplesOnWorldLoad(On_ContentSamples.orig_RefreshItemsOnWorldLoad orig)
+    {
+        if (ItemCount <= ItemID.Count)
+        {
+            orig();
+            return;
+        }
+        var samples = new GameDictionary(ContentSamples.ItemsByType_);
+        if (samples.IsNull)
+        {
+            orig();
+            return;
+        }
+        for (int type = 0; type < ItemID.Count; type++)
+        {
+            if (!samples.TryGetValue(type, out Item sample) || sample.IsNull) continue;
+            sample.ToolTip = default;
+            sample.SetDefaults(type, default(ItemVariant));
+        }
     }
 
     static void SetDefaults(On_Item.orig_SetDefaults orig, Item self, int type, ItemVariant variant)

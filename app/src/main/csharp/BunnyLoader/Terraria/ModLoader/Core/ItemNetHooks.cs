@@ -16,7 +16,7 @@ internal static unsafe class ItemNetHooks
 {
     public const byte KindItem = 2;
 
-    const int MaxBytes = 65000;
+    const int MaxBytes = 32000;
 
     static Hook? sendData, processData, reset;
 

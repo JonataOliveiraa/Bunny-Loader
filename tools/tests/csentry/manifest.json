@@ -1,0 +1,17 @@
+{
+  "uid": "239be53f-dbe1-4cf1-bccc-c1af80826db8",
+  "id": "CsEntry",
+  "name": "Test: world entry timing",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Times every frame from WorldGen.playWorld to 10 s inside the world, twice (cold and after SaveAndQuit).",
+  "description": "Build with tools/tests/build-cs.sh csentry. Pair with mods from tools/startup/genentry.py. Logs csentry round=N ... and csentry END.",
+  "updated": "2026-11-23",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

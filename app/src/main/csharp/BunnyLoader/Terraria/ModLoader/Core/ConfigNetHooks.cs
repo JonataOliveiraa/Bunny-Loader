@@ -13,10 +13,20 @@ internal static class ConfigNetHooks
 {
     public const byte KindConfig = 10;
 
-    const byte Sync = 0, Ask = 1, Reply = 2;
+    const byte Sync = 0, Ask = 1, Reply = 2, Part = 3;
+    const int PartSize = 30000, MaxAssembled = 16 << 20;
     const int WorldData = 7;
 
     static readonly Dictionary<ModConfig, JsonObject> synced = new();
+
+    sealed class Assembly
+    {
+        public int Id, Total, Count, Size;
+        public byte[]?[] Parts = Array.Empty<byte[]?>();
+    }
+
+    static readonly Dictionary<int, Assembly> assembling = new();
+    static int nextPartId;
 
     internal static void Install()
     {
@@ -114,7 +124,9 @@ internal static class ConfigNetHooks
     {
         byte message = reader.ReadByte();
         bool server = (ModNet.NetMode & 2) != 0;
-        if (message == Ask && server && from >= 0 && from < 255)
+        if (message == Part)
+            ReceivePart(reader, from);
+        else if (message == Ask && server && from >= 0 && from < 255)
             Asked(reader, from);
         else if (message == Sync && !server && from == 256)
             Synced(reader);
@@ -270,13 +282,77 @@ internal static class ConfigNetHooks
 
     static void Send(MemoryStream stream, int toClient, int ignoreClient)
     {
-        if (stream.Length > ModPacket.MaxLength)
+        int length = (int)stream.Length;
+        byte[] data = stream.GetBuffer();
+        if (length <= PartSize)
         {
-            Log.Error($"config net: the message has {stream.Length} bytes; the limit is {ModPacket.MaxLength}");
+            if (!ModNet.Send(data, length, toClient, ignoreClient))
+                Log.Error("config net: the message was not sent");
             return;
         }
 
-        if (!ModNet.Send(stream.GetBuffer(), (int)stream.Length, toClient, ignoreClient))
-            Log.Error("config net: the message was not sent");
+        if (length > MaxAssembled)
+        {
+            Log.Error($"config net: the message has {length} bytes; the limit is {MaxAssembled}");
+            return;
+        }
+
+        int id = ++nextPartId, total = (length + PartSize - 1) / PartSize;
+        for (int index = 0; index < total; index++)
+        {
+            int offset = index * PartSize, size = Math.Min(PartSize, length - offset);
+            using var part = new MemoryStream(size + 16);
+            using var writer = new BinaryWriter(part);
+
+            writer.Write(KindConfig);
+            writer.Write(Part);
+            writer.Write(id);
+            writer.Write((ushort)index);
+            writer.Write((ushort)total);
+            writer.Write(size);
+            writer.Write(data, offset, size);
+            writer.Flush();
+            
+            if (!ModNet.Send(part.GetBuffer(), (int)part.Length, toClient, ignoreClient))
+            {
+                Log.Error($"config net: part {index + 1}/{total} was not sent");
+                return;
+            }
+        }
+    }
+
+    static void ReceivePart(BinaryReader reader, int from)
+    {
+        int id = reader.ReadInt32(), index = reader.ReadUInt16(), total = reader.ReadUInt16(), size = reader.ReadInt32();
+        if (total == 0 || index >= total || size < 0 || size > PartSize || (long)total * PartSize > MaxAssembled)
+            return;
+        byte[] bytes = reader.ReadBytes(size);
+        if (!assembling.TryGetValue(from, out Assembly? current) || current.Id != id || current.Total != total)
+        {
+            current = new Assembly { Id = id, Total = total, Parts = new byte[]?[total] };
+            assembling[from] = current;
+        }
+
+        if (current.Parts[index] != null)
+            return;
+        current.Parts[index] = bytes;
+        current.Count++;
+        current.Size += bytes.Length;
+        if (current.Count < total)
+            return;
+        assembling.Remove(from);
+        var whole = new byte[current.Size];
+        int offset = 0;
+        foreach (byte[]? piece in current.Parts)
+        {
+            Buffer.BlockCopy(piece!, 0, whole, offset, piece!.Length);
+            offset += piece.Length;
+        }
+
+        using var stream = new MemoryStream(whole, false);
+        using var inner = new BinaryReader(stream);
+        if (inner.ReadByte() != KindConfig || stream.Position >= stream.Length || whole[1] == Part)
+            return;
+        Receive(inner, from);
     }
 }

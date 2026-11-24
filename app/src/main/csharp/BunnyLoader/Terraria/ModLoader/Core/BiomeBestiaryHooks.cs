@@ -73,7 +73,11 @@ internal static class BiomeBestiaryHooks
     {
         foreach (ModBiome biome in Used)
             database.Register(Filters.ByInfoElement.New(biome.ModBiomeBestiaryInfoElement));
-        if (Used.Count > 0) Log.Info($"bestiary: {Used.Count} mod biome filter(s)");
+        if (Used.Count > 0)
+        {
+            Log.Info($"bestiary: {Used.Count} mod biome filter(s)");
+            BestiaryFilterScroll.Install();
+        }
         Used.Clear();
     }
 

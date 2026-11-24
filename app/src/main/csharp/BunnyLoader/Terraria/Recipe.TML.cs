@@ -346,6 +346,11 @@ public readonly partial struct Recipe
             if (groups[i] != groupID) continue;
             for (int j = i; j < groups.Length - 1; j++) groups[j] = groups[j + 1];
             groups[groups.Length - 1] = -1;
+            if (RecipeLoader.GroupById(groupID) is RecipeGroup group && !SharesPlaceholder(group))
+            {
+                int slot = IngredientSlot(group.GetPlaceholderItemType());
+                if (slot >= 0) RemoveIngredientAt(slot);
+            }
             RecipeLoader.Edited(this);
             return true;
         }
@@ -373,6 +378,18 @@ public readonly partial struct Recipe
     public void ReplaceResult(ModItem item, int stack = 1) => ReplaceResult(item.Type, stack);
 
     public void ReplaceResult<T>(int stack = 1) where T : ModItem => ReplaceResult(ModContent.ItemType<T>(), stack);
+
+    bool SharesPlaceholder(RecipeGroup removed)
+    {
+        int placeholder = removed.GetPlaceholderItemType();
+        var groups = acceptedGroups;
+        for (int i = 0; i < groups.Length; i++)
+        {
+            if (groups[i] < 0) break;
+            if (RecipeLoader.GroupById(groups[i]) is RecipeGroup other && other.GetPlaceholderItemType() == placeholder) return true;
+        }
+        return false;
+    }
 
     int IngredientSlot(int itemID)
     {

@@ -21,6 +21,58 @@ Loading a new shader is still the main unproven point. There is no evidence of
 direct compatibility with tModLoader's `.fx` or `.fxc` files, nor of a public
 custom shader loader in Bunny.
 
+## 2026-11-24: compiled `.fxc` effects through MojoShader (proof of concept)
+
+**Status:** validated at runtime on MuMu 16384 (screen effects only); not run on a
+phone yet; nothing committed.
+
+tModLoader loads an effect as the raw output of `fxc /T fx_2_0` (`FxcReader` passes the
+bytes to `new Effect(device, bytes)`, which FNA hands to MojoShader). The proof runs the
+same bytes through [MojoShader](https://github.com/icculus/mojoshader) on the device and
+draws the result with our own GL renderer, without Unity shaders:
+
+- `cpp/third_party/mojoshader/` (zlib, see `third_party/README.md`) builds as a static
+  library with only the GLSL profiles.
+- `cpp/graphics/FxcEffect.cpp`: `MOJOSHADER_compileEffect` with the `glsles3` profile and a
+  shader context that keeps the parse data; the pass's pixel shader is rewritten into the
+  screen effect format (no `#version`/precision, `ps_s0` = `uScreen`, the `TEXCOORD` input =
+  `vec2(vUV.x, 1 - vUV.y)`, `texture2D` flips V back, output 0 = `fragColor`, MojoShader's
+  `main` renamed). `MOJOSHADER_effectCommitChanges` copies the parameters and runs the
+  preshader; the float registers go to the shader as the `ps_uniforms_vec4[]` array.
+- C#: `BunnyLoader.FxcEffect` (`Load(mod, path)`, `FromBytes`, `Passes`, `Parameters`,
+  `SetValue`, `Shader(pass)`, `Commit(pass)`) and `FxcScreenEffect`, a `ModScreenEffect`
+  that fills the `ScreenShaderData.Apply` parameters (`uColor`, `uSecondaryColor`,
+  `uOpacity`, `uTime`, `uScreenResolution`, `uScreenPosition`, `uTargetPosition`,
+  `uIntensity`, `uProgress`, `uDirection`, `uImageOffset`, `uImageSizeN`) before drawing.
+  Five `NativeApi` entries (`FxcLoad`, `FxcInfo`, `FxcPassSource`, `FxcSetParam`,
+  `FxcCommit`); the frame now accepts up to 1024 floats per uniform.
+
+Findings:
+
+- `fxc` moves every expression that only depends on parameters into a **preshader** run on
+  the CPU (`uTime % 4` in tModLoader's `ExampleEffect`, the target UV and ring radius in a
+  shockwave). Most registers are preshader outputs, not parameters: running the preshader
+  every draw is required, not an optimization.
+- MojoShader returns static "not an effect" structures that its own `MOJOSHADER_deleteEffect`
+  frees (crash with 8 random bytes). `FxcEffect.cpp` checks the header token
+  (`0xFEFF0901` or the XNA4 `0xBCF00BCF`) first and never deletes an effect whose `ctx.f`
+  is null. Cut files (16 to 2000 bytes of a real `.fxc`) are refused with "Unexpected EOF"
+  or "Bogus preshader data"; MojoShader is not hardened against crafted files.
+- Test `tools/tests/csfxc` (11/11 on MuMu): passes, parameters, samplers, conversion,
+  preshader registers checked against hand-computed values (ps_2_0 and ps_3_0), garbage and
+  cut files refused, and shots of a ps_2_0 shockwave (round, follows the player, offset
+  150 px up lands above it, so V is the right way), a ps_3_0 stripes pass, and tModLoader's
+  `ExampleEffect.fx` drawn over the whole screen (red then green channel one second later).
+  The `.fxc` files come from `src/*.fx` with the Windows SDK `fxc.exe /T fx_2_0`. Shots
+  need a streaming logcat watcher: `wait_end` in `lib.sh` reads the whole log each second
+  and took most shots late.
+
+Not covered: sprite shaders (`ArmorShaderData`/`MiscShaderData` with a mod effect, dyes,
+`SpriteBatch.Begin(..., effect)`), which draw through Unity materials; integer/bool
+registers; passes that pick their shader with a preshader; vertex shaders; `VPOS`;
+`.xnb` effects; tModLoader's `Asset<Effect>`/`ScreenShaderData`/`Filters` API on top of
+`FxcEffect`; a phone (Mali/Adreno) run and its cost.
+
 ## How to interpret the evidence
 
 | Classification | Meaning |

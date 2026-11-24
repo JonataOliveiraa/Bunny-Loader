@@ -1,0 +1,17 @@
+{
+  "uid": "53f62553-8830-48c1-aeea-c31005f5519a",
+  "id": "CsTips",
+  "name": "Test: loading screen tips",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Draws 300 loading tips and checks that mod tips show up and that tips hidden by ModifyGameTipVisibility never do.",
+  "description": "Build with tools/tests/build-cs.sh cstips. Run with SAMPLE=1 tools/tests/run-cs.sh cstips. Logs cstips <case>: ok | FAIL and cstips END.",
+  "updated": "2026-11-24",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

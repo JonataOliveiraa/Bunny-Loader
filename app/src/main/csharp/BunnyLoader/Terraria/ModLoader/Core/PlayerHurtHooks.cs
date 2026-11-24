@@ -33,6 +33,8 @@ internal static class PlayerHurtHooks
     static double Hurt(On_Player.orig_Hurt orig, Player self, PlayerDeathReason damageSource, int Damage, int hitDirection, bool pvp, bool quiet,
                        bool Crit, int cooldownCounter, bool dodgeable, ref GameHandle? pin)
     {
+        if (!pvp && Main.netMode != 0 && self.whoAmI != Main.myPlayer)
+            return RemoteHurt(orig, self, damageSource, Damage, hitDirection, quiet, Crit, cooldownCounter, dodgeable);
         NPC npc = default;
         Player attacker = default;
         Item weapon = default;
@@ -128,6 +130,35 @@ internal static class PlayerHurtHooks
             if (!self.dead && self.statLife > 0) PlayerLoader.Each(self, nameof(ModPlayer.PostHurt), info, static (m, i) => m.PostHurt(i));
         }
         catch (Exception e) { ItemHooks.Report("Player.Hurt (after)", e); }
+        return done;
+    }
+
+    static double RemoteHurt(On_Player.orig_Hurt orig, Player self, PlayerDeathReason damageSource, int Damage, int hitDirection, bool quiet,
+                             bool Crit, int cooldownCounter, bool dodgeable)
+    {
+        Player.HurtInfo info = default;
+        bool ready = false;
+        try
+        {
+            int defense = self.statDefense;
+            float perPoint = defense > 0 ? (float)((100000 - Main.CalculateDamagePlayersTake(100000, defense)) / defense) : 0f;
+            info = new Player.HurtModifiers
+            {
+                DamageSource = damageSource, CooldownCounter = cooldownCounter, Dodgeable = dodgeable, HitDirection = hitDirection,
+            }.ToHurtInfo(Damage, defense, perPoint, 0f, self.noKnockback);
+            ready = true;
+        }
+        catch (Exception e) { ItemHooks.Report("Player.Hurt (remote, before)", e); }
+        double done = orig(self, damageSource, Damage, hitDirection, false, quiet, Crit, cooldownCounter, dodgeable);
+        if (done <= 0 || !ready) return done;
+        try
+        {
+            info.Damage = (int)done;
+            ItemUseState.OnHurt(self);
+            PlayerLoader.Each(self, nameof(ModPlayer.OnHurt), info, static (m, i) => m.OnHurt(i));
+            if (!self.dead && self.statLife > 0) PlayerLoader.Each(self, nameof(ModPlayer.PostHurt), info, static (m, i) => m.PostHurt(i));
+        }
+        catch (Exception e) { ItemHooks.Report("Player.Hurt (remote, after)", e); }
         return done;
     }
 

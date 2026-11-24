@@ -12,6 +12,7 @@ namespace Terraria.ModLoader.Core;
 internal static unsafe class BackgroundHooks
 {
     const int SurfaceFlag = 0, CurrentFlag = 1, OldFlag = 2;
+    const int MenuCloseTop = 320, FrontLayerPush = -180;
 
     sealed class Fill
     {
@@ -295,7 +296,7 @@ internal static unsafe class BackgroundHooks
                 if (screen.Y >= Main.worldSurface * 16.0 + 16.0) continue;
                 double x = screen.X * parallax;
                 int startX = (int)(-Math.IEEERemainder(x, width) - width / 2);
-                float topY = (int)(step1Top * a + b) + (int)self.scAdj + step1Push;
+                float topY = Main.gameMenu ? MenuCloseTop + step1Push + FrontLayerPush : (int)(step1Top * a + b) + (int)self.scAdj + step1Push;
                 int loops = Main.screenWidth / width + 2;
                 Color color = Main.ColorOfSurfaceBackgroundsBase * alpha;
                 Main.ColorOfSurfaceBackgroundsModified = color;

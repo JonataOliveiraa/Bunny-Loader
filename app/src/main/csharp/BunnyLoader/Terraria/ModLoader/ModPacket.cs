@@ -6,7 +6,7 @@ namespace Terraria.ModLoader;
 
 public sealed class ModPacket : BinaryWriter
 {
-    public const int MaxLength = 65000;
+    public const int MaxLength = 32000;
 
     readonly Mod mod;
 

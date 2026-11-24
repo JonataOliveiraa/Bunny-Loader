@@ -50,10 +50,10 @@ void refreshOnUseStart(Il2CppObject* self, int32_t before) {
     Il2CppObject* held = reinterpret_cast<HeldItemFn>(il2cpp::methodPointer(g_heldItem))(self, g_heldItem);
     Il2CppObject* visual = at<Il2CppObject*>(self, g_visualOffset);
     if (!held || !visual || held == visual || at<int32_t>(held, g_typeOffset) != at<int32_t>(visual, g_typeOffset)) return;
-    if (at<int32_t>(held, g_useStyleOffset) == at<int32_t>(visual, g_useStyleOffset) &&
-        at<int32_t>(held, g_holdStyleOffset) == at<int32_t>(visual, g_holdStyleOffset)) return;
-    g_origClientClone(held, visual, g_clientClone);
-    copied(held, visual);
+    Il2CppObject* full = reinterpret_cast<CloneFn>(il2cpp::methodPointer(g_clone))(held, g_clone);
+    if (!full) return;
+    il2cpp::api().gc_wbarrier_set_field(self, reinterpret_cast<void**>(reinterpret_cast<uint8_t*>(self) + g_visualOffset), full);
+    g_visuals[self] = {full, at<int32_t>(held, g_typeOffset), at<uint8_t>(held, g_prefixOffset)};
 }
 
 void hkItemCheck(Il2CppObject* self, const MethodInfo* method) {

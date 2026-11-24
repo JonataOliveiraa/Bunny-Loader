@@ -64,7 +64,11 @@ internal static unsafe class NPCDefaultsHooks
             current = outer;
             if (handled && type >= 0 && current.NPC == self && current.Type < 0) current.Handled = true;
         }
-        if (template == null) return;
+        if (template == null)
+        {
+            if (current.NPC != self) NPCEventHooks.AfterDefaults(self);
+            return;
+        }
         Host.Native()->FinishNPC(self.Pointer, type, &spawnparams);
         float scale = self.scale;
         if (spawnparams.sizeScaleOverride.HasValue)
@@ -81,6 +85,7 @@ internal static unsafe class NPCDefaultsHooks
             self.position.X -= self.width / 2;
             self.position.Y -= self.height;
         }
+        if (current.NPC != self) NPCEventHooks.AfterDefaults(self);
     }
 
     internal static void CloneDefaults(NPC npc, int type)

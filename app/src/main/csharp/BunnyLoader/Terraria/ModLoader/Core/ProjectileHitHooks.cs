@@ -147,11 +147,17 @@ internal static unsafe class ProjectileHitHooks
         return done;
     }
 
+    static bool FriendlyOwner(Projectile projectile, out Player player)
+    {
+        player = default;
+        return projectile.friendly && projectile.TryGetOwner(out player);
+    }
+
     static void ModifyHitNPCWithProj(Projectile projectile, NPC npc, ref NPC.HitModifiers modifiers)
     {
         ProjectileLoader.ModifyHitNPC(projectile, npc, ref modifiers);
         NPCLoader.ModifyHitByProjectile(npc, projectile, ref modifiers);
-        if (!projectile.TryGetOwner(out Player player)) return;
+        if (!FriendlyOwner(projectile, out Player player)) return;
         PlayerLoader.Each(player, nameof(ModPlayer.ModifyHitNPC), npc, ref modifiers, static (m, n, ref h) => m.ModifyHitNPC(n, ref h));
         PlayerLoader.Each(player, nameof(ModPlayer.ModifyHitNPCWithProj), (projectile, npc), ref modifiers,
             static (m, s, ref h) => m.ModifyHitNPCWithProj(s.projectile, s.npc, ref h));
@@ -161,7 +167,7 @@ internal static unsafe class ProjectileHitHooks
     {
         ProjectileLoader.OnHitNPC(projectile, npc, hit, damageDone);
         NPCLoader.OnHitByProjectile(npc, projectile, hit, damageDone);
-        if (!projectile.TryGetOwner(out Player player)) return;
+        if (!FriendlyOwner(projectile, out Player player)) return;
         PlayerLoader.Each(player, nameof(ModPlayer.OnHitNPC), (npc, hit, damageDone), static (m, s) => m.OnHitNPC(s.npc, s.hit, s.damageDone));
         PlayerLoader.Each(player, nameof(ModPlayer.OnHitNPCWithProj), (projectile, npc, hit, damageDone),
             static (m, s) => m.OnHitNPCWithProj(s.projectile, s.npc, s.hit, s.damageDone));

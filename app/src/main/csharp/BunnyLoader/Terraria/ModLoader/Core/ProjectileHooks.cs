@@ -97,6 +97,8 @@ internal static unsafe class ProjectileHooks
                 TypeGate<On_Projectile.hook_UpdatePosition>(MoveMethods | ProjectileMethod.ShouldUpdatePosition);
                 On_Projectile.UpdatePosition += UpdatePosition;
             });
+        if ((mask & ProjectileMethod.OnTileCollide) != 0)
+            ItemHooks.Once("ProjectileGolfCollide", () => Terraria.GameContent.Golf.On_GolfHelper_ContactListener.OnCollision += GolfCollision);
         if ((mask & (KillMethods | ProjectileMethod.OnTileCollide)) != 0)
             ItemHooks.Once("ProjectileKill", () =>
             {
@@ -321,6 +323,23 @@ internal static unsafe class ProjectileHooks
         }
         Refresh(self, ref type, ref generation, ref instance, ref slots);
         ProjectileLoader.PostAI(self, instance, slots);
+    }
+
+    static void GolfCollision(Terraria.GameContent.Golf.On_GolfHelper_ContactListener.orig_OnCollision orig,
+        Terraria.GameContent.Golf.GolfHelper.ContactListener self, Terraria.Physics.PhysicsProperties properties, ref Vector2 position, ref Vector2 velocity,
+        ref Terraria.Physics.BallCollisionEvent collision)
+    {
+        Vector2 oldVelocity = velocity;
+        orig(self, properties, ref position, ref velocity, ref collision);
+        try
+        {
+            IntPtr entity = collision.Entity.Pointer;
+            if (entity == IntPtr.Zero || !BunnyLoader.Interop.GameInterop.IsInstance(entity, Projectile.Class)) return;
+            var projectile = new Projectile(entity);
+            if (!projectile.active || Wanted(projectile, ProjectileMethod.OnTileCollide, out ModProjectile? instance, out GlobalProjectile?[]? slots) == 0) return;
+            ProjectileLoader.OnTileCollide(projectile, oldVelocity, instance, slots);
+        }
+        catch (Exception e) { ItemHooks.Report("OnTileCollide (golf ball)", e); }
     }
 
     static bool Collided(Projectile p, Movement move) => p.velocity.X != move.Velocity.X || p.velocity.Y != move.Velocity.Y;
