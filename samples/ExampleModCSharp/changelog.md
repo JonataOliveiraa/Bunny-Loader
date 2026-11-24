@@ -1,5 +1,12 @@
 # Novidades
 
+## 0.45.0
+
+- Aura do Chefe Minion: enquanto o Chefe Minion está vivo, anéis saem dele e o
+  mundo em volta perde a cor, cada vez mais conforme ele perde vida (vermelho no
+  segundo estágio). É um efeito `.fxc` compilado de HLSL, o mesmo tipo de
+  arquivo dos mods do tModLoader, desenhado por um `FxcScreenEffect`.
+
 ## 0.44.0
 
 - Botão Animado de Exemplo: um botão de toque com um círculo de carregamento

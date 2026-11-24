@@ -1,0 +1,14 @@
+{
+  "uid": "0838e28e-5b1e-4323-bd39-175155ad84d7",
+  "id": "CsExFxc",
+  "name": "Test: Example Mod boss aura (.fxc)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "ExampleBossAuraEffect from samples/ExampleModCSharp: spawns the Minion Boss and checks the .fxc aura follows it, grows with damage and ends with it.",
+  "description": "Build with tools/tests/build-cs.sh csexfxc and run with SAMPLE=1. Logs csexfxc SHOT <name>, csexfxc <case>: ok | FAIL and csexfxc END pass=N fail=M.",
+  "updated": "2026-11-24",
+  "blVersion": 3,
+  "gameVersion": [301720, 301720],
+  "dependencies": []
+}
