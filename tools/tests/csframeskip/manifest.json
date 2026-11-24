@@ -1,0 +1,17 @@
+{
+  "uid": "3e7b0f2a-6c1d-4b8e-9a52-7f04c1d9e6b3",
+  "id": "CsFrameSkip",
+  "name": "Test: frame skip probe",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Logs updates and draws per second plus the XNA loop state (variable update mode, measured fps) while extra draw cost is forced, to see whether game logic keeps 60 updates per second.",
+  "description": "Build with tools/tests/build-cs.sh csframeskip. Run with tools/tests/run-cs.sh csframeskip. Logs csframeskip ... and csframeskip END.",
+  "updated": "2026-11-24",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

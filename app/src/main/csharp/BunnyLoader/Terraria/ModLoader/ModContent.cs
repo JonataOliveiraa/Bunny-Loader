@@ -259,6 +259,7 @@ public static class ModContent
         yield return 0;
         BunnyLoader.ScreenEffectsSetting.Install();
         BunnyLoader.ScreenFxCommand.Install();
+        FrameSkipSetting.Install();
         yield return 0;
         TouchControlSizes.Install();
         yield return 0;
