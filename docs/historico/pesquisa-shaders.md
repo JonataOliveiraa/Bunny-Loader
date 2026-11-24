@@ -67,6 +67,26 @@ Findings:
   need a streaming logcat watcher: `wait_end` in `lib.sh` reads the whole log each second
   and took most shots late.
 
+Refinements the same day (`csfxc` 18/18 on MuMu, shots unchanged):
+
+- `FxcEffect.Load` caches by file, so a `Load` inside `SetDefaults` (called at registration
+  and on every spawn) no longer parses the file again or leaks a native entry. Every pass is
+  converted at load: a broken pass is a warning with the file name, and `Shader(pass)` throws
+  its error.
+- Parameters are set by index (`FxcSetParam(id, index, ...)`) with no managed allocation
+  (0 bytes for 600 `SetValue` calls); vectors and arrays narrower than four floats are padded
+  to registers natively (`float2 uPoints[3]` takes `Vector2[]`).
+- `FxcScreenEffect` resolves its shader when `Effect`/`PassName` are set (a wrong pass fails at
+  registration or spawn, not every frame), reuses its register buffer and options, and fills
+  `uScreenResolution`/`uScreenPosition` from the game's own
+  `ScreenShaderData.UnscaledScreenSize`/`UnscaledScreenPosition` (equal to the effect space on
+  MuMu, zoom 1), `uZoom` from `RenderZoom`, `uSceneSize`, `uSceneOffset`, `uMultiChunkScene`,
+  and `uDirection` starting at (0, 1) as on PC.
+- `ScreenEffects.Reload` (`/fx reload`, `HotReload`) reloads changed `.fxc` files
+  (`FxcEffect.ReloadAll`, `FxcFree` releases the old effect); effects in use pick up the new
+  shader through `FxcEffect.Version`. The app cannot change a pack file's date (not its owner),
+  but rewriting it works.
+
 Not covered: sprite shaders (`ArmorShaderData`/`MiscShaderData` with a mod effect, dyes,
 `SpriteBatch.Begin(..., effect)`), which draw through Unity materials; integer/bool
 registers; passes that pick their shader with a preshader; vertex shaders; `VPOS`;

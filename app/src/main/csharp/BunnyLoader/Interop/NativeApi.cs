@@ -167,8 +167,9 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<byte*, int, byte*, int, int> FxcLoad;
     public delegate* unmanaged<int, byte*, int, int> FxcInfo;
     public delegate* unmanaged<int, int, int, byte*, int, int> FxcPassSource;
-    public delegate* unmanaged<int, byte*, float*, int, int> FxcSetParam;
+    public delegate* unmanaged<int, int, float*, int, int> FxcSetParam;
     public delegate* unmanaged<int, int, int, float*, int, int> FxcCommit;
+    public delegate* unmanaged<int, int> FxcFree;
 }
 
 [StructLayout(LayoutKind.Sequential)]

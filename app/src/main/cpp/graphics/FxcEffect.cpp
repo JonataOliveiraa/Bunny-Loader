@@ -81,7 +81,8 @@ const char* MOJOSHADERCALL lastError(const void*) {
 
 Entry* find(int32_t id) {
     if (id <= 0 || id > static_cast<int32_t>(g_entries.size())) return nullptr;
-    return g_entries[static_cast<size_t>(id - 1)].get();
+    Entry* entry = g_entries[static_cast<size_t>(id - 1)].get();
+    return entry && entry->effect ? entry : nullptr;
 }
 
 int32_t copyOut(const std::string& text, char* out, int32_t capacity) {
@@ -321,27 +322,30 @@ int32_t fxcPassSource(int32_t id, int32_t technique, int32_t pass, char* out, in
     return copyOut(source, out, capacity);
 }
 
-int32_t fxcSetParam(int32_t id, const char* name, const float* values, int32_t count) {
-    if (!name || !values || count <= 0) return 0;
+int32_t fxcSetParam(int32_t id, int32_t index, const float* values, int32_t count) {
+    if (!values || count <= 0) return 0;
     std::lock_guard<std::mutex> lock(g_mutex);
     Entry* entry = find(id);
-    if (!entry) return 0;
-    MOJOSHADER_effect* e = entry->effect;
-    for (int i = 0; i < e->param_count; ++i) {
-        MOJOSHADER_effectValue& v = e->params[i].value;
-        if (!v.name || std::strcmp(v.name, name) != 0) continue;
-        if (!v.values || v.value_count == 0) return 0;
-        const int n = std::min(count, static_cast<int32_t>(v.value_count));
-        if (v.type.parameter_type == MOJOSHADER_SYMTYPE_FLOAT) {
-            std::memcpy(v.valuesF, values, sizeof(float) * static_cast<size_t>(n));
-        } else if (v.type.parameter_type == MOJOSHADER_SYMTYPE_INT || v.type.parameter_type == MOJOSHADER_SYMTYPE_BOOL) {
-            for (int k = 0; k < n; ++k) v.valuesI[k] = static_cast<int>(values[k]);
-        } else {
-            return 0;
-        }
-        return 1;
+    if (!entry || index < 0 || index >= entry->effect->param_count) return 0;
+    MOJOSHADER_effectValue& v = entry->effect->params[index].value;
+    if (!v.values || v.value_count == 0) return 0;
+    const bool isFloat = v.type.parameter_type == MOJOSHADER_SYMTYPE_FLOAT;
+    if (!isFloat && v.type.parameter_type != MOJOSHADER_SYMTYPE_INT && v.type.parameter_type != MOJOSHADER_SYMTYPE_BOOL) return 0;
+    const int columns = static_cast<int>(v.type.columns);
+    const int rows = static_cast<int>(std::max(v.type.rows, 1u) * std::max(v.type.elements, 1u));
+    const int slots = static_cast<int>(v.value_count);
+    auto put = [&](int slot, float value) {
+        if (slot < 0 || slot >= slots) return;
+        if (isFloat) v.valuesF[slot] = value;
+        else v.valuesI[slot] = static_cast<int>(value);
+    };
+    if (columns >= 1 && columns < 4 && count == rows * columns) {
+        for (int r = 0; r < rows; ++r)
+            for (int c = 0; c < columns; ++c) put(r * 4 + c, values[r * columns + c]);
+    } else {
+        for (int k = 0; k < std::min(count, slots); ++k) put(k, values[k]);
     }
-    return 0;
+    return 1;
 }
 
 int32_t fxcCommit(int32_t id, int32_t technique, int32_t pass, float* out, int32_t capacity) {
@@ -363,6 +367,15 @@ int32_t fxcCommit(int32_t id, int32_t technique, int32_t pass, float* out, int32
     const int32_t floats = std::min(registers * 4, capacity);
     if (out && floats > 0) std::memcpy(out, entry->registers.pf, sizeof(float) * static_cast<size_t>(floats));
     return registers * 4;
+}
+
+int32_t fxcFree(int32_t id) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+    Entry* entry = find(id);
+    if (!entry) return 0;
+    MOJOSHADER_deleteEffect(entry->effect);
+    g_entries[static_cast<size_t>(id - 1)].reset();
+    return 1;
 }
 
 }

@@ -184,7 +184,7 @@ public static class ScreenEffects
             }
             catch (Exception e) { ItemHooks.Report($"ScreenEffects.Reload {shader.Name}", e); }
         }
-        return changed;
+        return changed + FxcEffect.ReloadAll();
     }
 
     internal static void Install() =>
