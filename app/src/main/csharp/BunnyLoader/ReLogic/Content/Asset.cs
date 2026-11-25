@@ -214,6 +214,12 @@ public sealed unsafe class Asset<T> where T : struct, IGameObject
             Volatile.Write(ref asset, (IntPtr)1);
             return;
         }
+        if (typeof(T) == typeof(Effect))
+        {
+            if (file == null) throw new NotSupportedException($"asset {Name}: the game's own effects are not assets on mobile; mods request their compiled .fxc files");
+            Volatile.Write(ref asset, FxcGameEffect.CreateAsset(file, Name));
+            return;
+        }
         if (file != null)
         {
             byte* f = Host.Utf8(file), n = Host.Utf8(Name);
@@ -239,7 +245,7 @@ public sealed unsafe class Asset<T> where T : struct, IGameObject
 
     internal static void CheckSupported()
     {
-        if (typeof(T) != typeof(Texture2D) && typeof(T) != typeof(SpriteFont))
-            throw new NotSupportedException($"Asset<{typeof(T).Name}>: only Texture2D and SpriteFont can be requested");
+        if (typeof(T) != typeof(Texture2D) && typeof(T) != typeof(SpriteFont) && typeof(T) != typeof(Effect))
+            throw new NotSupportedException($"Asset<{typeof(T).Name}>: only Texture2D, SpriteFont and Effect can be requested");
     }
 }

@@ -117,6 +117,8 @@ public static class ModContent
         if (name != null && Requested<T>.ByName.TryGetValue(name, out Asset<T>? known)) return known.OnRequest(mode, false);
         Asset<T>.CheckSupported();
         (string modName, string path) = SplitName(name!);
+        if (modName == "Terraria" && typeof(T) == typeof(Microsoft.Xna.Framework.Graphics.Effect))
+            throw new NotSupportedException($"ModContent.Request: game effects are not assets on mobile ('{name}'); use Main.PixelShaderRef or a mod's .fxc");
         if (modName == "Terraria") return typeof(T) == typeof(Microsoft.Xna.Framework.Graphics.SpriteFont) ? (Asset<T>)(object)VanillaFont(path) : VanillaAsset<T>.Get(path);
         Asset<T> asset = ModOf(modName, name!).Assets.Request<T>(path, mode);
         Requested<T>.ByName.TryAdd(name!, asset);

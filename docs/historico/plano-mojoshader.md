@@ -84,7 +84,7 @@ registers.
 ## Discarded for now
 
 ```
-// TODO: sprite shaders (dyes, MiscShaderData, SpriteBatch.Begin with an effect): the phone's SpriteBatch draws with Unity materials; needs GL program swap or redraw research.
+// TODO: sprite shaders (done on MuMu 2026-11-25, see pesquisa-shaders.md): uImage2/3, reload of sprite passes, programs compiled before the hooks, phone run and cost.
 // TODO: vertex shaders and primitives (trails, DrawUserPrimitives): needs our own GL primitive renderer and a layer inside the world drawing.
 // TODO: .fx source on the device: needs an HLSL compiler (vkd3d-shader, LGPL) inside the app.
 // TODO: harden MojoShader against crafted .fxc files: a bad file can still crash the game (bug, not a security issue).

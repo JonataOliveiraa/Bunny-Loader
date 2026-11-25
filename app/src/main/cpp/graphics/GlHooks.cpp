@@ -4,6 +4,7 @@
 #include "graphics/GpuTimer.h"
 #include "graphics/EffectRenderer.h"
 #include "graphics/RenderHook.h"
+#include "graphics/SpriteFx.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
 
@@ -26,6 +27,8 @@ using DrawArraysFn = void (*)(GLenum, GLint, GLsizei);
 using UintFn = void (*)(GLuint);
 using EnumFn = void (*)(GLenum);
 using ColorMaskFn = void (*)(GLboolean, GLboolean, GLboolean, GLboolean);
+using ShaderSourceFn = void (*)(GLuint, GLsizei, const GLchar* const*, const GLint*);
+using AttachShaderFn = void (*)(GLuint, GLuint);
 
 SwapFn g_origSwap = nullptr;
 BindFramebufferFn g_origBindFramebuffer = nullptr;
@@ -38,6 +41,8 @@ EnumFn g_origActiveTexture = nullptr;
 EnumFn g_origEnable = nullptr;
 EnumFn g_origDisable = nullptr;
 ColorMaskFn g_origColorMask = nullptr;
+ShaderSourceFn g_origShaderSource = nullptr;
+AttachShaderFn g_origAttachShader = nullptr;
 
 thread_local bool t_inside = false;
 
@@ -170,8 +175,26 @@ void hkColorMask(GLboolean r, GLboolean gr, GLboolean b, GLboolean a) {
 }
 
 void hkDrawElements(GLenum mode, GLsizei count, GLenum type, const void* indices) {
-    if (tracked()) noteDraw();
+    if (tracked()) {
+        noteDraw();
+        if (spriteFxActive()) {
+            t_inside = true;
+            const bool drawn = spriteFxDraw(g_shadow.program, mode, count, type, indices);
+            t_inside = false;
+            if (drawn) return;
+        }
+    }
     g_origDrawElements(mode, count, type, indices);
+}
+
+void hkShaderSource(GLuint shader, GLsizei count, const GLchar* const* strings, const GLint* lengths) {
+    if (!t_inside) spriteFxNoteSource(shader, count, strings, lengths);
+    g_origShaderSource(shader, count, strings, lengths);
+}
+
+void hkAttachShader(GLuint program, GLuint shader) {
+    if (!t_inside) spriteFxNoteAttach(program, shader);
+    g_origAttachShader(program, shader);
 }
 
 void hkDrawArrays(GLenum mode, GLint first, GLsizei count) {
@@ -231,6 +254,8 @@ void installGlHooks() {
         ok &= hookGl("glColorMask", reinterpret_cast<void*>(g.ColorMask), hkColorMask, &g_origColorMask);
         ok &= hookGl("glDrawElements", reinterpret_cast<void*>(g.DrawElements), hkDrawElements, &g_origDrawElements);
         ok &= hookGl("glDrawArrays", reinterpret_cast<void*>(g.DrawArrays), hkDrawArrays, &g_origDrawArrays);
+        ok &= hookGl("glShaderSource", reinterpret_cast<void*>(g.ShaderSource), hkShaderSource, &g_origShaderSource);
+        ok &= hookGl("glAttachShader", reinterpret_cast<void*>(g.AttachShader), hkAttachShader, &g_origAttachShader);
         BL_INFO("screen effects: GL hooks %s", ok ? "ok" : "failed");
     });
 }

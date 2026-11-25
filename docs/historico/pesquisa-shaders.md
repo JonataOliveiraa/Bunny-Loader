@@ -93,6 +93,87 @@ registers; passes that pick their shader with a preshader; vertex shaders; `VPOS
 `.xnb` effects; tModLoader's `Asset<Effect>`/`ScreenShaderData`/`Filters` API on top of
 `FxcEffect`; a phone (Mali/Adreno) run and its cost.
 
+## 2026-11-25: `.fxc` sprite shaders through a marker material (proof of concept)
+
+**Status:** validated at runtime on MuMu 16384 (`tools/tests/csspritefx`, 6/6 with a shot);
+not run on a phone yet; nothing committed.
+
+How the phone's SpriteBatch draws (dump and disassembly): `End` turns the batch into a Unity
+`Mesh` with one submesh per texture and pass (`GraphicsDevice.DrawGeometryWithSubMeshes`,
+`Renderer.materials`). `SpriteBatcher.AddSubMesh` picks the item's `OverloadedEffectPass`
+(copied from `SpriteBatch.OverloadedEffectPass` on insertion), else the `Begin` effect's
+`CurrentTechnique.Passes[0]`, else the default sprite pass, stores it in `EffectPass.BoundEffect`
+and asks `GraphicsDevice.GetMaterial`. That one gets a material instance per pass
+(`MaterialBuffer`, partition by `EffectPass.BatchIndex`), calls `EffectPass.ApplyValuesToMaterial`
+and binds the texture. The draw itself happens later on the render thread, when the camera
+renders. `Texture2D.GetNativeTexturePtr` is not in the dump, so the GL name of a game texture
+is unknown.
+
+The proof:
+
+- C# `BunnyLoader.FxcSpriteEffect(FxcEffect, pass)` (removed the same day for the tModLoader API below) builds a game `Effect` + `EffectTechnique` +
+  `EffectPass` through the proxies. The pass's material is a copy of the `ArmorColored` pixel
+  shader's material (`SpriteFxMaterial`). `Effect` goes to `SpriteBatch.Begin`, `GamePass` to
+  `OverloadedEffectPass`; `Apply()` commits the registers (preshader) as the slot's current values.
+- `graphics/SpriteFx.cpp` hooks `EffectPass.ApplyValuesToMaterial`. For our passes it copies the
+  slot's registers into a ring record and writes `_Color = (-1771, serial % 2048, serial / 2048, 1)`
+  on that material instance (exact in fp16).
+- `hkDrawElements` reads `_Color` of the current program with `glGetUniformfv` (only programs
+  with `_Color`, and only the marker program after the first hit). On the magic value it switches to
+  our program, copies the Unity program's uniforms (8 here: the two hlslcc matrices), sets `ps_s*`
+  to `_MainTex`'s unit and `ps_uniforms_vec4` from the record, draws and restores the program.
+- The fragment shader is the pass converted in sprite mode (`fxcSpriteSource`): `TEXCOORD` =
+  `(uv.x, 1 - uv.y)` with `texture2D` flipping back, `COLOR` = the vertex color.
+- Unity's programs come from binaries: `glGetAttachedShaders` gives nothing, so the vertex shader is
+  ours (`in_POSITION0/in_COLOR0/in_TEXCOORD0`, `hlslcc_mtx4x4unity_ObjectToWorld/MatrixVP`), with
+  the attribute locations read from the Unity program. Linking with Unity's own vertex shader
+  stays as the first try.
+
+Results on MuMu: 6750 marked draws, 6750 drawn, 0 lost, both passes linked, marker program 42.
+Shot: a `UV` pass gives black top-left, red right, green bottom (tML's coordinates, y down); a
+`Tint` pass drawn twice in one `Begin(Immediate)` with different `uColor` gives green and magenta
+(each draw keeps its own values); the same pass through `OverloadedEffectPass` gives blue; the
+same `UV` pass works in `PostDrawTiles` (world) and `PostDrawInterface` (UI).
+
+Same day, the tModLoader API on top of it (`csspritefx` 10/10, `csexspritefx` 8/8 with the Example
+Mod, `csfxc` 18/18 and `csexfxc` 9/9 unchanged; MuMu 16384, shots):
+
+- `Mod.Assets.Request<Effect>` / `ModContent.Request<Effect>` find `<path>.fxc`; the value is a game
+  `Effect` (`FxcGameEffect`) with one `EffectPass` per pass of technique 0 and an
+  `EffectParameterCollection` holding the `.fxc` parameters in MojoShader order plus the names
+  `ArmorShaderData`/`MiscShaderData` look up. The game `Asset<Effect>` is a new object of the class of
+  `Main.PixelShaderRef` with `Value` (0x28), `State` and `Name` set, so `new ArmorShaderData(asset, pass)`
+  and `new MiscShaderData(asset, pass)` take it as they take the game's own.
+- Parameters are read from the game objects when `ApplyValuesToMaterial` runs (pass `_effect` →
+  `Parameters._parameters[i].Data`, a `float[4]`), set on the MojoShader effect and committed there.
+  `EffectParameter.SetValue(Matrix)` is empty in the game, so matrices never arrive.
+- On the phone `EffectPass.Apply()` and `ShaderData.Apply()` only write `EffectPass.BoundEffect`;
+  the player renderer and `SetShaderForData` move it to the batch themselves. For tModLoader's
+  `Begin(Immediate)` + `shader.Apply()` + draw, both methods are hooked: when the bound pass is ours and
+  `Main.spriteBatch` is begun in `Immediate`, it becomes `OverloadedEffectPass`, cleared in `End()`.
+- `MaterialBuffer` gives every (pass, texture) its own material and binds `GraphicsDevice.Textures[1]`
+  as `_SecondaryTex` only when the base material has that property: passes that sample `uImage1` copy
+  `ArmorGel` instead of `ArmorColored`.
+- Unity detaches and deletes its shaders after linking, so `glGetAttachedShaders` is empty; hooking
+  `glShaderSource`/`glAttachShader` captures the text of every program compiled after the hooks go in
+  (the sprite programs compile on first use). Our fragment shader is linked to a recompiled copy of
+  Unity's vertex shader (`#version 320 es`); the own vertex shader stays as the fallback.
+- Vanilla armor textures use the `_MAIN_USE_PAL` + `_MAIN_USE_ALPHA_A8` variant: `_MainTex.w` is a
+  palette index, the color is `_MainPalTex` at (index, region row) with `_palScaleSize` regions per
+  side, alpha is `_MainAlphaTex.w`, and the UV is clamped to `_TrimMin`/`_TrimMax`. `uImage0` reads go
+  through a generated `blMainSample` that follows the variant of the Unity program it replaces and
+  returns premultiplied color, as PC textures are.
+- C# compatibility: `GameShaders.Misc` (renamed `Misc_` in `types.txt`, wrapped by
+  `MiscShaderDictionary`), `EffectPassCollection`/`EffectParameterCollection` indexers, and
+  `SpriteBatch.Begin` overloads that accept a `null` effect.
+- Example Mod 0.46.0: `ExampleDye` with tModLoader's `ExampleEffect.fx` (silver armor turns green when
+  `uTime % 4 == 1`), and `ExampleDeathAnimation`, the 1.3 `DeathAnimation` NPC ported with
+  `ExampleEffectDeath.fx` and `Images/Misc/Perlin` (dissolves with a pink edge).
+
+Open: `uImage2/3`, vertex shaders, `FxcEffect` reload for sprite passes, a sprite program compiled before
+the hooks (no captured text: own vertex shader and plain sampling), cost on a phone (one
+`glGetUniformfv` per draw of programs with `_Color`, plus uniform copies per marked draw), Mali/Adreno.
+
 ## How to interpret the evidence
 
 | Classification | Meaning |

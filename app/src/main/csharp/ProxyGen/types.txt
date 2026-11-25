@@ -76,6 +76,7 @@ Terraria.RemoteClient
 GUIEvents
 Terraria.GameContent.PressurePlateHelper
 !Terraria.GameContent.PressurePlateHelper.PressurePlatesPressed
+!Terraria.Graphics.Shaders.GameShaders.Misc
 Terraria.Graphics.Shaders.ArmorShaderData
 Terraria.Graphics.Shaders.HairShaderDataSet
 Terraria.Graphics.Shaders.HairShaderData

@@ -14,7 +14,7 @@ namespace ExampleMod.Content.Items
                 // The following code creates an effect (shader) reference and associates it with this item's type Id.
                 GameShaders.Armor.BindShader(
                     Item.type,
-                    new ArmorShaderData(Main.PixelShaderRef, "ArmorColored").UseColor(0.2f, 0.9f, 0.4f) // Compiled .fx effects from the PC can't be loaded on the phone, so this dye recolors one of the game's own armor passes.
+                    new ArmorShaderData(Mod.Assets.Request<Effect>("Assets/Effects/ExampleEffect"), "ExampleDyePass") // Be sure to update the effect path and pass name here.
                 );
             }
 

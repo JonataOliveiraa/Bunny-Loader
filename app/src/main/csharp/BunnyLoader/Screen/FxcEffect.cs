@@ -58,6 +58,8 @@ public sealed unsafe class FxcEffect
 
     public string Name { get; }
 
+    internal int NativeId => id;
+
     public string? Path { get; }
 
     public int Version { get; private set; }
@@ -87,14 +89,21 @@ public sealed unsafe class FxcEffect
         string file = path.EndsWith(".fxc", StringComparison.OrdinalIgnoreCase) ? path : path + ".fxc";
         string? full = mod.ResolveFile(file);
         if (full == null || !File.Exists(full)) throw new FileNotFoundException($"FxcEffect.Load: {mod.Name}/{file} not found", file);
+        return LoadFile(full, $"{mod.Name}/{file}");
+    }
+
+    internal static FxcEffect LoadFile(string full, string name)
+    {
         lock (loaded)
         {
             if (loaded.TryGetValue(full, out FxcEffect? cached)) return cached;
-            var effect = new FxcEffect($"{mod.Name}/{file}", full, File.ReadAllBytes(full));
+            var effect = new FxcEffect(name, full, File.ReadAllBytes(full));
             loaded[full] = effect;
             return effect;
         }
     }
+
+    public static long[] SpriteDrawStats() => FxcGameEffect.Stats();
 
     public static IReadOnlyList<FxcEffect> Files
     {

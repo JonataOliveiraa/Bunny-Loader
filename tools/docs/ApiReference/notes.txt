@@ -181,6 +181,14 @@ Terraria.ModLoader.AchievementLoader|Registers mod achievements.
 Terraria.GameContent.Achievements.AchievementsHelper|Reports achievement progress.
 Terraria.Graphics.Shaders.ArmorShaderData|A shader for a dye.
 Terraria.Graphics.Shaders.ArmorShaderDataSet|`GameShaders.Armor`: binds a dye item to its shader.
+Terraria.Graphics.Shaders.MiscShaderData|A named shader for any sprite: `GameShaders.Misc[name].Apply()` in an `Immediate` batch. The constructor takes a mod's `Asset<Effect>`.
+Terraria.Graphics.Shaders.MiscShaderDictionary|`GameShaders.Misc`: the named shaders, with the indexer, `ContainsKey` and `TryGetValue` of tModLoader's `Dictionary<string, MiscShaderData>`.
+Terraria.Graphics.Shaders.GameShaders|The game's shader tables: `Armor`, `Hair` and `Misc`.
+Terraria.Graphics.Shaders.GameShaders.Misc|The named `MiscShaderData`, by key.
+Microsoft.Xna.Framework.Graphics.EffectPassCollection|An effect's passes, by index or by name.
+Microsoft.Xna.Framework.Graphics.EffectParameterCollection|An effect's parameters, by index or by name.
+Microsoft.Xna.Framework.Graphics.SpriteBatch|What Bunny Loader adds to the sprite batch.
+Microsoft.Xna.Framework.Graphics.SpriteBatch.Begin|`Begin` that accepts a `null` effect, as tModLoader code passes it.
 Microsoft.Xna.Framework.Graphics.Color|What Bunny Loader adds to the color.
 Terraria.ID.Colors|The game's named colors.
 Terraria.ModLoader.Config.ConfigArgsAttribute|Base of config attributes with arguments.

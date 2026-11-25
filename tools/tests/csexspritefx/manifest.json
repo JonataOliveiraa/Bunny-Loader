@@ -1,0 +1,14 @@
+{
+  "uid": "8b898331-1148-45c8-8963-3d7f9634cfff",
+  "id": "CsExSpriteFx",
+  "name": "Test: Example Mod sprite shaders (.fxc)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "ExampleDye and ExampleDeathAnimation from samples/ExampleModCSharp: a .fxc armor dye on the player and a MiscShaderData that dissolves an NPC.",
+  "description": "Build with tools/tests/build-cs.sh csexspritefx and run with SAMPLE=1 NOENV=1 (csenv removes hostile NPCs). Logs csexspritefx SHOT <name>, csexspritefx <case>: ok | FAIL and csexspritefx END pass=N fail=M.",
+  "updated": "2026-11-25",
+  "blVersion": 3,
+  "gameVersion": [301720, 301720],
+  "dependencies": []
+}

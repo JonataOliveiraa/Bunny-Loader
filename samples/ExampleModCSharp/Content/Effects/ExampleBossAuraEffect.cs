@@ -9,7 +9,7 @@ namespace ExampleMod.Content.Effects;
 // An FxcScreenEffect draws a compiled HLSL effect (.fxc), the kind of file tModLoader mods ship, over the screen.
 // This one is the aura of the Minion Boss: rings leave the boss and the world around it loses its color, more and more as the boss gets hurt.
 // ExampleBossAuraSystem spawns it while a Minion Boss is alive. The shader source is ExampleBossAura.fx, next to this file.
-// Support for .fxc effects is new: only screen effects work for now, and this API may still change.
+// Support for .fxc effects is new and this API may still change. Sprite shaders use the tModLoader API instead: see ExampleDye and ExampleDeathAnimation.
 public class ExampleBossAuraEffect : FxcScreenEffect
 {
     // The boss this aura belongs to, as an index in Main.npc.

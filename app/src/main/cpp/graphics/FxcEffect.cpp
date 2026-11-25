@@ -133,11 +133,13 @@ std::string lastWord(const std::string& line) {
     return space == std::string::npos ? s : s.substr(space + 1);
 }
 
-std::string inputValue(const std::string& name) {
+std::string inputValue(const std::string& name, bool sprite) {
     int usage = -1, index = 0;
     if (std::sscanf(name.c_str(), "io_%d_%d", &usage, &index) != 2) return "vec4(0.0)";
-    if (usage == MOJOSHADER_USAGE_TEXCOORD) return "vec4(vUV.x, 1.0 - vUV.y, 0.0, 0.0)";
-    if (usage == MOJOSHADER_USAGE_COLOR) return "vec4(1.0)";
+    if (usage == MOJOSHADER_USAGE_TEXCOORD) {
+        return sprite ? "vec4(BL_SPRITE_UV.x, 1.0 - BL_SPRITE_UV.y, 0.0, 0.0)" : "vec4(vUV.x, 1.0 - vUV.y, 0.0, 0.0)";
+    }
+    if (usage == MOJOSHADER_USAGE_COLOR) return sprite ? "BL_SPRITE_COLOR" : "vec4(1.0)";
     return "vec4(0.0)";
 }
 
@@ -172,7 +174,7 @@ vec4 blFxcTextureGrad(sampler2D s, vec2 uv, vec2 dx, vec2 dy) {
 }
 )";
 
-bool convert(const MOJOSHADER_parseData* pd, std::string& out, std::string& error) {
+bool convert(const MOJOSHADER_parseData* pd, std::string& out, std::string& error, bool sprite = false) {
     std::istringstream in(pd->output ? pd->output : "");
     std::ostringstream body;
     std::vector<std::string> inputs;
@@ -183,7 +185,7 @@ bool convert(const MOJOSHADER_parseData* pd, std::string& out, std::string& erro
         if (!line.empty() && line.back() == '\r') line.pop_back();
         if (startsWith(line, "#version") || startsWith(line, "#extension") || startsWith(line, "precision ")) continue;
         if (startsWith(line, "#define texture")) continue;
-        if (startsWith(line, "uniform sampler2D ps_s0;")) {
+        if (!sprite && startsWith(line, "uniform sampler2D ps_s0;")) {
             body << "#define ps_s0 uScreen\n";
             continue;
         }
@@ -211,7 +213,7 @@ bool convert(const MOJOSHADER_parseData* pd, std::string& out, std::string& erro
         return false;
     }
     body << "void main() {\n";
-    for (const std::string& name : inputs) body << "    " << name << " = " << inputValue(name) << ";\n";
+    for (const std::string& name : inputs) body << "    " << name << " = " << inputValue(name, sprite) << ";\n";
     body << "    blFxcMain();\n}\n";
     out = body.str();
     return true;
@@ -320,6 +322,44 @@ int32_t fxcPassSource(int32_t id, int32_t technique, int32_t pass, char* out, in
     std::string source, error;
     if (!convert(pd, source, error)) return -copyOut(error, out, capacity);
     return copyOut(source, out, capacity);
+}
+
+int32_t fxcParamCount(int32_t id) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+    Entry* entry = find(id);
+    return entry ? entry->effect->param_count : 0;
+}
+
+int32_t fxcParamFloats(int32_t id, int32_t index) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+    Entry* entry = find(id);
+    if (!entry || index < 0 || index >= entry->effect->param_count) return 0;
+    const MOJOSHADER_effectValue& v = entry->effect->params[index].value;
+    const auto type = v.type.parameter_type;
+    if (type != MOJOSHADER_SYMTYPE_FLOAT && type != MOJOSHADER_SYMTYPE_INT && type != MOJOSHADER_SYMTYPE_BOOL) return 0;
+    return static_cast<int32_t>(std::max(v.type.rows, 1u) * std::max(v.type.columns, 1u) * std::max(v.type.elements, 1u));
+}
+
+bool fxcSpriteSource(int32_t id, int32_t technique, int32_t pass, std::string& out, std::string& error, int32_t& registers) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+    Entry* entry = find(id);
+    if (!entry) {
+        error = "unknown effect";
+        return false;
+    }
+    const MOJOSHADER_effectPass* p = passOf(entry->effect, technique, pass);
+    const MOJOSHADER_effectShader* shader = p ? pixelShaderOf(entry->effect, *p) : nullptr;
+    if (!shader || shader->is_preshader || !shader->shader) {
+        error = "the pass has no usable pixel shader";
+        return false;
+    }
+    const auto* pd = static_cast<const MOJOSHADER_parseData*>(shader->shader);
+    if (pd->error_count > 0) {
+        error = pd->errors[0].error ? pd->errors[0].error : "unknown error";
+        return false;
+    }
+    registers = floatRegisterCount(pd);
+    return convert(pd, out, error, true);
 }
 
 int32_t fxcSetParam(int32_t id, int32_t index, const float* values, int32_t count) {

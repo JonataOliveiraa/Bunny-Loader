@@ -1,0 +1,14 @@
+{
+  "uid": "763d3591-c8bb-4e48-a024-a7f1803c8788",
+  "id": "CsSpriteFx",
+  "name": "Test: .fxc sprite shaders (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "FxcSpriteEffect: a .fxc pass applied to sprites drawn with SpriteBatch.Begin(..., effect, ...).",
+  "description": "Build with tools/tests/build-cs.sh csspritefx. Effects/SpriteFx.fxc comes from src/SpriteFx.fx (fxc /T fx_2_0). Logs csspritefx SHOT <name>, csspritefx <case>: ok | FAIL and csspritefx END pass=N fail=M.",
+  "updated": "2026-11-25",
+  "blVersion": 3,
+  "gameVersion": [301720, 301720],
+  "dependencies": []
+}

@@ -10,7 +10,7 @@ namespace BunnyLoader;
 
 public sealed class ModAssets
 {
-    static readonly string[] Extensions = { ".png", ".json" };
+    static readonly string[] Extensions = { ".png", ".json", ".fxc" };
 
     readonly Mod mod;
 
@@ -51,10 +51,14 @@ public sealed class ModAssets
     }
 
     public bool HasAsset<T>(string assetName) where T : struct, IGameObject =>
-        (typeof(T) == typeof(Microsoft.Xna.Framework.Graphics.Texture2D) || typeof(T) == typeof(Microsoft.Xna.Framework.Graphics.SpriteFont)) &&
+        (typeof(T) == typeof(Microsoft.Xna.Framework.Graphics.Texture2D) || typeof(T) == typeof(Microsoft.Xna.Framework.Graphics.SpriteFont)
+         || typeof(T) == typeof(Microsoft.Xna.Framework.Graphics.Effect)) &&
         Find(Relative(assetName), Extension<T>()) != null;
 
-    static string Extension<T>() => typeof(T) == typeof(Microsoft.Xna.Framework.Graphics.SpriteFont) ? ".json" : ".png";
+    static string Extension<T>() =>
+        typeof(T) == typeof(Microsoft.Xna.Framework.Graphics.SpriteFont) ? ".json"
+        : typeof(T) == typeof(Microsoft.Xna.Framework.Graphics.Effect) ? ".fxc"
+        : ".png";
 
     static string Relative(string assetName)
     {

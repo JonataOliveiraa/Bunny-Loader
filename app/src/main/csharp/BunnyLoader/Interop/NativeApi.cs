@@ -170,6 +170,10 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<int, int, float*, int, int> FxcSetParam;
     public delegate* unmanaged<int, int, int, float*, int, int> FxcCommit;
     public delegate* unmanaged<int, int> FxcFree;
+    public delegate* unmanaged<IntPtr, IntPtr> SpriteFxMaterial;
+    public delegate* unmanaged<IntPtr, int, int, int, byte*, int, int> SpriteFxRegister;
+    public delegate* unmanaged<IntPtr, byte*, int> SpriteFxHasProperty;
+    public delegate* unmanaged<long*, int, int> SpriteFxStats;
 }
 
 [StructLayout(LayoutKind.Sequential)]

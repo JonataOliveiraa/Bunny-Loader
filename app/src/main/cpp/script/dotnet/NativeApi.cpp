@@ -42,6 +42,7 @@
 #include "core/Config.h"
 #include "graphics/FxcEffect.h"
 #include "graphics/ScreenApi.h"
+#include "graphics/SpriteFx.h"
 #include "content/common/TypeTables.h"
 #include "content/items/ItemDrawStages.h"
 #include "content/items/ModEquips.h"
@@ -245,6 +246,10 @@ struct NativeApi {
     int32_t (*fxcSetParam)(int32_t id, int32_t index, const float* values, int32_t count);
     int32_t (*fxcCommit)(int32_t id, int32_t technique, int32_t pass, float* out, int32_t capacity);
     int32_t (*fxcFree)(int32_t id);
+    void* (*spriteFxMaterial)(void* source);
+    int32_t (*spriteFxRegister)(void* pass, int32_t fxc, int32_t technique, int32_t passIndex, char* error, int32_t capacity);
+    int32_t (*spriteFxHasProperty)(void* material, const char* name);
+    int32_t (*spriteFxStats)(int64_t* out, int32_t count);
 };
 
 struct Extra {
@@ -1264,6 +1269,10 @@ const NativeApi kNativeApi{
     graphics::fxcSetParam,
     graphics::fxcCommit,
     graphics::fxcFree,
+    graphics::spriteFxMaterial,
+    graphics::spriteFxRegister,
+    graphics::spriteFxHasProperty,
+    graphics::spriteFxStats,
 };
 
 }
