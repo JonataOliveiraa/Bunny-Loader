@@ -24,13 +24,14 @@ namespace CsSpriteFx
         static int frame, pass, fail, drawn;
         static Effect effect;
         static bool ready;
-        static Asset<Texture2D>? square;
+        static Asset<Texture2D>? square, gradientV;
 
         static ILog Log => ModContent.GetInstance<CsSpriteFxMod>().Logger;
 
         public override void Load()
         {
             square = Assets.Request<Texture2D>("Content/Square");
+            gradientV = Assets.Request<Texture2D>("Content/GradientV");
             On_Player.Update += Update;
         }
 
@@ -69,6 +70,15 @@ namespace CsSpriteFx
                         $"{passes.Count}");
                     Report("the effect lists its parameters", !effect.Parameters["uColor"].IsNull && !effect.Parameters["uOpacity"].IsNull && !effect.Parameters["uTime"].IsNull,
                         $"{effect.Parameters.Count}");
+                    EffectTechniqueCollection techniques = effect.Techniques;
+                    Report("the effect lists its techniques", techniques.Count == 2 && techniques[0] == effect.CurrentTechnique && techniques["Technique1"] == effect.CurrentTechnique
+                        && !techniques["Inverted"].Passes["Invert"].IsNull && techniques["Nope"].IsNull, $"{techniques.Count}");
+                    effect.Parameters["uOpacity"].SetValue(1);
+                    Report("SetValue takes an int", effect.Parameters["uOpacity"].Float == 1f, $"{effect.Parameters["uOpacity"].Float}");
+                    bool notSampler = false;
+                    try { effect.Parameters["uColor"].SetValue(square!.Value); }
+                    catch (NotSupportedException) { notSampler = true; }
+                    Report("a texture on a non-sampler parameter is refused", notSampler, "");
                     GameShaders.Misc[Dissolve] = new MiscShaderData(asset, "Dissolve").UseImage1(mod.Assets.Request<Texture2D>("Content/Gradient"));
                     Report("GameShaders.Misc keeps a mod shader", GameShaders.Misc.ContainsKey(Dissolve) && !GameShaders.Misc[Dissolve].IsNull, "");
                     bool refused = false;
@@ -87,7 +97,7 @@ namespace CsSpriteFx
                     string text = string.Join(" ", s);
                     Report("draws were marked", s[0] > 0, text);
                     Report("marked draws reached the render thread", s[1] > 0, text);
-                    Report("all three passes linked", s[3] >= 3 && s[4] == 0, text);
+                    Report("all four passes linked", s[3] >= 4 && s[4] == 0, text);
                     Report("no marked draw was lost", s[2] == 0, text);
                     break;
                 }
@@ -138,6 +148,22 @@ namespace CsSpriteFx
             GameShaders.Misc[Dissolve].UseOpacity(0.5f).Apply(null);
             Square(at + new Vector2(156, 0));
             sb.End();
+
+            effect.CurrentTechnique = effect.Techniques["Inverted"];
+            effect.Parameters["uColor"].SetValue(new Vector3(0, 1, 1));
+            effect.Parameters["uOpacity"].SetValue(1);
+            sb.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.None, RasterizerState.CullNone, effect, matrix);
+            Square(at + new Vector2(-156, 104));
+            sb.End();
+            effect.CurrentTechnique = effect.Techniques[0];
+
+            sb.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.None, RasterizerState.CullNone, null, matrix);
+            effect.Parameters["uImage1"].SetValue(gradientV!.Value);
+            effect.Parameters["uOpacity"].SetValue(0.5f);
+            effect.CurrentTechnique.Passes["Dissolve"].Apply();
+            Square(at + new Vector2(156, 104));
+            sb.End();
+            effect.Parameters["uImage1"].SetValue(default(Texture2D));
 
             sb.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp, DepthStencilState.None, RasterizerState.CullCounterClockwise, null, matrix);
             drawn++;

@@ -65,28 +65,70 @@ internal static unsafe class FxcGameEffect
         EffectParameter[] parameters = names.Select(EffectParameter.New).ToArray();
         effect.Parameters = EffectParameterCollection.New(parameters);
 
-        var passes = new List<EffectPass>();
-        string technique = "";
+        var registers = new Dictionary<string, int>();
         foreach (FxcEffect.Pass pass in fx.Passes)
+            foreach (var sampler in pass.Samplers)
+                registers.TryAdd(sampler.Value, sampler.Key);
+        lock (samplers)
+            foreach (EffectParameter parameter in parameters)
+                if (parameter.Name != null && registers.TryGetValue(parameter.Name, out int register))
+                    samplers[parameter.Pointer] = (effect.Pointer, register);
+
+        var techniques = new List<EffectTechnique>();
+        byte* error = stackalloc byte[1024];
+        foreach (IGrouping<int, FxcEffect.Pass> group in fx.Passes.GroupBy(p => p.Technique).OrderBy(g => g.Key))
         {
-            if (pass.Technique != 0) continue;
-            technique = pass.TechniqueName;
-            int images = pass.Samplers.Count == 0 ? 1 : pass.Samplers.Keys.Max() + 1;
-            if (images > 2) Log.Warn($"fxc: {fx.Name}: pass {pass} samples uImage{images - 1}; sprite shaders get uImage0 and uImage1 only");
-            IntPtr material = Host.Native()->SpriteFxMaterial(BaseMaterial(images > 1 ? 2 : 1));
-            if (material == IntPtr.Zero) throw new InvalidOperationException($"fxc: {fx.Name}: the sprite material could not be copied");
-            EffectPass gamePass = EffectPass.New(effect, passes.Count, pass.Name, new GameObject(material));
-            passes.Add(gamePass);
-            if (pass.Error != null) continue;
-            byte* error = stackalloc byte[1024];
-            error[0] = 0;
-            if (Host.Native()->SpriteFxRegister(gamePass.Pointer, fx.NativeId, pass.Technique, pass.Index, error, 1024) <= 0)
-                Log.Warn($"fxc: {fx.Name}: pass {pass} cannot draw sprites: {new string((sbyte*)error)}");
+            var passes = new List<EffectPass>();
+            foreach (FxcEffect.Pass pass in group)
+            {
+                int images = pass.Samplers.Count == 0 ? 1 : pass.Samplers.Keys.Max() + 1;
+                if (images > 2) Log.Warn($"fxc: {fx.Name}: pass {pass} samples uImage{images - 1}; sprite shaders get uImage0 and uImage1 only");
+                IntPtr material = Host.Native()->SpriteFxMaterial(BaseMaterial(images > 1 ? 2 : 1));
+                if (material == IntPtr.Zero) throw new InvalidOperationException($"fxc: {fx.Name}: the sprite material could not be copied");
+                EffectPass gamePass = EffectPass.New(effect, passes.Count, pass.Name, new GameObject(material));
+                passes.Add(gamePass);
+                if (pass.Error != null) continue;
+                error[0] = 0;
+                if (Host.Native()->SpriteFxRegister(gamePass.Pointer, fx.NativeId, pass.Technique, pass.Index, error, 1024) <= 0)
+                    Log.Warn($"fxc: {fx.Name}: pass {pass} cannot draw sprites: {new string((sbyte*)error)}");
+            }
+            techniques.Add(EffectTechnique.New(effect, group.First().TechniqueName, EffectPassCollection.New(passes.ToArray())));
         }
-        if (passes.Count == 0) throw new InvalidOperationException($"fxc: {fx.Name} has no pass in its first technique");
-        effect.CurrentTechnique = EffectTechnique.New(effect, technique, EffectPassCollection.New(passes.ToArray()));
+        if (techniques.Count == 0) throw new InvalidOperationException($"fxc: {fx.Name} has no technique");
+        effect.CurrentTechnique = techniques[0];
+        EffectTechniqueCollection collection = EffectTechniqueCollection.New(techniques.ToArray());
+        Host.Native()->GcHandleNew(collection.Pointer, 0);
+        lock (techniqueSets) techniqueSets[effect.Pointer] = collection;
         Host.Native()->GcHandleNew(effect.Pointer, 0);
         return effect;
+    }
+
+    static readonly Dictionary<IntPtr, EffectTechniqueCollection> techniqueSets = new();
+
+    static readonly Dictionary<IntPtr, (IntPtr Effect, int Register)> samplers = new();
+
+    internal static EffectTechniqueCollection TechniquesOf(Effect effect)
+    {
+        lock (techniqueSets)
+        {
+            if (techniqueSets.TryGetValue(effect.Pointer, out EffectTechniqueCollection known)) return known;
+            EffectTechniqueCollection single = EffectTechniqueCollection.New(new[] { effect.CurrentTechnique });
+            Host.Native()->GcHandleNew(single.Pointer, 0);
+            techniqueSets[effect.Pointer] = single;
+            return single;
+        }
+    }
+
+    internal static void SetTexture(EffectParameter parameter, Texture2D texture)
+    {
+        (IntPtr Effect, int Register) sampler;
+        lock (samplers)
+            if (!samplers.TryGetValue(parameter.Pointer, out sampler))
+                throw new NotSupportedException($"EffectParameter {parameter.Name}: textures can only be set on the samplers of a mod's .fxc effect");
+        if (sampler.Register == 0) return;
+        if (sampler.Register != 1)
+            throw new NotSupportedException($"EffectParameter {parameter.Name}: sprite shaders take a texture in uImage1 (register s1) only, not s{sampler.Register}");
+        Host.Native()->SpriteFxSetTexture(sampler.Effect, sampler.Register, texture.Pointer);
     }
 
     static IntPtr BaseMaterial(int textures)

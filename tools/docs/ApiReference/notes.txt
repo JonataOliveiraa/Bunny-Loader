@@ -187,6 +187,11 @@ Terraria.Graphics.Shaders.GameShaders|The game's shader tables: `Armor`, `Hair` 
 Terraria.Graphics.Shaders.GameShaders.Misc|The named `MiscShaderData`, by key.
 Microsoft.Xna.Framework.Graphics.EffectPassCollection|An effect's passes, by index or by name.
 Microsoft.Xna.Framework.Graphics.EffectParameterCollection|An effect's parameters, by index or by name.
+Microsoft.Xna.Framework.Graphics.EffectTechniqueCollection|An effect's techniques, by index or by name.
+Microsoft.Xna.Framework.Graphics.Effect|What Bunny Loader adds to the game's effect.
+Microsoft.Xna.Framework.Graphics.Effect.Techniques|Every technique of a mod's `.fxc`; for a game effect, its current technique only.
+Microsoft.Xna.Framework.Graphics.EffectParameter|What Bunny Loader adds to the game's effect parameter.
+Microsoft.Xna.Framework.Graphics.EffectParameter.SetValue|`int` is stored as a float. A `Texture2D` goes to a sampler of a mod's `.fxc`: `uImage1` only.
 Microsoft.Xna.Framework.Graphics.SpriteBatch|What Bunny Loader adds to the sprite batch.
 Microsoft.Xna.Framework.Graphics.SpriteBatch.Begin|`Begin` that accepts a `null` effect, as tModLoader code passes it.
 Microsoft.Xna.Framework.Graphics.Color|What Bunny Loader adds to the color.

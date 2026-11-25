@@ -72,6 +72,16 @@ SelfFn g_origPassApply = nullptr;
 SelfFn g_origShaderApply = nullptr;
 SelfFn g_origEnd = nullptr;
 
+using GetMaterialFn = Il2CppObject* (*)(Il2CppObject* self, int32_t offset, const MethodInfo*);
+GetMaterialFn g_origGetMaterial = nullptr;
+
+struct EffectTextures {
+    Il2CppObject* effect = nullptr;
+    Il2CppObject* texture = nullptr;
+    uint32_t handle = 0;
+};
+std::vector<EffectTextures> g_effectTextures;
+
 const MethodInfo* g_setVector = nullptr;
 const MethodInfo* g_hasProperty = nullptr;
 int32_t g_colorId = 0;
@@ -84,6 +94,7 @@ struct Offsets {
     int32_t batchSortMode = -1;
     int32_t batchBegun = -1;
     int32_t batchOverload = -1;
+    int32_t deviceTextures = -1;
     FieldInfo* boundEffect = nullptr;
     FieldInfo* mainSpriteBatch = nullptr;
 };
@@ -202,6 +213,24 @@ void hkShaderApply(Il2CppObject* self, const MethodInfo* method) {
     overloadBound();
 }
 
+Il2CppObject* textureOf(Il2CppObject* effect) {
+    for (const EffectTextures& e : g_effectTextures)
+        if (e.effect == effect) return e.texture;
+    return nullptr;
+}
+
+Il2CppObject* hkGetMaterial(Il2CppObject* self, int32_t offset, const MethodInfo* method) {
+    Il2CppObject* bound = g_effectTextures.empty() ? nullptr : staticObject(g_off.boundEffect);
+    Il2CppObject* texture = slotOf(bound) >= 0 ? textureOf(at<Il2CppObject*>(bound, g_off.passEffect)) : nullptr;
+    ArrayView textures = texture && self ? arrayOf(at<Il2CppObject*>(self, g_off.deviceTextures)) : ArrayView{};
+    if (textures.length < 2) return g_origGetMaterial(self, offset, method);
+    Il2CppObject* saved = textures.items[1];
+    textures.items[1] = texture;
+    Il2CppObject* material = g_origGetMaterial(self, offset, method);
+    textures.items[1] = saved;
+    return material;
+}
+
 void hkEnd(Il2CppObject* self, const MethodInfo* method) {
     g_origEnd(self, method);
     if (self && slotOf(at<Il2CppObject*>(self, g_off.batchOverload)) >= 0) at<Il2CppObject*>(self, g_off.batchOverload) = nullptr;
@@ -218,11 +247,12 @@ bool setupGameSide() {
     Il2CppClass* collection = il2cpp::findClass({xna, "EffectParameterCollection", {}});
     Il2CppClass* parameter = il2cpp::findClass({xna, "EffectParameter", {}});
     Il2CppClass* batch = il2cpp::findClass({xna, "SpriteBatch", {}});
+    Il2CppClass* device = il2cpp::findClass({xna, "GraphicsDevice", {}});
     Il2CppClass* shaderData = il2cpp::findClass({"Terraria.Graphics.Shaders", "ShaderData", {}});
     Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
     Il2CppClass* material = il2cpp::findClass({"UnityEngine", "Material", {}});
     Il2CppClass* shader = il2cpp::findClass({"UnityEngine", "Shader", {}});
-    if (!pass || !effect || !collection || !parameter || !batch || !shaderData || !main || !material || !shader) {
+    if (!pass || !effect || !collection || !parameter || !batch || !device || !shaderData || !main || !material || !shader) {
         BL_ERROR("sprite effects: game classes missing");
         return false;
     }
@@ -230,6 +260,7 @@ bool setupGameSide() {
     const MethodInfo* passApply = findMethod(pass, "Apply", {});
     const MethodInfo* shaderApply = findMethod(shaderData, "Apply", {});
     const MethodInfo* end = findMethod(batch, "End", {});
+    const MethodInfo* getMaterial = findMethod(device, "GetMaterial", {"System.Int32"});
     g_setVector = findMethod(material, "SetVector", {"System.Int32", "UnityEngine.Vector4"});
     g_hasProperty = findMethod(material, "HasProperty", {"System.String"});
     const MethodInfo* toId = findMethod(shader, "PropertyToID", {"System.String"});
@@ -240,9 +271,10 @@ bool setupGameSide() {
     g_off.batchSortMode = il2cpp::fieldOffset(batch, "_sortMode");
     g_off.batchBegun = il2cpp::fieldOffset(batch, "_beginCalled");
     g_off.batchOverload = il2cpp::fieldOffset(batch, "OverloadedEffectPass");
+    g_off.deviceTextures = il2cpp::fieldOffset(device, "Textures");
     g_off.boundEffect = il2cpp::findField(pass, "BoundEffect");
     g_off.mainSpriteBatch = il2cpp::findField(main, "spriteBatch");
-    if (!apply || !passApply || !shaderApply || !end || !g_setVector || !toId || g_off.passEffect < 0 || g_off.effectParameters < 0
+    if (!apply || !passApply || !shaderApply || !end || !getMaterial || g_off.deviceTextures < 0 || !g_setVector || !toId || g_off.passEffect < 0 || g_off.effectParameters < 0
         || g_off.collectionParameters < 0 || g_off.parameterData < 0 || g_off.batchSortMode < 0 || g_off.batchBegun < 0
         || g_off.batchOverload < 0 || !g_off.boundEffect || !g_off.mainSpriteBatch) {
         BL_ERROR("sprite effects: game methods or fields missing");
@@ -254,7 +286,8 @@ bool setupGameSide() {
     if (exc || !boxed) return false;
     g_colorId = *reinterpret_cast<int32_t*>(reinterpret_cast<char*>(boxed) + sizeof(Il2CppObject));
     const bool hooked = hook::install(apply, hkApply, &g_origApply) && hook::install(passApply, hkPassApply, &g_origPassApply)
-        && hook::install(shaderApply, hkShaderApply, &g_origShaderApply) && hook::install(end, hkEnd, &g_origEnd);
+        && hook::install(shaderApply, hkShaderApply, &g_origShaderApply) && hook::install(end, hkEnd, &g_origEnd)
+        && hook::install(getMaterial, hkGetMaterial, &g_origGetMaterial);
     if (!hooked) {
         BL_ERROR("sprite effects: game methods not hooked");
         return false;
@@ -747,6 +780,21 @@ int32_t spriteFxHasProperty(void* material, const char* name) {
     Il2CppObject* boxed = a.runtime_invoke(g_hasProperty, static_cast<Il2CppObject*>(material), args, &exc);
     if (exc || !boxed) return 0;
     return *reinterpret_cast<bool*>(reinterpret_cast<char*>(boxed) + sizeof(Il2CppObject)) ? 1 : 0;
+}
+
+int32_t spriteFxSetTexture(void* effect, int32_t reg, void* texture) {
+    if (!effect || reg != 1 || !setupGameSide()) return 0;
+    auto& a = il2cpp::api();
+    auto* e = static_cast<Il2CppObject*>(effect);
+    auto* t = static_cast<Il2CppObject*>(texture);
+    for (auto it = g_effectTextures.begin(); it != g_effectTextures.end(); ++it) {
+        if (it->effect != e) continue;
+        if (it->handle) a.gchandle_free(it->handle);
+        g_effectTextures.erase(it);
+        break;
+    }
+    if (t) g_effectTextures.push_back({e, t, a.gchandle_new(t, false)});
+    return 1;
 }
 
 int32_t spriteFxStats(int64_t* out, int32_t count) {

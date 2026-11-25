@@ -1,6 +1,7 @@
 using System;
 using BunnyLoader;
 using log4net;
+using Microsoft.Xna.Framework;
 using Terraria;
 using Terraria.Graphics.Shaders;
 using Terraria.ID;
@@ -11,9 +12,8 @@ namespace CsExSpriteFx
     public sealed class CsExSpriteFxMod : Mod
     {
         const int End = 1700;
-        const int Hold = 99;
         static int frame, pass, fail, npc = -1;
-        static bool holding;
+        static float hold;
 
         static ILog Log => ModContent.GetInstance<CsExSpriteFxMod>().Logger;
 
@@ -33,7 +33,14 @@ namespace CsExSpriteFx
             frame++;
             self.creativeGodMode = true;
             self.statLife = self.statLifeMax2;
-            if (holding && npc >= 0 && Main.npc[npc].active) Main.npc[npc].ai[3] = Hold;
+            if (hold > 0 && npc >= 0 && Main.npc[npc].active)
+            {
+                NPC held = Main.npc[npc];
+                held.ai[3] = hold;
+                held.Center = self.Center + new Vector2(-105, -40);
+                held.rotation = 0f;
+                held.velocity = Vector2.Zero;
+            }
             try { Step(self); }
             catch (Exception e) { Report($"frame {frame}", false, e.ToString()); }
             if (frame == End) Log.Info($"csexspritefx END pass={pass} fail={fail}");
@@ -70,10 +77,16 @@ namespace CsExSpriteFx
                 }
                 case 300:
                     Report("the player wears the dye", player.cHead > 0 && player.cBody > 0 && player.cLegs > 0, $"{player.cHead} {player.cBody} {player.cLegs}");
-                    Log.Info("csexspritefx SHOT dye");
+                    Log.Info("csexspritefx SHOT dye_1");
+                    break;
+                case 360:
+                    Log.Info("csexspritefx SHOT dye_2");
                     break;
                 case 420:
-                    Log.Info("csexspritefx SHOT dye_next");
+                    Log.Info("csexspritefx SHOT dye_3");
+                    break;
+                case 480:
+                    Log.Info("csexspritefx SHOT dye_4");
                     break;
                 case 600:
                 {
@@ -92,18 +105,30 @@ namespace CsExSpriteFx
                     long before = FxcEffect.SpriteDrawStats()[1];
                     target.StrikeNPC(99999, 0f, 1);
                     Report("the first death starts the animation", target.active && target.ai[3] > 0, $"ai3 {target.ai[3]}");
-                    holding = true;
+                    hold = 50;
                     Log.Info($"csexspritefx draws before dissolving {before}");
                     break;
                 }
                 case 1100:
-                    Log.Info($"csexspritefx SHOT dissolve ai3={Main.npc[npc].ai[3]}");
+                    Log.Info($"csexspritefx SHOT dissolve_1 ai3={Main.npc[npc].ai[3]}");
+                    break;
+                case 1150:
+                    hold = 100;
+                    break;
+                case 1200:
+                    Log.Info($"csexspritefx SHOT dissolve_2 ai3={Main.npc[npc].ai[3]}");
+                    break;
+                case 1250:
+                    hold = 140;
+                    break;
+                case 1300:
+                    Log.Info($"csexspritefx SHOT dissolve_3 ai3={Main.npc[npc].ai[3]}");
                     break;
                 case 1400:
                 {
                     long[] s = FxcEffect.SpriteDrawStats();
                     Report("the dissolve draws through the .fxc", s[1] > 0 && s[2] == 0 && s[4] == 0, string.Join(" ", s));
-                    holding = false;
+                    hold = 0;
                     break;
                 }
                 case 1650:

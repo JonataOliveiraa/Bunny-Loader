@@ -170,6 +170,11 @@ Mod, `csfxc` 18/18 and `csexfxc` 9/9 unchanged; MuMu 16384, shots):
   `uTime % 4 == 1`), and `ExampleDeathAnimation`, the 1.3 `DeathAnimation` NPC ported with
   `ExampleEffectDeath.fx` and `Images/Misc/Perlin` (dissolves with a pink edge).
 
+Then `effect.Techniques` (every technique of the `.fxc`, `CurrentTechnique` can be switched),
+`EffectParameter.SetValue(int)` (stored as a float) and `Parameters["uImage1"].SetValue(Texture2D)`:
+a hook on `GraphicsDevice.GetMaterial` puts that texture in `Textures[1]` only while the material
+is picked, so it wins for that effect until it is cleared (`csspritefx` 13/13).
+
 Open: `uImage2/3`, vertex shaders, `FxcEffect` reload for sprite passes, a sprite program compiled before
 the hooks (no captured text: own vertex shader and plain sampling), cost on a phone (one
 `glGetUniformfv` per draw of programs with `_Color`, plus uniform copies per marked draw), Mali/Adreno.

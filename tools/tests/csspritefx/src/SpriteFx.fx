@@ -26,6 +26,12 @@ float4 Dissolve(float2 coords : TEXCOORD0, float4 sampleColor : COLOR0) : COLOR0
     return c;
 }
 
+float4 Invert(float2 coords : TEXCOORD0, float4 sampleColor : COLOR0) : COLOR0
+{
+    float4 c = tex2D(uImage0, coords);
+    return float4(c.a - c.rgb * uColor, c.a) * uOpacity;
+}
+
 technique Technique1
 {
     pass UV
@@ -39,5 +45,13 @@ technique Technique1
     pass Dissolve
     {
         PixelShader = compile ps_2_0 Dissolve();
+    }
+}
+
+technique Inverted
+{
+    pass Invert
+    {
+        PixelShader = compile ps_2_0 Invert();
     }
 }

@@ -12,6 +12,8 @@ int32_t spriteFxHasProperty(void* material, const char* name);
 
 int32_t spriteFxStats(int64_t* out, int32_t count);
 
+int32_t spriteFxSetTexture(void* effect, int32_t reg, void* texture);
+
 bool spriteFxActive();
 
 void spriteFxNoteSource(GLuint shader, GLsizei count, const GLchar* const* strings, const GLint* lengths);

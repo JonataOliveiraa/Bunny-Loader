@@ -29,3 +29,30 @@ public readonly unsafe partial struct EffectParameterCollection
         }
     }
 }
+
+public readonly unsafe partial struct EffectTechniqueCollection
+{
+    public EffectTechnique this[int index] => _techniques[index];
+
+    public EffectTechnique this[string name]
+    {
+        get
+        {
+            foreach (EffectTechnique technique in _techniques)
+                if (!technique.IsNull && technique.Name == name) return technique;
+            return default;
+        }
+    }
+}
+
+public readonly unsafe partial struct Effect
+{
+    public EffectTechniqueCollection Techniques => BunnyLoader.FxcGameEffect.TechniquesOf(this);
+}
+
+public readonly unsafe partial struct EffectParameter
+{
+    public void SetValue(int value) => SetValue((float)value);
+
+    public void SetValue(Texture2D value) => BunnyLoader.FxcGameEffect.SetTexture(this, value);
+}
