@@ -45,8 +45,6 @@ there, and the other way around.
 - **Texture and font packs**, including resource packs made for the PC.
 - **Multiplayer** with friends who also use Bunny Loader: whoever joins gets
   the host's mods offered to download.
-- **Made for touch**: mod buttons on screen, menus that work with your
-  fingers.
 - **Make your own mods**: right on your phone with BL Editor, or on a
   computer, the same way mods are made for tModLoader.
 
