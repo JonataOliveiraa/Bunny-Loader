@@ -109,6 +109,8 @@ tools/mods/csbuild/obj/
 tools/docs/ApiReference/bin/
 tools/docs/ApiReference/obj/
 tools/docs/ApiReference/missing.txt
+tools/docs/FnaInventory/bin/
+tools/docs/FnaInventory/obj/
 
 # Clone da wiki do GitHub (fonte dos guias, repositório próprio).
 /wiki/

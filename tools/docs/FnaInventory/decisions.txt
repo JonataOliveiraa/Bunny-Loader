@@ -1,0 +1,128 @@
+# FullName | kind | note
+# kind: 1 copy, 2 game, 3 native, out. A name ending in * covers every type that starts with it; the exact name and then the longest prefix win.
+
+Microsoft.Xna.Framework.BoundingBox | 1 copy |
+Microsoft.Xna.Framework.BoundingFrustum | 1 copy |
+Microsoft.Xna.Framework.BoundingSphere | 1 copy |
+Microsoft.Xna.Framework.Ray | 1 copy |
+Microsoft.Xna.Framework.Curve* | 1 copy |
+Microsoft.Xna.Framework.Plane | 1 copy |
+Microsoft.Xna.Framework.Matrix | 1 copy |
+Microsoft.Xna.Framework.Quaternion | 1 copy |
+Microsoft.Xna.Framework.Vector2 | 1 copy | array Transform overloads only
+Microsoft.Xna.Framework.Vector3 | 1 copy |
+Microsoft.Xna.Framework.Vector4 | 1 copy |
+Microsoft.Xna.Framework.Rectangle | 1 copy |
+Microsoft.Xna.Framework.Point | 1 copy | FNA adds +, -, *, / and ==; the game's Point has none
+Microsoft.Xna.Framework.Color | 1 copy | BL and the game keep Color in Microsoft.Xna.Framework.Graphics; a fully qualified Microsoft.Xna.Framework.Color does not compile
+Microsoft.Xna.Framework.GameTime | 2 game | constructors only
+
+Microsoft.Xna.Framework.FNALoggerEXT | out | FNA's own logging
+Microsoft.Xna.Framework.FrameworkDispatcher | out | engine
+Microsoft.Xna.Framework.Game | out | the game owns the loop; tML mods reach it as Main.instance
+Microsoft.Xna.Framework.GameComponent | out | engine
+Microsoft.Xna.Framework.DrawableGameComponent | out | engine
+Microsoft.Xna.Framework.GameComponentCollectionEventArgs | out | engine
+Microsoft.Xna.Framework.GameServiceContainer | out | engine
+Microsoft.Xna.Framework.GameWindow | out | Unity owns the window
+Microsoft.Xna.Framework.GraphicsDeviceInformation | out | device setup
+Microsoft.Xna.Framework.GraphicsDeviceManager | out | device setup; Main.graphics.GraphicsDevice already works
+Microsoft.Xna.Framework.IGraphicsDeviceManager | out | device setup
+Microsoft.Xna.Framework.IDrawable | out | engine
+Microsoft.Xna.Framework.IGameComponent | out | engine
+Microsoft.Xna.Framework.IUpdateable | out | engine
+Microsoft.Xna.Framework.LaunchParameters | out | engine
+Microsoft.Xna.Framework.PreparingDeviceSettingsEventArgs | out | device setup
+Microsoft.Xna.Framework.ThreadCheck | out | FNA internal helper
+Microsoft.Xna.Framework.Design.* | out | designer TypeConverters; ModConfig's [DefaultValue(typeof(Color), "r, g, b, a")] needs ColorConverter, so that one is 1 copy
+Microsoft.Xna.Framework.Design.ColorConverter | 1 copy | ModConfig [DefaultValue(typeof(Color), "...")]
+
+Microsoft.Xna.Framework.Audio.* | out | the game's audio engine; tML mods play sound through SoundEngine and SoundStyle
+Microsoft.Xna.Framework.Audio.SoundEffect | 2 game | over the game's SoundEffect
+Microsoft.Xna.Framework.Audio.SoundEffectInstance | 2 game | over the game's SoundEffectInstance
+Microsoft.Xna.Framework.Audio.DynamicSoundEffectInstance | 3 native | streamed PCM, over Android AudioTrack or Unity; rare in mods
+Microsoft.Xna.Framework.Audio.InstancePlayLimitException | 1 copy |
+Microsoft.Xna.Framework.Audio.NoAudioHardwareException | 1 copy |
+
+Microsoft.Xna.Framework.Content.* | 1 copy | XNB readers; mods load through Assets, so only for a mod that reads .xnb itself
+Microsoft.Xna.Framework.Content.ContentManager | 2 game | over the game's ContentManager
+Microsoft.Xna.Framework.Content.ResourceContentManager | out | .resx resources
+
+Microsoft.Xna.Framework.Graphics.FNA3D* | out | FNA's P/Invoke binding to FNA3D
+Microsoft.Xna.Framework.Graphics.Model* | out | 3D models
+Microsoft.Xna.Framework.Graphics.OcclusionQuery | out | 3D
+Microsoft.Xna.Framework.Graphics.Texture3D | out | 3D
+Microsoft.Xna.Framework.Graphics.TextureCube | out | 3D
+Microsoft.Xna.Framework.Graphics.RenderTargetCube | out | 3D
+Microsoft.Xna.Framework.Graphics.GraphicsAdapter | out | device setup
+Microsoft.Xna.Framework.Graphics.DisplayModeCollection | out | device setup
+Microsoft.Xna.Framework.Graphics.PresentationParameters | out | device setup
+Microsoft.Xna.Framework.Graphics.NoSuitableGraphicsDeviceException | out | device setup
+Microsoft.Xna.Framework.Graphics.DeviceLostException | out | device setup
+Microsoft.Xna.Framework.Graphics.DeviceNotResetException | out | device setup
+Microsoft.Xna.Framework.Graphics.IGraphicsDeviceService | out | device setup
+
+Microsoft.Xna.Framework.Graphics.GraphicsDevice | 3 native | primitives done over the game's DrawGeometry (plano-primitivas.md phase 1); GetBackBufferData, render target bindings and the GPU vertex shader are left
+Microsoft.Xna.Framework.Graphics.BasicEffect | 3 native | 2D subset done (matrices, diffuse, alpha, vertex color, texture); lighting and fog refused
+Microsoft.Xna.Framework.Graphics.AlphaTestEffect | 3 native | after BasicEffect, same path
+Microsoft.Xna.Framework.Graphics.DualTextureEffect | 3 native | after BasicEffect, same path
+Microsoft.Xna.Framework.Graphics.EnvironmentMapEffect | out | 3D
+Microsoft.Xna.Framework.Graphics.SkinnedEffect | out | 3D
+Microsoft.Xna.Framework.Graphics.EffectMaterial | out | Model
+Microsoft.Xna.Framework.Graphics.VertexBuffer | 3 native | managed copy, drawn through DrawPrimitives
+Microsoft.Xna.Framework.Graphics.DynamicVertexBuffer | 3 native | managed copy
+Microsoft.Xna.Framework.Graphics.IndexBuffer | 3 native | managed copy, drawn through DrawIndexedPrimitives
+Microsoft.Xna.Framework.Graphics.DynamicIndexBuffer | 3 native | managed copy
+Microsoft.Xna.Framework.Graphics.Vertex* | 1 copy | plain vertex data, needed by the primitives
+Microsoft.Xna.Framework.Graphics.IVertexType | 1 copy | needed by the primitives
+Microsoft.Xna.Framework.Graphics.PrimitiveType | 1 copy | needed by the primitives
+Microsoft.Xna.Framework.Graphics.BufferUsage | 1 copy | needed by the buffers
+Microsoft.Xna.Framework.Graphics.IndexElementSize | 1 copy | needed by the buffers
+Microsoft.Xna.Framework.Graphics.SetDataOptions | 1 copy | needed by the buffers
+Microsoft.Xna.Framework.Graphics.DirectionalLight | 1 copy | BasicEffect lighting
+Microsoft.Xna.Framework.Graphics.IEffectFog | 1 copy | BasicEffect
+Microsoft.Xna.Framework.Graphics.IEffectLights | 1 copy | BasicEffect
+Microsoft.Xna.Framework.Graphics.IEffectMatrices | 1 copy | BasicEffect
+
+Microsoft.Xna.Framework.Graphics.Effect | 2 game | over FxcGameEffect and MojoShader
+Microsoft.Xna.Framework.Graphics.EffectAnnotation | 2 game | over FxcGameEffect
+Microsoft.Xna.Framework.Graphics.EffectAnnotationCollection | 2 game | over FxcGameEffect
+Microsoft.Xna.Framework.Graphics.EffectParameter | 2 game | SetValue and GetValue written by hand (the game's SetValue(Matrix) is empty)
+Microsoft.Xna.Framework.Graphics.EffectParameterClass | 1 copy |
+Microsoft.Xna.Framework.Graphics.EffectParameterType | 1 copy |
+Microsoft.Xna.Framework.Graphics.EffectParameterCollection | 2 game | over FxcGameEffect
+Microsoft.Xna.Framework.Graphics.EffectPass | 2 game | over FxcGameEffect
+Microsoft.Xna.Framework.Graphics.EffectTechnique | 2 game | over FxcGameEffect
+Microsoft.Xna.Framework.Graphics.RenderTarget2D | 3 native | a real render target and GetData need GL (FBO + glReadPixels): the game build stripped RenderTexture.active and ReadPixels
+Microsoft.Xna.Framework.Graphics.RenderTargetBinding | 2 game |
+Microsoft.Xna.Framework.Graphics.Texture2D | 2 game | SetData, GetData, FromStream and the constructors are done; SaveAsPng/SaveAsJpeg and the EXT pointer methods are left
+Microsoft.Xna.Framework.Graphics.Texture | 2 game |
+Microsoft.Xna.Framework.Graphics.GraphicsResource | 2 game | IsDisposed, Disposing, Tag
+Microsoft.Xna.Framework.Graphics.TextureCollection | 2 game | GraphicsDevice.Textures[n], how tML mods bind uImage1..3; tied to the sprite shader units
+Microsoft.Xna.Framework.Graphics.SamplerStateCollection | 2 game | GraphicsDevice.SamplerStates[n]
+Microsoft.Xna.Framework.Graphics.SpriteBatch | 2 game |
+Microsoft.Xna.Framework.Graphics.SpriteFont | 2 game |
+Microsoft.Xna.Framework.Graphics.SpriteSortMode | 2 game | the game's enum lacks Texture, BackToFront and FrontToBack; the game's batcher has to honor them
+Microsoft.Xna.Framework.Graphics.SurfaceFormat | 1 copy | the game lacks the FNA EXT formats
+Microsoft.Xna.Framework.Graphics.Viewport | 2 game |
+Microsoft.Xna.Framework.Graphics.BlendState | 2 game |
+Microsoft.Xna.Framework.Graphics.DepthStencilState | 2 game |
+Microsoft.Xna.Framework.Graphics.RasterizerState | 2 game |
+Microsoft.Xna.Framework.Graphics.SamplerState | 2 game |
+Microsoft.Xna.Framework.Graphics.PackedVector.* | 1 copy | plain packing math
+
+Microsoft.Xna.Framework.Input.* | 2 game | over the game's input state
+Microsoft.Xna.Framework.Input.Buttons | 1 copy |
+Microsoft.Xna.Framework.Input.GamePadButtons | 1 copy |
+Microsoft.Xna.Framework.Input.GamePadCapabilities | 1 copy |
+Microsoft.Xna.Framework.Input.GamePadDPad | 1 copy |
+Microsoft.Xna.Framework.Input.GamePadState | 1 copy |
+Microsoft.Xna.Framework.Input.GamePadThumbSticks | 1 copy |
+Microsoft.Xna.Framework.Input.GamePadTriggers | 1 copy |
+Microsoft.Xna.Framework.Input.KeyboardState | 1 copy |
+Microsoft.Xna.Framework.Input.MouseState | 1 copy |
+Microsoft.Xna.Framework.Input.TextInputEXT | out | SDL text input; the phone has its own keyboard flow
+Microsoft.Xna.Framework.Input.Touch.* | 2 game | over UnityEngine.Input touches; PC mods never use it
+
+Microsoft.Xna.Framework.Media.* | out | music goes through MusicLoader; video and the media library are engine
+Microsoft.Xna.Framework.Storage.* | out | engine
