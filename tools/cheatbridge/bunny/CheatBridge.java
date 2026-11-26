@@ -520,7 +520,7 @@ public class CheatBridge {
             int[] ids = nModCategoryItems(c / FOLDER_FIELDS);
             if (ids == null || ids.length == 0) continue;
             int kind = "npc".equals(f[c + 5]) ? Section.NPC : "buff".equals(f[c + 5]) ? Section.BUFF : Section.ITEM;
-            folders.add(Section.modFolder(f[c + 3], f[c + 4], kind, ids));
+            folders.add(Section.modFolder(tr(f[c + 3]), f[c + 4], kind, ids));
         }
         if (mod != null && !folders.isEmpty()) {
             l.add(Section.modGroup(modName, modIcon, folders.toArray(new Section[0])));

@@ -45,7 +45,7 @@ std::vector<ModMenuFolder> modMenuFolders() {
         all.modIcon = m.icon;
 
         ModMenuFolder itemsFolder = all;
-        itemsFolder.name = "Itens";
+        itemsFolder.name = "Items";
         for (const ModItemInfo& i : items) {
             if (i.mod == m.mod) itemsFolder.types.push_back(i.type);
         }
