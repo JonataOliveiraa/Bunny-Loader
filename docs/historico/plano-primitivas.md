@@ -153,15 +153,27 @@ Fixed:
   the virtual screen (`!SpriteViewMatrix.NormalizedTransformationMatrix`), and
   the renderer uses it when an effect's matrix was never set from C#.
 
-Found, not fixed:
+Found, then fixed the same day:
 
-- `GraphicsDevice.BlendState` is ignored by primitives: the game's
+- `GraphicsDevice.BlendState` was ignored by primitives: the game's
   `GetMaterial` picks the material by pass and textures only, so an additive
-  trail draws alpha-blended (probe: gray over red stayed gray). Fixing it is
-  native: `SpriteFx` would set `glBlendFunc` for the marked draw from a blend
-  mode stored in the record.
-- `SamplerStates`, `RasterizerState` (culling, scissor) and depth are not
-  carried either.
+  trail drew alpha-blended (probe: gray over red stayed gray). Now
+  `PrimitiveRenderer` packs the device's `BlendState` (the six XNA values,
+  cached per object) and hands it to the new NativeApi entry
+  `SpriteFxSetBlend` around `DrawGeometry`; `hkApply` stores it in the draw's
+  record, and on the render thread `drawMarked` sets `glBlendFuncSeparate` and
+  `glBlendEquationSeparate` for that draw and puts Unity's state back. Unity's
+  blend state comes from new hooks on `glBlendFunc(Separate)` and
+  `glBlendEquation(Separate)` (read once with `glGet`, then shadowed), so no
+  draw queries GL. It covers draws marked by `SpriteFx` (`BasicEffect` and mod
+  `.fxc` passes); a primitive drawn with one of the game's own shaders keeps
+  that material's blending. `cstprim` cells: additive gray over red gave
+  (255, 130, 132), `NonPremultiplied` half blue over green (0, 125, 132), and
+  everything drawn after stayed right; `csspritefx`, `csexspritefx` and `csfxc`
+  unchanged.
+
+Not carried yet: `SamplerStates`, `RasterizerState` (culling, scissor) and
+depth.
 
 Tests after the review: `cstprim` 16/16 and 13/13 cells (with the
 `MiscShaderData` + `UseProjectionMatrix` trail in world space), 179 test packs

@@ -180,6 +180,7 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<byte*, int, IntPtr> TextureFromPng;
     public delegate* unmanaged<IntPtr, int, int, int, int, byte*, int, int> TextureWrite;
     public delegate* unmanaged<IntPtr, int, int, int, int, byte*, int, int> TextureRead;
+    public delegate* unmanaged<int, void> SpriteFxSetBlend;
 }
 
 [StructLayout(LayoutKind.Sequential)]

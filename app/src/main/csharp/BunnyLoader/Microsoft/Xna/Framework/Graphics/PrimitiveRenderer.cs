@@ -181,6 +181,34 @@ internal static unsafe class PrimitiveRenderer
     {
         if (written == 0) return;
         GraphicsDevice device = GraphicsDevice.Instance;
+        Host.Native()->SpriteFxSetBlend(BlendOf(device));
+
+        try
+        {
+            Upload(device, count, written, texture);
+        }
+        finally
+        {
+            Host.Native()->SpriteFxSetBlend(0);
+        }
+    }
+
+    static readonly Dictionary<nint, int> blends = new();
+
+    static int BlendOf(GraphicsDevice device)
+    {
+        BlendState state = device.BlendState;
+        if (state.IsNull) return 0;
+        if (blends.TryGetValue(state.Pointer, out int packed)) return packed;
+
+        packed = 1 << 31 | (int)state.ColorSourceBlend | (int)state.ColorDestinationBlend << 4 | (int)state.AlphaSourceBlend << 8 |
+                 (int)state.AlphaDestinationBlend << 12 | (int)state.ColorBlendFunction << 16 | (int)state.AlphaBlendFunction << 19;
+        blends[state.Pointer] = packed;
+        return packed;
+    }
+
+    static void Upload(GraphicsDevice device, int count, int written, Texture2D texture)
+    {
         GameArray<Texture2D> textures = device.Textures;
         if (!texture.IsNull && !textures.IsNull && textures.Length > 0 && textures[0].Pointer != texture.Pointer) textures[0] = texture;
 

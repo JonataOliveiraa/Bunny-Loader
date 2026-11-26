@@ -20,7 +20,8 @@ namespace bl::graphics {
     X(GetAttachedShaders) X(GetShaderSource) X(GetUniformfv) X(GetUniformiv) X(GetActiveUniform) \
     X(GetActiveAttrib) X(GetAttribLocation) X(BindAttribLocation) X(GetUniformBlockIndex) \
     X(GetActiveUniformBlockiv) X(GetActiveUniformBlockName) X(UniformBlockBinding) \
-    X(UniformMatrix2fv) X(UniformMatrix3fv) X(UniformMatrix4fv) X(Uniform1iv) X(DeleteProgram) X(DetachShader)
+    X(UniformMatrix2fv) X(UniformMatrix3fv) X(UniformMatrix4fv) X(Uniform1iv) X(DeleteProgram) X(DetachShader) \
+    X(BlendFunc) X(BlendFuncSeparate) X(BlendEquation) X(BlendEquationSeparate)
 
 struct GlApi {
 #define BL_GL_SLOT(name) decltype(&::gl##name) name = nullptr;

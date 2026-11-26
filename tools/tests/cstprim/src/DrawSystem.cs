@@ -171,12 +171,17 @@ public sealed class DrawSystem : ModSystem
         basic.TextureEnabled = false;
         basic.CurrentTechnique.Passes[0].Apply();
         Device.DrawUserPrimitives(PrimitiveType.TriangleList, Quad(600, 200, 60, 60, Color.Red, out _), 0, 2);
-        GraphicsDevice additive = Main.instance.GraphicsDevice;
-        additive.BlendState = BlendState.Additive;
+        Device.DrawUserPrimitives(PrimitiveType.TriangleList, Quad(680, 200, 60, 60, Color.Lime, out _), 0, 2);
+        GraphicsDevice blended = Main.instance.GraphicsDevice;
+        blended.BlendState = BlendState.Additive;
         basic.CurrentTechnique.Passes[0].Apply();
         Device.DrawUserPrimitives(PrimitiveType.TriangleList, Quad(600, 200, 60, 60, new Color(128, 128, 128), out _), 0, 2);
-        additive.BlendState = BlendState.AlphaBlend;
-        if (!cellsLogged) Log.Info("cstprim probe additive 630,230 (255,128,128 if additive, 128,128,128 if not)");
+        blended.BlendState = BlendState.NonPremultiplied;
+        basic.CurrentTechnique.Passes[0].Apply();
+        Device.DrawUserPrimitives(PrimitiveType.TriangleList, Quad(680, 200, 60, 60, new Color(0, 0, 255, 128), out _), 0, 2);
+        blended.BlendState = BlendState.AlphaBlend;
+        cells.Add(Cell("blend_additive", 630, 230, new Color(255, 128, 128)));
+        cells.Add(Cell("blend_nonpremultiplied", 710, 230, new Color(0, 128, 128)));
 
         Device.Textures[0] = TextureAssets.MagicPixel.Value;
         trail.Parameters["uWorldViewProjection"].SetValue(Projection);

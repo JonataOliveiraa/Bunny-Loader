@@ -81,6 +81,7 @@ struct Record {
     int32_t count = 0;
     Il2CppObject* learn = nullptr;
     Il2CppObject* textures[4] = {};
+    uint32_t blend = 0;
     float values[kMaxFloats] = {};
 };
 
@@ -115,6 +116,7 @@ std::unordered_map<Il2CppObject*, GLuint> g_learned;
 std::unordered_map<Il2CppObject*, uint32_t> g_pinned;
 
 thread_local Il2CppObject* t_learn = nullptr;
+thread_local uint32_t t_blend = 0;
 thread_local Il2CppObject* t_textures[4] = {};
 
 const MethodInfo* g_setVector = nullptr;
@@ -227,6 +229,7 @@ void hkApply(Il2CppObject* self, Il2CppObject* material, const MethodInfo* metho
         r.count = std::max(count, 0);
         r.learn = t_learn;
         for (int i = 0; i < 4; ++i) r.textures[i] = t_textures[i];
+        r.blend = t_blend;
         if (r.count > 0) std::memcpy(r.values, values, sizeof(float) * static_cast<size_t>(r.count));
     }
 
@@ -1055,11 +1058,69 @@ int32_t spriteFxStats(int64_t* out, int32_t count) {
     return StatCount;
 }
 
+void spriteFxSetBlend(int32_t packed) {
+    t_blend = static_cast<uint32_t>(packed);
+}
+
 bool spriteFxActive() {
     return g_active.load(std::memory_order_relaxed);
 }
 
 bool drawMarked(GLuint program, GLenum mode, GLsizei count, GLenum type, const void* indices);
+
+constexpr uint32_t kBlendSet = 1u << 31;
+
+GLenum blendFactor(uint32_t xna) {
+    switch (xna) {
+        case 0: return GL_ONE;
+        case 1: return GL_ZERO;
+        case 2: return GL_SRC_COLOR;
+        case 3: return GL_ONE_MINUS_SRC_COLOR;
+        case 4: return GL_SRC_ALPHA;
+        case 5: return GL_ONE_MINUS_SRC_ALPHA;
+        case 6: return GL_DST_COLOR;
+        case 7: return GL_ONE_MINUS_DST_COLOR;
+        case 8: return GL_DST_ALPHA;
+        case 9: return GL_ONE_MINUS_DST_ALPHA;
+        case 10: return GL_CONSTANT_COLOR;
+        case 11: return GL_ONE_MINUS_CONSTANT_COLOR;
+        case 12: return GL_SRC_ALPHA_SATURATE;
+        default: return GL_ONE;
+    }
+}
+
+GLenum blendEquation(uint32_t xna) {
+    switch (xna) {
+        case 1: return GL_FUNC_SUBTRACT;
+        case 2: return GL_FUNC_REVERSE_SUBTRACT;
+        case 3: return GL_MIN;
+        case 4: return GL_MAX;
+        default: return GL_FUNC_ADD;
+    }
+}
+
+bool applyBlend(uint32_t packed, BlendShadow& saved) {
+    if ((packed & kBlendSet) == 0) return false;
+    auto& g = gl();
+    saved = shadowBlend();
+
+    const GLenum srcRgb = blendFactor(packed & 0xF), dstRgb = blendFactor((packed >> 4) & 0xF);
+    const GLenum srcAlpha = blendFactor((packed >> 8) & 0xF), dstAlpha = blendFactor((packed >> 12) & 0xF);
+    const GLenum equationRgb = blendEquation((packed >> 16) & 0x7), equationAlpha = blendEquation((packed >> 19) & 0x7);
+
+    if (!saved.enabled) g.Enable(GL_BLEND);
+    g.BlendFuncSeparate(srcRgb, dstRgb, srcAlpha, dstAlpha);
+    g.BlendEquationSeparate(equationRgb, equationAlpha);
+    return true;
+}
+
+void restoreBlend(const BlendShadow& saved) {
+    auto& g = gl();
+    g.BlendFuncSeparate(static_cast<GLenum>(saved.srcRgb), static_cast<GLenum>(saved.dstRgb), static_cast<GLenum>(saved.srcAlpha),
+                        static_cast<GLenum>(saved.dstAlpha));
+    g.BlendEquationSeparate(static_cast<GLenum>(saved.equationRgb), static_cast<GLenum>(saved.equationAlpha));
+    if (!saved.enabled) g.Disable(GL_BLEND);
+}
 
 bool spriteFxDraw(GLuint program, GLenum mode, GLsizei count, GLenum type, const void* indices) {
     if (!profiling()) return drawMarked(program, mode, count, type, indices);
@@ -1107,6 +1168,7 @@ bool drawMarked(GLuint program, GLenum mode, GLsizei count, GLenum type, const v
         record.slot = r.slot;
         record.count = r.count;
         record.learn = r.learn;
+        record.blend = r.blend;
         for (int i = 0; i < 4; ++i) record.textures[i] = r.textures[i];
         std::memcpy(record.values, r.values, sizeof(float) * static_cast<size_t>(r.count));
     }
@@ -1171,7 +1233,10 @@ bool drawMarked(GLuint program, GLenum mode, GLsizei count, GLenum type, const v
         if (l.samplers[i] >= 0) g.Uniform1i(l.samplers[i], units[i]);
     if (l.registers >= 0 && record.count >= 4) g.Uniform4fv(l.registers, record.count / 4, record.values);
 
+    BlendShadow saved;
+    const bool blended = record.blend != 0 && applyBlend(record.blend, saved);
     g.DrawElements(mode, count, type, indices);
+    if (blended) restoreBlend(saved);
     g.UseProgram(program);
 
     if (extra) {

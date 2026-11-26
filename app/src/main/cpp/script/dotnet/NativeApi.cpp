@@ -257,6 +257,7 @@ struct NativeApi {
     void* (*textureFromPng)(const uint8_t* data, int32_t size);
     int32_t (*textureWrite)(void* texture, int32_t x, int32_t y, int32_t width, int32_t height, const uint8_t* pixels, int32_t order);
     int32_t (*textureRead)(void* texture, int32_t x, int32_t y, int32_t width, int32_t height, uint8_t* pixels, int32_t order);
+    void (*spriteFxSetBlend)(int32_t packed);
 };
 
 struct Extra {
@@ -1345,6 +1346,7 @@ const NativeApi kNativeApi{
         return static_cast<int32_t>(runtime::content::readTexture(static_cast<Il2CppObject*>(texture), x, y, width, height, pixels,
                                                                   static_cast<runtime::content::PixelOrder>(order)));
     },
+    graphics::spriteFxSetBlend,
 };
 
 }

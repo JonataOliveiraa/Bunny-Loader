@@ -33,6 +33,9 @@ using UniformFn = void (*)(GLint, GLsizei, const GLfloat*);
 using UniformMatrixFn = void (*)(GLint, GLsizei, GLboolean, const GLfloat*);
 using BindTextureFn = void (*)(GLenum, GLuint);
 using BindSamplerFn = void (*)(GLuint, GLuint);
+using BlendFuncFn = void (*)(GLenum, GLenum);
+using BlendFuncSeparateFn = void (*)(GLenum, GLenum, GLenum, GLenum);
+using BlendEquationSeparateFn = void (*)(GLenum, GLenum);
 
 SwapFn g_origSwap = nullptr;
 BindFramebufferFn g_origBindFramebuffer = nullptr;
@@ -54,6 +57,14 @@ UniformFn g_origUniform4fv = nullptr;
 UniformMatrixFn g_origUniformMatrix4fv = nullptr;
 BindTextureFn g_origBindTexture = nullptr;
 BindSamplerFn g_origBindSampler = nullptr;
+BlendFuncFn g_origBlendFunc = nullptr;
+BlendFuncSeparateFn g_origBlendFuncSeparate = nullptr;
+EnumFn g_origBlendEquation = nullptr;
+BlendEquationSeparateFn g_origBlendEquationSeparate = nullptr;
+
+BlendShadow g_blend;
+bool g_blendFuncsKnown = false;
+bool g_blendEquationsKnown = false;
 
 constexpr GLuint kUnits = 32;
 GLuint g_textures2D[kUnits] = {};
@@ -252,6 +263,43 @@ void hkBindSampler(GLuint unit, GLuint sampler) {
     g_origBindSampler(unit, sampler);
 }
 
+void hkBlendFunc(GLenum src, GLenum dst) {
+    if (tracked()) {
+        g_blend.srcRgb = g_blend.srcAlpha = static_cast<GLint>(src);
+        g_blend.dstRgb = g_blend.dstAlpha = static_cast<GLint>(dst);
+        g_blendFuncsKnown = true;
+    }
+    g_origBlendFunc(src, dst);
+}
+
+void hkBlendFuncSeparate(GLenum srcRgb, GLenum dstRgb, GLenum srcAlpha, GLenum dstAlpha) {
+    if (tracked()) {
+        g_blend.srcRgb = static_cast<GLint>(srcRgb);
+        g_blend.dstRgb = static_cast<GLint>(dstRgb);
+        g_blend.srcAlpha = static_cast<GLint>(srcAlpha);
+        g_blend.dstAlpha = static_cast<GLint>(dstAlpha);
+        g_blendFuncsKnown = true;
+    }
+    g_origBlendFuncSeparate(srcRgb, dstRgb, srcAlpha, dstAlpha);
+}
+
+void hkBlendEquation(GLenum mode) {
+    if (tracked()) {
+        g_blend.equationRgb = g_blend.equationAlpha = static_cast<GLint>(mode);
+        g_blendEquationsKnown = true;
+    }
+    g_origBlendEquation(mode);
+}
+
+void hkBlendEquationSeparate(GLenum rgb, GLenum alpha) {
+    if (tracked()) {
+        g_blend.equationRgb = static_cast<GLint>(rgb);
+        g_blend.equationAlpha = static_cast<GLint>(alpha);
+        g_blendEquationsKnown = true;
+    }
+    g_origBlendEquationSeparate(rgb, alpha);
+}
+
 void syncShadow() {
     if (g_synced) return;
     g_shadow = queryGlState();
@@ -334,6 +382,10 @@ void installGlHooks() {
         ok &= hookGl("glUniformMatrix4fv", reinterpret_cast<void*>(g.UniformMatrix4fv), hkUniformMatrix4fv, &g_origUniformMatrix4fv);
         ok &= hookGl("glBindTexture", reinterpret_cast<void*>(g.BindTexture), hkBindTexture, &g_origBindTexture);
         ok &= hookGl("glBindSampler", reinterpret_cast<void*>(g.BindSampler), hkBindSampler, &g_origBindSampler);
+        ok &= hookGl("glBlendFunc", reinterpret_cast<void*>(g.BlendFunc), hkBlendFunc, &g_origBlendFunc);
+        ok &= hookGl("glBlendFuncSeparate", reinterpret_cast<void*>(g.BlendFuncSeparate), hkBlendFuncSeparate, &g_origBlendFuncSeparate);
+        ok &= hookGl("glBlendEquation", reinterpret_cast<void*>(g.BlendEquation), hkBlendEquation, &g_origBlendEquation);
+        ok &= hookGl("glBlendEquationSeparate", reinterpret_cast<void*>(g.BlendEquationSeparate), hkBlendEquationSeparate, &g_origBlendEquationSeparate);
         BL_INFO("screen effects: GL hooks %s", ok ? "ok" : "failed");
     });
 }
@@ -385,6 +437,32 @@ GLuint shadowSampler(GLuint unit) {
     }
 
     return g_samplers[unit];
+}
+
+BlendShadow shadowBlend() {
+    syncShadow();
+
+    if (!g_blendFuncsKnown || !g_blendEquationsKnown) {
+        auto& g = gl();
+
+        if (!g_blendFuncsKnown) {
+            g.GetIntegerv(GL_BLEND_SRC_RGB, &g_blend.srcRgb);
+            g.GetIntegerv(GL_BLEND_DST_RGB, &g_blend.dstRgb);
+            g.GetIntegerv(GL_BLEND_SRC_ALPHA, &g_blend.srcAlpha);
+            g.GetIntegerv(GL_BLEND_DST_ALPHA, &g_blend.dstAlpha);
+            g_blendFuncsKnown = true;
+        }
+
+        if (!g_blendEquationsKnown) {
+            g.GetIntegerv(GL_BLEND_EQUATION_RGB, &g_blend.equationRgb);
+            g.GetIntegerv(GL_BLEND_EQUATION_ALPHA, &g_blend.equationAlpha);
+            g_blendEquationsKnown = true;
+        }
+    }
+
+    BlendShadow state = g_blend;
+    state.enabled = g_shadow.blend;
+    return state;
 }
 
 void fillGlHookStats(RenderStats& stats) {
