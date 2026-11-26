@@ -676,10 +676,7 @@ Microsoft.Xna.Framework.Graphics.AlphaTestEffect  (3 native; BL no type; game no
     - property World  [no type]
     - field _Name  [no type]
 
-Microsoft.Xna.Framework.Graphics.BasicEffect  (3 native; BL 30/40; game no type; native in FNA)
-    - property DirectionalLight0  [no type]
-    - property DirectionalLight1  [no type]
-    - property DirectionalLight2  [no type]
+Microsoft.Xna.Framework.Graphics.BasicEffect  (3 native; BL 33/40; game no type; native in FNA)
     ~ method Dispose(bool)  [no type]
     - event Disposing  [no type]
     - method GraphicsDeviceResetting()  [no type]
@@ -711,13 +708,6 @@ Microsoft.Xna.Framework.Graphics.DeviceNotResetException  (out; BL no type; game
     - ctor .ctor()  [no type]
     - ctor .ctor(string)  [no type]
     - ctor .ctor(string, Exception)  [no type]
-
-Microsoft.Xna.Framework.Graphics.DirectionalLight  (1 copy; BL no type; game no type)
-    - ctor .ctor(EffectParameter, EffectParameter, EffectParameter, DirectionalLight)  [no type]
-    - property DiffuseColor  [no type]
-    - property Direction  [no type]
-    - property Enabled  [no type]
-    - property SpecularColor  [no type]
 
 Microsoft.Xna.Framework.Graphics.DisplayModeCollection  (out; BL 1/2; game has type)
     - indexer this[SurfaceFormat]  [game lacks it]
@@ -763,13 +753,12 @@ Microsoft.Xna.Framework.Graphics.DynamicIndexBuffer  (3 native; BL 20/27; game n
     - method ToString()  [no type]
     - field _Name  [no type]
 
-Microsoft.Xna.Framework.Graphics.DynamicVertexBuffer  (3 native; BL 17/25; game no type; native in FNA)
+Microsoft.Xna.Framework.Graphics.DynamicVertexBuffer  (3 native; BL 18/25; game no type; native in FNA)
     ~ method Dispose(bool)  [no type]
     - event Disposing  [no type]
     - method GraphicsDeviceResetting()  [no type]
     - property IsHarmlessToLeakInstance  [no type]
     - method SetDataPointerEXT(int, nint, int, SetDataOptions)  [no type]
-    ~ method SetData`1(T[], SetDataOptions)  [no type]
     - method ToString()  [no type]
     - field _Name  [no type]
 
@@ -1116,20 +1105,6 @@ Microsoft.Xna.Framework.Graphics.GraphicsResource  (2 game; BL 7/11; game has ty
     - property IsDisposed  [game lacks it]
     - property IsHarmlessToLeakInstance  [game lacks it]
     - field _Name  [game lacks it]
-
-Microsoft.Xna.Framework.Graphics.IEffectFog  (1 copy; BL no type; game no type)
-    - property FogColor  [no type]
-    - property FogEnabled  [no type]
-    - property FogEnd  [no type]
-    - property FogStart  [no type]
-
-Microsoft.Xna.Framework.Graphics.IEffectLights  (1 copy; BL no type; game no type)
-    - property AmbientLightColor  [no type]
-    - property DirectionalLight0  [no type]
-    - property DirectionalLight1  [no type]
-    - property DirectionalLight2  [no type]
-    - method EnableDefaultLighting()  [no type]
-    - property LightingEnabled  [no type]
 
 Microsoft.Xna.Framework.Graphics.IGraphicsDeviceService  (out; BL no type; game has type)
     - event DeviceCreated  [game lacks it]
@@ -1639,16 +1614,13 @@ Microsoft.Xna.Framework.Graphics.TextureCube  (out; BL no type; game no type; na
     - method ToString()  [no type]
     - field _Name  [no type]
 
-Microsoft.Xna.Framework.Graphics.VertexBuffer  (3 native; BL 13/24; game no type; native in FNA)
+Microsoft.Xna.Framework.Graphics.VertexBuffer  (3 native; BL 16/24; game no type; native in FNA)
     ~ ctor .ctor(GraphicsDevice, VertexDeclaration, int, BufferUsage, bool)  [no type]
     ~ method Dispose(bool)  [no type]
     - event Disposing  [no type]
     - method GraphicsDeviceResetting()  [no type]
     - property IsHarmlessToLeakInstance  [no type]
     - method SetDataPointerEXT(int, nint, int, SetDataOptions)  [no type]
-    ~ method SetData`1(T[], SetDataOptions)  [no type]
-    ~ method SetData`1(T[], int, int, SetDataOptions)  [no type]
-    ~ method SetData`1(int, T[], int, int, int, SetDataOptions)  [no type]
     - method ToString()  [no type]
     - field _Name  [no type]
 
@@ -1900,11 +1872,13 @@ Microsoft.Xna.Framework.Input.Touch.TouchPanelCapabilities  (2 game; BL no type;
 Microsoft.Xna.Framework.LaunchParameters  (out; BL no type; game no type)
     - ctor .ctor()  [no type]
 
-Microsoft.Xna.Framework.Matrix  (1 copy; BL 102/106; game has type)
+Microsoft.Xna.Framework.Matrix  (1 copy; BL 100/106; game has type)
     ~ static method CreateBillboard(Vector3, Vector3, Vector3, Vector3)  [game has it]
     ~ static method CreateConstrainedBillboard(Vector3, Vector3, Vector3, Vector3, Vector3)  [game has it]
     ~ static method CreateLookAt(Vector3, Vector3, Vector3)  [game has it]
     ~ static method CreateWorld(Vector3, Vector3, Vector3)  [game has it]
+    ~ operator operator *(Matrix, Matrix)  [game lacks it]
+    ~ operator operator +(Matrix, Matrix)  [game lacks it]
 
 Microsoft.Xna.Framework.Media.Album  (out; BL no type; game no type)
     - property Artist  [no type]

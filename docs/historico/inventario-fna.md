@@ -28,12 +28,12 @@ with another signature); **Game** whether the mobile dump has the type;
 
 | Kind | Types | Members missing in BL | Types ExampleMod uses |
 |---|---|---|---|
-| 1 copy | 64 | 552 | 9 |
+| 1 copy | 61 | 539 | 9 |
 | 2 game | 36 | 208 | 12 |
-| 3 native | 10 | 164 | 0 |
-| done | 53 | 0 | 4 |
+| 3 native | 10 | 157 | 0 |
+| done | 56 | 0 | 4 |
 | out | 107 | 972 | 2 |
-| all | 270 | 1896 | 27 |
+| all | 270 | 1876 | 27 |
 
 ## Microsoft.Xna.Framework
 
@@ -69,7 +69,7 @@ with another signature); **Game** whether the mobile dump has the type;
 | `IUpdateable` interface | out | no type | yes |  | engine |
 | `LaunchParameters` | out | no type | no |  | engine |
 | `MathHelper` | done | 19/19 | yes | 154 |  |
-| `Matrix` struct | 1 copy | 102/106 +4 | yes | 8 |  |
+| `Matrix` struct | 1 copy | 100/106 +6 | yes | 8 |  |
 | `Plane` struct | 1 copy | 15/30 | yes |  |  |
 | `PlaneIntersectionType` enum | done | 3/3 | yes |  |  |
 | `PlayerIndex` enum | done | 4/4 | yes |  |  |
@@ -148,7 +148,7 @@ with another signature); **Game** whether the mobile dump has the type;
 | Type | Kind | BL | Game | ExampleMod | Note |
 |---|---|---|---|---|---|
 | `AlphaTestEffect` | 3 native | no type | no |  | after BasicEffect, same path |
-| `BasicEffect` | 3 native | 30/40 +1 | no |  | 2D subset done (matrices, diffuse, alpha, vertex color, texture); lighting and fog refused |
+| `BasicEffect` | 3 native | 33/40 +1 | no |  | 2D subset done (matrices, diffuse, alpha, vertex color, texture); lighting and fog refused |
 | `Blend` enum | done | 13/13 | yes |  |  |
 | `BlendFunction` enum | done | 5/5 | yes |  |  |
 | `BlendState` | 2 game | 23/28 +2 | yes | 5 |  |
@@ -162,12 +162,12 @@ with another signature); **Game** whether the mobile dump has the type;
 | `DepthStencilState` | 2 game | 26/31 +2 | yes | 5 |  |
 | `DeviceLostException` | out | no type | no |  | device setup |
 | `DeviceNotResetException` | out | no type | no |  | device setup |
-| `DirectionalLight` | 1 copy | no type | no |  | BasicEffect lighting |
+| `DirectionalLight` | done | 5/5 | no |  | BasicEffect lighting |
 | `DisplayMode` | done | 10/10 | yes |  |  |
 | `DisplayModeCollection` | out | 1/2 | yes |  | device setup |
 | `DualTextureEffect` | 3 native | no type | no |  | after BasicEffect, same path |
 | `DynamicIndexBuffer` | 3 native | 20/27 +1 | no |  | managed copy |
-| `DynamicVertexBuffer` | 3 native | 17/25 +2 | no |  | managed copy |
+| `DynamicVertexBuffer` | 3 native | 18/25 +1 | no |  | managed copy |
 | `Effect` | 2 game | 12/18 +3 | yes | 4 | over FxcGameEffect and MojoShader |
 | `EffectAnnotation` | 2 game | no type | no |  | over FxcGameEffect |
 | `EffectAnnotationCollection` | 2 game | no type | no |  | over FxcGameEffect |
@@ -198,8 +198,8 @@ with another signature); **Game** whether the mobile dump has the type;
 | `GraphicsDeviceStatus` enum | done | 3/3 | yes |  |  |
 | `GraphicsProfile` enum | done | 2/2 | yes |  |  |
 | `GraphicsResource` | 2 game | 7/11 +1 | yes |  | IsDisposed, Disposing, Tag |
-| `IEffectFog` interface | 1 copy | no type | no |  | BasicEffect |
-| `IEffectLights` interface | 1 copy | no type | no |  | BasicEffect |
+| `IEffectFog` interface | done | 4/4 | no |  | BasicEffect |
+| `IEffectLights` interface | done | 6/6 | no |  | BasicEffect |
 | `IEffectMatrices` interface | done | 3/3 | no |  | BasicEffect |
 | `IGraphicsDeviceService` interface | out | no type | yes |  | device setup |
 | `IVertexType` interface | done | 1/1 | no |  | needed by the primitives |
@@ -246,7 +246,7 @@ with another signature); **Game** whether the mobile dump has the type;
 | `TextureCollection` | 2 game | no type | no |  | GraphicsDevice.Textures[n], how tML mods bind uImage1..3; tied to the sprite shader units |
 | `TextureCube` | out | no type | no |  | 3D |
 | `TextureFilter` enum | done | 9/9 | yes |  |  |
-| `VertexBuffer` | 3 native | 13/24 +5 | no |  | managed copy, drawn through DrawPrimitives |
+| `VertexBuffer` | 3 native | 16/24 +2 | no |  | managed copy, drawn through DrawPrimitives |
 | `VertexBufferBinding` struct | done | 7/7 | no |  | plain vertex data, needed by the primitives |
 | `VertexDeclaration` | 1 copy | 8/15 +1 | no |  | plain vertex data, needed by the primitives |
 | `VertexElement` struct | done | 10/10 | no |  | plain vertex data, needed by the primitives |
