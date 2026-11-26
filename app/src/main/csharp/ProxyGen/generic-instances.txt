@@ -1,0 +1,173 @@
+GameObjectExtensions	FindInChildren	gameObject	System.Object
+GameObjectExtensions	FindInObjectOrChildren	gameObject	System.Object
+GameObjectExtensions	FindInObjectOrParents	gameObject	System.Object
+GameObjectExtensions	FindInParents	gameObject	System.Object
+GameObjectExtensions	GetComponentsInObjectChildren	gameObject	System.Object
+Microsoft.Xna.Framework.Content.ContentManager	ConstructFromUnityResource	asset,createFunction	System.Object
+Microsoft.Xna.Framework.Content.ContentManager	ConstructFromUnityResources	asset,asset2,asset3,createFunction	System.Object
+Microsoft.Xna.Framework.Content.ContentManager	ConstructFromUnityResources	asset,asset2,createFunction	System.Object
+Microsoft.Xna.Framework.Content.ContentManager	Load	asset	System.Object
+Microsoft.Xna.Framework.Content.ContentManager	LoadUnityResource	asset	System.Object
+Microsoft.Xna.Framework.Content.ThreadContentRequest	ConstructOnMainThread	asset,asset2,asset3,createFunction	System.Object
+Microsoft.Xna.Framework.Content.ThreadContentRequest	ConstructOnMainThread	asset,asset2,createFunction	System.Object
+Microsoft.Xna.Framework.Content.ThreadContentRequest	ConstructOnMainThread	asset,createFunction	System.Object
+Microsoft.Xna.Framework.Graphics.GeometryBuffer	Clone	srcArray,Count	System.Object
+Microsoft.Xna.Framework.Graphics.GraphicsDevice	Clone	srcArray,Count	System.Object
+Microsoft.Xna.Framework.Graphics.Texture2D	SetData	data,start,length	System.Object
+Open.Nat.StreamExtensions	TimeoutAfter	task,timeout	System.Object
+ReLogic.Content.AssetLoadException	FromInvalidReader		System.Object,System.Object
+ReLogic.Content.AssetLoader	TryLoad	assetName,source,resultAsset	System.Object
+ReLogic.Content.AssetReaderCollection	Read	stream,extension	System.Object
+ReLogic.Content.AssetRepository	EnsureReloadActionExistsForType		System.Object
+ReLogic.Content.AssetRepository	ForceReloadAsset	asset,mode	System.Object
+ReLogic.Content.AssetRepository	LoadAsset	asset,mode	System.Object
+ReLogic.Content.AssetRepository	Request	assetName,mode	System.Object
+ReLogic.Content.AssetRepository	TryLoadingAsset	asset,mode	System.Object
+ReLogic.OS.Windows.STATaskInvoker	Invoke	action	System.Object
+ReLogic.Reflection.IdDictionary	Create		System.Object,System.Int16
+ReLogic.Reflection.IdDictionary	Create		System.Object,System.Int32
+ReLogic.Reflection.IdDictionary	Create		System.Object,System.Object
+ReLogic.Reflection.IdDictionary	Create		System.Object,System.UInt16
+ReLogic.Utilities.AttributeUtilities	GetAttribute	method	System.Object
+ReLogic.Utilities.AttributeUtilities	GetAttribute	type	System.Object
+ReLogic.Utilities.AttributeUtilities	GetAttribute	value	System.Object
+ReLogic.Utilities.AttributeUtilities	GetCacheableAttribute		System.Object,System.Object
+ReLogic.Utilities.TypeInstanceCollection	Get		System.Object
+ReLogic.Utilities.TypeInstanceCollection	Has		System.Object
+ReLogic.Utilities.TypeInstanceCollection	IfHas	callback	System.Object
+ReLogic.Utilities.TypeInstanceCollection	IfHas	callback	System.Object,System.Object
+ReLogic.Utilities.TypeInstanceCollection	Register	instance	System.Object
+ReLogic.Utilities.TypeInstanceCollection	Remove		System.Object
+ReLogic.Utilities.XnaExtensions	Get	services	System.Object
+Terraria.Achievements.AchievementManager	GetCondition	achievementName,conditionName	System.Object
+Terraria.Chat.ChatCommandId	FromType		System.Object
+Terraria.Chat.ChatCommandProcessor	AddCommand		System.Object
+Terraria.Chat.ChatCommandProcessor	AddDefaultCommand		System.Object
+Terraria.Chat.ChatCommandProcessor	ParseCommandPrefix	text,commands,remainder,value	System.Object
+Terraria.Chat.ChatCommandProcessor	ParseCommandPrefix	text,commands,remainder,value	Terraria.Chat.ChatCommandId
+Terraria.Chat.ChatMessage	SetCommand		System.Object
+Terraria.DataStructures.EntryFilterer	SetSearchFilterObject	searchFilter	System.Object
+Terraria.DataStructures.TileEntity	TryGet	id,result	System.Object
+Terraria.DataStructures.TileEntity	TryGetAt	x,y,result	System.Object
+Terraria.GameContent.Creative.CreativePowerManager	GetPower		System.Object
+Terraria.GameContent.Creative.CreativePowerManager	GetPowerId		System.Object
+Terraria.GameContent.Creative.CreativePowerManager	Register	nameInServerConfig	System.Object
+Terraria.GameContent.Creative.CreativePowersHelper	CreateCategoryButton	info,option,currentOption	System.Int32
+Terraria.GameContent.Creative.CreativePowersHelper	CreateCategoryButton	info,option,currentOption	System.Object
+Terraria.GameContent.LeashedEntity+Registry	Register		System.Object
+Terraria.GameContent.Metadata.TileMaterials	DeserializeEmbeddedResource	path	System.Object
+Terraria.GameContent.QuickStacking	AddToListyArray	arr,count,elem	System.Int32
+Terraria.GameContent.QuickStacking	AddToListyArray	arr,count,elem	System.Object
+Terraria.GameContent.QuickStacking	AddToListyArray	arr,count,elem	Terraria.GameContent.QuickStacking+MatchingItemTypeDestinationList+LinkedEntry
+Terraria.GameContent.UI.Minimap.MinimapFrameTemplate	LoadAsset	assetName,mode	System.Object
+Terraria.GameContent.UI.States.UIVirtualKeyboard	StyleKey	button,external	System.Object
+Terraria.GameContent.VanillaContentValidator	AssetIsValid	content,contentPath,rejectReason	System.Object
+Terraria.Graphics.Renderers.ParticlePool	ReleaseParticle	particle	System.Object
+Terraria.Graphics.Renderers.ParticlePool	RequestParticle		System.Object
+Terraria.Graphics.Shaders.ArmorShaderDataSet	BindShader	itemId,shaderData	System.Object
+Terraria.Graphics.Shaders.HairShaderDataSet	BindShader	itemId,shaderData	System.Object
+Terraria.ID.SetFactory	CreateCustomSet	defaultState,inputs	?Nullable<bool>
+Terraria.ID.SetFactory	CreateCustomSet	defaultState,inputs	?Nullable<float>
+Terraria.ID.SetFactory	CreateCustomSet	defaultState,inputs	?Nullable<int>
+Terraria.ID.SetFactory	CreateCustomSet	defaultState,inputs	Microsoft.Xna.Framework.Graphics.Color
+Terraria.ID.SetFactory	CreateCustomSet	defaultState,inputs	Microsoft.Xna.Framework.Vector2
+Terraria.ID.SetFactory	CreateCustomSet	defaultState,inputs	System.Object
+Terraria.ID.SetFactory	CreateCustomSet	defaultState,inputs	System.Single
+Terraria.ID.SetFactory	CreateCustomSet	defaultState,inputs	Terraria.DataStructures.PlacementDetails
+Terraria.ID.SetFactory	CreateCustomSet	defaultState,inputs	Terraria.ID.ArmorIDs+Body+Sets+IncludeCapeFrontAndBackInfo
+Terraria.ID.SetFactory	CreateCustomSet	defaultState,inputs	Terraria.ID.ItemID+BannerEffect
+Terraria.ID.SetFactory	Recycle	buffer	System.Object
+Terraria.IO.GameConfiguration	Get	entry	System.Double
+Terraria.IO.GameConfiguration	Get	entry	System.Int32
+Terraria.IO.GameConfiguration	Get	entry	System.Object
+Terraria.IO.Preferences	Get	name,currentValue	System.Boolean
+Terraria.IO.Preferences	Get	name,currentValue	System.Int32
+Terraria.IO.Preferences	Get	name,currentValue	System.Object
+Terraria.IO.Preferences	Get	name,defaultValue	System.Boolean
+Terraria.IO.Preferences	Get	name,defaultValue	System.ByteEnum
+Terraria.IO.Preferences	Get	name,defaultValue	System.Int32
+Terraria.IO.Preferences	Get	name,defaultValue	System.Int32Enum
+Terraria.IO.Preferences	Get	name,defaultValue	System.Object
+Terraria.IO.Preferences	Get	name,defaultValue	System.Single
+Terraria.Initializers.AssetInitializer	LoadAsset	assetName,mode	System.Object
+Terraria.Lang	FillNameCacheArray	category,nameCache,leaveMissingEntriesBlank	System.Object,System.Int16
+Terraria.Lang	FillNameCacheArray	category,nameCache,leaveMissingEntriesBlank	System.Object,System.Int32
+Terraria.Lang	FillNameCacheArray	category,nameCache,leaveMissingEntriesBlank	System.Object,System.Object
+Terraria.Main	RunOnMainThread	func	System.Object
+Terraria.Net.NetManager	GetId		System.Object
+Terraria.Net.NetManager	GetModule		System.Object
+Terraria.Net.NetManager	Register		System.Object
+Terraria.Net.NetModule	CreatePacket	maxSize	System.Object
+Terraria.Social.SocialAPI	LoadModule		System.Object
+Terraria.Social.SocialAPI	LoadModule	module	System.Object
+Terraria.Testing.Cloning.DeepClassCloning	GetPolymorphicDispatch	table,methodName,u	System.Object
+Terraria.Testing.Cloning.DeepClassCloning	PolymorphicClone		System.Object
+Terraria.Testing.Cloning.DeepClassCloning	PolymorphicCloneChildren		System.Object
+Terraria.Testing.Cloning.DeepClassCloning	PolymorphicRestore		System.Object
+Terraria.Testing.Cloning.DeepClassCloning	PolymorphicRestoreChildren		System.Object
+Terraria.Testing.Cloning.DeepCloneCodegen	CloneClassElements	clone,ctx	System.Object
+Terraria.Testing.Cloning.DeepCloneCodegen	CloneClassElements2D	clone,ctx	System.Object
+Terraria.Testing.Cloning.DeepCloneCodegen	GenerateClassDelegates	selfInfo,cloneChildren,restoreChildren	System.Object
+Terraria.Testing.Cloning.DeepCloneCodegen	GetArrayDelegates	elemType,cloneChildren,restoreChildren	System.Object
+Terraria.Testing.Cloning.DeepCloneCodegen	RestoreClassElements	clone,current,ctx	System.Object
+Terraria.Testing.Cloning.DeepCloneCodegen	RestoreClassElements2D	clone,current,ctx	System.Object
+Terraria.Testing.Cloning.DeepCloneContext	AddClone	src,clone	System.Object
+Terraria.Testing.Cloning.DeepCloneContext	TryGetClone	src,clone	System.Object
+Terraria.Testing.Cloning.DeepCloneContext	TryQuickClone	src,clone	System.Object
+Terraria.Testing.Cloning.DeepCloneContext	TryQuickRestore	backup,current,clone	System.Object
+Terraria.Testing.Cloning.DeepCloning	AddImmutableType		System.Object
+Terraria.Testing.Cloning.DeepCloning	AddPrivateFieldsUniqueType		System.Object
+Terraria.Testing.Cloning.DeepCloning	Clone	source,ctx	System.Object
+Terraria.Testing.Cloning.DeepCloning	CloneChildren	clone,ctx	System.Object
+Terraria.Testing.Cloning.DeepCloning	Restore	backup,current,ctx	System.Object
+Terraria.Testing.Cloning.DeepCloning	RestoreChildren	clone,current,ctx	System.Object
+Terraria.Testing.Cloning.DeepCloning	ShallowClone	obj	System.Object
+Terraria.Testing.Invariant	Assert	condition,format,arg1	System.Object
+Terraria.Testing.Invariant	Assert	condition,format,arg1,arg2	System.Object,System.Object
+Terraria.Testing.Invariant	Assert	condition,format,arg1,arg2,arg3	System.Object,System.Object,System.Object
+Terraria.UI.Chat.ChatManager	Register	names	System.Object
+Terraria.UI.ItemSlot	HandleItemPickupAction	action,entry,slotItemType,slotItemStack,stackLimiter	System.Object
+Terraria.Utils	Clamp	value,min,max	System.Double
+Terraria.Utils	Clamp	value,min,max	System.Int32
+Terraria.Utils	Clamp	value,min,max	System.Object
+Terraria.Utils	Clamp	value,min,max	System.Single
+Terraria.Utils	Count	arr,value	System.Boolean
+Terraria.Utils	Count	arr,value	System.Object
+Terraria.Utils	IndexInRange	t,index	System.Boolean
+Terraria.Utils	IndexInRange	t,index	System.Object
+Terraria.Utils	IndexInRange	t,index	System.Single
+Terraria.Utils	IndexInRange	t,index	Terraria.ID.ItemID+BannerEffect
+Terraria.Utils	MapArray	array,mapper	System.Object,System.Boolean
+Terraria.Utils	MapArray	array,mapper	System.Object,System.Object
+Terraria.Utils	Max	args	System.Byte
+Terraria.Utils	Max	args	System.Double
+Terraria.Utils	Max	args	System.Object
+Terraria.Utils	Max	args	System.Single
+Terraria.Utils	NextFromCollection	random,objs	System.Object
+Terraria.Utils	NextFromList	random,objs	System.Int16
+Terraria.Utils	NextFromList	random,objs	System.Int32
+Terraria.Utils	NextFromList	random,objs	System.Object
+Terraria.Utils	NextFromList	random,objs	System.UInt16
+Terraria.Utils	SelectRandom	random,choices	Microsoft.Xna.Framework.Graphics.Color
+Terraria.Utils	SelectRandom	random,choices	Microsoft.Xna.Framework.Point
+Terraria.Utils	SelectRandom	random,choices	System.Int16
+Terraria.Utils	SelectRandom	random,choices	System.Int32
+Terraria.Utils	SelectRandom	random,choices	System.Object
+Terraria.Utils	SelectRandom	random,choices	System.Single
+Terraria.Utils	SelectRandom	random,choices	System.UInt16
+Terraria.Utils	Shift	array,n	System.Object
+Terraria.Utils	Swap	t1,t2	Microsoft.Xna.Framework.Graphics.Color
+Terraria.Utils	Swap	t1,t2	Microsoft.Xna.Framework.Rectangle
+Terraria.Utils	Swap	t1,t2	Microsoft.Xna.Framework.Vector2
+Terraria.Utils	Swap	t1,t2	System.Boolean
+Terraria.Utils	Swap	t1,t2	System.Byte
+Terraria.Utils	Swap	t1,t2	System.Int32
+Terraria.Utils	Swap	t1,t2	System.Object
+Terraria.Utils	Swap	t1,t2	System.Single
+Terraria.WorldBuilding.WorldGenConfiguration	CreateBiome		System.Object
+Terraria.WorldBuilding.WorldGenConfiguration	CreateBiome	name	System.Object
+Terraria.WorldBuilding.WorldGenerationOptions	Get		System.Object
+Terraria.WorldBuilding.WorldGenerationOptions	Register		System.Object
+TransformExtensions	FindInChildren	transform	System.Object
+TransformExtensions	FindInObjectOrChildren	transform	System.Object
+TransformExtensions	FindInParents	transform	System.Object

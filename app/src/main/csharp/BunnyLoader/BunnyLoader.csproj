@@ -14,15 +14,16 @@
     <ProxyGenProject>$(MSBuildThisFileDirectory)../ProxyGen/ProxyGen.csproj</ProxyGenProject>
     <ProxyGenDll>$(MSBuildThisFileDirectory)../ProxyGen/bin/Release/net10.0/ProxyGen.dll</ProxyGenDll>
     <ProxyGenTypes>$(MSBuildThisFileDirectory)../ProxyGen/types.txt</ProxyGenTypes>
+    <ProxyGenGenerics>$(MSBuildThisFileDirectory)../ProxyGen/generic-instances.txt</ProxyGenGenerics>
     <ProxyGenDummy>$(RepoRoot)refs/DummyDll</ProxyGenDummy>
     <ProxyGenOut>$(RepoRoot)app/build/generated/csharp/</ProxyGenOut>
   </PropertyGroup>
 
   <Target Name="GenerateGameProxies" BeforeTargets="BeforeBuild"
-          Inputs="$(ProxyGenTypes);$(ProxyGenDummy)/Assembly-CSharp.dll;@(ProxyGenSources)"
+          Inputs="$(ProxyGenTypes);$(ProxyGenGenerics);$(ProxyGenDummy)/Assembly-CSharp.dll;@(ProxyGenSources)"
           Outputs="$(ProxyGenOut)proxies.stamp">
     <Exec Command="dotnet build &quot;$(ProxyGenProject)&quot; -c Release -nologo -v q" />
-    <Exec Command="dotnet &quot;$(ProxyGenDll)&quot; --dummy &quot;$(ProxyGenDummy)&quot; --types &quot;$(ProxyGenTypes)&quot; --out &quot;$(ProxyGenOut)&quot;" />
+    <Exec Command="dotnet &quot;$(ProxyGenDll)&quot; --dummy &quot;$(ProxyGenDummy)&quot; --types &quot;$(ProxyGenTypes)&quot; --generics &quot;$(ProxyGenGenerics)&quot; --out &quot;$(ProxyGenOut)&quot;" />
     <Touch Files="$(ProxyGenOut)proxies.stamp" AlwaysCreate="true" />
   </Target>
 

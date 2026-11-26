@@ -175,6 +175,7 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<IntPtr, byte*, int> SpriteFxHasProperty;
     public delegate* unmanaged<long*, int, int> SpriteFxStats;
     public delegate* unmanaged<IntPtr, int, IntPtr, int> SpriteFxSetTexture;
+    public delegate* unmanaged<IntPtr, IntPtr*, int, IntPtr> InflateMethod;
 }
 
 [StructLayout(LayoutKind.Sequential)]

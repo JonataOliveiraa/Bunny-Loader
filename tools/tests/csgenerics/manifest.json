@@ -1,0 +1,14 @@
+{
+  "uid": "982bb155-67ae-46cf-bf9d-de2ba376fdfa",
+  "id": "CsGenerics",
+  "name": "Test: generic game methods (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Calls the game's generic methods: AssetRepository.Request<T>, NetManager.GetModule<T>, CreativePowerManager.GetPower<T>, Preferences.Get<T>, Utils.SelectRandom<T>, out T, and an instance the game does not have.",
+  "description": "Build with tools/tests/build-cs.sh csgenerics. In the world, logs 'csgenerics <case>: ok | FAIL' and 'csgenerics END pass=N fail=M'.",
+  "updated": "2026-11-26",
+  "blVersion": 3,
+  "gameVersion": [301720, 301720],
+  "dependencies": []
+}

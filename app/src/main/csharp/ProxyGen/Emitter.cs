@@ -143,7 +143,7 @@ sealed class Emitter
         bool ctor = m is ConstructorInfo;
         if (ctor && m.IsStatic) return null;
         if (!ctor && !TypeMap.ValidName(m.Name)) return null;
-        if (m.IsGenericMethodDefinition || m.ContainsGenericParameters) return Skip(m, owner, "generic methods are not generated yet");
+        if (m.IsGenericMethodDefinition || m.ContainsGenericParameters) return Skip(m, owner, forHook ? "generic methods have no hooks yet" : "generic methods are not generated yet");
         var model = new MethodModel
         {
             Method = m, Owner = owner, IsStatic = m.IsStatic, IsCtor = ctor,
@@ -302,6 +302,8 @@ sealed class Emitter
         }
         string? lit = Literal(v);
         if (lit == null) return null;
+        if (use.Cs == "global::ReLogic.Content.AssetRequestMode" && v is int gameMode)
+            return $"({use.Cs})({gameMode switch { 1 => 2, 2 => 1, _ => gameMode }})";
         if (use.Abi == AbiClass.Int && use.Cs.StartsWith("global::") && !use.IsString && !use.Converted) return $"({use.Cs})({lit})";
         return use.Cs switch
         {
@@ -447,10 +449,33 @@ sealed class Emitter
         sb.Append(inner).Append("}\n");
     }
 
-    public void EmitMethod(StringBuilder sb, string ind, MethodModel m, string classExpr, string name, string access = "public")
+    public void EmitMethod(StringBuilder sb, string ind, MethodModel m, string classExpr, string name, string access = "public",
+                           string typeParams = "", string where = "", string? resolve = null)
     {
         int id = uid++;
         Methods++;
+        if (resolve != null)
+        {
+            string retCs = RetCs(m);
+            string st = m.IsStatic ? "static " : "";
+            sb.Append(ind).Append($"{access} {st}{retCs} {name}{typeParams}({ParamList(m, false)}){where}\n");
+            sb.Append(ind).Append("{\n");
+            string gb = ind + "    ";
+            foreach (string line in resolve.Split('\n')) sb.Append(gb).Append(line).Append('\n');
+            string? gself = null;
+            if (!m.IsStatic)
+            {
+                if (m.OwnerIsStruct) gself = "this";
+                else
+                {
+                    gself = "Pointer";
+                    sb.Append(gb).Append($"if (Pointer == 0) throw new global::System.NullReferenceException(\"{m.Owner.Name}.{m.Method.Name}: game object is null\");\n");
+                }
+            }
+            EmitCall(sb, gb, m, "__m.Fn", "__m.Info", gself);
+            sb.Append(ind).Append("}\n");
+            return;
+        }
         sb.Append(ind).Append($"static {RT}.MethodRef __m{id};\n");
         if (m.IsVirtual) sb.Append(ind).Append($"static {RT}.VirtualCache? __v{id};\n");
         string sig = Emitter.Literal(m.Signature)!;
@@ -506,6 +531,122 @@ sealed class Emitter
         EmitCall(sb, bb, m, fn, info, self2);
         sb.Append(ind).Append("}\n");
         EmitDelegateOverload(sb, ind, m, classExpr, name, access, id);
+    }
+
+    public void EmitGeneric(StringBuilder sb, string ind, GenericModel g, string classExpr)
+    {
+        const string U = "global::System.Runtime.CompilerServices.Unsafe";
+        int id = uid++;
+        string tps = "<" + string.Join(", ", g.TypeParams) + ">";
+        string where = string.Concat(g.TypeParams.Select((tp, k) =>
+            $" where {tp} : unmanaged{(g.NeedsGameObject[k] ? $", {RT}.IGameObject" : "")}"));
+        string sig = Literal(g.Signature)!;
+        string st = g.IsStatic ? "static " : "";
+        string bare = g.Name.TrimStart('@');
+        MethodModel first = g.Instances[0].Closed;
+
+        string OpenCs(OpenParam p, int i) => p.Kind switch
+        {
+            OpenKind.Plain => first.Params[i].Use.Cs,
+            OpenKind.Param => g.TypeParams[p.Index],
+            OpenKind.Array => $"{RT}.GameArray<{g.TypeParams[p.Index]}>",
+            OpenKind.Asset => $"global::ReLogic.Content.Asset<{g.TypeParams[p.Index]}>",
+            _ => "void",
+        };
+
+        string OpenRet() => g.Ret.Kind switch
+        {
+            OpenKind.Void => "void",
+            OpenKind.Plain => first.Plan.Ret.Use.Cs,
+            _ => OpenCs(g.Ret, -1),
+        };
+
+        for (int i = 0; i < g.Instances.Count; i++)
+        {
+            GenericInstance inst = g.Instances[i];
+            string cache = $"__G{id}_{i}";
+            sb.Append(ind).Append($"static class {cache}{tps} {{ public static {RT}.MethodRef M; }}\n");
+            string classes = "new nint[] { " + string.Join(", ", inst.Slots.Select((s, k) =>
+                s == null ? $"{RT}.GameGeneric.ClassOf<{g.TypeParams[k]}>()" : Program.NewClass(s) + ".Handle")) + " }";
+            string resolve =
+                $"if ({cache}{tps}.M.Fn == 0) {G}.ResolveGeneric(ref {cache}{tps}.M, {classExpr}, {sig}, {LayoutLiteral(inst.Closed.Layout)}, {classes});\n" +
+                $"ref readonly var __m = ref {cache}{tps}.M;";
+            EmitMethod(sb, ind, inst.Closed, classExpr, $"__{bare}_{id}_{i}", "private", tps, where, resolve);
+        }
+
+        int lastPlain = g.Params.Count;
+        while (lastPlain > 0 && g.Params[lastPlain - 1].Kind == OpenKind.Plain && g.Params[lastPlain - 1].Mode == ArgMode.Value &&
+               first.Defaults[lastPlain - 1] != null)
+            lastPlain--;
+        var decl = new List<string>();
+        for (int i = 0; i < g.Params.Count; i++)
+        {
+            OpenParam p = g.Params[i];
+            string mod = p.Mode switch { ArgMode.Ref => "ref ", ArgMode.Out => "out ", ArgMode.In => "in ", _ => "" };
+            string def = i >= lastPlain ? " = " + first.Defaults[i] : "";
+            decl.Add($"{mod}{OpenCs(p, i)} {p.Name}{def}");
+        }
+
+        sb.Append(ind).Append($"public {st}{OpenRet()} {g.Name}{tps}({string.Join(", ", decl)}){where}\n");
+        sb.Append(ind).Append("{\n");
+        string b = ind + "    ";
+        foreach (OpenParam p in g.Params.Where(p => p.Kind == OpenKind.Param && p.Mode == ArgMode.Out))
+            sb.Append(b).Append($"{U}.SkipInit(out {p.Name});\n");
+
+        for (int i = 0; i < g.Instances.Count; i++)
+        {
+            GenericInstance inst = g.Instances[i];
+            string cond = string.Join(" && ", inst.Slots.Select((s, k) => s == null
+                ? $"{RT}.GameGeneric.IsReference<{g.TypeParams[k]}>()"
+                : $"typeof({g.TypeParams[k]}) == typeof({inst.ValueCs[k]})"));
+            var args = new List<string>();
+            for (int j = 0; j < g.Params.Count; j++)
+            {
+                OpenParam p = g.Params[j];
+                string closedCs = inst.Closed.Params[j].Use.Cs;
+                string mod = p.Mode switch { ArgMode.Ref => "ref ", ArgMode.Out => "out ", ArgMode.In => "in ", _ => "" };
+                string tp = p.Kind == OpenKind.Plain ? "" : g.TypeParams[p.Index];
+                args.Add(p.Kind switch
+                {
+                    OpenKind.Plain => mod + p.Name,
+                    OpenKind.Param => mod + $"{U}.As<{tp}, {closedCs}>(ref {p.Name})",
+                    OpenKind.Array => $"new {closedCs}({p.Name}.Pointer)",
+                    OpenKind.Asset => $"new {closedCs}(global::ReLogic.Content.Asset<{tp}>.ToGame({p.Name}))",
+                    _ => p.Name,
+                });
+            }
+            string call = $"__{bare}_{id}_{i}{tps}({string.Join(", ", args)})";
+            string retTp = g.Ret.Kind is OpenKind.Param or OpenKind.Array or OpenKind.Asset ? g.TypeParams[g.Ret.Index] : "";
+            string closedRet = inst.Closed.Plan.Ret.Use.Cs;
+            sb.Append(b).Append($"if ({cond})\n").Append(b).Append("{\n");
+            string bb = b + "    ";
+            switch (g.Ret.Kind)
+            {
+                case OpenKind.Void:
+                    sb.Append(bb).Append($"{call};\n").Append(bb).Append("return;\n");
+                    break;
+                case OpenKind.Plain:
+                    sb.Append(bb).Append($"return {call};\n");
+                    break;
+                case OpenKind.Param:
+                    sb.Append(bb).Append($"{closedRet} __r = {call};\n");
+                    sb.Append(bb).Append($"return {U}.As<{closedRet}, {retTp}>(ref __r);\n");
+                    break;
+                case OpenKind.Array:
+                    sb.Append(bb).Append($"return new {RT}.GameArray<{retTp}>({call}.Pointer);\n");
+                    break;
+                case OpenKind.Asset:
+                    sb.Append(bb).Append($"return global::ReLogic.Content.Asset<{retTp}>.FromGame({call}.Pointer);\n");
+                    break;
+            }
+            sb.Append(b).Append("}\n");
+        }
+
+        string compiled = string.Join(", ", g.Instances.Select(inst =>
+            string.Join(" + ", inst.Slots.Select((s, k) => s == null ? "game classes" : inst.ValueCs[k].Replace("global::", "")))));
+        string typeofs = string.Join(", ", g.TypeParams.Select(tp => $"typeof({tp})"));
+        sb.Append(b).Append($"throw {RT}.GameGeneric.NotCompiled({Literal(g.Owner.Name + "." + g.Definition.Name)}, {Literal(compiled)}, {typeofs});\n");
+        sb.Append(ind).Append("}\n");
     }
 
     public readonly Dictionary<string, (MethodModel Invoke, string Managed)?> DelegateModels = new();

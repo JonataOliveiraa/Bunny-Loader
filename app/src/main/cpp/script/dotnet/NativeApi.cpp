@@ -251,6 +251,7 @@ struct NativeApi {
     int32_t (*spriteFxHasProperty)(void* material, const char* name);
     int32_t (*spriteFxStats)(int64_t* out, int32_t count);
     int32_t (*spriteFxSetTexture)(void* effect, int32_t reg, void* texture);
+    void* (*inflateMethod)(void* method, void** classes, int32_t count);
 };
 
 struct Extra {
@@ -401,6 +402,57 @@ void* nativeFindMethodBySignature(void* cls, const char* signature) {
     std::lock_guard<std::mutex> lock(cacheLock);
     cache.emplace(std::move(key), m);
     return const_cast<MethodInfo*>(m);
+}
+
+void* nativeInflateMethod(void* method, void** classes, int32_t count) {
+    const auto* definition = static_cast<const MethodInfo*>(method);
+    if (!definition || !classes || count <= 0) return nullptr;
+    auto& a = il2cpp::api();
+
+    std::string key(reinterpret_cast<const char*>(&definition), sizeof(definition));
+    for (int32_t i = 0; i < count; ++i) {
+        if (!classes[i]) return nullptr;
+        key.append(reinterpret_cast<const char*>(&classes[i]), sizeof(void*));
+    }
+    static std::mutex cacheLock;
+    static std::unordered_map<std::string, const MethodInfo*> cache;
+    {
+        std::lock_guard<std::mutex> lock(cacheLock);
+        if (auto hit = cache.find(key); hit != cache.end()) return const_cast<MethodInfo*>(hit->second);
+    }
+
+    static Il2CppClass* const typeClass = il2cpp::findClass({"System", "Type", {}});
+    static Il2CppClass* const methodInfoClass = il2cpp::findClass({"System.Reflection", "MethodInfo", {}});
+    if (!typeClass || !methodInfoClass || !a.method_get_object || !a.method_get_from_reflection || !a.type_get_object) {
+        BL_ERROR("dotnet: generic methods unavailable (System.Type or MethodInfo.MakeGenericMethod missing)");
+        return nullptr;
+    }
+
+    Il2CppObject* reflected = a.method_get_object(definition, a.method_get_class(definition));
+    Il2CppArray* args = reflected ? a.array_new(typeClass, static_cast<uintptr_t>(count)) : nullptr;
+    if (!args) return nullptr;
+    auto** slots = static_cast<void**>(arrayData(args));
+    for (int32_t i = 0; i < count; ++i) {
+        Il2CppObject* type = a.type_get_object(a.class_get_type(static_cast<Il2CppClass*>(classes[i])));
+        if (!type) return nullptr;
+        a.gc_wbarrier_set_field(reinterpret_cast<Il2CppObject*>(args), &slots[i], type);
+    }
+
+    const MethodInfo* make = a.class_get_method_from_name(a.object_get_class(reflected), "MakeGenericMethod", 1);
+    if (!make) make = a.class_get_method_from_name(methodInfoClass, "MakeGenericMethod", 1);
+    if (!make) return nullptr;
+    void* params[1] = {args};
+    Il2CppObject* error = nullptr;
+    Il2CppObject* made = a.runtime_invoke(make, reflected, params, &error);
+    if (error || !made) {
+        BL_WARN("dotnet: MakeGenericMethod failed for %s", a.method_get_name(definition));
+        return nullptr;
+    }
+    const MethodInfo* inflated = a.method_get_from_reflection(made);
+
+    std::lock_guard<std::mutex> lock(cacheLock);
+    cache.emplace(std::move(key), inflated);
+    return const_cast<MethodInfo*>(inflated);
 }
 
 int32_t valueSizeOf(const Il2CppType* t) {
@@ -1275,6 +1327,7 @@ const NativeApi kNativeApi{
     graphics::spriteFxHasProperty,
     graphics::spriteFxStats,
     graphics::spriteFxSetTexture,
+    nativeInflateMethod,
 };
 
 }

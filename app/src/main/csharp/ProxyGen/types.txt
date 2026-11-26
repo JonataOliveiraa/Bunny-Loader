@@ -13,6 +13,11 @@ Terraria.WorldItem
 Terraria.Dust
 Terraria.Collision
 Terraria.Utils
+!Terraria.Utils.Clamp<>
+!Terraria.Utils.Swap<>
+!Terraria.Graphics.Shaders.ArmorShaderDataSet.BindShader<>
+!Terraria.Graphics.Shaders.HairShaderDataSet.BindShader<>
+!Terraria.IO.GameConfiguration.Get<>
 Terraria.Lang
 Terraria.ID.ItemID
 Terraria.ID.NPCID

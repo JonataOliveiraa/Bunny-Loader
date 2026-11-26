@@ -1,0 +1,14 @@
+{
+  "uid": "99eb9c20-ddd8-4650-b2f0-ba231be2766d",
+  "id": "CsGenericsPerf",
+  "name": "Test: generic game method cost (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Measures every compiled instance of the read-only generic game methods: first call, hot call and allocation, against non-generic baselines.",
+  "description": "Build with tools/tests/build-cs.sh csgenericsperf. In the world, logs 'csgenericsperf case=<group>/<name> cold_us=.. hot_ns=.. min_ns=.. alloc_b=.. n=..' per case and 'csgenericsperf END cases=N errors=M'.",
+  "updated": "2026-11-26",
+  "blVersion": 3,
+  "gameVersion": [301720, 301720],
+  "dependencies": []
+}

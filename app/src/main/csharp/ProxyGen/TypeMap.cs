@@ -107,6 +107,7 @@ sealed class TypeMap
     public static string DumpName(Type t)
     {
         if (t.IsByRef) return DumpName(t.GetElementType()!);
+        if (t.IsGenericParameter) return t.Name;
         if (t.IsArray)
         {
             int rank = t.GetArrayRank();
@@ -282,6 +283,16 @@ sealed class TypeMap
                 return under;
             }
             return t.IsValueType ? null : Ref($"{RT}.GameObject", sig);
+        }
+        if (t.IsEnum && !memory && Key(t) == "ReLogic.Content.AssetRequestMode")
+        {
+            const string modes = "global::ReLogic.Content.AssetRequestModes";
+            return new TypeUse
+            {
+                Cs = "global::ReLogic.Content.AssetRequestMode", Sig = sig, Abi = AbiClass.Int, Size = 4, Align = 4,
+                ToRaw = e => $"(long){modes}.ToGame({e})",
+                FromRaw = e => $"{modes}.FromGame((int)({e}))",
+            };
         }
         if (t.IsEnum)
         {

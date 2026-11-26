@@ -137,6 +137,33 @@ public static unsafe class GameInterop
         Volatile.Write(ref slot.Fn, Host.Native()->MethodPointer(info));
     }
 
+    public static void ResolveGeneric(ref MethodRef slot, GameClass cls, string signature, string layout, IntPtr[] classes)
+    {
+        IntPtr definition;
+        byte* s = Host.Utf8(signature);
+        try { definition = Host.Native()->FindMethodBySignature(cls.Handle, s); }
+        finally { Host.FreeUtf8(s); }
+        if (definition == IntPtr.Zero) throw new MissingMethodException($"{cls.FullName}: '{signature}' not found");
+
+        IntPtr info;
+        fixed (IntPtr* c = classes) info = Host.Native()->InflateMethod(definition, c, classes.Length);
+        if (info == IntPtr.Zero) throw new MissingMethodException($"{cls.FullName}: '{signature}' could not be made for these type arguments");
+
+        int[] sizes = DecodeLayout(layout);
+        fixed (int* p = sizes)
+        {
+            int bad = Host.Native()->CheckLayout(info, p, sizes.Length);
+            if (bad >= 0)
+                throw new InvalidOperationException(
+                    $"{cls.FullName}: '{signature}': struct layout of {(bad == sizes.Length - 1 ? "the return value" : $"parameter {bad + 1}")} differs from the game");
+        }
+
+        IntPtr fn = Host.Native()->MethodPointer(info);
+        if (fn == IntPtr.Zero) throw new NotSupportedException($"{cls.FullName}: '{signature}' has no compiled code for these type arguments");
+        slot.Info = info;
+        Volatile.Write(ref slot.Fn, fn);
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static VirtualCache Virtual(ref VirtualCache? cache, in MethodRef method, IntPtr self)
     {

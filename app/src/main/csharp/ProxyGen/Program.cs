@@ -14,6 +14,7 @@ static class Program
                                        BindingFlags.Static | BindingFlags.DeclaredOnly;
 
     static Assembly gameAssembly = null!;
+    static Func<string, Type?> resolveType = _ => null;
 
     static int Main(string[] args)
     {
@@ -26,6 +27,7 @@ static class Program
                 case "--dummy": dummy = args[i + 1]; break;
                 case "--types": typesFiles.Add(args[i + 1]); break;
                 case "--out": outDir = args[i + 1]; break;
+                case "--generics": Generics.Load(args[i + 1]); break;
             }
         }
         if (dummy == null || typesFiles.Count == 0 || outDir == null)
@@ -47,6 +49,9 @@ static class Program
         catch (ReflectionTypeLoadException e) { types = e.Types.Where(t => t != null).ToArray()!; }
         var byName = new Dictionary<string, Type>();
         foreach (Type t in types) byName[TypeMap.Key(t)] = t;
+        resolveType = full => full.StartsWith("System.", StringComparison.Ordinal) && mlc.CoreAssembly?.GetType(full) is Type core
+            ? core
+            : byName.TryGetValue(full, out Type? game) ? game : null;
 
         var listed = new List<Type>();
         var missing = new List<string>();
@@ -125,7 +130,8 @@ static class Program
                 }
                 if (mode != GenMode.Full || plans.ContainsKey(key)) continue;
                 TypePlan plan = plans[key] = BuildPlan(type, map, emitter);
-                foreach (MethodModel m in plan.Methods.Concat(plan.Ctors)) emitter.ResolveDelegates(m);
+                foreach (MethodModel m in plan.Methods.Concat(plan.Ctors).Concat(plan.Generics.SelectMany(g => g.Instances).Select(i => i.Closed)))
+                    emitter.ResolveDelegates(m);
                 grew = true;
             }
         }
@@ -228,6 +234,7 @@ static class Program
         public List<MethodModel> Ctors = new();
         public List<(MethodModel Model, string Event)> Hooks = new();
         public List<EventModel> Events = new();
+        public List<GenericModel> Generics = new();
     }
 
     sealed class EventModel
@@ -346,6 +353,20 @@ static class Program
                 if (m.IsSpecialName) continue;
                 if (m.IsStatic && owner != t) continue;
                 if (isStatic && !m.IsStatic) continue;
+                if (m.IsGenericMethodDefinition)
+                {
+                    bool hand = HandWritten.TryGetValue(t.FullName ?? t.Name, out HashSet<string>? names) && names.Contains(m.Name + "<>");
+                    GenericModel? g = Generics.Build(m, t, emitter, map, resolveType, hand);
+                    if (g == null || !seenSigs.Add(g.Key)) continue;
+                    if (!groups.TryGetValue(m.Name, out string? gname))
+                    {
+                        gname = Claim(m.Name);
+                        groups[m.Name] = gname;
+                    }
+                    g.Name = gname;
+                    plan.Generics.Add(g);
+                    continue;
+                }
                 MethodModel? model = emitter.Model(m, t, false);
                 if (model == null) continue;
                 string key = m.Name + "(" + string.Join(",", model.Params.Select(a => a.Mode + " " + a.Use.Cs)) + ")";
@@ -440,6 +461,13 @@ static class Program
         plan.Methods.RemoveAll(m => Drop(m, m.Method.Name));
         plan.Ctors.RemoveAll(m => Drop(m, ".ctor"));
         plan.Hooks.RemoveAll(h => Drop(h.Model, "On_" + h.Event));
+        plan.Generics.RemoveAll(g =>
+        {
+            g.Instances.RemoveAll(i => Drop(i.Closed, g.Definition.Name + "<>"));
+            if (g.Instances.Count > 0) return false;
+            emitter.Skip(t, g.Definition.Name + "<>", "generic method: no instance left after pruning");
+            return true;
+        });
     }
 
     static string Token(ArgPlan a)
@@ -469,7 +497,7 @@ static class Program
 
     static string ClassExpr(Type t) => TypeMap.ProxyName(t) + ".Class";
 
-    static string NewClass(Type t)
+    internal static string NewClass(Type t)
     {
         Type top = TypeMap.Outermost(t);
         var path = new List<string>();
@@ -683,6 +711,7 @@ static class Program
         }
 
         foreach (MethodModel m in plan.Methods) emitter.EmitMethod(sb, ind, m, cls, m.Name);
+        foreach (GenericModel g in plan.Generics) emitter.EmitGeneric(sb, ind, g, cls);
         foreach (EventModel e in plan.Events) emitter.EmitEvent(sb, ind, e.Name, e.Key, e.IsStatic, e.Add, e.Remove, e.Invoke, e.Delegate, cls);
         foreach (MethodModel m in plan.Ctors) emitter.EmitMethod(sb, ind, m, cls, "New");
     }

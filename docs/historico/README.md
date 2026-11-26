@@ -16,6 +16,7 @@ itself; for the current state, the [wiki](https://github.com/JonataOliveiraa/Bun
 | [FUNDO-SUMINDO-NUVEM-DE-MOD.md](FUNDO-SUMINDO-NUVEM-DE-MOD.md) | The background that vanished on the phone: the horizon cloud mask (`CloudMasks`) without the mod types, read without checking bounds. **Confirmation on the phone pending.** |
 | [DESEMPENHO-LOADER.md](DESEMPENHO-LOADER.md) | How much the mod loader costs per frame (the fixed cost of entering JS, hooks for methods the class does not write, two-part drawing) and the three optimizations: per-type marks, the `flag` filter and per-frame JS without closures. **Measurement on the phone pending.** |
 | [pesquisa-shaders.md](pesquisa-shaders.md) | Static analysis of how the mobile game loads and uses shaders, before the screen effects existed (2026-10-03). |
+| [plano-genericos.md](plano-genericos.md) | The plan for calling and hooking the game's generic methods from C# (IL2CPP shared and value-type instances), then writing by hand the texture methods the phone lacks (`SetData(Color[])`, `GetData`, `FromStream`). |
 | [TRAVAMENTO-SAVE-DO-MAPA.md](TRAVAMENTO-SAVE-DO-MAPA.md) | The game freezing when entering the world: the map save hook held `LockObject` outside each chunk's lock, inverting the lock order with the game thread. |
 
 ## The JavaScript engine
