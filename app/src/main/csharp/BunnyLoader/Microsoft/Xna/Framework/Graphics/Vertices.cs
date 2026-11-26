@@ -150,10 +150,7 @@ public class VertexDeclaration : IDisposable
             throw new ArgumentException($"VertexDeclaration: {vertexType.Name} is not a struct that implements IVertexType", nameof(vertexType));
 
         var instance = (IVertexType)Activator.CreateInstance(vertexType)!;
-        VertexDeclaration declaration = instance.VertexDeclaration ?? throw new ArgumentException($"VertexDeclaration: {vertexType.Name}.VertexDeclaration is null");
-        if (declaration.VertexStride != Marshal.SizeOf(vertexType))
-            throw new ArgumentException($"VertexDeclaration: {vertexType.Name} is {Marshal.SizeOf(vertexType)} bytes but its declaration says {declaration.VertexStride}");
-        return declaration;
+        return instance.VertexDeclaration ?? throw new ArgumentException($"VertexDeclaration: {vertexType.Name}.VertexDeclaration is null");
     }
 
     public void Dispose() => IsDisposed = true;

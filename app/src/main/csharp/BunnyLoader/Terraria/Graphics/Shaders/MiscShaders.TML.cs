@@ -11,6 +11,35 @@ namespace Terraria.Graphics.Shaders
         {
             ShaderHandles.Keep(Pointer);
         }
+
+        public void Apply(GameNullable<DataStructures.DrawData> drawData = default)
+        {
+            Apply_(drawData);
+            KeepMatrix();
+        }
+
+        public void Apply(Entity entity, GameNullable<DataStructures.DrawData> drawData)
+        {
+            Apply_(entity, drawData);
+            KeepMatrix();
+        }
+
+        static readonly Dictionary<nint, EffectParameter> matrixParameters = new();
+
+        void KeepMatrix()
+        {
+            GameNullable<Microsoft.Xna.Framework.Matrix> transform = _transformMatrix;
+            if (!transform.HasValue && !_useProjectionMatrix) return;
+            Effect shader = Shader;
+            EffectParameter parameter;
+
+            lock (matrixParameters)
+                if (!matrixParameters.TryGetValue(shader.Pointer, out parameter))
+                    matrixParameters[shader.Pointer] = parameter = shader.Parameters["MatrixTransform"];
+
+            if (parameter.IsNull) return;
+            parameter.SetValue(transform.HasValue ? transform.GetValueOrDefault() : Main.GameViewMatrix.NormalizedTransformationMatrix);
+        }
     }
 
     public readonly unsafe partial struct GameShaders

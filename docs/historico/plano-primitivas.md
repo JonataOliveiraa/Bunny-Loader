@@ -81,8 +81,12 @@ Found on the way:
   `.RasterizerState`, `.ScissorRectangle`) does not compile in BL (CS1612): the
   device is a struct returned by value. A local variable works
   (`GraphicsDevice device = Main.instance.GraphicsDevice; device.Indices = ...`).
-  tML mods write it the first way, so ProxyGen needs a fix (for example, getters
-  of game objects returning a `ref` to a slot).
+  tML mods write it the first way. Fixed the same day in ProxyGen: a get-only
+  property whose type is a game object returns `ref readonly` to a per-thread
+  ring of 32 slots (`Interop/GameSlot.cs`), so a setter can be called through
+  it; 426 properties changed (`Game.GraphicsDevice`, `Main.LocalPlayer`,
+  `Player.HeldItem`...). Properties with a setter and value types (`Vector2`)
+  are unchanged.
 
 ### Phase 1 status (2026-11-26, not committed)
 
@@ -114,6 +118,83 @@ Built as planned: `Vertices.cs`, `Buffers.cs`, `BasicEffect.cs` (+ the embedded
 - Wiki: `advanced/Drawing.md`, section "Primitives", not pushed.
 - Not checked yet: reversed gravity (the game's `DrawTrail` flips y itself when
   `gravDir == -1`), and a phone.
+
+### Review against FNA and the PC game (2026-11-26)
+
+Read side by side with `exmod_tmod/tModLoader/FNA/src` and the PC source.
+Fixed:
+
+- `DrawUserPrimitives` converted every vertex to the end of the array; FNA
+  uploads `PrimitiveVerts(type, count)` vertices (`numVertices` for the indexed
+  call) and steps by the declaration's `VertexStride`, not `sizeof(T)`. The
+  renderer now reads the indices first and converts only the range they use,
+  which also covers big vertex buffers with `baseVertex`.
+- `VertexDeclaration.FromType` no longer rejects a declaration whose stride
+  differs from the struct size (FNA does not check it).
+- Buffers: tML's FNA has `SetDataOptions options = None` on every
+  `VertexBuffer.SetData`; `GetData` on a `WriteOnly` buffer throws
+  `NotSupportedException`; a size mismatch throws `InvalidOperationException`.
+- `Matrix.ToString` uses FNA's format.
+- `BasicEffect`: `LightingEnabled`, `FogEnabled` and `EnableDefaultLighting`
+  keep their values (with FNA's default light values) and log once instead of
+  throwing; `DirectionalLight0..2`, `IEffectLights` and `IEffectFog` added. The
+  color math is FNA's (`(DiffuseColor + EmissiveColor) * Alpha`, then texture ×
+  diffuse × vertex color).
+- `MiscShaderData.Apply()`: on PC it is `Apply(DrawData? drawData = null)`; in
+  BL the inherited `ShaderData.Apply()` won the overload and skipped
+  `uColor`/`uOpacity`/images. `Apply` is now written by hand
+  (`!MiscShaderData.Apply`), and it also stores the `MatrixTransform` the PC
+  game sets (`UseProjectionMatrix`, `UseTransformMatrix`), since the game's
+  `SetValue(Matrix)` is empty.
+- `Main.GameViewMatrix.NormalizedTransformationMatrix`: the phone builds it from
+  the physical viewport, while the world is drawn in `Main.screenWidth` x
+  `Main.screenHeight` (578x324 against 1600x900 on MuMu), so trails using it
+  landed shrunk in the corner. It is now written by hand with PC's formula on
+  the virtual screen (`!SpriteViewMatrix.NormalizedTransformationMatrix`), and
+  the renderer uses it when an effect's matrix was never set from C#.
+
+Found, not fixed:
+
+- `GraphicsDevice.BlendState` is ignored by primitives: the game's
+  `GetMaterial` picks the material by pass and textures only, so an additive
+  trail draws alpha-blended (probe: gray over red stayed gray). Fixing it is
+  native: `SpriteFx` would set `glBlendFunc` for the marked draw from a blend
+  mode stored in the record.
+- `SamplerStates`, `RasterizerState` (culling, scissor) and depth are not
+  carried either.
+
+Tests after the review: `cstprim` 16/16 and 13/13 cells (with the
+`MiscShaderData` + `UseProjectionMatrix` trail in world space), 179 test packs
+compile.
+
+### Cost (2026-11-26, MuMu 16384, `tools/tests/cstprimperf`)
+
+MuMu runs ARM code through houdini, so managed code is far slower than on a
+phone, and runs vary by ~30%. Relative numbers:
+
+| Case (per frame, world layer) | Frame | Draw time | Per call |
+|---|---|---|---|
+| idle | 16.7-17.0 ms | 0 | |
+| 20 `BasicEffect` trails, 60 vertices | 16.8-17.0 ms | 0.9-1.4 ms | 43-72 µs |
+| 100 trails | 18.4-20.3 ms | 6.3-6.8 ms | 63-68 µs |
+| 20 indexed `.fxc` trails (`MiscShaderData`) | 17.0-18.0 ms | 1.9-2.3 ms | 94-113 µs |
+| 20 game `DrawGeometry` calls, same size | 16.7-16.9 ms | 0.5-0.8 ms | 25-40 µs |
+| 20 draws of 2 triangles from a 4000-vertex array | 16.8-17.1 ms | 0.8-1.0 ms | 40-51 µs |
+
+- A 60-vertex `DrawUserPrimitives` costs ~8 µs more than the game's own
+  `DrawGeometry` of the same size (state and conversion in C#); the rest of a
+  trail is the test generating its vertices (12-23 µs) and the pass `Apply`
+  (5-9 µs, mostly game calls).
+- `MiscShaderData.Apply` is 18-29 µs against 1.5-3 µs for the game's own
+  `Apply_`; the matrix bookkeeping is a few game reads, and each managed call
+  costs ~0.5-1 µs under houdini.
+- Taken out of the hot path during the review: allocations in `SetValue`
+  (1.4 → 0.9 µs), the array clone in `SetValue(Matrix)` (3.3 → 1.5 µs),
+  `World * View * Projection` recomputed only when one changes (FNA's
+  dirty flag), `in` on `Matrix` operators, the per-vertex matrix copy, the
+  cached `CurrentTechnique`, the cached `MatrixTransform` parameter, and the
+  normalized matrix built in C# instead of six game `Matrix.Create*` calls.
+- Not measured on a phone yet.
 
 ## Phase 2: GPU vertex shader (new APK)
 

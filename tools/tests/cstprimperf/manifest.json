@@ -1,0 +1,14 @@
+{
+  "uid": "8e2f4b61-3c9a-4d17-a5e8-6b0c2f91d7a3",
+  "id": "CsPrimPerf",
+  "name": "Test: primitive drawing cost (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Frame time and draw time of BasicEffect trails, indexed .fxc trails, the game's own DrawGeometry and a large vertex array, plus single-call costs.",
+  "description": "Build with tools/tests/build-cs.sh cstprimperf. Effects/Projected.fxc is the cstprim one. Logs 'cstprimperf micro ...', 'cstprimperf phase <name>: ...' and 'cstprimperf END'.",
+  "updated": "2026-11-26",
+  "blVersion": 3,
+  "gameVersion": [301720, 301720],
+  "dependencies": []
+}

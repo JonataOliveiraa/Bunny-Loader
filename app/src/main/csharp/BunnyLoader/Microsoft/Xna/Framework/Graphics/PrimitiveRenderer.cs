@@ -68,22 +68,31 @@ internal static unsafe class PrimitiveRenderer
 
         State state = CurrentState();
         Layout layout = Read(declaration);
-        int count = vertices.Length / stride;
-        Grow(ref converted, count);
-
-        fixed (byte* source = vertices)
-            for (int i = 0; i < count; i++)
-                converted[i] = Convert(source + i * stride, layout, state);
-
+        int available = vertices.Length / stride;
         int indexCount = IndexCount(type, primitiveCount);
+        if (!indices.IsEmpty && indices.Length < indexCount * indexSize)
+            throw new ArgumentOutOfRangeException(nameof(indices), $"GraphicsDevice: {primitiveCount} primitives need {indexCount} indices, {indices.Length / indexSize} given");
         Grow(ref sequence, indexCount);
+        int low = int.MaxValue, high = -1;
 
         for (int i = 0; i < indexCount; i++)
         {
             int index = (indices.IsEmpty ? i : indexSize == 2 ? MemoryMarshal.Read<short>(indices.Slice(i * 2)) : MemoryMarshal.Read<int>(indices.Slice(i * 4))) + baseVertex;
-            if ((uint)index >= (uint)count) throw new ArgumentOutOfRangeException(nameof(indices), $"GraphicsDevice: vertex {index} is outside the {count} vertices given");
+            if ((uint)index >= (uint)available) throw new ArgumentOutOfRangeException(nameof(indices), $"GraphicsDevice: vertex {index} is outside the {available} vertices given");
             sequence[i] = index;
+            if (index < low) low = index;
+            if (index > high) high = index;
         }
+
+        int count = high - low + 1;
+        Grow(ref converted, count);
+
+        fixed (byte* source = vertices)
+            for (int i = 0; i < count; i++)
+                converted[i] = Convert(source + (low + i) * stride, layout, state);
+
+        if (low != 0)
+            for (int i = 0; i < indexCount; i++) sequence[i] -= low;
 
         int written = Expand(type, primitiveCount);
         if (type is PrimitiveType.LineList or PrimitiveType.LineStrip) written = Lines(ref count, written);
@@ -266,7 +275,7 @@ internal static unsafe class PrimitiveRenderer
             }
         }
 
-        return !parameter.IsNull && parameter.TryGetMatrix(out Matrix value) ? value : Matrix.Identity;
+        return !parameter.IsNull && parameter.TryGetMatrix(out Matrix value) ? value : Main.GameViewMatrix.NormalizedTransformationMatrix;
     }
 
     static string? FindMatrix(FxcEffect? fx)
@@ -319,7 +328,7 @@ internal static unsafe class PrimitiveRenderer
         float x = p[0], y = p[1];
         float z = layout.PositionFormat == VertexElementFormat.Vector2 ? 0f : p[2];
         float w = layout.PositionFormat == VertexElementFormat.Vector4 ? p[3] : 1f;
-        Matrix m = state.Transform;
+        ref readonly Matrix m = ref state.Transform;
 
         float cx = x * m.M11 + y * m.M21 + z * m.M31 + w * m.M41;
         float cy = x * m.M12 + y * m.M22 + z * m.M32 + w * m.M42;

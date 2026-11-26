@@ -34,7 +34,10 @@ public readonly unsafe partial struct GraphicsDevice
         VertexBuffer buffer = Bound();
         int stride = buffer.VertexDeclaration.VertexStride;
         int first = (vertexBuffers[0].VertexOffset + vertexStart) * stride;
-        PrimitiveRenderer.Draw(buffer.Data.AsSpan(first), stride, buffer.VertexDeclaration, primitiveType, primitiveCount, default, 0, 0);
+        int length = PrimitiveVerts(primitiveType, primitiveCount) * stride;
+        if (first < 0 || first + length > buffer.Data.Length)
+            throw new ArgumentOutOfRangeException(nameof(primitiveCount), $"GraphicsDevice: {primitiveCount} primitives from vertex {vertexStart} do not fit the {buffer.VertexCount} vertices of the buffer");
+        PrimitiveRenderer.Draw(buffer.Data.AsSpan(first, length), stride, buffer.VertexDeclaration, primitiveType, primitiveCount, default, 0, 0);
     }
 
     public void DrawIndexedPrimitives(PrimitiveType primitiveType, int baseVertex, int minVertexIndex, int numVertices, int startIndex, int primitiveCount)
@@ -56,7 +59,8 @@ public readonly unsafe partial struct GraphicsDevice
     public void DrawUserPrimitives<T>(PrimitiveType primitiveType, T[] vertexData, int vertexOffset, int primitiveCount, VertexDeclaration vertexDeclaration) where T : struct
     {
         if (vertexData == null) throw new ArgumentNullException(nameof(vertexData));
-        PrimitiveRenderer.Draw(MemoryMarshal.AsBytes(vertexData.AsSpan(vertexOffset)), StrideOf<T>(vertexDeclaration), vertexDeclaration, primitiveType, primitiveCount, default, 0, 0);
+        int stride = StrideOf(vertexDeclaration);
+        PrimitiveRenderer.Draw(Range(vertexData, vertexOffset, PrimitiveVerts(primitiveType, primitiveCount), stride), stride, vertexDeclaration, primitiveType, primitiveCount, default, 0, 0);
     }
 
     public void DrawUserIndexedPrimitives<T>(PrimitiveType primitiveType, T[] vertexData, int vertexOffset, int numVertices, short[] indexData, int indexOffset, int primitiveCount) where T : struct, IVertexType =>
@@ -67,7 +71,8 @@ public readonly unsafe partial struct GraphicsDevice
     {
         if (vertexData == null) throw new ArgumentNullException(nameof(vertexData));
         if (indexData == null) throw new ArgumentNullException(nameof(indexData));
-        PrimitiveRenderer.Draw(MemoryMarshal.AsBytes(vertexData.AsSpan(vertexOffset, numVertices)), StrideOf<T>(vertexDeclaration), vertexDeclaration, primitiveType, primitiveCount,
+        int stride = StrideOf(vertexDeclaration);
+        PrimitiveRenderer.Draw(Range(vertexData, vertexOffset, numVertices, stride), stride, vertexDeclaration, primitiveType, primitiveCount,
             MemoryMarshal.AsBytes(indexData.AsSpan(indexOffset)), 2, 0);
     }
 
@@ -79,7 +84,8 @@ public readonly unsafe partial struct GraphicsDevice
     {
         if (vertexData == null) throw new ArgumentNullException(nameof(vertexData));
         if (indexData == null) throw new ArgumentNullException(nameof(indexData));
-        PrimitiveRenderer.Draw(MemoryMarshal.AsBytes(vertexData.AsSpan(vertexOffset, numVertices)), StrideOf<T>(vertexDeclaration), vertexDeclaration, primitiveType, primitiveCount,
+        int stride = StrideOf(vertexDeclaration);
+        PrimitiveRenderer.Draw(Range(vertexData, vertexOffset, numVertices, stride), stride, vertexDeclaration, primitiveType, primitiveCount,
             MemoryMarshal.AsBytes(indexData.AsSpan(indexOffset)), 4, 0);
     }
 
@@ -94,12 +100,27 @@ public readonly unsafe partial struct GraphicsDevice
 
     static VertexDeclaration Declaration<T>() where T : struct, IVertexType => default(T).VertexDeclaration;
 
-    static int StrideOf<T>(VertexDeclaration declaration) where T : struct
+    static int StrideOf(VertexDeclaration declaration)
     {
         if (declaration == null) throw new ArgumentNullException(nameof(declaration));
-        int size = Marshal.SizeOf<T>();
-        if (declaration.VertexStride > size)
-            throw new ArgumentException($"GraphicsDevice: the declaration's stride ({declaration.VertexStride}) is larger than {typeof(T).Name} ({size} bytes)");
-        return size;
+        return declaration.VertexStride;
+    }
+
+    static int PrimitiveVerts(PrimitiveType type, int primitives) => type switch
+    {
+        PrimitiveType.TriangleList => primitives * 3,
+        PrimitiveType.TriangleStrip => primitives + 2,
+        PrimitiveType.LineList => primitives * 2,
+        PrimitiveType.LineStrip => primitives + 1,
+        _ => primitives,
+    };
+
+    static ReadOnlySpan<byte> Range<T>(T[] data, int vertexOffset, int vertices, int stride) where T : struct
+    {
+        ReadOnlySpan<byte> bytes = MemoryMarshal.AsBytes(data.AsSpan());
+        long start = (long)vertexOffset * stride, length = (long)vertices * stride;
+        if (vertexOffset < 0 || vertices < 0 || start + length > bytes.Length)
+            throw new ArgumentOutOfRangeException(nameof(vertices), $"GraphicsDevice: {vertices} vertices from {vertexOffset} do not fit {typeof(T).Name}[{data.Length}] with a stride of {stride}");
+        return bytes.Slice((int)start, (int)length);
     }
 }

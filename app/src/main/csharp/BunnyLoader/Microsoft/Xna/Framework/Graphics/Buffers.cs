@@ -38,11 +38,13 @@ public class VertexBuffer : IDisposable
     {
     }
 
-    public void SetData<T>(T[] data) where T : struct => SetData(0, data, 0, data?.Length ?? 0, Unsafe.SizeOf<T>());
+    public void SetData<T>(T[] data, SetDataOptions options = SetDataOptions.None) where T : struct =>
+        SetData(0, data, 0, data?.Length ?? 0, Unsafe.SizeOf<T>(), options);
 
-    public void SetData<T>(T[] data, int startIndex, int elementCount) where T : struct => SetData(0, data, startIndex, elementCount, Unsafe.SizeOf<T>());
+    public void SetData<T>(T[] data, int startIndex, int elementCount, SetDataOptions options = SetDataOptions.None) where T : struct =>
+        SetData(0, data, startIndex, elementCount, Unsafe.SizeOf<T>(), options);
 
-    public void SetData<T>(int offsetInBytes, T[] data, int startIndex, int elementCount, int vertexStride) where T : struct =>
+    public void SetData<T>(int offsetInBytes, T[] data, int startIndex, int elementCount, int vertexStride, SetDataOptions options = SetDataOptions.None) where T : struct =>
         Copy(data, startIndex, elementCount, vertexStride, offsetInBytes, true);
 
     public void GetData<T>(T[] data) where T : struct => GetData(0, data, 0, data?.Length ?? 0, Unsafe.SizeOf<T>());
@@ -58,6 +60,8 @@ public class VertexBuffer : IDisposable
         if (data == null) throw new ArgumentNullException(nameof(data));
         if (startIndex < 0 || elementCount < 0 || startIndex + elementCount > data.Length)
             throw new ArgumentOutOfRangeException(nameof(elementCount), $"VertexBuffer: {elementCount} elements from {startIndex} do not fit an array of {data.Length}");
+        if (!write && BufferUsage == BufferUsage.WriteOnly)
+            throw new NotSupportedException("VertexBuffer: GetData on a buffer created with BufferUsage.WriteOnly is not supported");
 
         int size = Unsafe.SizeOf<T>();
         if (stride == 0) stride = size;
@@ -66,7 +70,7 @@ public class VertexBuffer : IDisposable
 
         int end = offsetInBytes + (elementCount - 1) * stride + size;
         if (offsetInBytes < 0 || end > Data.Length)
-            throw new ArgumentOutOfRangeException(nameof(offsetInBytes), $"VertexBuffer: {end} bytes do not fit a buffer of {Data.Length}");
+            throw new InvalidOperationException($"VertexBuffer: {end} bytes do not fit a buffer of {Data.Length}");
 
         Span<byte> source = MemoryMarshal.AsBytes(data.AsSpan(startIndex, elementCount));
 
@@ -104,11 +108,6 @@ public class DynamicVertexBuffer : VertexBuffer
     {
     }
 
-    public void SetData<T>(T[] data, int startIndex, int elementCount, SetDataOptions options) where T : struct =>
-        SetData(0, data, startIndex, elementCount, Unsafe.SizeOf<T>());
-
-    public void SetData<T>(int offsetInBytes, T[] data, int startIndex, int elementCount, int vertexStride, SetDataOptions options) where T : struct =>
-        SetData(offsetInBytes, data, startIndex, elementCount, vertexStride);
 }
 
 public class IndexBuffer : IDisposable
@@ -165,12 +164,14 @@ public class IndexBuffer : IDisposable
     {
         if (IsDisposed) throw new ObjectDisposedException(nameof(IndexBuffer));
         if (data == null) throw new ArgumentNullException(nameof(data));
+        if (!write && BufferUsage == BufferUsage.WriteOnly)
+            throw new NotSupportedException("IndexBuffer: GetData on a buffer created with BufferUsage.WriteOnly is not supported");
         if (startIndex < 0 || elementCount < 0 || startIndex + elementCount > data.Length)
             throw new ArgumentOutOfRangeException(nameof(elementCount), $"IndexBuffer: {elementCount} elements from {startIndex} do not fit an array of {data.Length}");
 
         Span<byte> source = MemoryMarshal.AsBytes(data.AsSpan(startIndex, elementCount));
         if (offsetInBytes < 0 || offsetInBytes + source.Length > Data.Length)
-            throw new ArgumentOutOfRangeException(nameof(offsetInBytes), $"IndexBuffer: {offsetInBytes + source.Length} bytes do not fit a buffer of {Data.Length}");
+            throw new InvalidOperationException($"IndexBuffer: {offsetInBytes + source.Length} bytes do not fit a buffer of {Data.Length}");
 
         if (write) source.CopyTo(Data.AsSpan(offsetInBytes));
         else Data.AsSpan(offsetInBytes, source.Length).CopyTo(source);

@@ -17,6 +17,8 @@ public sealed class DrawSystem : ModSystem
 
     static Effect trail;
 
+    static Terraria.Graphics.Shaders.MiscShaderData projected;
+
     static Texture2D quadrants;
 
     static VertexBuffer? vertexBuffer;
@@ -77,6 +79,11 @@ public sealed class DrawSystem : ModSystem
         basic.VertexColorEnabled = true;
         basic.CurrentTechnique.Passes[0].Apply();
         Device.DrawUserPrimitives(PrimitiveType.TriangleList, Quad(center.X - 20, center.Y - 20, 40, 40, Color.Magenta, out _), 0, 2);
+
+        Vector2 left = player.Center + new Vector2(-70, 0) - Main.screenPosition;
+        Main.instance.GraphicsDevice.Textures[0] = TextureAssets.MagicPixel.Value;
+        projected.Apply();
+        Device.DrawUserPrimitives(PrimitiveType.TriangleList, Textured(left.X - 20, left.Y - 20, 40, 40), 0, 2);
         EffectPass.BoundEffect = default;
 
         if (!worldLogged)
@@ -84,6 +91,7 @@ public sealed class DrawSystem : ModSystem
             worldLogged = true;
             Vector2 screen = center - Main.screenPosition;
             Log.Info($"cstprim worldcell world_magenta {screen.X / Main.screenWidth:0.0000},{screen.Y / Main.screenHeight:0.0000} 255,0,255 world screen {Main.screenWidth}x{Main.screenHeight}");
+            Log.Info($"cstprim worldcell misc_projection {left.X / Main.screenWidth:0.0000},{left.Y / Main.screenHeight:0.0000} 128,128,0");
         }
     }
 
@@ -93,6 +101,9 @@ public sealed class DrawSystem : ModSystem
 
         basic = new BasicEffect(Device);
         trail = ModContent.Request<Effect>("CsPrim/Effects/Trail", AssetRequestMode.ImmediateLoad).Value;
+        projected = new Terraria.Graphics.Shaders.MiscShaderData(ModContent.Request<Effect>("CsPrim/Effects/Projected", AssetRequestMode.ImmediateLoad), "Projected")
+            .UseProjectionMatrix(true).UseOpacity(0.25f);
+        Terraria.Graphics.Shaders.GameShaders.Misc["CsPrimProjected"] = projected;
         quadrants = new Texture2D(Device, 16, 16);
         var pixels = new Color[256];
         for (int y = 0; y < 16; y++)
@@ -150,12 +161,22 @@ public sealed class DrawSystem : ModSystem
         Quad(500, 100, 80, 60, Color.Blue, out VertexPositionColor[] corners);
         vertexBuffer!.SetData(corners);
         Device.SetVertexBuffer(vertexBuffer);
-        GraphicsDevice device = Main.instance.GraphicsDevice;
-        device.Indices = indexBuffer!;
+        Main.instance.GraphicsDevice.Indices = indexBuffer!;
+        Main.instance.GraphicsDevice.BlendState = BlendState.AlphaBlend;
         basic.CurrentTechnique.Passes[0].Apply();
         Device.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, 4, 0, 2);
         Device.SetVertexBuffer(null!);
         cells.Add(Cell("buffers_blue", 540, 130, Color.Blue));
+
+        basic.TextureEnabled = false;
+        basic.CurrentTechnique.Passes[0].Apply();
+        Device.DrawUserPrimitives(PrimitiveType.TriangleList, Quad(600, 200, 60, 60, Color.Red, out _), 0, 2);
+        GraphicsDevice additive = Main.instance.GraphicsDevice;
+        additive.BlendState = BlendState.Additive;
+        basic.CurrentTechnique.Passes[0].Apply();
+        Device.DrawUserPrimitives(PrimitiveType.TriangleList, Quad(600, 200, 60, 60, new Color(128, 128, 128), out _), 0, 2);
+        additive.BlendState = BlendState.AlphaBlend;
+        if (!cellsLogged) Log.Info("cstprim probe additive 630,230 (255,128,128 if additive, 128,128,128 if not)");
 
         Device.Textures[0] = TextureAssets.MagicPixel.Value;
         trail.Parameters["uWorldViewProjection"].SetValue(Projection);
@@ -288,7 +309,42 @@ public sealed class DrawSystem : ModSystem
             Device.DrawUserIndexedPrimitives(PrimitiveType.TriangleList, Quad(0, 0, 1, 1, Color.Red, out _), 0, 3, new short[] { 0, 1, 7 }, 0, 1);
         });
 
-        Throws<NotSupportedException>("error_lighting", () => basic!.LightingEnabled = true);
+        Check("lighting_ignored", () =>
+        {
+            basic!.LightingEnabled = true;
+            bool kept = basic.LightingEnabled;
+            basic.LightingEnabled = false;
+            return kept ? null : "LightingEnabled did not keep its value";
+        });
+
+        Throws<NotSupportedException>("error_get_write_only", () => indexBuffer!.GetData(new int[6]));
+
+        Check("misc_apply_without_arguments", () =>
+        {
+            projected.Apply();
+            float opacity = projected.Shader.Parameters["uOpacity"].GetValueSingle();
+            return MathF.Abs(opacity - 0.25f) < 1e-4f ? null : $"uOpacity {opacity}";
+        });
+
+        Check("misc_projection_matrix", () =>
+        {
+            projected.Apply();
+            Matrix m = projected.Shader.Parameters["MatrixTransform"].GetValueMatrix();
+            return Near(m, Main.GameViewMatrix.NormalizedTransformationMatrix) ? null : m.ToString();
+        });
+
+        Check("normalized_matches_pc_formula", () =>
+        {
+            float w = Main.screenWidth, h = Main.screenHeight;
+            Vector2 zoom = Main.GameViewMatrix.Zoom;
+            float tx = MathF.Round(w * 0.5f - w * 0.5f / zoom.X), ty = MathF.Round(h * 0.5f - h * 0.5f / zoom.Y);
+            Matrix expected = Matrix.CreateTranslation(-tx, -ty, 0) * Matrix.CreateScale(zoom.X, zoom.Y, 1) * Matrix.CreateTranslation(1f / 256, 1f / 256, 0)
+                * Matrix.CreateTranslation(-0.5f, -0.5f, 0) * Matrix.CreateOrthographicOffCenter(0, w, h, 0, 0, 1);
+            Matrix got = Main.GameViewMatrix.NormalizedTransformationMatrix;
+            return Near(got, expected) ? null : $"{got} vs {expected}";
+        });
+
+        Check("matrix_to_string", () => Matrix.Identity.ToString().StartsWith("{M11:1 M12:0") && !Matrix.Identity.ToString().StartsWith("{ ") ? null : Matrix.Identity.ToString());
 
         Check("perf", () =>
         {

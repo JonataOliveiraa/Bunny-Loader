@@ -20,6 +20,8 @@ Terraria.Utils
 !Terraria.IO.GameConfiguration.Get<>
 !Microsoft.Xna.Framework.Graphics.Texture2D.SetData<>
 !Microsoft.Xna.Framework.Graphics.EffectParameter.SetValue
+!Terraria.Graphics.Shaders.MiscShaderData.Apply
+!Terraria.Graphics.SpriteViewMatrix.NormalizedTransformationMatrix
 Terraria.Lang
 Terraria.ID.ItemID
 Terraria.ID.NPCID

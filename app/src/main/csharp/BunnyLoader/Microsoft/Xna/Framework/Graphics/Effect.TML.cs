@@ -60,19 +60,28 @@ public readonly unsafe partial struct EffectParameter
 
     public void SetValue(Texture value) => SetValue((Texture2D)value);
 
-    public void SetValue(bool value) => Write(value ? 1f : 0f);
+    public void SetValue(bool value) => Write(value ? 1f : 0f, 0, 0, 0, 1);
 
-    public void SetValue(float value) => Write(value);
+    public void SetValue(float value) => Write(value, 0, 0, 0, 1);
 
-    public void SetValue(Vector2 value) => Write(value.X, value.Y);
+    public void SetValue(Vector2 value) => Write(value.X, value.Y, 0, 0, 2);
 
-    public void SetValue(Vector3 value) => Write(value.X, value.Y, value.Z);
+    public void SetValue(Vector3 value) => Write(value.X, value.Y, value.Z, 0, 3);
 
-    public void SetValue(Vector4 value) => Write(value.X, value.Y, value.Z, value.W);
+    public void SetValue(Vector4 value) => Write(value.X, value.Y, value.Z, value.W, 4);
 
-    public void SetValue(Quaternion value) => Write(value.X, value.Y, value.Z, value.W);
+    public void SetValue(Quaternion value) => Write(value.X, value.Y, value.Z, value.W, 4);
 
-    public void SetValue(Matrix value) => SetValue(new[] { value });
+    public void SetValue(Matrix value)
+    {
+        if (Pointer == 0) throw new System.NullReferenceException("EffectParameter is null");
+
+        lock (matrices)
+        {
+            if (matrices.TryGetValue(Pointer, out Matrix[]? kept) && kept.Length == 1) kept[0] = value;
+            else matrices[Pointer] = new[] { value };
+        }
+    }
 
     public void SetValueTranspose(Matrix value) => SetValue(Matrix.Transpose(value));
 
@@ -82,22 +91,21 @@ public readonly unsafe partial struct EffectParameter
     {
         if (value == null) throw new System.ArgumentNullException(nameof(value));
         lock (matrices) matrices[Pointer] = (Matrix[])value.Clone();
-        if (value.Length > 0) Write(value[0].M11, value[0].M12, value[0].M13, value[0].M14);
     }
 
-    public void SetValue(float[] value) => Write(value);
+    public void SetValue(float[] value) => WriteAll(value);
 
-    public void SetValue(int[] value) => Write(System.Array.ConvertAll(value, v => (float)v));
+    public void SetValue(int[] value) => WriteAll(System.Array.ConvertAll(value, v => (float)v));
 
-    public void SetValue(bool[] value) => Write(System.Array.ConvertAll(value, v => v ? 1f : 0f));
+    public void SetValue(bool[] value) => WriteAll(System.Array.ConvertAll(value, v => v ? 1f : 0f));
 
-    public void SetValue(Vector2[] value) => Write(Flatten(value, v => new[] { v.X, v.Y }));
+    public void SetValue(Vector2[] value) => WriteAll(Flatten(value, v => new[] { v.X, v.Y }));
 
-    public void SetValue(Vector3[] value) => Write(Flatten(value, v => new[] { v.X, v.Y, v.Z }));
+    public void SetValue(Vector3[] value) => WriteAll(Flatten(value, v => new[] { v.X, v.Y, v.Z }));
 
-    public void SetValue(Vector4[] value) => Write(Flatten(value, v => new[] { v.X, v.Y, v.Z, v.W }));
+    public void SetValue(Vector4[] value) => WriteAll(Flatten(value, v => new[] { v.X, v.Y, v.Z, v.W }));
 
-    public void SetValue(Quaternion[] value) => Write(Flatten(value, v => new[] { v.X, v.Y, v.Z, v.W }));
+    public void SetValue(Quaternion[] value) => WriteAll(Flatten(value, v => new[] { v.X, v.Y, v.Z, v.W }));
 
     public void SetValue(string value) => throw new System.NotSupportedException($"EffectParameter {Name}: string parameters are not supported");
 
@@ -159,10 +167,9 @@ public readonly unsafe partial struct EffectParameter
         return data.IsNull || index >= data.Length ? 0f : data[index];
     }
 
-    void Write(params float[] values)
+    System.Span<float> Slots()
     {
         if (Pointer == 0) throw new System.NullReferenceException("EffectParameter is null");
-        if (values == null) throw new System.ArgumentNullException(nameof(values));
         BunnyLoader.Interop.GameArray<float> data = Data;
 
         if (data.IsNull || data.Length < 4)
@@ -171,7 +178,22 @@ public readonly unsafe partial struct EffectParameter
             Data = data;
         }
 
-        System.Span<float> span = data.AsSpan();
+        return data.AsSpan();
+    }
+
+    void Write(float x, float y, float z, float w, int count)
+    {
+        System.Span<float> span = Slots();
+        span[0] = x;
+        if (count > 1) span[1] = y;
+        if (count > 2) span[2] = z;
+        if (count > 3) span[3] = w;
+    }
+
+    void WriteAll(float[] values)
+    {
+        if (values == null) throw new System.ArgumentNullException(nameof(values));
+        System.Span<float> span = Slots();
         int count = System.Math.Min(values.Length, span.Length);
         new System.Span<float>(values, 0, count).CopyTo(span);
     }
