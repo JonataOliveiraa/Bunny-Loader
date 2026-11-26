@@ -312,7 +312,7 @@ internal static class ConfigNetHooks
             writer.Write(size);
             writer.Write(data, offset, size);
             writer.Flush();
-            
+             
             if (!ModNet.Send(part.GetBuffer(), (int)part.Length, toClient, ignoreClient))
             {
                 Log.Error($"config net: part {index + 1}/{total} was not sent");

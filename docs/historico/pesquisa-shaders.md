@@ -175,7 +175,41 @@ Then `effect.Techniques` (every technique of the `.fxc`, `CurrentTechnique` can 
 a hook on `GraphicsDevice.GetMaterial` puts that texture in `Textures[1]` only while the material
 is picked, so it wins for that effect until it is cleared (`csspritefx` 13/13).
 
-Open: `uImage2/3`, vertex shaders, `FxcEffect` reload for sprite passes, a sprite program compiled before
+`uImage2`/`uImage3`: some game pixel shaders declare `_ThirdTex` (QueenSlime, MagicMissile,
+FinalFractal, StormLightning...) but none has `_Color`, and none declares `_ForthTex`;
+`il2cpp_resolve_icall("UnityEngine.Texture::GetNativeTexturePtr")` is null in this build. So the GL
+name of a texture is learned: the first time a texture is needed as `uImage2/3`, `GetMaterial` puts it
+in `Textures[1]` for that draw (an `ArmorGel` base binds it as `_SecondaryTex`), the render thread
+reads `GL_TEXTURE_BINDING_2D` on that unit, stores it by the XNA texture (pinned) and skips the draw.
+Later draws bind the learned names on units 14 and 15 with our own sampler (linear, repeat) and
+restore those units afterwards. `csspritefx` 14/14: `MiscShaderData.UseImage2` and `SetValue` on all
+three samplers.
+
+Cost (2026-11-25, MuMu 16384, `tools/tests/csspritefxperf` with `setprop debug.bl.spritefxprofile 1`:
+native timers in `SpriteFx.cpp`; 200 16 px sprites in the interface, 450 measured frames per phase,
+phases alternated twice). The first version read GL state on every draw (`glGetUniformfv` of `_Color`
+to find marked draws, about 15 `glGet*` per marked draw for the matrices and texture units); on the
+emulator each `glGet*` is a round trip to the host. Now hooks on `glUniform{1,2,3,4}fv`,
+`glUniformMatrix4fv`, `glBindTexture` and `glBindSampler` keep those values, seeded once with
+`glGet*` (array uniforms fall back to `glGet*` if their locations are not consecutive), and texture
+units are read once per program:
+
+| Phase | Before: frame / render-thread cost | After |
+|---|---|---|
+| Idle, hooks off | 16.7 ms | 16.8 ms |
+| Idle, hooks on (~75 game draws checked) | 16.7 ms, 15 µs per check = 1.2 ms/frame | 16.7 ms, 0.1 µs per check = 8 µs/frame |
+| 200 sprites, `Begin(effect)` deferred (1 marked draw) | 16.8 ms, 0.8 ms per marked draw | 16.7 ms, 10–12 µs |
+| 200 sprites, `Immediate`, `SetValue` + `Apply()` per draw (200 marked) | 77–84 ms, 350–390 µs per marked draw | 16.7–16.9 ms, 2.6–2.7 µs |
+| Same with `uImage1..3` set | 97 ms, 455 µs | 16.8 ms, 4.4 µs |
+
+Game thread, unchanged by this: drawing the 200 sprites costs 0.12–0.14 ms without a shader
+(deferred), 0.19–0.21 ms with `Begin(effect)`, 0.20–0.21 ms in `Immediate` without one and
+0.78–0.86 ms in `Immediate` with `Apply()` per draw (about 3 µs per draw: the material lookup, the
+MojoShader preshader commit (~1.2 µs) and the marker `SetVector`). `GetMaterial` adds 20–45 µs per
+frame for every batch. The frame stays at 60 fps (vsync) in every phase. The GPU time of the
+emulator says nothing about a phone; not measured on Mali/Adreno.
+
+Open: vertex shaders, `FxcEffect` reload for sprite passes, a sprite program compiled before
 the hooks (no captured text: own vertex shader and plain sampling), cost on a phone (one
 `glGetUniformfv` per draw of programs with `_Color`, plus uniform copies per marked draw), Mali/Adreno.
 

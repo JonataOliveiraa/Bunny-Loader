@@ -47,6 +47,7 @@ internal static unsafe class FxcGameEffect
     static int Offset(IntPtr klass, string field)
     {
         byte* name = Host.Utf8(field);
+
         try
         {
             int offset = Host.Native()->FieldOffset(klass, name);
@@ -59,9 +60,11 @@ internal static unsafe class FxcGameEffect
     internal static Effect Create(FxcEffect fx)
     {
         Effect effect = Effect.New(Main.instance.GraphicsDevice);
+
         var names = new List<string>(fx.Parameters.OrderBy(p => p.Index).Select(p => p.Name));
         foreach (string name in Standard)
             if (!names.Contains(name)) names.Add(name);
+
         EffectParameter[] parameters = names.Select(EffectParameter.New).ToArray();
         effect.Parameters = EffectParameterCollection.New(parameters);
 
@@ -69,6 +72,7 @@ internal static unsafe class FxcGameEffect
         foreach (FxcEffect.Pass pass in fx.Passes)
             foreach (var sampler in pass.Samplers)
                 registers.TryAdd(sampler.Value, sampler.Key);
+
         lock (samplers)
             foreach (EffectParameter parameter in parameters)
                 if (parameter.Name != null && registers.TryGetValue(parameter.Name, out int register))
@@ -76,29 +80,37 @@ internal static unsafe class FxcGameEffect
 
         var techniques = new List<EffectTechnique>();
         byte* error = stackalloc byte[1024];
+
         foreach (IGrouping<int, FxcEffect.Pass> group in fx.Passes.GroupBy(p => p.Technique).OrderBy(g => g.Key))
         {
             var passes = new List<EffectPass>();
+
             foreach (FxcEffect.Pass pass in group)
             {
                 int images = pass.Samplers.Count == 0 ? 1 : pass.Samplers.Keys.Max() + 1;
-                if (images > 2) Log.Warn($"fxc: {fx.Name}: pass {pass} samples uImage{images - 1}; sprite shaders get uImage0 and uImage1 only");
+                if (images > 4) Log.Warn($"fxc: {fx.Name}: pass {pass} samples uImage{images - 1}; sprite shaders get uImage0 to uImage3");
+
                 IntPtr material = Host.Native()->SpriteFxMaterial(BaseMaterial(images > 1 ? 2 : 1));
                 if (material == IntPtr.Zero) throw new InvalidOperationException($"fxc: {fx.Name}: the sprite material could not be copied");
                 EffectPass gamePass = EffectPass.New(effect, passes.Count, pass.Name, new GameObject(material));
                 passes.Add(gamePass);
                 if (pass.Error != null) continue;
+
                 error[0] = 0;
                 if (Host.Native()->SpriteFxRegister(gamePass.Pointer, fx.NativeId, pass.Technique, pass.Index, error, 1024) <= 0)
                     Log.Warn($"fxc: {fx.Name}: pass {pass} cannot draw sprites: {new string((sbyte*)error)}");
             }
+
             techniques.Add(EffectTechnique.New(effect, group.First().TechniqueName, EffectPassCollection.New(passes.ToArray())));
         }
+
         if (techniques.Count == 0) throw new InvalidOperationException($"fxc: {fx.Name} has no technique");
         effect.CurrentTechnique = techniques[0];
+
         EffectTechniqueCollection collection = EffectTechniqueCollection.New(techniques.ToArray());
         Host.Native()->GcHandleNew(collection.Pointer, 0);
         lock (techniqueSets) techniqueSets[effect.Pointer] = collection;
+
         Host.Native()->GcHandleNew(effect.Pointer, 0);
         return effect;
     }
@@ -126,8 +138,8 @@ internal static unsafe class FxcGameEffect
             if (!samplers.TryGetValue(parameter.Pointer, out sampler))
                 throw new NotSupportedException($"EffectParameter {parameter.Name}: textures can only be set on the samplers of a mod's .fxc effect");
         if (sampler.Register == 0) return;
-        if (sampler.Register != 1)
-            throw new NotSupportedException($"EffectParameter {parameter.Name}: sprite shaders take a texture in uImage1 (register s1) only, not s{sampler.Register}");
+        if (sampler.Register > 3)
+            throw new NotSupportedException($"EffectParameter {parameter.Name}: sprite shaders take textures in uImage1 to uImage3, not s{sampler.Register}");
         Host.Native()->SpriteFxSetTexture(sampler.Effect, sampler.Register, texture.Pointer);
     }
 
@@ -148,6 +160,7 @@ internal static unsafe class FxcGameEffect
                     break;
                 }
         }
+
         if (found == IntPtr.Zero) throw new InvalidOperationException($"fxc: the game has no pixel shader to carry a sprite effect with {textures} image(s)");
         bases[textures] = found;
         return found;

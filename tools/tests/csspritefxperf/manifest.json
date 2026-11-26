@@ -1,0 +1,14 @@
+{
+  "uid": "cfbe277d-c82a-4c78-906d-7c425c8e891b",
+  "id": "CsSpriteFxPerf",
+  "name": "Test: .fxc sprite shader cost (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Measures the cost of .fxc sprite shaders: idle before and after the hooks, then 200 sprites with and without a shader, deferred and immediate.",
+  "description": "Build with tools/tests/build-cs.sh csspritefxperf. Run with adb shell setprop debug.bl.spritefxprofile 1 for the native timers. Logs csspritefxperf PHASE <name> ... per phase and csspritefxperf END pass=N fail=M.",
+  "updated": "2026-11-25",
+  "blVersion": 3,
+  "gameVersion": [301720, 301720],
+  "dependencies": []
+}

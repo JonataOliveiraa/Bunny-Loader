@@ -340,7 +340,7 @@ int32_t fxcParamFloats(int32_t id, int32_t index) {
     return static_cast<int32_t>(std::max(v.type.rows, 1u) * std::max(v.type.columns, 1u) * std::max(v.type.elements, 1u));
 }
 
-bool fxcSpriteSource(int32_t id, int32_t technique, int32_t pass, std::string& out, std::string& error, int32_t& registers) {
+bool fxcSpriteSource(int32_t id, int32_t technique, int32_t pass, std::string& out, std::string& error, int32_t& registers, int32_t& images) {
     std::lock_guard<std::mutex> lock(g_mutex);
     Entry* entry = find(id);
     if (!entry) {
@@ -359,6 +359,8 @@ bool fxcSpriteSource(int32_t id, int32_t technique, int32_t pass, std::string& o
         return false;
     }
     registers = floatRegisterCount(pd);
+    images = 0;
+    for (int i = 0; i < pd->sampler_count; ++i) images = std::max(images, pd->samplers[i].index + 1);
     return convert(pd, out, error, true);
 }
 

@@ -1,5 +1,7 @@
 sampler uImage0 : register(s0);
 sampler uImage1 : register(s1);
+sampler uImage2 : register(s2);
+sampler uImage3 : register(s3);
 float3 uColor;
 float uOpacity;
 
@@ -32,6 +34,12 @@ float4 Invert(float2 coords : TEXCOORD0, float4 sampleColor : COLOR0) : COLOR0
     return float4(c.a - c.rgb * uColor, c.a) * uOpacity;
 }
 
+float4 Layers(float2 coords : TEXCOORD0, float4 sampleColor : COLOR0) : COLOR0
+{
+    float4 c = tex2D(uImage0, coords);
+    return float4(tex2D(uImage1, coords).r, tex2D(uImage2, coords).r, tex2D(uImage3, coords).r, 1) * c.a;
+}
+
 technique Technique1
 {
     pass UV
@@ -45,6 +53,10 @@ technique Technique1
     pass Dissolve
     {
         PixelShader = compile ps_2_0 Dissolve();
+    }
+    pass Layers
+    {
+        PixelShader = compile ps_2_0 Layers();
     }
 }
 

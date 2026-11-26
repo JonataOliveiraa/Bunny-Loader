@@ -21,10 +21,11 @@ namespace CsSpriteFx
     {
         const int End = 1500;
         const string Dissolve = "CsSpriteFx:Dissolve";
+        const string Layers = "CsSpriteFx:Layers";
         static int frame, pass, fail, drawn;
         static Effect effect;
         static bool ready;
-        static Asset<Texture2D>? square, gradientV;
+        static Asset<Texture2D>? square, gradientV, gradientH;
 
         static ILog Log => ModContent.GetInstance<CsSpriteFxMod>().Logger;
 
@@ -32,6 +33,7 @@ namespace CsSpriteFx
         {
             square = Assets.Request<Texture2D>("Content/Square");
             gradientV = Assets.Request<Texture2D>("Content/GradientV");
+            gradientH = Assets.Request<Texture2D>("Content/Gradient");
             On_Player.Update += Update;
         }
 
@@ -66,7 +68,7 @@ namespace CsSpriteFx
                     Report("ModContent finds the same asset", ModContent.Request<Effect>("CsSpriteFx/Effects/SpriteFx") == asset, "");
                     effect = asset.Value;
                     EffectPassCollection passes = effect.CurrentTechnique.Passes;
-                    Report("the effect lists its passes", passes.Count == 3 && passes[0].Name == "UV" && passes["Tint"].Name == "Tint" && passes["Nope"].IsNull,
+                    Report("the effect lists its passes", passes.Count == 4 && passes[0].Name == "UV" && passes["Tint"].Name == "Tint" && passes["Nope"].IsNull,
                         $"{passes.Count}");
                     Report("the effect lists its parameters", !effect.Parameters["uColor"].IsNull && !effect.Parameters["uOpacity"].IsNull && !effect.Parameters["uTime"].IsNull,
                         $"{effect.Parameters.Count}");
@@ -80,6 +82,7 @@ namespace CsSpriteFx
                     catch (NotSupportedException) { notSampler = true; }
                     Report("a texture on a non-sampler parameter is refused", notSampler, "");
                     GameShaders.Misc[Dissolve] = new MiscShaderData(asset, "Dissolve").UseImage1(mod.Assets.Request<Texture2D>("Content/Gradient"));
+                    GameShaders.Misc[Layers] = new MiscShaderData(asset, "Layers").UseImage1(gradientH!).UseImage2(gradientV!);
                     Report("GameShaders.Misc keeps a mod shader", GameShaders.Misc.ContainsKey(Dissolve) && !GameShaders.Misc[Dissolve].IsNull, "");
                     bool refused = false;
                     try { _ = ModContent.Request<Effect>("Terraria/Effects/Nope"); }
@@ -97,7 +100,8 @@ namespace CsSpriteFx
                     string text = string.Join(" ", s);
                     Report("draws were marked", s[0] > 0, text);
                     Report("marked draws reached the render thread", s[1] > 0, text);
-                    Report("all four passes linked", s[3] >= 4 && s[4] == 0, text);
+                    Report("all five passes linked", s[3] >= 5 && s[4] == 0, text);
+                    Report("uImage2 and uImage3 were learned", s[8] >= 2, text);
                     Report("no marked draw was lost", s[2] == 0, text);
                     break;
                 }
@@ -164,6 +168,22 @@ namespace CsSpriteFx
             Square(at + new Vector2(156, 104));
             sb.End();
             effect.Parameters["uImage1"].SetValue(default(Texture2D));
+
+            sb.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.None, RasterizerState.CullNone, null, matrix);
+            GameShaders.Misc[Layers].Apply(null);
+            Square(at + new Vector2(-52, 208));
+            sb.End();
+
+            sb.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.None, RasterizerState.CullNone, null, matrix);
+            effect.Parameters["uImage1"].SetValue(gradientH!.Value);
+            effect.Parameters["uImage2"].SetValue(gradientV!.Value);
+            effect.Parameters["uImage3"].SetValue(square.Value);
+            effect.CurrentTechnique.Passes["Layers"].Apply();
+            Square(at + new Vector2(52, 208));
+            sb.End();
+            effect.Parameters["uImage1"].SetValue(default(Texture2D));
+            effect.Parameters["uImage2"].SetValue(default(Texture2D));
+            effect.Parameters["uImage3"].SetValue(default(Texture2D));
 
             sb.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp, DepthStencilState.None, RasterizerState.CullCounterClockwise, null, matrix);
             drawn++;

@@ -29,6 +29,10 @@ using EnumFn = void (*)(GLenum);
 using ColorMaskFn = void (*)(GLboolean, GLboolean, GLboolean, GLboolean);
 using ShaderSourceFn = void (*)(GLuint, GLsizei, const GLchar* const*, const GLint*);
 using AttachShaderFn = void (*)(GLuint, GLuint);
+using UniformFn = void (*)(GLint, GLsizei, const GLfloat*);
+using UniformMatrixFn = void (*)(GLint, GLsizei, GLboolean, const GLfloat*);
+using BindTextureFn = void (*)(GLenum, GLuint);
+using BindSamplerFn = void (*)(GLuint, GLuint);
 
 SwapFn g_origSwap = nullptr;
 BindFramebufferFn g_origBindFramebuffer = nullptr;
@@ -43,6 +47,19 @@ EnumFn g_origDisable = nullptr;
 ColorMaskFn g_origColorMask = nullptr;
 ShaderSourceFn g_origShaderSource = nullptr;
 AttachShaderFn g_origAttachShader = nullptr;
+UniformFn g_origUniform1fv = nullptr;
+UniformFn g_origUniform2fv = nullptr;
+UniformFn g_origUniform3fv = nullptr;
+UniformFn g_origUniform4fv = nullptr;
+UniformMatrixFn g_origUniformMatrix4fv = nullptr;
+BindTextureFn g_origBindTexture = nullptr;
+BindSamplerFn g_origBindSampler = nullptr;
+
+constexpr GLuint kUnits = 32;
+GLuint g_textures2D[kUnits] = {};
+GLuint g_samplers[kUnits] = {};
+bool g_texturesKnown[kUnits] = {};
+bool g_samplersKnown[kUnits] = {};
 
 thread_local bool t_inside = false;
 
@@ -187,6 +204,60 @@ void hkDrawElements(GLenum mode, GLsizei count, GLenum type, const void* indices
     g_origDrawElements(mode, count, type, indices);
 }
 
+void noteUniform(int floats, GLint location, GLsizei count, const GLfloat* values) {
+    if (tracked() && spriteFxActive()) spriteFxNoteUniform(g_shadow.program, floats, location, count, values);
+}
+
+void hkUniform1fv(GLint location, GLsizei count, const GLfloat* values) {
+    noteUniform(1, location, count, values);
+    g_origUniform1fv(location, count, values);
+}
+
+void hkUniform2fv(GLint location, GLsizei count, const GLfloat* values) {
+    noteUniform(2, location, count, values);
+    g_origUniform2fv(location, count, values);
+}
+
+void hkUniform3fv(GLint location, GLsizei count, const GLfloat* values) {
+    noteUniform(3, location, count, values);
+    g_origUniform3fv(location, count, values);
+}
+
+void hkUniform4fv(GLint location, GLsizei count, const GLfloat* values) {
+    noteUniform(4, location, count, values);
+    g_origUniform4fv(location, count, values);
+}
+
+void hkUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat* values) {
+    if (!transpose) noteUniform(16, location, count, values);
+    g_origUniformMatrix4fv(location, count, transpose, values);
+}
+
+void hkBindTexture(GLenum target, GLuint texture) {
+    if (target == GL_TEXTURE_2D && tracked() && g_synced) {
+        const GLuint unit = g_shadow.activeTexture - GL_TEXTURE0;
+        if (unit < kUnits) {
+            g_textures2D[unit] = texture;
+            g_texturesKnown[unit] = true;
+        }
+    }
+    g_origBindTexture(target, texture);
+}
+
+void hkBindSampler(GLuint unit, GLuint sampler) {
+    if (unit < kUnits && tracked()) {
+        g_samplers[unit] = sampler;
+        g_samplersKnown[unit] = true;
+    }
+    g_origBindSampler(unit, sampler);
+}
+
+void syncShadow() {
+    if (g_synced) return;
+    g_shadow = queryGlState();
+    g_synced = true;
+}
+
 void hkShaderSource(GLuint shader, GLsizei count, const GLchar* const* strings, const GLint* lengths) {
     if (!t_inside) spriteFxNoteSource(shader, count, strings, lengths);
     g_origShaderSource(shader, count, strings, lengths);
@@ -256,8 +327,64 @@ void installGlHooks() {
         ok &= hookGl("glDrawArrays", reinterpret_cast<void*>(g.DrawArrays), hkDrawArrays, &g_origDrawArrays);
         ok &= hookGl("glShaderSource", reinterpret_cast<void*>(g.ShaderSource), hkShaderSource, &g_origShaderSource);
         ok &= hookGl("glAttachShader", reinterpret_cast<void*>(g.AttachShader), hkAttachShader, &g_origAttachShader);
+        ok &= hookGl("glUniform1fv", reinterpret_cast<void*>(g.Uniform1fv), hkUniform1fv, &g_origUniform1fv);
+        ok &= hookGl("glUniform2fv", reinterpret_cast<void*>(g.Uniform2fv), hkUniform2fv, &g_origUniform2fv);
+        ok &= hookGl("glUniform3fv", reinterpret_cast<void*>(g.Uniform3fv), hkUniform3fv, &g_origUniform3fv);
+        ok &= hookGl("glUniform4fv", reinterpret_cast<void*>(g.Uniform4fv), hkUniform4fv, &g_origUniform4fv);
+        ok &= hookGl("glUniformMatrix4fv", reinterpret_cast<void*>(g.UniformMatrix4fv), hkUniformMatrix4fv, &g_origUniformMatrix4fv);
+        ok &= hookGl("glBindTexture", reinterpret_cast<void*>(g.BindTexture), hkBindTexture, &g_origBindTexture);
+        ok &= hookGl("glBindSampler", reinterpret_cast<void*>(g.BindSampler), hkBindSampler, &g_origBindSampler);
         BL_INFO("screen effects: GL hooks %s", ok ? "ok" : "failed");
     });
+}
+
+GLenum shadowActiveTexture() {
+    syncShadow();
+    return g_shadow.activeTexture;
+}
+
+GLuint shadowTexture2D(GLuint unit) {
+    syncShadow();
+    if (unit >= kUnits) return 0;
+
+    if (!g_texturesKnown[unit]) {
+        auto& g = gl();
+        const bool inside = t_inside;
+        t_inside = true;
+
+        GLint value = 0;
+        g.ActiveTexture(GL_TEXTURE0 + unit);
+        g.GetIntegerv(GL_TEXTURE_BINDING_2D, &value);
+        g.ActiveTexture(g_shadow.activeTexture);
+
+        t_inside = inside;
+        g_textures2D[unit] = static_cast<GLuint>(value);
+        g_texturesKnown[unit] = true;
+    }
+
+    return g_textures2D[unit];
+}
+
+GLuint shadowSampler(GLuint unit) {
+    syncShadow();
+    if (unit >= kUnits) return 0;
+
+    if (!g_samplersKnown[unit]) {
+        auto& g = gl();
+        const bool inside = t_inside;
+        t_inside = true;
+
+        GLint value = 0;
+        g.ActiveTexture(GL_TEXTURE0 + unit);
+        g.GetIntegerv(GL_SAMPLER_BINDING, &value);
+        g.ActiveTexture(g_shadow.activeTexture);
+
+        t_inside = inside;
+        g_samplers[unit] = static_cast<GLuint>(value);
+        g_samplersKnown[unit] = true;
+    }
+
+    return g_samplers[unit];
 }
 
 void fillGlHookStats(RenderStats& stats) {

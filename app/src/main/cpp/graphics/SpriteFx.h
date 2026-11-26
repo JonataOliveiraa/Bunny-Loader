@@ -20,6 +20,8 @@ void spriteFxNoteSource(GLuint shader, GLsizei count, const GLchar* const* strin
 
 void spriteFxNoteAttach(GLuint program, GLuint shader);
 
+void spriteFxNoteUniform(GLuint program, int floats, GLint location, GLsizei count, const GLfloat* values);
+
 bool spriteFxDraw(GLuint program, GLenum mode, GLsizei count, GLenum type, const void* indices);
 
 }

@@ -33,6 +33,7 @@ namespace CsExSpriteFx
             frame++;
             self.creativeGodMode = true;
             self.statLife = self.statLifeMax2;
+
             if (hold > 0 && npc >= 0 && Main.npc[npc].active)
             {
                 NPC held = Main.npc[npc];
@@ -41,6 +42,7 @@ namespace CsExSpriteFx
                 held.rotation = 0f;
                 held.velocity = Vector2.Zero;
             }
+
             try { Step(self); }
             catch (Exception e) { Report($"frame {frame}", false, e.ToString()); }
             if (frame == End) Log.Info($"csexspritefx END pass={pass} fail={fail}");
@@ -58,11 +60,13 @@ namespace CsExSpriteFx
                     int shader = GameShaders.Armor.GetShaderIdFromItemId(dye);
                     Report("the dye is bound to its .fxc shader", shader > 0, $"shader {shader}");
                     int[] armor = { ItemID.SilverHelmet, ItemID.SilverChainmail, ItemID.SilverGreaves };
+
                     for (int k = 0; k < 3; k++)
                     {
                         player.armor[k] = new Item(armor[k]);
                         player.dye[k] = new Item(0);
                     }
+
                     Report("GameShaders.Misc has the death shader", GameShaders.Misc.ContainsKey("ExampleMod:DeathAnimation"), "");
                     break;
                 }
