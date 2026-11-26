@@ -224,6 +224,7 @@ static class Program
         public bool IsStatic;
         public TypeUse Use = null!;
         public MethodModel? Get, Set;
+        public bool HoldsReference;
     }
 
     sealed class TypePlan
@@ -339,7 +340,8 @@ static class Program
                 if (gm != null && gm.Plan.Ret.ByRef) gm = null;
                 if (gm == null && sm == null) continue;
                 TypeUse use = gm != null ? gm.Plan.Ret.Use : sm!.Params[0].Use;
-                plan.Props.Add(new PropModel { Name = Claim(p.Name), IsStatic = st, Use = use, Get = gm, Set = sm });
+                bool reference = !p.PropertyType.IsValueType && !p.PropertyType.IsPointer && !use.IsString && !use.Converted;
+                plan.Props.Add(new PropModel { Name = Claim(p.Name), IsStatic = st, Use = use, Get = gm, Set = sm, HoldsReference = reference });
             }
         }
 
@@ -704,6 +706,11 @@ static class Program
             if (p.Get != null) emitter.EmitMethod(sb, ind, p.Get, cls, getName, "private");
             if (p.Set != null) emitter.EmitMethod(sb, ind, p.Set, cls, setName, "private");
             string type = p.Use.Cs;
+            if (p.Get != null && p.Set == null && p.HoldsReference)
+            {
+                sb.Append(ind).Append($"public {st}ref readonly {type} {p.Name} => ref {RT}.GameSlot<{type}>.Hold({getName}());\n");
+                continue;
+            }
             sb.Append(ind).Append($"public {st}{type} {p.Name}\n").Append(ind).Append("{\n");
             if (p.Get != null) sb.Append(ind).Append($"    get => {getName}();\n");
             if (p.Set != null) sb.Append(ind).Append($"    set => {setName}(value);\n");
