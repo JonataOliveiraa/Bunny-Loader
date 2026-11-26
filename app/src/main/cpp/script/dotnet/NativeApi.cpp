@@ -33,6 +33,7 @@
 #include "content/projectiles/ProjectileDrawSplit.h"
 #include "content/dusts/ModDusts.h"
 #include "content/common/ContentAssets.h"
+#include "content/common/TextureData.h"
 #include "content/common/ModContent.h"
 #include "content/common/ModTextures.h"
 #include "content/textures/FontPacks.h"
@@ -252,6 +253,10 @@ struct NativeApi {
     int32_t (*spriteFxStats)(int64_t* out, int32_t count);
     int32_t (*spriteFxSetTexture)(void* effect, int32_t reg, void* texture);
     void* (*inflateMethod)(void* method, void** classes, int32_t count);
+    void* (*textureCreate)(int32_t width, int32_t height);
+    void* (*textureFromPng)(const uint8_t* data, int32_t size);
+    int32_t (*textureWrite)(void* texture, int32_t x, int32_t y, int32_t width, int32_t height, const uint8_t* pixels, int32_t order);
+    int32_t (*textureRead)(void* texture, int32_t x, int32_t y, int32_t width, int32_t height, uint8_t* pixels, int32_t order);
 };
 
 struct Extra {
@@ -1328,6 +1333,18 @@ const NativeApi kNativeApi{
     graphics::spriteFxStats,
     graphics::spriteFxSetTexture,
     nativeInflateMethod,
+    [](int32_t width, int32_t height) -> void* { return runtime::content::createTexture(width, height); },
+    [](const uint8_t* data, int32_t size) -> void* {
+        return size > 0 ? runtime::content::textureFromPng(data, static_cast<size_t>(size)) : nullptr;
+    },
+    [](void* texture, int32_t x, int32_t y, int32_t width, int32_t height, const uint8_t* pixels, int32_t order) -> int32_t {
+        return static_cast<int32_t>(runtime::content::writeTexture(static_cast<Il2CppObject*>(texture), x, y, width, height, pixels,
+                                                                   static_cast<runtime::content::PixelOrder>(order)));
+    },
+    [](void* texture, int32_t x, int32_t y, int32_t width, int32_t height, uint8_t* pixels, int32_t order) -> int32_t {
+        return static_cast<int32_t>(runtime::content::readTexture(static_cast<Il2CppObject*>(texture), x, y, width, height, pixels,
+                                                                  static_cast<runtime::content::PixelOrder>(order)));
+    },
 };
 
 }

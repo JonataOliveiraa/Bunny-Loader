@@ -1,0 +1,14 @@
+{
+  "uid": "e52767f3-6f79-4b5b-8a84-8617e8290d38",
+  "id": "CsTexData",
+  "name": "Test: Texture2D SetData and GetData (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "new Texture2D, SetData and GetData with every overload, Texture2D.FromStream, a mod's own image, the errors, the cost, and the drawn result.",
+  "description": "Build with tools/tests/build-cs.sh cstexdata. In the world, logs 'cstexdata <case>: ok | FAIL', 'cstexdata perf ...', 'cstexdata draw x,y' and 'cstexdata END pass=N fail=M'. The textures stay on screen for tools/tests/cstexdata/screen.py.",
+  "updated": "2026-11-26",
+  "blVersion": 3,
+  "gameVersion": [301720, 301720],
+  "dependencies": []
+}

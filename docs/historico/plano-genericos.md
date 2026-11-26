@@ -31,7 +31,8 @@ Part A was built with a simpler design than section 3 describes:
   (`ImmediateLoad = 1`, `AsyncLoad = 2`) and in the tML-style enum. Parameters
   and returns of that type now convert (`AssetRequestModes`), hooks included.
 
-Parts B and C are not started.
+Part B is not started. Part C (C1 to C3) was built the same day, see
+"Part C status" below.
 
 ### Cost measured (2026-11-26, MuMu 16384, beta, 3 runs)
 
@@ -101,6 +102,72 @@ nothing behind:
   Unity object finders (`FindInChildren`...), `Texture2D.SetData<object>`
   (unknown behavior on the phone, part C), and the deep clone and restore of
   `DeepCloning` (debug code).
+
+### Part C status (2026-11-26)
+
+- Native `content/common/TextureData` (create, PNG, write, read) behind four
+  NativeApi entries; C# `Texture2D.Data.cs` (the tML API) over
+  `TextureData.cs` (checks and errors).
+- Works on textures that hold their own readable 32-bit pixels: `new
+  Texture2D`, `FromStream` and a mod's own images. The game build stripped
+  `ReadPixels`, `RenderTexture.active`, `GetTemporary` and the plain
+  `Blit`, so there is no GPU readback: atlas and palette textures, render
+  targets and non-readable textures throw `NotSupportedException`
+  (`TextureAssets.Item[1]` is one of them). C2's readback and C4 are left.
+- Two things found on the way: Unity keeps rows bottom-up (mod images are
+  decoded that way), so both directions flip rows; and the game's `Color` is
+  A, B, G, R in memory, so `Color[]` data is converted (`PixelOrder.Abgr`)
+  while `uint[]` and `byte[]` keep the XNA order (R in the low byte).
+- Created textures are pinned with a GC handle for the life of the game.
+- `!Texture2D.SetData<>` in `types.txt` hides the game's `SetData<object>`.
+- Pack `tools/tests/cstexdata`: 19/19 on MuMu, and `screen.py` finds all 12
+  cells of each drawn texture in a screenshot (created, `FromStream`, mod
+  image). Cost: `SetData` 64x64 ~85 µs, `GetData` ~55 µs; 256x256 ~300 µs.
+  Run again the same day with the 0.5.13-beta APK: 19/19, `screen.py` OK.
+
+### C5 status (2026-11-26)
+
+`tools/docs/FnaInventory` compares the public API of tModLoader's FNA
+(`exmod_tmod/tModLoader/FNA`, the submodule at `48d5138`) with the mobile
+dump and with `BunnyLoader.dll`. It writes
+[inventario-fna.md](inventario-fna.md) and the missing members to
+`tools/docs/FnaInventory/members.txt`; the kind of each type comes from
+`tools/docs/FnaInventory/decisions.txt`. A signature counts as present when a
+mod's call compiles: `GameArray<T>` takes `T[]`, `GameNullable<T>` takes `T?`,
+and an overload with optional parameters covers the shorter call.
+
+First run: 270 public FNA types. BL has 119 of them, 39 complete.
+
+| Kind | Types | Members missing |
+|---|---|---|
+| done | 39 | 0 |
+| 1 copy (plain managed code from FNA) | 78 | 670 |
+| 2 game (over the game or Unity) | 36 | 232 |
+| 3 native (new GL code) | 10 | 274 |
+| out (engine: window, loop, device setup, XACT, media, storage, 3D) | 107 | 972 |
+
+What stands out:
+
+- The primitives are the big gap: `GraphicsDevice.DrawUserPrimitives`,
+  `DrawUserIndexedPrimitives`, `VertexBuffer`/`IndexBuffer`, `BasicEffect` and a
+  real `RenderTarget2D` (render to texture, `GetData`). tML's ExampleMod uses
+  none of them, but large community mods draw trails and screen effects this
+  way. The mobile game has `VertexStrip.DrawTrail` compiled (`0x90C1D8`), so it
+  draws vertex strips somehow: read it first, as the dye material was read
+  for the sprite shaders.
+- `Color` lives in `Microsoft.Xna.Framework.Graphics` in the game and in BL,
+  and in `Microsoft.Xna.Framework` in FNA. Mods that write `using` for both
+  namespaces compile; a fully qualified `Microsoft.Xna.Framework.Color` does
+  not.
+- `Point` lacks FNA's `+`, `-`, `*`, `/`, `==` and `!=`, and `SpriteSortMode`
+  lacks `Texture`, `BackToFront` and `FrontToBack` (the game's batcher would
+  have to honor them).
+- `EffectParameter` has 8 of 51 members (`GetValue*`, `SetValue` of arrays,
+  matrices and vectors are missing), over `FxcGameEffect`.
+- ModConfig's `[DefaultValue(typeof(Color), "r, g, b, a")]` needs
+  `Design.ColorConverter`.
+- FNA is Ms-PL: code copied from it keeps its notice, and the copied source
+  files stay Ms-PL.
 
 ## 1. Where we stand
 
