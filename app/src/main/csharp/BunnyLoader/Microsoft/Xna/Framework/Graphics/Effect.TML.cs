@@ -52,7 +52,127 @@ public readonly unsafe partial struct Effect
 
 public readonly unsafe partial struct EffectParameter
 {
+    static readonly System.Collections.Generic.Dictionary<nint, Matrix[]> matrices = new();
+
     public void SetValue(int value) => SetValue((float)value);
 
     public void SetValue(Texture2D value) => BunnyLoader.FxcGameEffect.SetTexture(this, value);
+
+    public void SetValue(Texture value) => SetValue((Texture2D)value);
+
+    public void SetValue(bool value) => Write(value ? 1f : 0f);
+
+    public void SetValue(float value) => Write(value);
+
+    public void SetValue(Vector2 value) => Write(value.X, value.Y);
+
+    public void SetValue(Vector3 value) => Write(value.X, value.Y, value.Z);
+
+    public void SetValue(Vector4 value) => Write(value.X, value.Y, value.Z, value.W);
+
+    public void SetValue(Quaternion value) => Write(value.X, value.Y, value.Z, value.W);
+
+    public void SetValue(Matrix value) => SetValue(new[] { value });
+
+    public void SetValueTranspose(Matrix value) => SetValue(Matrix.Transpose(value));
+
+    public void SetValueTranspose(Matrix[] value) => SetValue(System.Array.ConvertAll(value, Matrix.Transpose));
+
+    public void SetValue(Matrix[] value)
+    {
+        if (value == null) throw new System.ArgumentNullException(nameof(value));
+        lock (matrices) matrices[Pointer] = (Matrix[])value.Clone();
+        if (value.Length > 0) Write(value[0].M11, value[0].M12, value[0].M13, value[0].M14);
+    }
+
+    public void SetValue(float[] value) => Write(value);
+
+    public void SetValue(int[] value) => Write(System.Array.ConvertAll(value, v => (float)v));
+
+    public void SetValue(bool[] value) => Write(System.Array.ConvertAll(value, v => v ? 1f : 0f));
+
+    public void SetValue(Vector2[] value) => Write(Flatten(value, v => new[] { v.X, v.Y }));
+
+    public void SetValue(Vector3[] value) => Write(Flatten(value, v => new[] { v.X, v.Y, v.Z }));
+
+    public void SetValue(Vector4[] value) => Write(Flatten(value, v => new[] { v.X, v.Y, v.Z, v.W }));
+
+    public void SetValue(Quaternion[] value) => Write(Flatten(value, v => new[] { v.X, v.Y, v.Z, v.W }));
+
+    public void SetValue(string value) => throw new System.NotSupportedException($"EffectParameter {Name}: string parameters are not supported");
+
+    public bool GetValueBoolean() => Read(0) != 0;
+
+    public int GetValueInt32() => (int)Read(0);
+
+    public float GetValueSingle() => Read(0);
+
+    public Vector2 GetValueVector2() => new(Read(0), Read(1));
+
+    public Vector3 GetValueVector3() => new(Read(0), Read(1), Read(2));
+
+    public Vector4 GetValueVector4() => new(Read(0), Read(1), Read(2), Read(3));
+
+    public Quaternion GetValueQuaternion() => new() { X = Read(0), Y = Read(1), Z = Read(2), W = Read(3) };
+
+    public Matrix GetValueMatrix()
+    {
+        lock (matrices) return matrices.TryGetValue(Pointer, out Matrix[]? m) && m.Length > 0 ? m[0] : Matrix.Identity;
+    }
+
+    public Matrix GetValueMatrixTranspose() => Matrix.Transpose(GetValueMatrix());
+
+    public Matrix[] GetValueMatrixArray(int count)
+    {
+        lock (matrices) return matrices.TryGetValue(Pointer, out Matrix[]? m) ? m[..System.Math.Min(count, m.Length)] : new Matrix[0];
+    }
+
+    public Texture2D GetValueTexture2D() => throw new System.NotSupportedException($"EffectParameter {Name}: textures cannot be read back");
+
+    internal bool TryGetMatrix(out Matrix value)
+    {
+        lock (matrices)
+        {
+            if (matrices.TryGetValue(Pointer, out Matrix[]? m) && m.Length > 0)
+            {
+                value = m[0];
+                return true;
+            }
+        }
+
+        value = Matrix.Identity;
+        return false;
+    }
+
+    static float[] Flatten<T>(T[] values, System.Func<T, float[]> parts)
+    {
+        if (values == null) throw new System.ArgumentNullException(nameof(values));
+        var all = new System.Collections.Generic.List<float>();
+        foreach (T v in values) all.AddRange(parts(v));
+        return all.ToArray();
+    }
+
+    float Read(int index)
+    {
+        if (Pointer == 0) throw new System.NullReferenceException("EffectParameter is null");
+        BunnyLoader.Interop.GameArray<float> data = Data;
+        return data.IsNull || index >= data.Length ? 0f : data[index];
+    }
+
+    void Write(params float[] values)
+    {
+        if (Pointer == 0) throw new System.NullReferenceException("EffectParameter is null");
+        if (values == null) throw new System.ArgumentNullException(nameof(values));
+        BunnyLoader.Interop.GameArray<float> data = Data;
+
+        if (data.IsNull || data.Length < 4)
+        {
+            data = BunnyLoader.Interop.GameArray<float>.New(new BunnyLoader.Interop.GameClass("System", "Single"), 4);
+            Data = data;
+        }
+
+        System.Span<float> span = data.AsSpan();
+        int count = System.Math.Min(values.Length, span.Length);
+        new System.Span<float>(values, 0, count).CopyTo(span);
+    }
 }

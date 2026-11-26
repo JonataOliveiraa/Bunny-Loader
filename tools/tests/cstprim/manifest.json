@@ -1,0 +1,14 @@
+{
+  "uid": "c4a1e8d2-7b35-4f60-9e2c-81d5b3a7f064",
+  "id": "CsPrim",
+  "name": "Test: GraphicsDevice primitives and BasicEffect (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "DrawUserPrimitives, DrawUserIndexedPrimitives, vertex and index buffers, BasicEffect and a mod .fxc effect with a world-view-projection matrix, drawn as color cells.",
+  "description": "Build with tools/tests/build-cs.sh cstprim. Effects/Trail.fxc comes from src/Trail.fx (fxc /T fx_2_0). Logs 'cstprim <case>: ok | FAIL', 'cstprim perf ...', 'cstprim cell <name> x,y r,g,b' and 'cstprim END pass=N fail=M'; tools/tests/cstprim/screen.py checks the cells in a screenshot.",
+  "updated": "2026-11-26",
+  "blVersion": 3,
+  "gameVersion": [301720, 301720],
+  "dependencies": []
+}

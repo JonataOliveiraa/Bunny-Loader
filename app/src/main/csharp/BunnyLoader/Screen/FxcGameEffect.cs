@@ -112,7 +112,15 @@ internal static unsafe class FxcGameEffect
         lock (techniqueSets) techniqueSets[effect.Pointer] = collection;
 
         Host.Native()->GcHandleNew(effect.Pointer, 0);
+        lock (sources) sources[effect.Pointer] = fx;
         return effect;
+    }
+
+    static readonly Dictionary<IntPtr, FxcEffect> sources = new();
+
+    internal static FxcEffect? SourceOf(Effect effect)
+    {
+        lock (sources) return sources.TryGetValue(effect.Pointer, out FxcEffect? fx) ? fx : null;
     }
 
     static readonly Dictionary<IntPtr, EffectTechniqueCollection> techniqueSets = new();

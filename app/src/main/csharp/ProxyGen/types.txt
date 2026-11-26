@@ -19,6 +19,7 @@ Terraria.Utils
 !Terraria.Graphics.Shaders.HairShaderDataSet.BindShader<>
 !Terraria.IO.GameConfiguration.Get<>
 !Microsoft.Xna.Framework.Graphics.Texture2D.SetData<>
+!Microsoft.Xna.Framework.Graphics.EffectParameter.SetValue
 Terraria.Lang
 Terraria.ID.ItemID
 Terraria.ID.NPCID

@@ -1,0 +1,14 @@
+{
+  "uid": "5b0e7c2a-9f41-4d8e-b6a3-2c71e0d4f915",
+  "id": "CsPrimPoc",
+  "name": "Test: primitives through the game's DrawGeometry (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Proof for GraphicsDevice primitives: mod-made vertices drawn by the game's DrawGeometry with no effect, a vanilla MiscShaderData and a mod .fxc pass.",
+  "description": "Build with tools/tests/build-cs.sh csprimpoc. Effects/SpriteFx.fxc is the csspritefx one. Logs 'csprimpoc draw <case> x,y,w,h screen WxH', 'csprimpoc <case>: ok | FAIL' and 'csprimpoc END pass=N fail=M'; the strips stay on screen for a screenshot.",
+  "updated": "2026-11-26",
+  "blVersion": 3,
+  "gameVersion": [301720, 301720],
+  "dependencies": []
+}

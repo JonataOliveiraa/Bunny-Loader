@@ -31,6 +31,10 @@
     <ProxyGenSources Include="$(MSBuildThisFileDirectory)../ProxyGen/*.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Microsoft/Xna/Framework/Graphics/BasicEffect.fxc" LogicalName="BunnyLoader.BasicEffect.fxc" />
+  </ItemGroup>
+
   <PropertyGroup>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
