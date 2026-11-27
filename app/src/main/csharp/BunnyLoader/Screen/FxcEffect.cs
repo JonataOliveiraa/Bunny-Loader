@@ -25,6 +25,14 @@ public sealed unsafe class FxcEffect
         public int Elements { get; init; }
 
         public bool IsSampler { get; init; }
+
+        public EffectParameterClass ParameterClass { get; init; }
+
+        public EffectParameterType ParameterType { get; init; }
+
+        public string? Semantic { get; init; }
+
+        public EffectAnnotationCollection Annotations { get; internal set; } = EffectAnnotationCollection.Empty;
     }
 
     public sealed class Pass
@@ -45,6 +53,8 @@ public sealed unsafe class FxcEffect
 
         public IReadOnlyDictionary<int, string> Samplers { get; init; } = new Dictionary<int, string>();
 
+        public EffectAnnotationCollection Annotations { get; internal set; } = EffectAnnotationCollection.Empty;
+
         public override string ToString() => $"{TechniqueName}.{Name}";
     }
 
@@ -54,6 +64,7 @@ public sealed unsafe class FxcEffect
     DateTime written;
     Dictionary<string, Parameter> parameters = new();
     List<Pass> passes = new();
+    Dictionary<int, EffectAnnotationCollection> techniqueAnnotations = new();
     readonly Dictionary<Pass, ScreenGraphics.Shader> shaders = new();
 
     public string Name { get; }
@@ -161,6 +172,8 @@ public sealed unsafe class FxcEffect
         var samplers = new Dictionary<(int, int), Dictionary<int, string>>();
         var foundParameters = new Dictionary<string, Parameter>();
         var foundPasses = new List<Pass>();
+        var foundTechniqueAnnotations = new Dictionary<int, EffectAnnotationCollection>();
+        List<EffectAnnotation>? annotations = null;
         int index = 0;
         foreach (string line in text.Split('\n', StringSplitOptions.RemoveEmptyEntries))
         {
@@ -168,28 +181,53 @@ public sealed unsafe class FxcEffect
             switch (f[0])
             {
                 case "A" when f.Length >= 7:
-                    foundParameters[f[1]] = new Parameter
+                {
+                    var parameter = new Parameter
                     {
                         Index = index,
                         Name = f[1],
                         IsSampler = f[2] == "4",
+                        ParameterClass = EffectAnnotation.ClassOf(int.Parse(f[2])),
+                        ParameterType = EffectAnnotation.TypeOf(int.Parse(f[3])),
                         Rows = int.Parse(f[4]),
                         Columns = int.Parse(f[5]),
                         Elements = int.Parse(f[6]),
+                        Semantic = f.Length >= 8 && f[7].Length > 0 ? f[7] : null,
                     };
+                    foundParameters[f[1]] = parameter;
+                    annotations = new List<EffectAnnotation>();
+                    parameter.Annotations = new EffectAnnotationCollection(annotations);
                     index++;
                     break;
+                }
                 case "T" when f.Length >= 3:
-                    techniques[int.Parse(f[1])] = f[2];
+                {
+                    int t = int.Parse(f[1]);
+                    techniques[t] = f[2];
+                    annotations = new List<EffectAnnotation>();
+                    foundTechniqueAnnotations[t] = new EffectAnnotationCollection(annotations);
                     break;
+                }
                 case "P" when f.Length >= 4:
                 {
                     int t = int.Parse(f[1]), p = int.Parse(f[2]);
                     var map = new Dictionary<int, string>();
                     samplers[(t, p)] = map;
-                    foundPasses.Add(new Pass { Technique = t, Index = p, Name = f[3], TechniqueName = techniques.GetValueOrDefault(t, ""), Samplers = map });
+                    annotations = new List<EffectAnnotation>();
+                    foundPasses.Add(new Pass
+                    {
+                        Technique = t,
+                        Index = p,
+                        Name = f[3],
+                        TechniqueName = techniques.GetValueOrDefault(t, ""),
+                        Samplers = map,
+                        Annotations = new EffectAnnotationCollection(annotations),
+                    });
                     break;
                 }
+                case "N" when f.Length >= 7:
+                    annotations?.Add(ReadAnnotation(f));
+                    break;
                 case "S" when f.Length >= 5:
                     if (samplers.TryGetValue((int.Parse(f[1]), int.Parse(f[2])), out var into)) into[int.Parse(f[3])] = f[4];
                     break;
@@ -209,8 +247,29 @@ public sealed unsafe class FxcEffect
         }
         parameters = foundParameters;
         passes = foundPasses;
+        techniqueAnnotations = foundTechniqueAnnotations;
         Log.Info($"fxc: {Name}: {passes.Count} pass(es), {parameters.Count} parameter(s){(reloaded ? " (reloaded)" : "")}");
     }
+
+    static EffectAnnotation ReadAnnotation(string[] f)
+    {
+        EffectParameterType type = EffectAnnotation.TypeOf(int.Parse(f[4]));
+        string value = f.Length >= 8 ? f[7] : "";
+        float[] numbers = type == EffectParameterType.String || value.Length == 0
+            ? Array.Empty<float>()
+            : Array.ConvertAll(value.Split(','), v => float.Parse(v, System.Globalization.CultureInfo.InvariantCulture));
+
+        return new EffectAnnotation(f[1], f[2].Length > 0 ? f[2] : null, EffectAnnotation.ClassOf(int.Parse(f[3])), type,
+                                    int.Parse(f[5]), int.Parse(f[6]), numbers, type == EffectParameterType.String ? value : null);
+    }
+
+    internal Parameter? ParameterNamed(string name) => parameters.GetValueOrDefault(name);
+
+    internal EffectAnnotationCollection TechniqueAnnotations(int technique) =>
+        techniqueAnnotations.GetValueOrDefault(technique) ?? EffectAnnotationCollection.Empty;
+
+    internal EffectAnnotationCollection PassAnnotations(int technique, int pass) =>
+        passes.FirstOrDefault(p => p.Technique == technique && p.Index == pass)?.Annotations ?? EffectAnnotationCollection.Empty;
 
     delegate int TextCall(byte* buffer, int capacity);
 

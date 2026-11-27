@@ -22,6 +22,12 @@ Terraria.Utils
 !Microsoft.Xna.Framework.Graphics.EffectParameter.SetValue
 !Terraria.Graphics.Shaders.MiscShaderData.Apply
 !Terraria.Graphics.SpriteViewMatrix.NormalizedTransformationMatrix
+!Microsoft.Xna.Framework.Graphics.Effect.Clone
+!Microsoft.Xna.Framework.Graphics.SpriteBatch.Begin
+!Microsoft.Xna.Framework.Graphics.SpriteBatch.DrawString(SpriteFont,String,Vector2,Color)
+=Microsoft.Xna.Framework.Graphics.SpriteSortMode.Texture 2
+=Microsoft.Xna.Framework.Graphics.SpriteSortMode.BackToFront 3
+=Microsoft.Xna.Framework.Graphics.SpriteSortMode.FrontToBack 4
 Terraria.Lang
 Terraria.ID.ItemID
 Terraria.ID.NPCID

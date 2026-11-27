@@ -1,0 +1,14 @@
+{
+  "uid": "78dca2d4-3e6b-48f7-98f0-10ab16b16f04",
+  "id": "CsEquality",
+  "name": "Test: value equality of game structs (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "==, !=, Equals, GetHashCode and IEquatable on the game's structs (Rectangle, Point, Vector2/3/4, Color, Matrix, Point16, KeyboardState, MouseState), compared with the game's own Equals.",
+  "description": "Build with tools/tests/build-cs.sh csequality. In the world, logs 'csequality <case>: ok | FAIL' and 'csequality END pass=N fail=M'.",
+  "updated": "2026-11-26",
+  "blVersion": 3,
+  "gameVersion": [301720, 301720],
+  "dependencies": []
+}

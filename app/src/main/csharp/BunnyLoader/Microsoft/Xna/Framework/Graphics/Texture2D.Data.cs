@@ -16,6 +16,8 @@ public readonly unsafe partial struct Texture2D
 
     public static Texture2D FromStream(GraphicsDevice graphicsDevice, Stream stream) => new(TextureData.FromStream(stream));
 
+    public void SaveAsPng(Stream stream, int width, int height) => PngWriter.Write(stream, this, width, height);
+
     public void SetData<T>(T[] data) where T : unmanaged =>
         TextureData.Write(this, 0, null, data, 0, data?.Length ?? 0);
 

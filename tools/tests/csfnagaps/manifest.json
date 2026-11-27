@@ -1,0 +1,17 @@
+{
+  "uid": "f487713d-95d4-4b83-a2d3-944e6c12b0a9",
+  "id": "CsFnaGaps",
+  "name": "Test: FNA small gaps (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "FNA constructors, operators and ToString on the game's structs (Point, Vector3/4, Quaternion, Plane, Color, KeyboardState, MouseState, Viewport, GameTime, Point16) and the bounding math ported from FNA (BoundingBox, BoundingSphere, BoundingFrustum, Ray, Curve), checked against the game's own methods; ColorConverter, new Effect(bytes)/Clone with parameter metadata and annotations, Texture2D.SaveAsPng, DrawString/MeasureString with StringBuilder and the extra SpriteSortMode values.",
+  "description": "Build with tools/tests/build-cs.sh csfnagaps. In the world, logs 'csfnagaps <case>: ok | FAIL' and 'csfnagaps END pass=N fail=M'.",
+  "updated": "2026-11-27",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

@@ -81,7 +81,8 @@ static class Program
             }
             if (line.StartsWith('!'))
             {
-                int dot = line.LastIndexOf('.');
+                int paren = line.IndexOf('(');
+                int dot = line.LastIndexOf('.', paren < 0 ? line.Length - 1 : paren);
                 string owner = line[1..dot];
                 if (!HandWritten.TryGetValue(owner, out HashSet<string>? names)) HandWritten[owner] = names = new HashSet<string>();
                 names.Add(line[(dot + 1)..]);
@@ -373,10 +374,15 @@ static class Program
                 if (model == null) continue;
                 string key = m.Name + "(" + string.Join(",", model.Params.Select(a => a.Mode + " " + a.Use.Cs)) + ")";
                 if (!seenSigs.Add(key)) continue;
-                if (!groups.TryGetValue(m.Name, out string? name))
+
+                string signature = m.Name + "(" + string.Join(",", m.GetParameters().Select(a => a.ParameterType.Name)) + ")";
+                bool handOverload = HandWritten.TryGetValue(t.FullName ?? t.Name, out HashSet<string>? overloads) && overloads.Contains(signature);
+                string group = handOverload ? signature : m.Name;
+
+                if (!groups.TryGetValue(group, out string? name))
                 {
-                    name = Claim(m.Name);
-                    groups[m.Name] = name;
+                    name = Claim(handOverload ? m.Name + "_" : m.Name);
+                    groups[group] = name;
                 }
                 model.Name = name;
                 plan.Methods.Add(model);
@@ -497,6 +503,32 @@ static class Program
         foreach (Type n in t.GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic)) yield return TypeMap.Ident(n.Name);
     }
 
+    static void EmitValueEquality(StringBuilder sb, string ind, string self, List<(string Id, string Cs, bool Plain)> fields)
+    {
+        string Same(string id, string cs, bool plain) =>
+            plain ? $"this.{id} == other.{id}" : $"global::System.Collections.Generic.EqualityComparer<{cs}>.Default.Equals(this.{id}, other.{id})";
+
+        string body = fields.Count == 0 ? "true" : string.Join(" && ", fields.Select(f => Same(f.Id, f.Cs, f.Plain)));
+        sb.Append(ind).Append($"public readonly bool Equals({self} other) => {body};\n");
+        sb.Append(ind).Append($"public override readonly bool Equals(object? obj) => obj is {self} other && Equals(other);\n");
+
+        var hashed = fields.Where(f => !f.Cs.EndsWith('*')).ToList();
+        if (hashed.Count == 0)
+            sb.Append(ind).Append("public override readonly int GetHashCode() => 0;\n");
+        else if (hashed.Count <= 8)
+            sb.Append(ind).Append($"public override readonly int GetHashCode() => global::System.HashCode.Combine({string.Join(", ", hashed.Select(f => "this." + f.Id))});\n");
+        else
+        {
+            sb.Append(ind).Append("public override readonly int GetHashCode()\n").Append(ind).Append("{\n");
+            sb.Append(ind).Append("    global::System.HashCode hash = default;\n");
+            foreach (var f in hashed) sb.Append(ind).Append($"    hash.Add(this.{f.Id});\n");
+            sb.Append(ind).Append("    return hash.ToHashCode();\n").Append(ind).Append("}\n");
+        }
+
+        sb.Append(ind).Append($"public static bool operator ==({self} a, {self} b) => a.Equals(b);\n");
+        sb.Append(ind).Append($"public static bool operator !=({self} a, {self} b) => !a.Equals(b);\n");
+    }
+
     static string ClassExpr(Type t) => TypeMap.ProxyName(t) + ".Class";
 
     internal static string NewClass(Type t)
@@ -550,9 +582,12 @@ static class Program
         {
             if (layout == null) return;
             sb.Append(ind).Append($"[global::System.Runtime.InteropServices.StructLayout(global::System.Runtime.InteropServices.LayoutKind.Explicit, Size = {layout.Size})]\n");
-            sb.Append(ind).Append($"public unsafe partial struct {name}\n").Append(ind).Append("{\n");
+            bool valueEquality = !(HandWritten.TryGetValue(t.FullName ?? t.Name, out HashSet<string>? ownEquals) && ownEquals.Contains("Equals"));
+            string equatable = valueEquality ? $" : global::System.IEquatable<{self}>" : "";
+            sb.Append(ind).Append($"public unsafe partial struct {name}{equatable}\n").Append(ind).Append("{\n");
             sb.Append(i1).Append($"public static readonly {RT}.GameClass Class = {NewClass(t)};\n");
             var used = new HashSet<string>(Reserved(t));
+            var compared = new List<(string Id, string Cs, bool Plain)>();
             foreach (var (f, offset, use) in layout.Fields)
             {
                 if (map.Missing(use) is Type missing)
@@ -565,7 +600,10 @@ static class Program
                 while (!used.Add(id)) id += "_";
                 sb.Append(i1).Append($"[global::System.Runtime.InteropServices.FieldOffset({offset})] public {use.Cs} {id};\n");
                 emitter.Fields++;
+                Type ft = f.FieldType;
+                compared.Add((id, use.Cs, ft.IsPrimitive || ft.IsEnum || ft.IsPointer || use.Cs.EndsWith('*')));
             }
+            if (valueEquality) EmitValueEquality(sb, i1, self, compared);
             if (!t.IsGenericType) layoutChecks.Add($"({ClassExpr(t)}, {layout.Size})");
         }
         else if (isStaticClass)

@@ -68,6 +68,10 @@ internal static unsafe class FxcGameEffect
         EffectParameter[] parameters = names.Select(EffectParameter.New).ToArray();
         effect.Parameters = EffectParameterCollection.New(parameters);
 
+        lock (origins)
+            foreach (EffectParameter parameter in parameters)
+                origins[parameter.Pointer] = (fx, parameter.Name ?? "", -1, -1);
+
         var registers = new Dictionary<string, int>();
         foreach (FxcEffect.Pass pass in fx.Passes)
             foreach (var sampler in pass.Samplers)
@@ -94,6 +98,7 @@ internal static unsafe class FxcGameEffect
                 if (material == IntPtr.Zero) throw new InvalidOperationException($"fxc: {fx.Name}: the sprite material could not be copied");
                 EffectPass gamePass = EffectPass.New(effect, passes.Count, pass.Name, new GameObject(material));
                 passes.Add(gamePass);
+                lock (origins) origins[gamePass.Pointer] = (fx, "", pass.Technique, pass.Index);
                 if (pass.Error != null) continue;
 
                 error[0] = 0;
@@ -101,7 +106,9 @@ internal static unsafe class FxcGameEffect
                     Log.Warn($"fxc: {fx.Name}: pass {pass} cannot draw sprites: {new string((sbyte*)error)}");
             }
 
-            techniques.Add(EffectTechnique.New(effect, group.First().TechniqueName, EffectPassCollection.New(passes.ToArray())));
+            EffectTechnique technique = EffectTechnique.New(effect, group.First().TechniqueName, EffectPassCollection.New(passes.ToArray()));
+            lock (origins) origins[technique.Pointer] = (fx, "", group.Key, -1);
+            techniques.Add(technique);
         }
 
         if (techniques.Count == 0) throw new InvalidOperationException($"fxc: {fx.Name} has no technique");
@@ -118,9 +125,48 @@ internal static unsafe class FxcGameEffect
 
     static readonly Dictionary<IntPtr, FxcEffect> sources = new();
 
+    static readonly Dictionary<IntPtr, (FxcEffect Fx, string Name, int Technique, int Pass)> origins = new();
+
     internal static FxcEffect? SourceOf(Effect effect)
     {
         lock (sources) return sources.TryGetValue(effect.Pointer, out FxcEffect? fx) ? fx : null;
+    }
+
+    internal static Effect Clone(Effect source)
+    {
+        FxcEffect? fx = SourceOf(source);
+        if (fx == null) return Effect.New(source);
+
+        Effect copy = Create(fx);
+        EffectParameterCollection to = copy.Parameters;
+
+        foreach (EffectParameter parameter in source.Parameters._parameters)
+        {
+            if (parameter.IsNull || parameter.Name == null) continue;
+            EffectParameter target = to[parameter.Name];
+            if (!target.IsNull) target.CopyValueFrom(parameter);
+        }
+
+        string? technique = source.CurrentTechnique.IsNull ? null : source.CurrentTechnique.Name;
+        EffectTechnique same = technique == null ? default : TechniquesOf(copy)[technique];
+        if (!same.IsNull) copy.CurrentTechnique = same;
+        return copy;
+    }
+
+    internal static FxcEffect.Parameter? ParameterInfo(EffectParameter parameter)
+    {
+        lock (origins)
+            return origins.TryGetValue(parameter.Pointer, out var origin) && origin.Technique < 0 ? origin.Fx.ParameterNamed(origin.Name) : null;
+    }
+
+    internal static EffectAnnotationCollection AnnotationsOf(nint pointer)
+    {
+        (FxcEffect Fx, string Name, int Technique, int Pass) origin;
+        lock (origins)
+            if (!origins.TryGetValue(pointer, out origin)) return EffectAnnotationCollection.Empty;
+
+        if (origin.Technique < 0) return origin.Fx.ParameterNamed(origin.Name)?.Annotations ?? EffectAnnotationCollection.Empty;
+        return origin.Pass < 0 ? origin.Fx.TechniqueAnnotations(origin.Technique) : origin.Fx.PassAnnotations(origin.Technique, origin.Pass);
     }
 
     static readonly Dictionary<IntPtr, EffectTechniqueCollection> techniqueSets = new();

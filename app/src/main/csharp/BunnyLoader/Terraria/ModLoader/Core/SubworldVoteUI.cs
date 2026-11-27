@@ -242,7 +242,7 @@ internal static class SubworldVoteUI
         int index = layers.FindIndex(layer => layer.Name == "Vanilla: Mouse Text");
         var layer = new LegacyGameInterfaceLayer(LayerName, () =>
         {
-            ui?.Draw(Main.spriteBatch, new GameTime());
+            ui?.Draw(Main.spriteBatch, Main.gameTimeCache);
             return true;
         }, InterfaceScaleType.UI);
         if (index < 0) layers.Add(layer);

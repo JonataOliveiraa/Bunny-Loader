@@ -17,6 +17,13 @@ public readonly unsafe partial struct EffectPassCollection
 
 public readonly unsafe partial struct EffectParameterCollection
 {
+    public EffectParameter GetParameterBySemantic(string semantic)
+    {
+        foreach (EffectParameter parameter in _parameters)
+            if (!parameter.IsNull && parameter.Semantic == semantic) return parameter;
+        return default;
+    }
+
     public EffectParameter this[int index] => _parameters[index];
 
     public EffectParameter this[string name]
@@ -47,12 +54,72 @@ public readonly unsafe partial struct EffectTechniqueCollection
 
 public readonly unsafe partial struct Effect
 {
+    public Effect(GraphicsDevice graphicsDevice, byte[] effectCode)
+        : this(BunnyLoader.FxcGameEffect.Create(BunnyLoader.FxcEffect.FromBytes(effectCode)).Pointer)
+    {
+    }
+
+    public Effect(Effect cloneSource) : this(BunnyLoader.FxcGameEffect.Clone(cloneSource).Pointer)
+    {
+    }
+
     public EffectTechniqueCollection Techniques => BunnyLoader.FxcGameEffect.TechniquesOf(this);
+
+    public Effect Clone() => BunnyLoader.FxcGameEffect.SourceOf(this) != null ? BunnyLoader.FxcGameEffect.Clone(this) : Clone_();
+
+    public void Clone(Effect cloneSource) => Clone_(cloneSource);
+}
+
+public readonly unsafe partial struct EffectPass
+{
+    public EffectAnnotationCollection Annotations => BunnyLoader.FxcGameEffect.AnnotationsOf(Pointer);
+}
+
+public readonly unsafe partial struct EffectTechnique
+{
+    public EffectAnnotationCollection Annotations => BunnyLoader.FxcGameEffect.AnnotationsOf(Pointer);
 }
 
 public readonly unsafe partial struct EffectParameter
 {
     static readonly System.Collections.Generic.Dictionary<nint, Matrix[]> matrices = new();
+
+    public EffectParameterClass ParameterClass => BunnyLoader.FxcGameEffect.ParameterInfo(this)?.ParameterClass ?? EffectParameterClass.Scalar;
+
+    public EffectParameterType ParameterType => BunnyLoader.FxcGameEffect.ParameterInfo(this)?.ParameterType ?? EffectParameterType.Void;
+
+    public int RowCount => BunnyLoader.FxcGameEffect.ParameterInfo(this)?.Rows ?? 0;
+
+    public int ColumnCount => BunnyLoader.FxcGameEffect.ParameterInfo(this)?.Columns ?? 0;
+
+    public string? Semantic => BunnyLoader.FxcGameEffect.ParameterInfo(this)?.Semantic;
+
+    public EffectAnnotationCollection Annotations => BunnyLoader.FxcGameEffect.AnnotationsOf(Pointer);
+
+    public EffectParameterCollection Elements
+    {
+        get
+        {
+            int count = BunnyLoader.FxcGameEffect.ParameterInfo(this)?.Elements ?? 0;
+            if (count > 0) throw new System.NotSupportedException($"EffectParameter {Name}: Elements of an array parameter are not supported; set the whole array with SetValue");
+            return default;
+        }
+    }
+
+    internal void CopyValueFrom(EffectParameter source)
+    {
+        BunnyLoader.Interop.GameArray<float> data = source.Data;
+
+        if (!data.IsNull)
+        {
+            var copy = BunnyLoader.Interop.GameArray<float>.New(new BunnyLoader.Interop.GameClass("System", "Single"), data.Length);
+            data.AsSpan().CopyTo(copy.AsSpan());
+            Data = copy;
+        }
+
+        lock (matrices)
+            if (matrices.TryGetValue(source.Pointer, out Matrix[]? kept)) matrices[Pointer] = (Matrix[])kept.Clone();
+    }
 
     public void SetValue(int value) => SetValue((float)value);
 

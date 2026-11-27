@@ -94,6 +94,33 @@ int32_t copyOut(const std::string& text, char* out, int32_t capacity) {
     return static_cast<int32_t>(text.size() + 1);
 }
 
+std::string field(const char* text) {
+    std::string value = text ? text : "";
+    std::replace_if(value.begin(), value.end(), [](char c) { return c == '\t' || c == '\n' || c == '\r'; }, ' ');
+    return value;
+}
+
+void writeAnnotations(std::ostringstream& s, const MOJOSHADER_effect* e, unsigned count, const MOJOSHADER_effectAnnotation* list) {
+    for (unsigned i = 0; i < count; ++i) {
+        const MOJOSHADER_effectAnnotation& a = list[i];
+        s << "N\t" << field(a.name) << '\t' << field(a.semantic) << '\t' << a.type.parameter_class << '\t' << a.type.parameter_type << '\t'
+          << a.type.rows << '\t' << a.type.columns << '\t';
+
+        if (a.type.parameter_type == MOJOSHADER_SYMTYPE_STRING) {
+            if (a.value_count > 0 && a.valuesI && a.valuesI[0] >= 0 && a.valuesI[0] < e->object_count)
+                s << field(e->objects[a.valuesI[0]].string.string);
+        } else if (a.type.parameter_class <= MOJOSHADER_SYMCLASS_MATRIX_COLUMNS && a.values) {
+            for (unsigned k = 0; k < a.value_count; ++k) {
+                if (k) s << ',';
+                if (a.type.parameter_type == MOJOSHADER_SYMTYPE_FLOAT) s << a.valuesF[k];
+                else s << a.valuesI[k];
+            }
+        }
+
+        s << '\n';
+    }
+}
+
 const MOJOSHADER_effectPass* passOf(const MOJOSHADER_effect* e, int32_t technique, int32_t pass) {
     if (technique < 0 || technique >= e->technique_count) return nullptr;
     const MOJOSHADER_effectTechnique& t = e->techniques[technique];
@@ -277,17 +304,21 @@ int32_t fxcInfo(int32_t id, char* out, int32_t capacity) {
     if (!entry) return copyOut("", out, capacity);
     const MOJOSHADER_effect* e = entry->effect;
     std::ostringstream s;
+    s.precision(9);
     for (int i = 0; i < e->param_count; ++i) {
         const MOJOSHADER_effectValue& v = e->params[i].value;
         s << "A\t" << (v.name ? v.name : "") << '\t' << v.type.parameter_class << '\t' << v.type.parameter_type << '\t'
-          << v.type.rows << '\t' << v.type.columns << '\t' << v.type.elements << '\n';
+          << v.type.rows << '\t' << v.type.columns << '\t' << v.type.elements << '\t' << field(v.semantic) << '\n';
+        writeAnnotations(s, e, e->params[i].annotation_count, e->params[i].annotations);
     }
     for (int t = 0; t < e->technique_count; ++t) {
         const MOJOSHADER_effectTechnique& tech = e->techniques[t];
         s << "T\t" << t << '\t' << (tech.name ? tech.name : "") << '\n';
+        writeAnnotations(s, e, tech.annotation_count, tech.annotations);
         for (unsigned p = 0; p < tech.pass_count; ++p) {
             const MOJOSHADER_effectPass& pass = tech.passes[p];
             s << "P\t" << t << '\t' << p << '\t' << (pass.name ? pass.name : "") << '\n';
+            writeAnnotations(s, e, pass.annotation_count, pass.annotations);
             const MOJOSHADER_effectShader* shader = pixelShaderOf(e, pass);
             if (!shader) continue;
             for (unsigned k = 0; k < shader->sampler_count; ++k) {
