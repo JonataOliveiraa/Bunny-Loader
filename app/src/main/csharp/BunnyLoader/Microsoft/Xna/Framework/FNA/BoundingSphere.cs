@@ -77,15 +77,10 @@ namespace Microsoft.Xna.Framework
 
         public ContainmentType Contains(BoundingBox box)
         {
-            bool inside = true;
-            foreach (Vector3 corner in box.GetCorners())
-            {
-                if (this.Contains(corner) == ContainmentType.Disjoint)
-                {
-                    inside = false;
-                    break;
-                }
-            }
+            float farX = Math.Max((Center.X - box.Min.X) * (Center.X - box.Min.X), (Center.X - box.Max.X) * (Center.X - box.Max.X));
+            float farY = Math.Max((Center.Y - box.Min.Y) * (Center.Y - box.Min.Y), (Center.Y - box.Max.Y) * (Center.Y - box.Max.Y));
+            float farZ = Math.Max((Center.Z - box.Min.Z) * (Center.Z - box.Min.Z), (Center.Z - box.Max.Z) * (Center.Z - box.Max.Z));
+            bool inside = farX + farY + farZ <= Radius * Radius;
 
             if (inside)
             {
@@ -133,7 +128,7 @@ namespace Microsoft.Xna.Framework
         {
             bool inside = true;
 
-            Vector3[] corners = frustum.GetCorners();
+            Vector3[] corners = frustum.corners;
             foreach (Vector3 corner in corners)
             {
                 if (this.Contains(corner) == ContainmentType.Disjoint)
@@ -218,7 +213,7 @@ namespace Microsoft.Xna.Framework
 
         public static BoundingSphere CreateFromFrustum(BoundingFrustum frustum)
         {
-            return CreateFromPoints(frustum.GetCorners());
+            return CreateFromPoints(frustum.corners);
         }
 
         public static BoundingSphere CreateFromPoints(IEnumerable<Vector3> points)

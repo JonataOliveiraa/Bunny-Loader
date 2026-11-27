@@ -13,6 +13,10 @@ public partial struct Matrix
         M41 = m41; M42 = m42; M43 = m43; M44 = m44;
     }
 
+    static readonly Matrix identityValue = new(1f, 0f, 0f, 0f, 0f, 1f, 0f, 0f, 0f, 0f, 1f, 0f, 0f, 0f, 0f, 1f);
+
+    public static Matrix Identity => identityValue;
+
     public static Matrix operator *(Matrix a, Matrix b) => new(
         a.M11 * b.M11 + a.M12 * b.M21 + a.M13 * b.M31 + a.M14 * b.M41,
         a.M11 * b.M12 + a.M12 * b.M22 + a.M13 * b.M32 + a.M14 * b.M42,
@@ -45,7 +49,9 @@ public partial struct Matrix
         a.M11 + b.M11, a.M12 + b.M12, a.M13 + b.M13, a.M14 + b.M14, a.M21 + b.M21, a.M22 + b.M22, a.M23 + b.M23, a.M24 + b.M24,
         a.M31 + b.M31, a.M32 + b.M32, a.M33 + b.M33, a.M34 + b.M34, a.M41 + b.M41, a.M42 + b.M42, a.M43 + b.M43, a.M44 + b.M44);
 
-    public static Matrix operator -(Matrix a, Matrix b) => a + -b;
+    public static Matrix operator -(Matrix a, Matrix b) => new(
+        a.M11 - b.M11, a.M12 - b.M12, a.M13 - b.M13, a.M14 - b.M14, a.M21 - b.M21, a.M22 - b.M22, a.M23 - b.M23, a.M24 - b.M24,
+        a.M31 - b.M31, a.M32 - b.M32, a.M33 - b.M33, a.M34 - b.M34, a.M41 - b.M41, a.M42 - b.M42, a.M43 - b.M43, a.M44 - b.M44);
 
     public static Matrix operator -(Matrix m) => m * -1f;
 

@@ -30,6 +30,14 @@ namespace Microsoft.Xna.Framework
 
         public readonly float LengthValue => MathF.Sqrt(X * X + Y * Y);
 
+        public static Vector2 Zero => default;
+
+        public static Vector2 One => new(1f, 1f);
+
+        public static Vector2 UnitX => new(1f, 0f);
+
+        public static Vector2 UnitY => new(0f, 1f);
+
         public override readonly string ToString() => $"{{X:{X} Y:{Y}}}";
     }
 
@@ -45,6 +53,28 @@ namespace Microsoft.Xna.Framework
         public Vector3(float value) : this(value, value, value) { }
 
         public Vector3(Vector2 value, float z) : this(value.X, value.Y, z) { }
+
+        public static Vector3 Zero => default;
+
+        public static Vector3 One => new(1f, 1f, 1f);
+
+        public static Vector3 UnitX => new(1f, 0f, 0f);
+
+        public static Vector3 UnitY => new(0f, 1f, 0f);
+
+        public static Vector3 UnitZ => new(0f, 0f, 1f);
+
+        public static Vector3 Up => new(0f, 1f, 0f);
+
+        public static Vector3 Down => new(0f, -1f, 0f);
+
+        public static Vector3 Right => new(1f, 0f, 0f);
+
+        public static Vector3 Left => new(-1f, 0f, 0f);
+
+        public static Vector3 Forward => new(0f, 0f, -1f);
+
+        public static Vector3 Backward => new(0f, 0f, 1f);
 
         public static Vector3 operator +(Vector3 a, Vector3 b) => new(a.X + b.X, a.Y + b.Y, a.Z + b.Z);
 
@@ -81,6 +111,18 @@ namespace Microsoft.Xna.Framework
 
         public Vector4(Vector3 value, float w) : this(value.X, value.Y, value.Z, w) { }
 
+        public static Vector4 Zero => default;
+
+        public static Vector4 One => new(1f, 1f, 1f, 1f);
+
+        public static Vector4 UnitX => new(1f, 0f, 0f, 0f);
+
+        public static Vector4 UnitY => new(0f, 1f, 0f, 0f);
+
+        public static Vector4 UnitZ => new(0f, 0f, 1f, 0f);
+
+        public static Vector4 UnitW => new(0f, 0f, 0f, 1f);
+
         public static Vector4 operator +(Vector4 a, Vector4 b) => new(a.X + b.X, a.Y + b.Y, a.Z + b.Z, a.W + b.W);
 
         public static Vector4 operator -(Vector4 a, Vector4 b) => new(a.X - b.X, a.Y - b.Y, a.Z - b.Z, a.W - b.W);
@@ -111,6 +153,8 @@ namespace Microsoft.Xna.Framework
         }
 
         public Quaternion(Vector3 vectorPart, float scalarPart) : this(vectorPart.X, vectorPart.Y, vectorPart.Z, scalarPart) { }
+
+        public static Quaternion Identity => new(0f, 0f, 0f, 1f);
 
         public static Quaternion operator +(Quaternion a, Quaternion b) => new(a.X + b.X, a.Y + b.Y, a.Z + b.Z, a.W + b.W);
 
@@ -181,6 +225,8 @@ namespace Microsoft.Xna.Framework
             Y = y;
         }
 
+        public static Point Zero => default;
+
         public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
 
         public static Point operator -(Point a, Point b) => new(a.X - b.X, a.Y - b.Y);
@@ -201,6 +247,8 @@ namespace Microsoft.Xna.Framework
             Width = width;
             Height = height;
         }
+
+        public static Rectangle Empty => default;
 
         public override readonly string ToString() => $"{{X:{X} Y:{Y} Width:{Width} Height:{Height}}}";
     }
@@ -251,6 +299,30 @@ namespace Microsoft.Xna.Framework.Graphics
             new((int)(value.R * scale), (int)(value.G * scale), (int)(value.B * scale), (int)(value.A * scale));
 
         public static Color operator *(float scale, Color value) => value * scale;
+
+        public uint PackedValue
+        {
+            readonly get => R | ((uint)G << 8) | ((uint)B << 16) | ((uint)A << 24);
+            set
+            {
+                R = (byte)value;
+                G = (byte)(value >> 8);
+                B = (byte)(value >> 16);
+                A = (byte)(value >> 24);
+            }
+        }
+
+        public static Color Multiply(Color value, float scale) => value * scale;
+
+        public static Color Lerp(Color value1, Color value2, float amount)
+        {
+            amount = Math.Clamp(amount, 0f, 1f);
+            return new(
+                (int)(value1.R + (value2.R - value1.R) * amount),
+                (int)(value1.G + (value2.G - value1.G) * amount),
+                (int)(value1.B + (value2.B - value1.B) * amount),
+                (int)(value1.A + (value2.A - value1.A) * amount));
+        }
 
         public override readonly string ToString() => $"{{R:{R} G:{G} B:{B} A:{A}}}";
     }

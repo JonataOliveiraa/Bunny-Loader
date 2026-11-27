@@ -83,7 +83,7 @@ namespace Microsoft.Xna.Framework
         public const int CornerCount = 8;
 
         private Matrix matrix;
-        private readonly Vector3[] corners = new Vector3[CornerCount];
+        internal readonly Vector3[] corners = new Vector3[CornerCount];
         private readonly Plane[] planes = new Plane[PlaneCount];
 
         private const int PlaneCount = 6;

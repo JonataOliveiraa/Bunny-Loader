@@ -22,7 +22,7 @@ public sealed class MatrixDraw : ModSystem
     static bool logged;
 
     static readonly Color Red = new(255, 0, 0), Green = new(0, 255, 0), Blue = new(0, 0, 255);
-    static readonly Color Yellow = new(255, 255, 0), Magenta = new(255, 0, 255), Cyan = new(0, 255, 255);
+    static readonly Color Yellow = new(255, 255, 0), Magenta = new(255, 0, 255), Cyan = new(0, 255, 255), Orange = new(255, 128, 0);
 
     public override void OnWorldLoad()
     {
@@ -96,6 +96,10 @@ public sealed class MatrixDraw : ModSystem
         batch.Begin(SpriteSortMode.Texture, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.None, RasterizerState.CullNone, null, Matrix.CreateScale(2f));
         Square(batch, 300, 30, Cyan);
         batch.End();
+
+        batch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.None, RasterizerState.CullNone, null, Matrix.CreateTranslation(0f, 350f, 0f));
+        Square(batch, 600, 30, Orange);
+        batch.End_();
     }
 
     static void LogCells()
@@ -115,6 +119,8 @@ public sealed class MatrixDraw : ModSystem
         log.Info(Cell("cell", "view_matrix", 510, 310, Magenta));
         log.Info(Cell("cell", "texture_sort", 620, 80, Cyan));
         log.Info(Cell("absent", "texture_sort_unscaled", 305, 35, Cyan));
+        log.Info(Cell("cell", "game_end", 610, 390, Orange));
+        log.Info(Cell("absent", "game_end_origin", 610, 40, Orange));
     }
 
     static string Cell(string kind, string name, int x, int y, Color c) => $"csbatchmatrix {kind} {name} {x},{y} {c.R},{c.G},{c.B}";

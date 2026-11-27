@@ -79,7 +79,7 @@ namespace Microsoft.Xna.Framework
         {
             int i;
             ContainmentType contained;
-            Vector3[] corners = frustum.GetCorners();
+            Vector3[] corners = frustum.corners;
 
             for (i = 0; i < corners.Length; i += 1)
             {

@@ -154,3 +154,107 @@ UI rectangle of the physical screen, since the phone's safe area offsets the UI)
 - Regression: cstprim, csspritefx, csfxc, cstexdata, csgenerics, csplayer; all
   packs compile (179).
 - Then regenerate the inventory and update `wiki/advanced/XNA-and-FNA.md`.
+
+## Optimization review (2026-11-27)
+
+Pack `tools/tests/csfnaperf`: one case per frame in the world, ns and bytes per
+operation (best of 5, calibrated to about 2 ms), each next to a plain C#
+reference; drawing cases best of 3 frames. Phone SM-A156M, JIT (no AOT image of
+BunnyLoader.dll). Before = the Part B commit, after = this review.
+
+| Case | Before | After |
+|---|---:|---:|
+| `Vector2.Zero` / `Vector2.One` | 80 / 84 ns | 3.6 / 5.2 ns |
+| `Matrix.Identity` | 128 ns | 9 ns |
+| `Matrix a - b` | 167 ns | 82 ns |
+| `Point.GetHashCode()` | 16 ns | 6.8 ns |
+| `Dictionary<Point>` / `<Vector2>` / `<Color>` lookup | 67 / 80 / 130 ns | 52 / 68 / 103 ns |
+| `BoundingSphere.Contains(BoundingBox)` | 242 ns, 128 B | 95 ns, 0 B |
+| `effect.Parameters["uColor"]` | 671 ns, 112 B | 322 ns, 0 B (82 of it is the game's `Parameters` getter) |
+| `Effect.Clone()` | 344 µs, 36 KB | 249 µs, 21 KB |
+| `SaveAsPng` 256x256 | 20.3 ms | 11.3 ms (141 KB file) |
+| `DrawString(font, text, pos, color)` | 2241 ns | 1897 ns |
+| `Begin`+`End` with the identity / a mod's matrix | 1259 / 4139 ns | 979 / 2132 ns |
+
+What changed:
+
+- The game's static math properties (`Vector2/3/4.Zero`, `One`, `UnitX`...,
+  `Vector3.Up`..., `Matrix.Identity`, `Quaternion.Identity`, `Point.Zero`,
+  `Rectangle.Empty`) were calls into the game; they are C# values now (`!` in
+  types.txt; the game's getter stays as `Zero_`, `Identity_`..., and
+  `csfnagaps constants` checks they match).
+- ProxyGen's struct hash: `hash * 397 ^ field` instead of `HashCode.Combine`
+  (equal values still hash the same; `-0f` and `0f` too).
+- `Matrix` subtraction without the negate; `Matrix.Identity` from a static field.
+- `BoundingSphere.Contains(BoundingBox)` takes the farthest corner per axis (same
+  float result as the eight corners, no array); the frustum cases read the
+  frustum's own corner array instead of a clone.
+- Parameter, pass and technique lookups by name go through a per-collection
+  cache, cleared whenever the game's GC runs (`GameGc.Collections()`), so a
+  freed collection's address is never trusted; without the GC count they scan
+  as before.
+- `SaveAsPng`: `CompressionLevel.Fastest` and no per-pixel division when the
+  size does not change.
+- `SpriteBatch.End` is hand-written: it transforms a pending matrix batch
+  itself, so the `End` hook (still there for the game's own `End`) stays shut;
+  the game's matrices are read once per `_gameUpdateCount`; the transform loop
+  reads the item array as a span.
+
+Measured and left alone:
+
+- `Explicit` against `Sequential` layout for the mirrored structs: the same
+  (14.5 against 14.3 ns per `Vector2 +`), so ProxyGen keeps `Explicit`.
+- `Matrix *` by value costs 129 ns against 76 ns with `in` parameters; the
+  operators stay by value as in FNA.
+- The game's math methods still cross the bridge: `Vector2.Distance` 90 ns
+  (35 in C#), `Length()` 80 ns (20), `Matrix.CreateRotationZ` 132 ns (101).
+- A Mono detail found on the way: reading `GameNullable<T>.Value` inside the
+  `Begin` wrapper cost about 110 ns per call even when the branch was not taken;
+  passing the `GameNullable` on and checking `HasValue` in the callee does not.
+
+Correctness after the review: csfnagaps 27/27, csbatchmatrix 13 cells (with a
+batch ended by the game's own `End`), cstprim 16, csspritefx 14, csfxc 18,
+cstexdata 19, csgenerics 10, csplayer 20 on the phone; all 183 packs compile.
+
+## XNA math in C# (2026-11-27)
+
+The review showed that the cost of the FNA layer was crossing into the game.
+Every value-taking member of the game's XNA math now runs in C#: 162 members of
+Vector2/3/4, Matrix (with its seven direction properties), Quaternion, Plane,
+MathHelper, Rectangle (with Left/Right/Top/Bottom/Center/Location/IsEmpty) and
+Color (Multiply, Lerp, PackedValue). The `ref`/`out` overloads, the ones that take
+game arrays, the `New` constructors and Color's GetHue/GetSaturation/GetBrightness
+stay the game's.
+
+- ProxyGen takes `!Type.Method(Type,Type,...)` per overload (all marked overloads
+  of a name share `Name_`); `!Type.Property` for properties. 162 markers.
+- `FNA/FnaMathCore.cs` is FNA's code, extracted by a script (155 methods: the
+  value and `ref`/`out` forms of each, renamed `TypeMethod`, calls between them
+  pointed inside the class). `FNA/Vector.Math.cs` and `FNA/Matrix.Math.cs` are
+  the public members over it; trivial ones are written inline.
+- Rule: FNA's result, since tModLoader runs on FNA. Where the phone's XNA
+  differs, the test checks FNA's answer with a fixed example or an equivalent
+  path the game has, and the wiki lists the cases (XNA-and-FNA, "The math
+  follows FNA..."): CreateRotationY sign, Clamp with min > max, WrapAngle(-Pi),
+  Intersects/Intersect of a zero-size rectangle, Matrix.Divide per element,
+  Quaternion.Concatenate order, Color.Multiply clamping, Color.Lerp truncation,
+  CreateShadow without normalizing. Not implemented on the phone (throws) and
+  working now: Transform by a Quaternion (5), Matrix.Lerp, CreateFromAxisAngle,
+  CreatePerspective, CreatePerspectiveOffCenter, Plane.Transform (2).
+- Test `tools/tests/csxnamath`: each member against the game's `Name_` on 300
+  random inputs plus edge cases (zero vector and quaternion, empty rectangles,
+  angles of +-pi), relative tolerance 2e-5, NaN equal to NaN: 160/160 on the
+  phone.
+
+| Case (ns, phone) | Game | C# |
+|---|---:|---:|
+| `Vector2.Distance` | 99 | 39 |
+| `v.Length()` | 88 | 22 |
+| `Vector2.Normalize` | 85 | 42 |
+| `Vector2.Lerp` | 93 | 27 |
+| `Vector2.Transform(v, m)` | 99 | 37 |
+| `MathHelper.Clamp` / `Lerp` | 86 / 92 | 9 / 6.5 |
+| `Rectangle.Intersects` | 104 | 13 |
+| `rect.Center` + `rect.Bottom` | 160 | 12 |
+| `Color.Lerp` | 141 | 51 |
+| `Matrix.CreateRotationZ` | 136 | 124 (FNA computes sin/cos in double) |

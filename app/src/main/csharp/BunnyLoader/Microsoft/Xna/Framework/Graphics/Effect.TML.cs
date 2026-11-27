@@ -1,5 +1,45 @@
 namespace Microsoft.Xna.Framework.Graphics;
 
+internal static class EffectNames
+{
+    static readonly System.Collections.Generic.Dictionary<nint, System.Collections.Generic.Dictionary<string, nint>> byOwner = new();
+
+    static long collections = long.MinValue;
+
+    static nint lastOwner;
+
+    static System.Collections.Generic.Dictionary<string, nint>? lastNames;
+
+    internal static bool TryFind(nint owner, string name, System.Func<nint, System.Collections.Generic.Dictionary<string, nint>> build, out nint found)
+    {
+        found = 0;
+        long now = BunnyLoader.GameGc.Collections();
+        if (now < 0) return false;
+
+        lock (byOwner)
+        {
+            if (now != collections)
+            {
+                byOwner.Clear();
+                collections = now;
+                lastOwner = 0;
+                lastNames = null;
+            }
+
+            System.Collections.Generic.Dictionary<string, nint>? names = owner == lastOwner ? lastNames : null;
+            if (names == null)
+            {
+                if (!byOwner.TryGetValue(owner, out names)) byOwner[owner] = names = build(owner);
+                lastOwner = owner;
+                lastNames = names;
+            }
+
+            names.TryGetValue(name, out found);
+            return true;
+        }
+    }
+}
+
 public readonly unsafe partial struct EffectPassCollection
 {
     public EffectPass this[int index] => _passes[index];
@@ -8,6 +48,16 @@ public readonly unsafe partial struct EffectPassCollection
     {
         get
         {
+            if (name == null) return default;
+
+            if (EffectNames.TryFind(Pointer, name, static owner =>
+            {
+                var found = new System.Collections.Generic.Dictionary<string, nint>();
+                foreach (EffectPass pass in new EffectPassCollection(owner)._passes)
+                    if (!pass.IsNull && pass.Name is string key) found.TryAdd(key, pass.Pointer);
+                return found;
+            }, out nint hit)) return new EffectPass(hit);
+
             foreach (EffectPass pass in _passes)
                 if (!pass.IsNull && pass.Name == name) return pass;
             return default;
@@ -30,6 +80,16 @@ public readonly unsafe partial struct EffectParameterCollection
     {
         get
         {
+            if (name == null) return default;
+
+            if (EffectNames.TryFind(Pointer, name, static owner =>
+            {
+                var found = new System.Collections.Generic.Dictionary<string, nint>();
+                foreach (EffectParameter parameter in new EffectParameterCollection(owner)._parameters)
+                    if (!parameter.IsNull && parameter.Name is string key) found.TryAdd(key, parameter.Pointer);
+                return found;
+            }, out nint hit)) return new EffectParameter(hit);
+
             foreach (EffectParameter parameter in _parameters)
                 if (!parameter.IsNull && parameter.Name == name) return parameter;
             return default;
@@ -45,6 +105,16 @@ public readonly unsafe partial struct EffectTechniqueCollection
     {
         get
         {
+            if (name == null) return default;
+
+            if (EffectNames.TryFind(Pointer, name, static owner =>
+            {
+                var found = new System.Collections.Generic.Dictionary<string, nint>();
+                foreach (EffectTechnique technique in new EffectTechniqueCollection(owner)._techniques)
+                    if (!technique.IsNull && technique.Name is string key) found.TryAdd(key, technique.Pointer);
+                return found;
+            }, out nint hit)) return new EffectTechnique(hit);
+
             foreach (EffectTechnique technique in _techniques)
                 if (!technique.IsNull && technique.Name == name) return technique;
             return default;

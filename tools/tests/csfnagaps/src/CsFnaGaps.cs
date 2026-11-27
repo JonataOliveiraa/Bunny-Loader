@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Text;
@@ -286,6 +287,70 @@ public sealed class CsFnaGapsMod : Mod
             curve.PostLoop = CurveLoopType.Cycle;
             if (!Near(curve.Evaluate(1.25f), 2.5f)) return $"cycle {curve.Evaluate(1.25f)}";
             return Expect(!curve.IsConstant && curve.Clone().Keys.Count == 2, "IsConstant or Clone");
+        });
+
+        Check("constants", () =>
+        {
+            if (Vector2.Zero != Vector2.Zero_ || Vector2.One != Vector2.One_ || Vector2.UnitX != Vector2.UnitX_ || Vector2.UnitY != Vector2.UnitY_) return "Vector2";
+            if (Vector3.Zero != Vector3.Zero_ || Vector3.One != Vector3.One_ || Vector3.UnitX != Vector3.UnitX_ || Vector3.UnitY != Vector3.UnitY_ || Vector3.UnitZ != Vector3.UnitZ_) return "Vector3 units";
+            if (Vector3.Up != Vector3.Up_ || Vector3.Down != Vector3.Down_ || Vector3.Right != Vector3.Right_ || Vector3.Left != Vector3.Left_ || Vector3.Forward != Vector3.Forward_ || Vector3.Backward != Vector3.Backward_) return "Vector3 directions";
+            if (Vector4.Zero != Vector4.Zero_ || Vector4.One != Vector4.One_ || Vector4.UnitX != Vector4.UnitX_ || Vector4.UnitY != Vector4.UnitY_ || Vector4.UnitZ != Vector4.UnitZ_ || Vector4.UnitW != Vector4.UnitW_) return "Vector4";
+            if (Matrix.Identity != Matrix.Identity_ || Quaternion.Identity != Quaternion.Identity_) return "Identity";
+            return Expect(Point.Zero == Point.Zero_ && Rectangle.Empty == Rectangle.Empty_, "Point.Zero or Rectangle.Empty");
+        });
+
+        Check("hashes", () =>
+        {
+            if (new Vector2(0f, 1f).GetHashCode() != new Vector2(-0f, 1f).GetHashCode()) return "Vector2 -0";
+            if (new Point(3, 4).GetHashCode() == new Point(4, 3).GetHashCode()) return "Point is symmetric";
+            if (new Point16(7, 9).GetHashCode() != new Point16(7, 9).GetHashCode()) return "Point16";
+            if (new Color(1, 2, 3, 4).GetHashCode() == new Color(4, 3, 2, 1).GetHashCode()) return "Color is symmetric";
+            if (new Plane(new Vector3(1, 2, 3), 4).GetHashCode() != new Plane(new Vector3(1, 2, 3), 4).GetHashCode()) return "Plane";
+
+            var set = new HashSet<Point>();
+            for (int x = -40; x < 40; x++)
+                for (int y = -40; y < 40; y++) set.Add(new Point(x, y));
+            return Expect(set.Count == 6400 && set.Contains(new Point(-40, 39)) && !set.Contains(new Point(40, 0)), "HashSet<Point>");
+        });
+
+        Check("matrix_subtract", () =>
+        {
+            Matrix a = Matrix.CreateRotationZ(0.7f) * Matrix.CreateTranslation(3, -2, 5), b = Matrix.CreateScale(1.5f, 2f, 0.5f);
+            return Expect(a - b == Matrix.Subtract(a, b) && -a == Matrix.Negate(a), "a - b or -a");
+        });
+
+        Check("sphere_contains_box", () =>
+        {
+            var sphere = new BoundingSphere(Vector3.Zero, 5f);
+            if (sphere.Contains(new BoundingBox(new Vector3(-2), new Vector3(2))) != ContainmentType.Contains) return "inner box";
+            if (sphere.Contains(new BoundingBox(new Vector3(-3, -4, 0), new Vector3(3, 4, 0))) != ContainmentType.Contains) return "corners on the surface";
+            if (sphere.Contains(new BoundingBox(new Vector3(-3, -4, 0), new Vector3(3, 4.01f, 0))) != ContainmentType.Intersects) return "one corner out";
+            if (sphere.Contains(new BoundingBox(new Vector3(6), new Vector3(7))) != ContainmentType.Disjoint) return "far box";
+
+            var frustum = new BoundingFrustum(Matrix.CreateOrthographicOffCenter(-1, 1, -1, 1, 0, 1));
+            Vector3[] before = frustum.GetCorners();
+            _ = new BoundingSphere(Vector3.Zero, 100f).Contains(frustum);
+            _ = new BoundingBox(new Vector3(-100), new Vector3(100)).Contains(frustum);
+            _ = BoundingSphere.CreateFromFrustum(frustum);
+            Vector3[] after = frustum.GetCorners();
+            for (int i = 0; i < 8; i++)
+                if (before[i] != after[i]) return "frustum corners changed";
+            return null;
+        });
+
+        Check("parameter_names", () =>
+        {
+            var effect = new Effect(Main.instance.GraphicsDevice, ModContent.GetInstance<CsFnaGapsMod>().GetFileBytes("Effects/FnaGaps.fxc"));
+            EffectParameter first = effect.Parameters["uTime"];
+            for (int i = 0; i < 3; i++)
+                if (effect.Parameters["uTime"] != first) return "repeated lookup";
+            if (!effect.Parameters["missing"].IsNull) return "a missing name";
+            if (effect.Parameters["uColor"].Name != "uColor") return "uColor";
+
+            var other = new Effect(Main.instance.GraphicsDevice, ModContent.GetInstance<CsFnaGapsMod>().GetFileBytes("Effects/FnaGaps.fxc"));
+            if (other.Parameters["uTime"] == first) return "two effects share a parameter";
+            if (effect.CurrentTechnique.Passes["Main"].IsNull || !effect.CurrentTechnique.Passes["Nope"].IsNull) return "Passes[name]";
+            return Expect(!effect.Techniques["Technique1"].IsNull && effect.Techniques["Nope"].IsNull, "Techniques[name]");
         });
 
         Check("color_converter", () =>

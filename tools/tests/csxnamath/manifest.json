@@ -1,0 +1,14 @@
+{
+  "uid": "e661b8f1-3b72-477a-b17f-d092c0afbe43",
+  "id": "CsXnaMath",
+  "name": "Test: XNA math in C# against the game (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Every XNA math member Bunny Loader writes in C# (Vector2/3/4, Matrix, Quaternion, Plane, MathHelper, Rectangle, Color) against the game's own version (Name_), on random inputs and edge cases.",
+  "description": "Build with tools/tests/build-cs.sh csxnamath. In the world, logs 'csxnamath <type>.<member>: ok | FAIL <input> ours <x> game <y>' and 'csxnamath END pass=N fail=M'.",
+  "updated": "2026-11-27",
+  "blVersion": 3,
+  "gameVersion": [301720, 301720],
+  "dependencies": []
+}

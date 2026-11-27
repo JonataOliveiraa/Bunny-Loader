@@ -377,7 +377,7 @@ static class Program
 
                 string signature = m.Name + "(" + string.Join(",", m.GetParameters().Select(a => a.ParameterType.Name)) + ")";
                 bool handOverload = HandWritten.TryGetValue(t.FullName ?? t.Name, out HashSet<string>? overloads) && overloads.Contains(signature);
-                string group = handOverload ? signature : m.Name;
+                string group = handOverload ? m.Name + "()" : m.Name;
 
                 if (!groups.TryGetValue(group, out string? name))
                 {
@@ -503,6 +503,11 @@ static class Program
         foreach (Type n in t.GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic)) yield return TypeMap.Ident(n.Name);
     }
 
+    static readonly HashSet<string> PrimitiveKeywords = new(StringComparer.Ordinal)
+    {
+        "bool", "byte", "sbyte", "char", "short", "ushort", "int", "uint", "long", "ulong", "float", "double", "nint", "nuint",
+    };
+
     static void EmitValueEquality(StringBuilder sb, string ind, string self, List<(string Id, string Cs, bool Plain)> fields)
     {
         string Same(string id, string cs, bool plain) =>
@@ -512,17 +517,20 @@ static class Program
         sb.Append(ind).Append($"public readonly bool Equals({self} other) => {body};\n");
         sb.Append(ind).Append($"public override readonly bool Equals(object? obj) => obj is {self} other && Equals(other);\n");
 
+        string Hash(string id, string cs, bool plain) =>
+            !plain || PrimitiveKeywords.Contains(cs) ? $"this.{id}.GetHashCode()" : $"((long)this.{id}).GetHashCode()";
+
         var hashed = fields.Where(f => !f.Cs.EndsWith('*')).ToList();
         if (hashed.Count == 0)
             sb.Append(ind).Append("public override readonly int GetHashCode() => 0;\n");
-        else if (hashed.Count <= 8)
-            sb.Append(ind).Append($"public override readonly int GetHashCode() => global::System.HashCode.Combine({string.Join(", ", hashed.Select(f => "this." + f.Id))});\n");
+        else if (hashed.Count == 1)
+            sb.Append(ind).Append($"public override readonly int GetHashCode() => {Hash(hashed[0].Id, hashed[0].Cs, hashed[0].Plain)};\n");
         else
         {
             sb.Append(ind).Append("public override readonly int GetHashCode()\n").Append(ind).Append("{\n");
-            sb.Append(ind).Append("    global::System.HashCode hash = default;\n");
-            foreach (var f in hashed) sb.Append(ind).Append($"    hash.Add(this.{f.Id});\n");
-            sb.Append(ind).Append("    return hash.ToHashCode();\n").Append(ind).Append("}\n");
+            sb.Append(ind).Append($"    int hash = {Hash(hashed[0].Id, hashed[0].Cs, hashed[0].Plain)};\n");
+            foreach (var f in hashed.Skip(1)) sb.Append(ind).Append($"    hash = unchecked(hash * 397) ^ {Hash(f.Id, f.Cs, f.Plain)};\n");
+            sb.Append(ind).Append("    return hash;\n").Append(ind).Append("}\n");
         }
 
         sb.Append(ind).Append($"public static bool operator ==({self} a, {self} b) => a.Equals(b);\n");

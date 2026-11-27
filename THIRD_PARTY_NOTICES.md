@@ -101,7 +101,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ### FNA
 
-`app/src/main/csharp/BunnyLoader/Microsoft/Xna/Framework/FNA/` (BoundingBox, BoundingSphere, BoundingFrustum, Ray, Curve, CurveKey, CurveKeyCollection, Plane.Intersects and their math helper) is adapted from FNA, an XNA 4 reimplementation. These files stay under FNA's licenses, not under Bunny Loader's, and the folder carries a copy of both. <https://github.com/FNA-XNA/FNA> — Microsoft Public License (Ms-PL), with code derived from Mono.Xna under the MIT License.
+`app/src/main/csharp/BunnyLoader/Microsoft/Xna/Framework/FNA/` (BoundingBox, BoundingSphere, BoundingFrustum, Ray, Curve, CurveKey, CurveKeyCollection, Plane.Intersects, the C# versions of the Vector2/3/4, Matrix, Quaternion, Plane, MathHelper and Rectangle math, and their helpers) is adapted from FNA, an XNA 4 reimplementation. These files stay under FNA's licenses, not under Bunny Loader's, and the folder carries a copy of both. <https://github.com/FNA-XNA/FNA> — Microsoft Public License (Ms-PL), with code derived from Mono.Xna under the MIT License.
 
 **Microsoft Public License (Ms-PL)**
 

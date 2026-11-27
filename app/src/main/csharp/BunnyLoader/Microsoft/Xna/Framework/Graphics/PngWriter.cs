@@ -24,14 +24,16 @@ internal static class PngWriter
         int stride = width * 4 + 1;
         byte[] raw = new byte[stride * height];
 
+        bool sameSize = width == sourceWidth && height == sourceHeight;
+
         for (int y = 0; y < height; y++)
         {
             int row = y * stride;
-            int sourceRow = (int)((long)y * sourceHeight / height) * sourceWidth;
+            int sourceRow = (sameSize ? y : (int)((long)y * sourceHeight / height)) * sourceWidth;
 
             for (int x = 0; x < width; x++)
             {
-                Color c = pixels[sourceRow + (int)((long)x * sourceWidth / width)];
+                Color c = pixels[sourceRow + (sameSize ? x : (int)((long)x * sourceWidth / width))];
                 int at = row + 1 + x * 4;
                 raw[at] = c.R;
                 raw[at + 1] = c.G;
@@ -47,7 +49,7 @@ internal static class PngWriter
         header[9] = 6;
 
         var compressed = new MemoryStream();
-        using (var zlib = new ZLibStream(compressed, CompressionLevel.Optimal, true))
+        using (var zlib = new ZLibStream(compressed, CompressionLevel.Fastest, true))
             zlib.Write(raw, 0, raw.Length);
 
         stream.Write(Signature, 0, Signature.Length);

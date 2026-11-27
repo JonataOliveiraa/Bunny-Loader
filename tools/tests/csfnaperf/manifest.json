@@ -1,0 +1,14 @@
+{
+  "uid": "b84dbb59-5988-4273-bda3-e1c910d808f8",
+  "id": "CsFnaPerf",
+  "name": "Test: FNA layer cost (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Nanoseconds and bytes per operation for the FNA API on the phone: the game's math statics through the bridge, the hand-written operators and equality, the bounding math, effects, SaveAsPng, DrawString and SpriteBatch.Begin, each next to a plain C# reference.",
+  "description": "Build with tools/tests/build-cs.sh csfnaperf. In the world, one case per frame; logs 'csfnaperf <case> <ns> ns/op <bytes> B/op n=<n>' and 'csfnaperf END cases=N'.",
+  "updated": "2026-11-27",
+  "blVersion": 3,
+  "gameVersion": [301720, 301720],
+  "dependencies": []
+}
