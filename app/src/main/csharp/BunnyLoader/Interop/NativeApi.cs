@@ -181,6 +181,10 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<IntPtr, int, int, int, int, byte*, int, int> TextureWrite;
     public delegate* unmanaged<IntPtr, int, int, int, int, byte*, int, int> TextureRead;
     public delegate* unmanaged<int, void> SpriteFxSetBlend;
+    public delegate* unmanaged<IntPtr, float*, int, int> SpriteMatrixBegin;
+    public delegate* unmanaged<IntPtr, float*, int> SpriteMatrixGet;
+    public delegate* unmanaged<IntPtr, void> SpriteMatrixDrop;
+    public delegate* unmanaged<int*> SpriteMatrixPending;
 }
 
 [StructLayout(LayoutKind.Sequential)]

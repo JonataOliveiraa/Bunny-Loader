@@ -14,7 +14,7 @@ internal static class DrawBatches
         DepthStencilState depth = batch._depthStencilState;
         RasterizerState raster = batch._rasterizerState;
         Effect effect = batch._effect;
-        Matrix? matrix = batch._hasMatrix ? batch._renderMatrix : null;
+        Matrix? matrix = SpriteBatchMatrix.TryPending(batch, out Matrix own) ? own : batch._hasMatrix ? Matrix.Identity : null;
         bool deferred = batch.BatchDeffered;
         batch.End();
         batch.Begin(sortMode, blend, Main.DefaultSamplerState, depth, raster, effect, matrix, deferred);

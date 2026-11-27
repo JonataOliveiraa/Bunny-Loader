@@ -44,6 +44,7 @@
 #include "graphics/FxcEffect.h"
 #include "graphics/ScreenApi.h"
 #include "graphics/SpriteFx.h"
+#include "graphics/SpriteMatrix.h"
 #include "content/common/TypeTables.h"
 #include "content/items/ItemDrawStages.h"
 #include "content/items/ModEquips.h"
@@ -258,6 +259,10 @@ struct NativeApi {
     int32_t (*textureWrite)(void* texture, int32_t x, int32_t y, int32_t width, int32_t height, const uint8_t* pixels, int32_t order);
     int32_t (*textureRead)(void* texture, int32_t x, int32_t y, int32_t width, int32_t height, uint8_t* pixels, int32_t order);
     void (*spriteFxSetBlend)(int32_t packed);
+    int32_t (*spriteMatrixBegin)(void* batch, const float* matrix, int32_t immediate);
+    int32_t (*spriteMatrixGet)(void* batch, float* matrix);
+    void (*spriteMatrixDrop)(void* batch);
+    int32_t* (*spriteMatrixPending)();
 };
 
 struct Extra {
@@ -1347,6 +1352,10 @@ const NativeApi kNativeApi{
                                                                   static_cast<runtime::content::PixelOrder>(order)));
     },
     graphics::spriteFxSetBlend,
+    graphics::spriteMatrixBegin,
+    graphics::spriteMatrixGet,
+    graphics::spriteMatrixDrop,
+    graphics::spriteMatrixPending,
 };
 
 }

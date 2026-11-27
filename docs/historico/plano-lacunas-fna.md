@@ -258,3 +258,59 @@ stay the game's.
 | `rect.Center` + `rect.Bottom` | 160 | 12 |
 | `Color.Lerp` | 141 | 51 |
 | `Matrix.CreateRotationZ` | 136 | 124 (FNA computes sin/cos in double) |
+
+## Part B review (performance)
+
+New cases in `csfnaperf` (`b ...`: 1000 sprites in `Deferred`, 200 in
+`Immediate`, 50 strings, 100 restarts) and in `csbatchmatrix` (three sprites in
+one `Immediate` batch, a composite matrix, `DrawBatches.Restart` after and
+inside a mod's matrix batch, called through reflection).
+
+Phone (SM-A156M), before any change, per unit:
+
+| Case | No matrix | Mod's matrix |
+|---|---:|---:|
+| Sprite, `Deferred` | 306-341 ns | 342-362 ns |
+| Sprite, `Immediate` | 785 ns | 1,722-1,761 ns |
+| 23-letter string, `Deferred` | 2,566-2,611 ns | 3,451-3,460 ns |
+
+Found and fixed:
+
+- `DrawBatches.Restart` (used by `NPCDrawHooks` around NPC drawing) restarted a
+  batch with `_renderMatrix` when `_hasMatrix` was set. The game never writes
+  that field, so it held the last mod matrix (the test moved a square drawn
+  after a restart) or whatever the object started with. It now takes the
+  pending mod matrix (`SpriteBatchMatrix.TryPending`) or the identity, and Bunny
+  Loader no longer writes `_renderMatrix`.
+- A `Begin` without a mod matrix on a batcher that still has one pending (a mod
+  batch that never reached `End`) drops it.
+- `DrawImmediateBatch` reads the last registered batcher from two statics before
+  falling back to the locked dictionary.
+
+Emulator A/B in one session (MuMu 16384; an earlier session showed +3 µs on
+`Begin`+`End` with a matrix that the next session did not repeat, the usual
+MuMu noise): sprite in `Immediate` with a matrix 1,710-1,718 -> 1,432 ns (no
+matrix: 547-652); `Begin`+`End` with a matrix 1,665-1,671 -> 1,669 ns; restart
+inside a mod batch 2,506-2,560 -> 2,444 ns. The rest of an `Immediate` sprite's
+extra cost is entering the C# hook once per sprite; a native version of the
+`End`/`DrawImmediateBatch` transform would remove it and needs a new APK.
+
+Also seen: `new Effect(bytes)` in a loop fills the native sprite-effect table
+("too many sprite effects"): every effect keeps its passes registered.
+
+Regression on MuMu: csbatchmatrix (21 cells), csnpcdraw 9, csspritefx 14,
+cstprim 16, csfxc 18, csfnagaps 27, cstexdata 19, csgenerics 10, csplayer 20.
+
+Native transform (same day): `cpp/graphics/SpriteMatrix.cpp` keeps up to 16
+pending batchers with the 2D part of the matrix (M11, M12, M21, M22, M41, M42)
+and the batcher's item count at `Begin`; native hooks on `SpriteBatch.End` and
+`SpriteBatcher.DrawImmediateBatch` move the corners and call the original, with
+an atomic count so the hooks cost one load while nothing is pending. Four
+`NativeApi` entries at the end (`SpriteMatrixBegin`, `SpriteMatrixGet`,
+`SpriteMatrixDrop`, `SpriteMatrixPending`), so the DLL needs the new APK. The C#
+side keeps only `FromGame` and the calls; the C# hooks, the hand-written `End`
+(and its `!` marker) are gone. Extra cost of the matrix, matrix minus no matrix
+in the same run (MuMu, two runs each, C# hooks -> native): sprite in
+`Immediate` +1,041-1,066 -> +139-140 ns; 23-letter string +664-692 ->
++265-293 ns; `Begin`+`End` +1,215 -> +778-867 ns; restart inside a mod batch
++2,215-2,290 -> +1,553-1,843 ns. csbatchmatrix 21 cells with the native path.

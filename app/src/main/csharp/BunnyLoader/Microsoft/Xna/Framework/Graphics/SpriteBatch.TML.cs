@@ -23,12 +23,6 @@ public readonly unsafe partial struct SpriteBatch
                       RasterizerState rasterizerState, Effect? effect, GameNullable<Matrix> transformMatrix) =>
         Begin(sortMode, blendState, samplerState, depthStencilState, rasterizerState, effect ?? default, transformMatrix, true);
 
-    public void End()
-    {
-        SpriteBatchMatrix.End(this);
-        End_();
-    }
-
     static SpriteSortMode GameSortMode(SpriteSortMode sortMode) => sortMode > SpriteSortMode.Immediate ? SpriteSortMode.Deferred : sortMode;
 
     public void DrawString(SpriteFont spriteFont, string? text, Vector2 position, Color color) =>

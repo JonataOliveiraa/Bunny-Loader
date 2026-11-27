@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using log4net;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -23,6 +24,10 @@ public sealed class MatrixDraw : ModSystem
 
     static readonly Color Red = new(255, 0, 0), Green = new(0, 255, 0), Blue = new(0, 0, 255);
     static readonly Color Yellow = new(255, 255, 0), Magenta = new(255, 0, 255), Cyan = new(0, 255, 255), Orange = new(255, 128, 0);
+    static readonly Color Azure = new(0, 128, 255), Teal = new(0, 128, 128), Purple = new(128, 0, 128), Olive = new(128, 128, 0);
+
+    static readonly Func<SpriteBatch, bool> Restart = typeof(Mod).Assembly.GetType("Terraria.ModLoader.Core.DrawBatches")!
+        .GetMethod("Restart", BindingFlags.NonPublic | BindingFlags.Static)!.CreateDelegate<Func<SpriteBatch, bool>>();
 
     public override void OnWorldLoad()
     {
@@ -87,6 +92,8 @@ public sealed class MatrixDraw : ModSystem
 
         batch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.None, RasterizerState.CullNone, null, Matrix.CreateScale(1.5f));
         Square(batch, 200, 150, Yellow);
+        Square(batch, 240, 150, Yellow);
+        Square(batch, 280, 150, Yellow);
         batch.End();
 
         batch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.None, RasterizerState.CullNone, null, Main.GameViewMatrix.TransformationMatrix);
@@ -99,7 +106,23 @@ public sealed class MatrixDraw : ModSystem
 
         batch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.None, RasterizerState.CullNone, null, Matrix.CreateTranslation(0f, 350f, 0f));
         Square(batch, 600, 30, Orange);
-        batch.End_();
+        batch.End();
+
+        batch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.None, RasterizerState.CullNone, null,
+            Matrix.CreateScale(2f, 1f, 1f) * Matrix.CreateRotationZ(MathHelper.PiOver4) * Matrix.CreateTranslation(600f, 250f, 0f));
+        Square(batch, 20, 20, Azure);
+        batch.End();
+
+        batch.Begin_(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.None, RasterizerState.CullNone, default, Main.GameViewMatrix.TransformationMatrix);
+        Restart(batch);
+        Square(batch, 700, 200, Teal);
+        batch.End();
+
+        batch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.None, RasterizerState.CullNone, null, Matrix.CreateTranslation(0f, 250f, 0f));
+        Square(batch, 750, 30, Purple);
+        Restart(batch);
+        Square(batch, 790, 30, Olive);
+        batch.End();
     }
 
     static void LogCells()
@@ -116,11 +139,19 @@ public sealed class MatrixDraw : ModSystem
         log.Info(Cell("absent", "rotation_origin", 110, 310, Blue));
         log.Info(Cell("cell", "immediate", 315, 240, Yellow));
         log.Info(Cell("absent", "immediate_unscaled", 205, 155, Yellow));
+        log.Info(Cell("cell", "immediate_second", 375, 240, Yellow));
+        log.Info(Cell("cell", "immediate_third", 435, 240, Yellow));
+        log.Info(Cell("absent", "immediate_third_unscaled", 290, 160, Yellow));
         log.Info(Cell("cell", "view_matrix", 510, 310, Magenta));
         log.Info(Cell("cell", "texture_sort", 620, 80, Cyan));
         log.Info(Cell("absent", "texture_sort_unscaled", 305, 35, Cyan));
         log.Info(Cell("cell", "game_end", 610, 390, Orange));
         log.Info(Cell("absent", "game_end_origin", 610, 40, Orange));
+        log.Info(Cell("cell", "composite", 621, 314, Azure));
+        log.Info(Cell("cell", "restart_after_mod_matrix", 710, 210, Teal));
+        log.Info(Cell("cell", "restart_inside_before", 760, 290, Purple));
+        log.Info(Cell("cell", "restart_inside_after", 800, 290, Olive));
+        log.Info(Cell("absent", "restart_inside_after_origin", 800, 40, Olive));
     }
 
     static string Cell(string kind, string name, int x, int y, Color c) => $"csbatchmatrix {kind} {name} {x},{y} {c.R},{c.G},{c.B}";

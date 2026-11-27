@@ -358,6 +358,9 @@ public sealed class Draws : ModSystem
 
     static readonly StringBuilder builder = new("Bunny Loader 123");
 
+    static readonly Func<SpriteBatch, bool> Restart = typeof(Mod).Assembly.GetType("Terraria.ModLoader.Core.DrawBatches")!
+        .GetMethod("Restart", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!.CreateDelegate<Func<SpriteBatch, bool>>();
+
     static readonly (string Name, bool Ended, Func<SpriteBatch, int, float> Body, int N)[] all =
     {
         ("draw drawstring_short", false, (b, n) => { var f = FontAssets.MouseText.Value; for (int i = 0; i < n; i++) b.DrawString(f, "Bunny Loader 123", new Vector2(40, 40 + (i & 7)), Color.White); return n; }, 200),
@@ -366,13 +369,21 @@ public sealed class Draws : ModSystem
         ("draw drawstring_builder", false, (b, n) => { var f = FontAssets.MouseText.Value; for (int i = 0; i < n; i++) b.DrawString(f, builder, new Vector2(40, 40 + (i & 7)), Color.White); return n; }, 200),
         ("draw sprite_draw", false, (b, n) => { var t = TextureAssets.MagicPixel.Value; for (int i = 0; i < n; i++) b.Draw(t, new Rectangle(40, 40 + (i & 7), 4, 4), Color.White); return n; }, 400),
         ("draw begin_end_wrapper", true, (b, n) => { for (int i = 0; i < n; i++) { b.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend); b.End(); } return n; }, 100),
-        ("draw begin_raw_end_raw", true, (b, n) => { for (int i = 0; i < n; i++) { b.Begin_(SpriteSortMode.Deferred, BlendState.AlphaBlend); b.End_(); } return n; }, 100),
-        ("draw begin_wrapper_end_raw", true, (b, n) => { for (int i = 0; i < n; i++) { b.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend); b.End_(); } return n; }, 100),
+        ("draw begin_raw_end_raw", true, (b, n) => { for (int i = 0; i < n; i++) { b.Begin_(SpriteSortMode.Deferred, BlendState.AlphaBlend); b.End(); } return n; }, 100),
+        ("draw begin_wrapper_end_raw", true, (b, n) => { for (int i = 0; i < n; i++) { b.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend); b.End(); } return n; }, 100),
         ("draw begin_end_raw", true, (b, n) => { for (int i = 0; i < n; i++) { b.Begin_(SpriteSortMode.Deferred, BlendState.AlphaBlend); b.End(); } return n; }, 100),
         ("draw begin_end_identity", true, (b, n) => { for (int i = 0; i < n; i++) { b.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp, DepthStencilState.None, RasterizerState.CullNone, null, Matrix.Identity); b.End(); } return n; }, 100),
         ("draw begin_end_view", true, (b, n) => { for (int i = 0; i < n; i++) { b.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp, DepthStencilState.None, RasterizerState.CullNone, null, Main.GameViewMatrix.TransformationMatrix); b.End(); } return n; }, 100),
         ("draw begin_end_custom", true, (b, n) => { var m = Matrix.CreateScale(1.01f); for (int i = 0; i < n; i++) { b.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp, DepthStencilState.None, RasterizerState.CullNone, null, m); b.End(); } return n; }, 100),
         ("draw sprites_plain_batch", true, (b, n) => { var t = TextureAssets.MagicPixel.Value; b.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend); for (int i = 0; i < n; i++) b.Draw(t, new Rectangle(40, 40 + (i & 7), 4, 4), Color.White); b.End(); return n; }, 400),
+        ("b deferred_plain", true, (b, n) => { var t = TextureAssets.MagicPixel.Value; b.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend); for (int i = 0; i < n; i++) b.Draw(t, new Rectangle(40 + (i & 31), 40 + (i & 7), 4, 4), Color.White); b.End(); return n; }, 1000),
+        ("b deferred_matrix", true, (b, n) => { var t = TextureAssets.MagicPixel.Value; b.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp, DepthStencilState.None, RasterizerState.CullNone, null, Matrix.CreateScale(1.01f)); for (int i = 0; i < n; i++) b.Draw(t, new Rectangle(40 + (i & 31), 40 + (i & 7), 4, 4), Color.White); b.End(); return n; }, 1000),
+        ("b immediate_plain", true, (b, n) => { var t = TextureAssets.MagicPixel.Value; b.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend); for (int i = 0; i < n; i++) b.Draw(t, new Rectangle(40 + (i & 31), 40 + (i & 7), 4, 4), Color.White); b.End(); return n; }, 200),
+        ("b immediate_matrix", true, (b, n) => { var t = TextureAssets.MagicPixel.Value; b.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.LinearClamp, DepthStencilState.None, RasterizerState.CullNone, null, Matrix.CreateScale(1.01f)); for (int i = 0; i < n; i++) b.Draw(t, new Rectangle(40 + (i & 31), 40 + (i & 7), 4, 4), Color.White); b.End(); return n; }, 200),
+        ("b text_plain", true, (b, n) => { var f = FontAssets.MouseText.Value; b.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend); for (int i = 0; i < n; i++) b.DrawString(f, "Bunny Loader 1234567890", new Vector2(40, 40 + (i & 7)), Color.White); b.End(); return n; }, 50),
+        ("b text_matrix", true, (b, n) => { var f = FontAssets.MouseText.Value; b.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp, DepthStencilState.None, RasterizerState.CullNone, null, Matrix.CreateScale(1.01f)); for (int i = 0; i < n; i++) b.DrawString(f, "Bunny Loader 1234567890", new Vector2(40, 40 + (i & 7)), Color.White); b.End(); return n; }, 50),
+        ("b restart", true, (b, n) => { b.Begin_(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp, DepthStencilState.None, RasterizerState.CullNone, default, Main.GameViewMatrix.TransformationMatrix); for (int i = 0; i < n; i++) Restart(b); b.End(); return n; }, 100),
+        ("b restart_in_mod_batch", true, (b, n) => { b.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp, DepthStencilState.None, RasterizerState.CullNone, null, Matrix.CreateScale(1.01f)); for (int i = 0; i < n; i++) Restart(b); b.End(); return n; }, 100),
         ("draw sprites_matrix_batch", true, (b, n) => { var t = TextureAssets.MagicPixel.Value; var m = Matrix.CreateScale(1.01f); b.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp, DepthStencilState.None, RasterizerState.CullNone, null, m); for (int i = 0; i < n; i++) b.Draw(t, new Rectangle(40, 40 + (i & 7), 4, 4), Color.White); b.End(); return n; }, 400),
     };
 

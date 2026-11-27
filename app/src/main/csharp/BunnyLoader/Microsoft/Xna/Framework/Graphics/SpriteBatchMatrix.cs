@@ -1,65 +1,58 @@
-using System;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using BunnyLoader.Hooks;
+using BunnyLoader;
 using BunnyLoader.Interop;
 using Terraria;
 using Terraria.Graphics;
-using Terraria.ModLoader.Core;
 
 namespace Microsoft.Xna.Framework.Graphics;
 
 internal static unsafe class SpriteBatchMatrix
 {
-    struct Pending
-    {
-        public Matrix Matrix;
-        public int Start;
-        public bool Immediate;
-    }
-
-    static readonly int* Active = Awake();
-
-    static readonly Dictionary<nint, Pending> pending = new();
-
-    static int vertexTL = -1, vertexTR, vertexBL, vertexBR;
-
-    static bool installed;
+    static readonly int* Pending = Host.Native()->SpriteMatrixPending();
 
     static uint cachedUpdate;
     static bool cached;
+    static bool warned;
     static Matrix gameTransform, uiScale, viewTransform, viewZoom;
-
-    static int* Awake()
-    {
-        int* flag = (int*)NativeMemory.Alloc((nuint)sizeof(int));
-        *flag = 0;
-        return flag;
-    }
 
     internal static void Begin(SpriteBatch batch, SpriteSortMode sortMode, GameNullable<Matrix> transformMatrix)
     {
-        if (!transformMatrix.HasValue || batch.IsNull) return;
+        if (batch.IsNull) return;
+
+        if (!transformMatrix.HasValue)
+        {
+            if (*Pending != 0) Host.Native()->SpriteMatrixDrop(batch.Pointer);
+            return;
+        }
 
         Matrix matrix = transformMatrix.Value;
-        batch._renderMatrix = matrix;
-        if (FromGame(in matrix)) return;
-
-        SpriteBatcher batcher = batch._batcher;
-        if (batcher.IsNull) return;
-        Install();
-
-        lock (pending)
+        if (FromGame(in matrix))
         {
-            if (!pending.ContainsKey(batcher.Pointer)) (*Active)++;
-            pending[batcher.Pointer] = new Pending { Matrix = matrix, Start = batcher._batchItemCount, Immediate = sortMode == SpriteSortMode.Immediate };
+            if (*Pending != 0) Host.Native()->SpriteMatrixDrop(batch.Pointer);
+            return;
+        }
+
+        float* m = stackalloc float[6] { matrix.M11, matrix.M12, matrix.M21, matrix.M22, matrix.M41, matrix.M42 };
+        int result = Host.Native()->SpriteMatrixBegin(batch.Pointer, m, sortMode == SpriteSortMode.Immediate ? 1 : 0);
+
+        if (result <= 0 && !warned)
+        {
+            warned = true;
+            Log.Warn(result < 0
+                ? "SpriteBatch: more than 16 batches with a matrix are open at once; the others are drawn without their matrix"
+                : "SpriteBatch: the matrix passed to Begin cannot be applied on this game version");
         }
     }
 
-    internal static void End(SpriteBatch batch)
+    internal static bool TryPending(SpriteBatch batch, out Matrix matrix)
     {
-        if (*Active == 0 || batch.IsNull) return;
-        Finish(batch._batcher);
+        matrix = default;
+        if (*Pending == 0 || batch.IsNull) return false;
+
+        float* m = stackalloc float[6];
+        if (Host.Native()->SpriteMatrixGet(batch.Pointer, m) == 0) return false;
+
+        matrix = new Matrix(m[0], m[1], 0f, 0f, m[2], m[3], 0f, 0f, 0f, 0f, 1f, 0f, m[4], m[5], 0f, 1f);
+        return true;
     }
 
     static bool FromGame(in Matrix matrix)
@@ -79,90 +72,5 @@ internal static unsafe class SpriteBatchMatrix
         }
 
         return matrix == gameTransform || matrix == uiScale || matrix == viewTransform || matrix == viewZoom;
-    }
-
-    static void Install()
-    {
-        if (installed) return;
-        installed = true;
-
-        ItemHooks.Once("SpriteBatch matrix", () =>
-        {
-            HookGates.Define<On_SpriteBatch.hook_End>(Gate);
-            HookGates.Want<On_SpriteBatch.hook_End>();
-            On_SpriteBatch.End += EndHook;
-
-            HookGates.Define<On_SpriteBatcher.hook_DrawImmediateBatch>(Gate);
-            HookGates.Want<On_SpriteBatcher.hook_DrawImmediateBatch>();
-            On_SpriteBatcher.DrawImmediateBatch += DrawImmediateBatch;
-        });
-    }
-
-    static GateSpec Gate() => new() { Arg = HookGates.AbsoluteArg, PointerOffset = -1, FieldOffset = 0, FieldSize = 4, Address = (IntPtr)Active };
-
-    static void EndHook(On_SpriteBatch.orig_End orig, SpriteBatch self)
-    {
-        if (!self.IsNull) Finish(self._batcher);
-        orig(self);
-    }
-
-    static void Finish(SpriteBatcher batcher)
-    {
-        if (batcher.IsNull) return;
-
-        Pending state;
-        lock (pending)
-        {
-            if (!pending.Remove(batcher.Pointer, out state)) return;
-            (*Active)--;
-        }
-
-        if (state.Immediate) return;
-        int count = batcher._batchItemCount;
-        Transform(batcher, state.Start <= count ? state.Start : 0, count, in state.Matrix);
-    }
-
-    static void DrawImmediateBatch(On_SpriteBatcher.orig_DrawImmediateBatch orig, SpriteBatcher self, Effect effect)
-    {
-        Pending state;
-        bool found;
-        lock (pending) found = pending.TryGetValue(self.Pointer, out state);
-
-        if (found && state.Immediate) Transform(self, 0, 1, in state.Matrix);
-        orig(self, effect);
-    }
-
-    static void Transform(SpriteBatcher batcher, int first, int end, in Matrix m)
-    {
-        GameArray<SpriteBatchItem> items = batcher._batchItemList;
-        if (items.IsNull) return;
-        Span<SpriteBatchItem> span = items.AsSpan();
-        end = Math.Min(end, span.Length);
-
-        if (vertexTL < 0)
-        {
-            vertexTR = ItemHooks.FieldOffset(SpriteBatchItem.Class, "vertexTR");
-            vertexBL = ItemHooks.FieldOffset(SpriteBatchItem.Class, "vertexBL");
-            vertexBR = ItemHooks.FieldOffset(SpriteBatchItem.Class, "vertexBR");
-            vertexTL = ItemHooks.FieldOffset(SpriteBatchItem.Class, "vertexTL");
-        }
-
-        for (int i = first; i < end; i++)
-        {
-            nint item = span[i].Pointer;
-            if (item == 0) continue;
-
-            Apply((Vector2*)(item + vertexTL), in m);
-            Apply((Vector2*)(item + vertexTR), in m);
-            Apply((Vector2*)(item + vertexBL), in m);
-            Apply((Vector2*)(item + vertexBR), in m);
-        }
-    }
-
-    static void Apply(Vector2* position, in Matrix m)
-    {
-        float x = position->X, y = position->Y;
-        position->X = x * m.M11 + y * m.M21 + m.M41;
-        position->Y = x * m.M12 + y * m.M22 + m.M42;
     }
 }

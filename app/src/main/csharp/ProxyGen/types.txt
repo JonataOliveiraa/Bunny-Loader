@@ -24,7 +24,6 @@ Terraria.Utils
 !Terraria.Graphics.SpriteViewMatrix.NormalizedTransformationMatrix
 !Microsoft.Xna.Framework.Graphics.Effect.Clone
 !Microsoft.Xna.Framework.Graphics.SpriteBatch.Begin
-!Microsoft.Xna.Framework.Graphics.SpriteBatch.End
 !Microsoft.Xna.Framework.Vector2.Zero
 !Microsoft.Xna.Framework.Vector2.One
 !Microsoft.Xna.Framework.Vector2.UnitX
