@@ -190,18 +190,22 @@ Il2CppObject* liveTexture(Entry& e) {
     return nullptr;
 }
 
-Il2CppObject* assetFor(std::unique_lock<std::mutex>& lock, Il2CppObject* texture, const std::string& name) {
+std::string assetKey(const std::string& file, const std::string& name) { return file + '\n' + name; }
+
+Il2CppObject* assetFor(std::unique_lock<std::mutex>& lock, Il2CppObject* texture, const std::string& file,
+                       const std::string& name) {
     auto& a = il2cpp::api();
     lock.unlock();
     Il2CppObject* asset = wrapTextureAsset(texture, name);
     lock.lock();
     if (!asset) return nullptr;
-    auto it = g_assets.find(name);
+    const std::string key = assetKey(file, name);
+    auto it = g_assets.find(key);
     if (it != g_assets.end()) {
         if (Il2CppObject* existing = a.gchandle_get_target(it->second)) return existing;
         a.gchandle_free(it->second);
     }
-    g_assets[name] = a.gchandle_new(asset, false);
+    g_assets[key] = a.gchandle_new(asset, false);
     return asset;
 }
 
@@ -222,7 +226,7 @@ Il2CppObject* modTexture(const std::string& file, const std::string& assetName) 
     auto& a = il2cpp::api();
     std::unique_lock<std::mutex> lock(g_mutex);
     g_files[assetName] = file;
-    auto known = g_assets.find(assetName);
+    auto known = g_assets.find(assetKey(file, assetName));
     if (known != g_assets.end()) {
         if (Il2CppObject* asset = a.gchandle_get_target(known->second)) return asset;
         a.gchandle_free(known->second);
@@ -236,7 +240,7 @@ Il2CppObject* modTexture(const std::string& file, const std::string& assetName) 
     Il2CppObject* texture = liveTexture(e);
     if (texture) {
         if (e.name != assetName) ++g_stats.shared;
-        return assetFor(lock, texture, assetName);
+        return assetFor(lock, texture, file, assetName);
     }
     if (e.state == State::Failed && e.unityTried) return nullptr;
     if (e.state == State::Waiting || e.state == State::Queued || e.state == State::Uploading) {
@@ -256,7 +260,7 @@ Il2CppObject* modTexture(const std::string& file, const std::string& assetName) 
         g_decoded.notify_all();
     }
     while (e.state == State::Decoding) g_decoded.wait(lock);
-    if ((texture = liveTexture(e))) return assetFor(lock, texture, assetName);
+    if ((texture = liveTexture(e))) return assetFor(lock, texture, file, assetName);
     std::vector<uint8_t> px;
     if (e.state == State::Ready) {
         unlist(e, file);
@@ -290,7 +294,7 @@ Il2CppObject* modTexture(const std::string& file, const std::string& assetName) 
     ++g_stats.uploadedOnDemand;
     if (viaUnity) ++g_stats.viaUnity;
     g_stats.bytes += px.size();
-    return assetFor(lock, texture, assetName);
+    return assetFor(lock, texture, file, assetName);
 }
 
 Il2CppObject* modTextureAsset(const std::string& file, const unsigned char* data, size_t size,
@@ -308,16 +312,17 @@ Il2CppObject* modTextureAsset(const std::string& file, const unsigned char* data
 Il2CppObject* loadedModTexture(const std::string& assetName) {
     auto& a = il2cpp::api();
     std::unique_lock<std::mutex> lock(g_mutex);
-    auto known = g_assets.find(assetName);
+    auto file = g_files.find(assetName);
+    if (file == g_files.end()) return nullptr;
+    const std::string path = file->second;
+    auto known = g_assets.find(assetKey(path, assetName));
     if (known != g_assets.end()) {
         if (Il2CppObject* asset = a.gchandle_get_target(known->second)) return asset;
     }
-    auto file = g_files.find(assetName);
-    if (file == g_files.end()) return nullptr;
-    auto it = g_entries.find(file->second);
+    auto it = g_entries.find(path);
     if (it == g_entries.end()) return nullptr;
     Il2CppObject* texture = liveTexture(it->second);
-    return texture ? assetFor(lock, texture, assetName) : nullptr;
+    return texture ? assetFor(lock, texture, path, assetName) : nullptr;
 }
 
 void pumpModTextures(int budgetMicros) {

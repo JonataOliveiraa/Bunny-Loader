@@ -123,6 +123,13 @@ public sealed class CsExTilesMod : Mod
         Report("PostSetDefaults runs after the defaults", !Main.tileNoSunLight[TileType("ExamplePlatform")]);
         Report("the torch is a torch", TileID.Sets.Torches[TileType("ExampleTorch")] && TileID.Sets.RoomNeeds.CountsAsTorch[TileType("ExampleTorch")]);
         Report("the sink counts as liquids", TileID.Sets.CountsAsWaterForCrafting[TileType("ExampleSink")] && TileID.Sets.CountsAsHoneyForCrafting[TileType("ExampleSink")] && TileID.Sets.CountsAsLavaForCrafting[TileType("ExampleSink")]);
+
+        Texture2D blockSheet = Terraria.GameContent.TextureAssets.Tile[TileType("ExampleBlock")].Value;
+        Texture2D tableSheet = Terraria.GameContent.TextureAssets.Tile[TileType("ExampleTable")].Value;
+        Texture2D blockIcon = Terraria.GameContent.TextureAssets.Item[ItemType("ExampleBlock")].Value;
+        Report("a tile and an item with the same name keep their own textures", blockSheet.Width == 288 && blockSheet.Height == 270 &&
+            tableSheet.Width == 54 && tableSheet.Height == 36 && blockIcon.Width == 16,
+            $"block={blockSheet.Width}x{blockSheet.Height} table={tableSheet.Width}x{tableSheet.Height} icon={blockIcon.Width}x{blockIcon.Height}");
     }
 
     static void Extractinator(Player player)
