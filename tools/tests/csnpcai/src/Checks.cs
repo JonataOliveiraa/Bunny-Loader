@@ -282,8 +282,12 @@ public static class Checks
         Report("warm AI, frame, reset and active callbacks allocate no managed memory", allocated == 0, $"bytes={allocated} iterations=100");
         using var plainPin = New(ModContent.NPCType<PlainNpc>(), out NPC plain);
         plain.AI();
-        Report("an NPC with no lifecycle overrides or applicable globals keeps the vanilla path", plain.active && plain.EntityGlobals.Count == 0 && plain.ModNPC is PlainNpc,
-            $"active={plain.active} globals={plain.EntityGlobals.Count}");
+        Mod pack = ModContent.GetInstance<CsNpcAiMod>();
+        int ownGlobals = 0;
+        foreach (GlobalNPC global in plain.EntityGlobals)
+            if (global.Mod == pack) ownGlobals++;
+        Report("an NPC with no lifecycle overrides and none of the pack's globals keeps the vanilla path", plain.active && ownGlobals == 0 && plain.ModNPC is PlainNpc,
+            $"active={plain.active} globals={ownGlobals} otherMods={plain.EntityGlobals.Count - ownGlobals}");
     }
 
     static void RunNativeOnly()

@@ -15,6 +15,7 @@ public static class Checks
     static float ground;
     static readonly int[] bolts = new int[5];
     static readonly List<Point> placed = new();
+    static readonly List<(Point At, bool Has, ushort Type, BlockType Shape)> grounds = new();
     static int cutAllowed = -1, cutBlocked = -1;
     static Point plantAllowed, plantBlocked;
     static bool done;
@@ -85,6 +86,8 @@ public static class Checks
         int center = (int)(p.Center.X / 16f);
         plantAllowed = new Point(center - 6, groundTile - 1);
         plantBlocked = new Point(center - 9, groundTile - 1);
+        Grass(plantAllowed.X, groundTile);
+        Grass(plantBlocked.X, groundTile);
         Place(plantAllowed.X, plantAllowed.Y, TileID.Plants);
         Place(plantBlocked.X, plantBlocked.Y, TileID.Plants);
         CutterBolt.Order.Clear();
@@ -115,6 +118,16 @@ public static class Checks
         if (WorldGen.PlaceTile(x, y, type, true, true)) placed.Add(new Point(x, y));
     }
 
+    static void Grass(int x, int y)
+    {
+        Tile tile = Main.tile[x, y];
+        grounds.Add((new Point(x, y), tile.HasTile, tile.TileType, tile.BlockType));
+        tile.TileType = TileID.Grass;
+        tile.HasTile = true;
+        tile.BlockType = BlockType.Solid;
+        WorldGen.SquareTileFrame(x, y);
+    }
+
     static void Cleanup()
     {
         foreach (int index in new[] { cutAllowed, cutBlocked })
@@ -122,6 +135,17 @@ public static class Checks
         foreach (Point at in placed)
             if (Main.tile[at.X, at.Y].HasTile) WorldGen.KillTile(at.X, at.Y, false, false, true);
         placed.Clear();
+
+        foreach (var (at, has, type, shape) in grounds)
+        {
+            Tile tile = Main.tile[at.X, at.Y];
+            tile.TileType = type;
+            tile.HasTile = has;
+            tile.BlockType = shape;
+            WorldGen.SquareTileFrame(at.X, at.Y);
+        }
+
+        grounds.Clear();
     }
 
     static void Report(string name, bool ok, string detail)

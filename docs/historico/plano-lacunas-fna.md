@@ -5,7 +5,11 @@ equality; test `tools/tests/csequality`). A2 done the same day (test
 `tools/tests/csfnagaps`, 11 cases checked against the game's own methods). A3 done
 2026-11-27 (FNA code in `Microsoft/Xna/Framework/FNA/`, 5 more `csfnagaps` cases;
 16/16 on the phone). A4 done 2026-11-27 (22/22 on the phone; csfxc 18/18 and
-csspritefx 14/14 unchanged). Source of the gaps:
+csspritefx 14/14 unchanged). Part B done 2026-11-27 (commit 9cd515bc,
+csbatchmatrix 11/11 on the phone). The optimization review and the XNA math in
+C# followed the same day (38aad5fd, csxnamath 160/160), then the Part B
+performance review with the native transform (7f53c9ba, csbatchmatrix 21 cells
+on MuMu). Nothing in this plan is left open. Source of the gaps:
 `tools/docs/FnaInventory/members.txt` and `inventario-fna.md`.
 
 ## Part A: small gaps

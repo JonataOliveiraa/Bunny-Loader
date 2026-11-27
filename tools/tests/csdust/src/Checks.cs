@@ -46,10 +46,13 @@ public static class Checks
     static void Start(Player p)
     {
         int test = ModContent.DustType<TestDust>(), sheetType = ModContent.DustType<SheetDust>(), draw = ModContent.DustType<DrawDust>();
-        Report("types follow the game's dusts and lookups agree", Math.Min(test, Math.Min(sheetType, draw)) == DustID.Count && test + sheetType + draw == 3 * DustID.Count + 3 &&
+        int first = Math.Min(test, Math.Min(sheetType, draw)), others = 0;
+        for (int type = DustID.Count; type < first; type++)
+            if (DustLoader.GetDust(type) is ModDust other && other.Mod != ModContent.GetInstance<CsDustMod>()) others++;
+        Report("types follow the game's dusts and lookups agree", first == DustID.Count + others && test + sheetType + draw == 3 * first + 3 &&
             DustLoader.GetDust(test) == ModContent.GetInstance<TestDust>() && ModContent.GetModDust(draw) == ModContent.GetInstance<DrawDust>() &&
-            DustLoader.DustCount >= DustID.Count + 3 && TestDust.StaticCalls == 1,
-            $"types={test},{sheetType},{draw} count={DustLoader.DustCount} static={TestDust.StaticCalls}");
+            DustLoader.DustCount >= first + 3 && TestDust.StaticCalls == 1,
+            $"types={test},{sheetType},{draw} game={DustID.Count} others={others} count={DustLoader.DustCount} static={TestDust.StaticCalls}");
 
         var own = ModContent.GetInstance<TestDust>().Texture2D;
         var game = ModContent.GetInstance<SheetDust>().Texture2D;
