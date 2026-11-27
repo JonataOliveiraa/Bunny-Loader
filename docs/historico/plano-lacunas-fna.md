@@ -135,6 +135,16 @@ Design:
    reverse gravity, and a custom effect's own vertex shader (the positions are
    transformed on the CPU).
 
+Done 2026-11-27 in `Graphics/SpriteBatchMatrix.cs`. Differences from the design:
+the matrices left alone are identity, `Main.Transform`, `Main.UIScaleMatrix`,
+`GameViewMatrix.TransformationMatrix` and `ZoomMatrix`; the hooks install on the
+first matrix `Begin` and sit behind one absolute flag (the number of pending
+batches); the matrix is also written to `_renderMatrix`, which the game never
+reads, so `DrawBatches.Restart` keeps it. Known gap: a flush in the middle of a
+batch (`Flush()` or the 5461-item limit) draws the items before it untransformed.
+Test `csbatchmatrix` (11/11 cells on the phone with `screen.py`; the log gives the
+UI rectangle of the physical screen, since the phone's safe area offsets the UI).
+
 ## Tests
 
 - New pack `csfnagaps`: equality, hashes, operators, constructors, bounding

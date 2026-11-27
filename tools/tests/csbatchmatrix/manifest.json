@@ -1,0 +1,14 @@
+{
+  "uid": "787be428-3206-481a-ad3b-1787de922dff",
+  "id": "CsBatchMatrix",
+  "name": "Test: SpriteBatch.Begin transform matrix (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Colored squares drawn through SpriteBatch.Begin with a scale, a translation, a rotation, Immediate, SpriteSortMode.Texture and the game's TransformationMatrix (which must not move anything).",
+  "description": "Build with tools/tests/build-cs.sh csbatchmatrix. Logs 'csbatchmatrix screen <UI x,y of the physical top-left> <UI x,y of the physical bottom-right>', 'csbatchmatrix cell <name> x,y r,g,b', 'csbatchmatrix absent <name> x,y r,g,b' and 'csbatchmatrix END pass=N fail=M'; tools/tests/csbatchmatrix/screen.py checks a screenshot against them.",
+  "updated": "2026-11-27",
+  "blVersion": 3,
+  "gameVersion": [301720, 301720],
+  "dependencies": []
+}

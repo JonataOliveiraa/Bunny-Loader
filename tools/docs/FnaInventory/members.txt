@@ -164,118 +164,6 @@ Microsoft.Xna.Framework.Audio.WaveBank  (out; BL 0/8; game has type; native in F
     - property IsInUse  [game lacks it]
     - property IsPrepared  [game lacks it]
 
-Microsoft.Xna.Framework.BoundingBox  (1 copy; BL no type; game no type)
-    - ctor .ctor(Vector3, Vector3)  [no type]
-    - method Contains(BoundingBox)  [no type]
-    - method Contains(BoundingFrustum)  [no type]
-    - method Contains(BoundingSphere)  [no type]
-    - method Contains(Vector3)  [no type]
-    - method Contains(ref BoundingBox, out ContainmentType)  [no type]
-    - method Contains(ref BoundingSphere, out ContainmentType)  [no type]
-    - method Contains(ref Vector3, out ContainmentType)  [no type]
-    - const CornerCount  [no type]
-    - static method CreateFromPoints(IEnumerable<Vector3>)  [no type]
-    - static method CreateFromSphere(BoundingSphere)  [no type]
-    - static method CreateFromSphere(ref BoundingSphere, out BoundingBox)  [no type]
-    - static method CreateMerged(BoundingBox, BoundingBox)  [no type]
-    - static method CreateMerged(ref BoundingBox, ref BoundingBox, out BoundingBox)  [no type]
-    - method Equals(BoundingBox)  [no type]
-    - method Equals(object)  [no type]
-    - method GetCorners()  [no type]
-    - method GetCorners(Vector3[])  [no type]
-    - method GetHashCode()  [no type]
-    - method Intersects(BoundingBox)  [no type]
-    - method Intersects(BoundingFrustum)  [no type]
-    - method Intersects(BoundingSphere)  [no type]
-    - method Intersects(Plane)  [no type]
-    - method Intersects(Ray)  [no type]
-    - method Intersects(ref BoundingBox, out bool)  [no type]
-    - method Intersects(ref BoundingSphere, out bool)  [no type]
-    - method Intersects(ref Plane, out PlaneIntersectionType)  [no type]
-    - method Intersects(ref Ray, out float)  [no type]
-    - field Max  [no type]
-    - field Min  [no type]
-    - method ToString()  [no type]
-    - operator operator !=(BoundingBox, BoundingBox)  [no type]
-    - operator operator ==(BoundingBox, BoundingBox)  [no type]
-
-Microsoft.Xna.Framework.BoundingFrustum  (1 copy; BL no type; game no type)
-    - ctor .ctor(Matrix)  [no type]
-    - property Bottom  [no type]
-    - method Contains(BoundingBox)  [no type]
-    - method Contains(BoundingFrustum)  [no type]
-    - method Contains(BoundingSphere)  [no type]
-    - method Contains(Vector3)  [no type]
-    - method Contains(ref BoundingBox, out ContainmentType)  [no type]
-    - method Contains(ref BoundingSphere, out ContainmentType)  [no type]
-    - method Contains(ref Vector3, out ContainmentType)  [no type]
-    - const CornerCount  [no type]
-    - method Equals(BoundingFrustum)  [no type]
-    - method Equals(object)  [no type]
-    - property Far  [no type]
-    - method GetCorners()  [no type]
-    - method GetCorners(Vector3[])  [no type]
-    - method GetHashCode()  [no type]
-    - method Intersects(BoundingBox)  [no type]
-    - method Intersects(BoundingFrustum)  [no type]
-    - method Intersects(BoundingSphere)  [no type]
-    - method Intersects(Plane)  [no type]
-    - method Intersects(Ray)  [no type]
-    - method Intersects(ref BoundingBox, out bool)  [no type]
-    - method Intersects(ref BoundingSphere, out bool)  [no type]
-    - method Intersects(ref Plane, out PlaneIntersectionType)  [no type]
-    - method Intersects(ref Ray, out float)  [no type]
-    - property Left  [no type]
-    - property Matrix  [no type]
-    - property Near  [no type]
-    - property Right  [no type]
-    - method ToString()  [no type]
-    - property Top  [no type]
-    - operator operator !=(BoundingFrustum, BoundingFrustum)  [no type]
-    - operator operator ==(BoundingFrustum, BoundingFrustum)  [no type]
-
-Microsoft.Xna.Framework.BoundingSphere  (1 copy; BL no type; game no type)
-    - ctor .ctor(Vector3, float)  [no type]
-    - field Center  [no type]
-    - method Contains(BoundingBox)  [no type]
-    - method Contains(BoundingFrustum)  [no type]
-    - method Contains(BoundingSphere)  [no type]
-    - method Contains(Vector3)  [no type]
-    - method Contains(ref BoundingBox, out ContainmentType)  [no type]
-    - method Contains(ref BoundingSphere, out ContainmentType)  [no type]
-    - method Contains(ref Vector3, out ContainmentType)  [no type]
-    - static method CreateFromBoundingBox(BoundingBox)  [no type]
-    - static method CreateFromBoundingBox(ref BoundingBox, out BoundingSphere)  [no type]
-    - static method CreateFromFrustum(BoundingFrustum)  [no type]
-    - static method CreateFromPoints(IEnumerable<Vector3>)  [no type]
-    - static method CreateMerged(BoundingSphere, BoundingSphere)  [no type]
-    - static method CreateMerged(ref BoundingSphere, ref BoundingSphere, out BoundingSphere)  [no type]
-    - method Equals(BoundingSphere)  [no type]
-    - method Equals(object)  [no type]
-    - method GetHashCode()  [no type]
-    - method Intersects(BoundingBox)  [no type]
-    - method Intersects(BoundingFrustum)  [no type]
-    - method Intersects(BoundingSphere)  [no type]
-    - method Intersects(Plane)  [no type]
-    - method Intersects(Ray)  [no type]
-    - method Intersects(ref BoundingBox, out bool)  [no type]
-    - method Intersects(ref BoundingSphere, out bool)  [no type]
-    - method Intersects(ref Plane, out PlaneIntersectionType)  [no type]
-    - method Intersects(ref Ray, out float)  [no type]
-    - field Radius  [no type]
-    - method ToString()  [no type]
-    - method Transform(Matrix)  [no type]
-    - method Transform(ref Matrix, out BoundingSphere)  [no type]
-    - operator operator !=(BoundingSphere, BoundingSphere)  [no type]
-    - operator operator ==(BoundingSphere, BoundingSphere)  [no type]
-
-Microsoft.Xna.Framework.Color  (1 copy; BL 160/165; game has type)
-    ~ ctor .ctor(Vector3)  [game lacks it]
-    ~ ctor .ctor(Vector4)  [game lacks it]
-    ~ method Equals(Color)  [game has it] ExampleMod .Equals x18
-    - static method FromNonPremultiplied(Vector4)  [game lacks it]
-    - static method FromNonPremultiplied(int, int, int, int)  [game lacks it]
-
 Microsoft.Xna.Framework.Content.ContentLoadException  (1 copy; BL no type; game no type)
     - ctor .ctor()  [no type]
     - ctor .ctor(string)  [no type]
@@ -363,51 +251,6 @@ Microsoft.Xna.Framework.Content.ResourceContentManager  (out; BL no type; game n
     - property ServiceProvider  [no type]
     - method Unload()  [no type]
 
-Microsoft.Xna.Framework.Curve  (1 copy; BL no type; game no type)
-    - ctor .ctor()  [no type]
-    - method Clone()  [no type]
-    - method ComputeTangent(int, CurveTangent)  [no type]
-    - method ComputeTangent(int, CurveTangent, CurveTangent)  [no type]
-    - method ComputeTangents(CurveTangent)  [no type]
-    - method ComputeTangents(CurveTangent, CurveTangent)  [no type]
-    - method Evaluate(float)  [no type]
-    - property IsConstant  [no type]
-    - property Keys  [no type]
-    - property PostLoop  [no type]
-    - property PreLoop  [no type]
-
-Microsoft.Xna.Framework.CurveKey  (1 copy; BL no type; game no type)
-    - ctor .ctor(float, float)  [no type]
-    - ctor .ctor(float, float, float, float)  [no type]
-    - ctor .ctor(float, float, float, float, CurveContinuity)  [no type]
-    - method Clone()  [no type]
-    - method CompareTo(CurveKey)  [no type]
-    - property Continuity  [no type]
-    - method Equals(CurveKey)  [no type]
-    - method Equals(object)  [no type]
-    - method GetHashCode()  [no type]
-    - property Position  [no type]
-    - property TangentIn  [no type]
-    - property TangentOut  [no type]
-    - property Value  [no type]
-    - operator operator !=(CurveKey, CurveKey)  [no type]
-    - operator operator ==(CurveKey, CurveKey)  [no type]
-
-Microsoft.Xna.Framework.CurveKeyCollection  (1 copy; BL no type; game no type)
-    - ctor .ctor()  [no type]
-    - method Add(CurveKey)  [no type]
-    - method Clear()  [no type]
-    - method Clone()  [no type]
-    - method Contains(CurveKey)  [no type]
-    - method CopyTo(CurveKey[], int)  [no type]
-    - property Count  [no type]
-    - method GetEnumerator()  [no type]
-    - method IndexOf(CurveKey)  [no type]
-    - property IsReadOnly  [no type]
-    - method Remove(CurveKey)  [no type]
-    - method RemoveAt(int)  [no type]
-    - indexer this[int]  [no type]
-
 Microsoft.Xna.Framework.Design.BoundingBoxConverter  (out; BL no type; game no type)
     - ctor .ctor()  [no type]
     - method CanConvertFrom(ITypeDescriptorContext, Type)  [no type]
@@ -434,14 +277,8 @@ Microsoft.Xna.Framework.Design.BoundingSphereConverter  (out; BL no type; game n
     - field propertyDescriptions  [no type]
     - field supportStringConvert  [no type]
 
-Microsoft.Xna.Framework.Design.ColorConverter  (1 copy; BL no type; game no type)
+Microsoft.Xna.Framework.Design.ColorConverter  (1 copy; BL 6/11; game no type)
     - ctor .ctor()  [no type]
-    - method CanConvertFrom(ITypeDescriptorContext, Type)  [no type]
-    - method CanConvertTo(ITypeDescriptorContext, Type)  [no type]
-    - method ConvertFrom(ITypeDescriptorContext, CultureInfo, object)  [no type]
-    - method ConvertTo(ITypeDescriptorContext, CultureInfo, object, Type)  [no type]
-    - method CreateInstance(ITypeDescriptorContext, IDictionary)  [no type] ExampleMod .CreateInstance x2
-    - method GetCreateInstanceSupported(ITypeDescriptorContext)  [no type]
     - method GetProperties(ITypeDescriptorContext, object, Attribute[])  [no type]
     - method GetPropertiesSupported(ITypeDescriptorContext)  [no type]
     - field propertyDescriptions  [no type]
@@ -627,11 +464,6 @@ Microsoft.Xna.Framework.GameServiceContainer  (out; BL 0/4; game has type)
     ~ method GetService(Type)  [game has it]
     ~ method RemoveService(Type)  [game has it]
 
-Microsoft.Xna.Framework.GameTime  (2 game; BL 3/6; game has type)
-    ~ ctor .ctor()  [game lacks it]
-    ~ ctor .ctor(TimeSpan, TimeSpan)  [game lacks it]
-    ~ ctor .ctor(TimeSpan, TimeSpan, bool)  [game lacks it]
-
 Microsoft.Xna.Framework.GameWindow  (out; BL 13/22; game has type)
     ~ ctor .ctor()  [game lacks it]
     - property AllowUserResizing  [game has it]
@@ -762,35 +594,11 @@ Microsoft.Xna.Framework.Graphics.DynamicVertexBuffer  (3 native; BL 18/25; game 
     - method ToString()  [no type]
     - field _Name  [no type]
 
-Microsoft.Xna.Framework.Graphics.Effect  (2 game; BL 12/18; game has type; native in FNA)
-    ~ ctor .ctor(Effect)  [game lacks it]
-    ~ ctor .ctor(GraphicsDevice, byte[])  [game lacks it]
+Microsoft.Xna.Framework.Graphics.Effect  (2 game; BL 14/18; game has type; native in FNA)
     ~ method Dispose(bool)  [game has another overload]
     - property IsDisposed  [game lacks it]
     - property IsHarmlessToLeakInstance  [game lacks it]
     - field _Name  [game lacks it]
-
-Microsoft.Xna.Framework.Graphics.EffectAnnotation  (2 game; BL no type; game no type)
-    - property ColumnCount  [no type]
-    - method GetValueBoolean()  [no type]
-    - method GetValueInt32()  [no type]
-    - method GetValueMatrix()  [no type]
-    - method GetValueSingle()  [no type]
-    - method GetValueString()  [no type]
-    - method GetValueVector2()  [no type]
-    - method GetValueVector3()  [no type]
-    - method GetValueVector4()  [no type]
-    - property Name  [no type]
-    - property ParameterClass  [no type]
-    - property ParameterType  [no type]
-    - property RowCount  [no type]
-    - property Semantic  [no type]
-
-Microsoft.Xna.Framework.Graphics.EffectAnnotationCollection  (2 game; BL no type; game no type)
-    - property Count  [no type]
-    - method GetEnumerator()  [no type]
-    - indexer this[int]  [no type]
-    - indexer this[string]  [no type]
 
 Microsoft.Xna.Framework.Graphics.EffectMaterial  (out; BL no type; game no type; native in FNA)
     - ctor .ctor(Effect)  [no type]
@@ -811,10 +619,7 @@ Microsoft.Xna.Framework.Graphics.EffectMaterial  (out; BL no type; game no type;
     - method ToString()  [no type]
     - field _Name  [no type]
 
-Microsoft.Xna.Framework.Graphics.EffectParameter  (2 game; BL 32/51; game has type)
-    - property Annotations  [game lacks it]
-    - property ColumnCount  [game lacks it]
-    - property Elements  [game lacks it]
+Microsoft.Xna.Framework.Graphics.EffectParameter  (2 game; BL 39/51; game has type)
     - method GetValueBooleanArray(int)  [game lacks it]
     - method GetValueInt32Array(int)  [game lacks it]
     - method GetValueMatrixTransposeArray(int)  [game lacks it]
@@ -826,39 +631,7 @@ Microsoft.Xna.Framework.Graphics.EffectParameter  (2 game; BL 32/51; game has ty
     - method GetValueVector2Array(int)  [game lacks it]
     - method GetValueVector3Array(int)  [game lacks it]
     - method GetValueVector4Array(int)  [game lacks it]
-    - property ParameterClass  [game lacks it]
-    - property ParameterType  [game lacks it]
-    - property RowCount  [game lacks it]
-    - property Semantic  [game lacks it]
     - property StructureMembers  [game lacks it]
-
-Microsoft.Xna.Framework.Graphics.EffectParameterClass  (1 copy; BL no type; game no type)
-    - value Matrix  [no type]
-    - value Object  [no type]
-    - value Scalar  [no type]
-    - value Struct  [no type]
-    - value Vector  [no type]
-
-Microsoft.Xna.Framework.Graphics.EffectParameterCollection  (2 game; BL 4/5; game has type)
-    - method GetParameterBySemantic(string)  [game lacks it]
-
-Microsoft.Xna.Framework.Graphics.EffectParameterType  (1 copy; BL no type; game no type)
-    - value Bool  [no type]
-    - value Int32  [no type]
-    - value Single  [no type]
-    - value String  [no type]
-    - value Texture  [no type]
-    - value Texture1D  [no type]
-    - value Texture2D  [no type]
-    - value Texture3D  [no type]
-    - value TextureCube  [no type]
-    - value Void  [no type]
-
-Microsoft.Xna.Framework.Graphics.EffectPass  (2 game; BL 2/3; game has type)
-    - property Annotations  [game lacks it]
-
-Microsoft.Xna.Framework.Graphics.EffectTechnique  (2 game; BL 2/3; game has type)
-    - property Annotations  [game lacks it]
 
 Microsoft.Xna.Framework.Graphics.EnvironmentMapEffect  (out; BL no type; game no type; native in FNA)
     - ctor .ctor(EnvironmentMapEffect)  [no type]
@@ -1219,83 +992,43 @@ Microsoft.Xna.Framework.Graphics.OcclusionQuery  (out; BL no type; game no type;
     - method ToString()  [no type]
     - field _Name  [no type]
 
-Microsoft.Xna.Framework.Graphics.PackedVector.Alpha8  (1 copy; BL 2/9; game has type)
+Microsoft.Xna.Framework.Graphics.PackedVector.Alpha8  (1 copy; BL 7/9; game has type)
     - ctor .ctor(float)  [game lacks it]
-    - method Equals(Alpha8)  [game has it]
-    - method Equals(object)  [game has it]
-    - method GetHashCode()  [game has it]
     - method ToString()  [game has it]
-    - operator operator !=(Alpha8, Alpha8)  [game lacks it]
-    - operator operator ==(Alpha8, Alpha8)  [game lacks it]
 
-Microsoft.Xna.Framework.Graphics.PackedVector.Bgr565  (1 copy; BL 2/10; game has type)
+Microsoft.Xna.Framework.Graphics.PackedVector.Bgr565  (1 copy; BL 7/10; game has type)
     - ctor .ctor(Vector3)  [game lacks it]
     - ctor .ctor(float, float, float)  [game lacks it]
-    - method Equals(Bgr565)  [game has it]
-    - method Equals(object)  [game has it]
-    - method GetHashCode()  [game has it]
     - method ToString()  [game has it]
-    - operator operator !=(Bgr565, Bgr565)  [game lacks it]
-    - operator operator ==(Bgr565, Bgr565)  [game lacks it]
 
-Microsoft.Xna.Framework.Graphics.PackedVector.Bgra4444  (1 copy; BL 2/10; game has type)
+Microsoft.Xna.Framework.Graphics.PackedVector.Bgra4444  (1 copy; BL 7/10; game has type)
     - ctor .ctor(Vector4)  [game lacks it]
     - ctor .ctor(float, float, float, float)  [game lacks it]
-    - method Equals(Bgra4444)  [game has it]
-    - method Equals(object)  [game has it]
-    - method GetHashCode()  [game has it]
     - method ToString()  [game has it]
-    - operator operator !=(Bgra4444, Bgra4444)  [game lacks it]
-    - operator operator ==(Bgra4444, Bgra4444)  [game lacks it]
 
-Microsoft.Xna.Framework.Graphics.PackedVector.Bgra5551  (1 copy; BL 2/10; game has type)
+Microsoft.Xna.Framework.Graphics.PackedVector.Bgra5551  (1 copy; BL 7/10; game has type)
     - ctor .ctor(Vector4)  [game lacks it]
     - ctor .ctor(float, float, float, float)  [game lacks it]
-    - method Equals(Bgra5551)  [game has it]
-    - method Equals(object)  [game has it]
-    - method GetHashCode()  [game has it]
     - method ToString()  [game has it]
-    - operator operator !=(Bgra5551, Bgra5551)  [game lacks it]
-    - operator operator ==(Bgra5551, Bgra5551)  [game lacks it]
 
-Microsoft.Xna.Framework.Graphics.PackedVector.Byte4  (1 copy; BL 2/10; game has type)
+Microsoft.Xna.Framework.Graphics.PackedVector.Byte4  (1 copy; BL 7/10; game has type)
     - ctor .ctor(Vector4)  [game lacks it]
     - ctor .ctor(float, float, float, float)  [game lacks it]
-    - method Equals(Byte4)  [game has it]
-    - method Equals(object)  [game has it]
-    - method GetHashCode()  [game has it]
     - method ToString()  [game has it]
-    - operator operator !=(Byte4, Byte4)  [game lacks it]
-    - operator operator ==(Byte4, Byte4)  [game lacks it]
 
-Microsoft.Xna.Framework.Graphics.PackedVector.HalfSingle  (1 copy; BL 2/9; game has type)
+Microsoft.Xna.Framework.Graphics.PackedVector.HalfSingle  (1 copy; BL 7/9; game has type)
     - ctor .ctor(float)  [game lacks it]
-    - method Equals(HalfSingle)  [game has it]
-    - method Equals(object)  [game has it]
-    - method GetHashCode()  [game has it]
     - method ToString()  [game has it]
-    - operator operator !=(HalfSingle, HalfSingle)  [game lacks it]
-    - operator operator ==(HalfSingle, HalfSingle)  [game lacks it]
 
-Microsoft.Xna.Framework.Graphics.PackedVector.HalfVector2  (1 copy; BL 2/10; game has type)
+Microsoft.Xna.Framework.Graphics.PackedVector.HalfVector2  (1 copy; BL 7/10; game has type)
     - ctor .ctor(Vector2)  [game lacks it]
     - ctor .ctor(float, float)  [game lacks it]
-    - method Equals(HalfVector2)  [game has it] ExampleMod .Equals x18
-    - method Equals(object)  [game has it] ExampleMod .Equals x18
-    - method GetHashCode()  [game has it] ExampleMod .GetHashCode x7
     - method ToString()  [game has it] ExampleMod .ToString x6
-    - operator operator !=(HalfVector2, HalfVector2)  [game lacks it]
-    - operator operator ==(HalfVector2, HalfVector2)  [game lacks it]
 
-Microsoft.Xna.Framework.Graphics.PackedVector.HalfVector4  (1 copy; BL 2/10; game has type)
+Microsoft.Xna.Framework.Graphics.PackedVector.HalfVector4  (1 copy; BL 7/10; game has type)
     - ctor .ctor(Vector4)  [game lacks it]
     - ctor .ctor(float, float, float, float)  [game lacks it]
-    - method Equals(HalfVector4)  [game has it]
-    - method Equals(object)  [game has it]
-    - method GetHashCode()  [game has it]
     - method ToString()  [game has it]
-    - operator operator !=(HalfVector4, HalfVector4)  [game lacks it]
-    - operator operator ==(HalfVector4, HalfVector4)  [game lacks it]
 
 Microsoft.Xna.Framework.Graphics.PackedVector.IPackedVector  (1 copy; BL no type; game has type)
     - method PackFromVector4(Vector4)  [game has it]
@@ -1306,95 +1039,50 @@ Microsoft.Xna.Framework.Graphics.PackedVector.IPackedVector`1  (1 copy; BL no ty
     - property PackedValue  [game has it]
     - method ToVector4()  [game has it]
 
-Microsoft.Xna.Framework.Graphics.PackedVector.NormalizedByte2  (1 copy; BL 2/10; game has type)
+Microsoft.Xna.Framework.Graphics.PackedVector.NormalizedByte2  (1 copy; BL 7/10; game has type)
     - ctor .ctor(Vector2)  [game lacks it]
     - ctor .ctor(float, float)  [game lacks it]
-    - method Equals(NormalizedByte2)  [game has it]
-    - method Equals(object)  [game has it]
-    - method GetHashCode()  [game has it]
     - method ToString()  [game has it]
-    - operator operator !=(NormalizedByte2, NormalizedByte2)  [game lacks it]
-    - operator operator ==(NormalizedByte2, NormalizedByte2)  [game lacks it]
 
-Microsoft.Xna.Framework.Graphics.PackedVector.NormalizedByte4  (1 copy; BL 2/10; game has type)
+Microsoft.Xna.Framework.Graphics.PackedVector.NormalizedByte4  (1 copy; BL 7/10; game has type)
     - ctor .ctor(Vector4)  [game lacks it]
     - ctor .ctor(float, float, float, float)  [game lacks it]
-    - method Equals(NormalizedByte4)  [game has it]
-    - method Equals(object)  [game has it]
-    - method GetHashCode()  [game has it]
     - method ToString()  [game has it]
-    - operator operator !=(NormalizedByte4, NormalizedByte4)  [game lacks it]
-    - operator operator ==(NormalizedByte4, NormalizedByte4)  [game lacks it]
 
-Microsoft.Xna.Framework.Graphics.PackedVector.NormalizedShort2  (1 copy; BL 2/10; game has type)
+Microsoft.Xna.Framework.Graphics.PackedVector.NormalizedShort2  (1 copy; BL 7/10; game has type)
     - ctor .ctor(Vector2)  [game lacks it]
     - ctor .ctor(float, float)  [game lacks it]
-    - method Equals(NormalizedShort2)  [game has it]
-    - method Equals(object)  [game has it]
-    - method GetHashCode()  [game has it]
     - method ToString()  [game has it]
-    - operator operator !=(NormalizedShort2, NormalizedShort2)  [game lacks it]
-    - operator operator ==(NormalizedShort2, NormalizedShort2)  [game lacks it]
 
-Microsoft.Xna.Framework.Graphics.PackedVector.NormalizedShort4  (1 copy; BL 2/10; game has type)
+Microsoft.Xna.Framework.Graphics.PackedVector.NormalizedShort4  (1 copy; BL 7/10; game has type)
     - ctor .ctor(Vector4)  [game lacks it]
     - ctor .ctor(float, float, float, float)  [game lacks it]
-    - method Equals(NormalizedShort4)  [game has it]
-    - method Equals(object)  [game has it]
-    - method GetHashCode()  [game has it]
     - method ToString()  [game has it]
-    - operator operator !=(NormalizedShort4, NormalizedShort4)  [game lacks it]
-    - operator operator ==(NormalizedShort4, NormalizedShort4)  [game lacks it]
 
-Microsoft.Xna.Framework.Graphics.PackedVector.Rg32  (1 copy; BL 2/10; game has type)
+Microsoft.Xna.Framework.Graphics.PackedVector.Rg32  (1 copy; BL 7/10; game has type)
     - ctor .ctor(Vector2)  [game lacks it]
     - ctor .ctor(float, float)  [game lacks it]
-    - method Equals(Rg32)  [game has it]
-    - method Equals(object)  [game has it]
-    - method GetHashCode()  [game has it]
     - method ToString()  [game has it]
-    - operator operator !=(Rg32, Rg32)  [game lacks it]
-    - operator operator ==(Rg32, Rg32)  [game lacks it]
 
-Microsoft.Xna.Framework.Graphics.PackedVector.Rgba1010102  (1 copy; BL 2/10; game has type)
+Microsoft.Xna.Framework.Graphics.PackedVector.Rgba1010102  (1 copy; BL 7/10; game has type)
     - ctor .ctor(Vector4)  [game lacks it]
     - ctor .ctor(float, float, float, float)  [game lacks it]
-    - method Equals(Rgba1010102)  [game has it]
-    - method Equals(object)  [game has it]
-    - method GetHashCode()  [game has it]
     - method ToString()  [game has it]
-    - operator operator !=(Rgba1010102, Rgba1010102)  [game lacks it]
-    - operator operator ==(Rgba1010102, Rgba1010102)  [game lacks it]
 
-Microsoft.Xna.Framework.Graphics.PackedVector.Rgba64  (1 copy; BL 2/10; game has type)
+Microsoft.Xna.Framework.Graphics.PackedVector.Rgba64  (1 copy; BL 7/10; game has type)
     - ctor .ctor(Vector4)  [game lacks it]
     - ctor .ctor(float, float, float, float)  [game lacks it]
-    - method Equals(Rgba64)  [game has it]
-    - method Equals(object)  [game has it]
-    - method GetHashCode()  [game has it]
     - method ToString()  [game has it]
-    - operator operator !=(Rgba64, Rgba64)  [game lacks it]
-    - operator operator ==(Rgba64, Rgba64)  [game lacks it]
 
-Microsoft.Xna.Framework.Graphics.PackedVector.Short2  (1 copy; BL 2/10; game has type)
+Microsoft.Xna.Framework.Graphics.PackedVector.Short2  (1 copy; BL 7/10; game has type)
     - ctor .ctor(Vector2)  [game lacks it]
     - ctor .ctor(float, float)  [game lacks it]
-    - method Equals(Short2)  [game has it]
-    - method Equals(object)  [game has it]
-    - method GetHashCode()  [game has it]
     - method ToString()  [game has it]
-    - operator operator !=(Short2, Short2)  [game lacks it]
-    - operator operator ==(Short2, Short2)  [game lacks it]
 
-Microsoft.Xna.Framework.Graphics.PackedVector.Short4  (1 copy; BL 2/10; game has type)
+Microsoft.Xna.Framework.Graphics.PackedVector.Short4  (1 copy; BL 7/10; game has type)
     - ctor .ctor(Vector4)  [game lacks it]
     - ctor .ctor(float, float, float, float)  [game lacks it]
-    - method Equals(Short4)  [game has it]
-    - method Equals(object)  [game has it]
-    - method GetHashCode()  [game has it]
     - method ToString()  [game has it]
-    - operator operator !=(Short4, Short4)  [game lacks it]
-    - operator operator ==(Short4, Short4)  [game lacks it]
 
 Microsoft.Xna.Framework.Graphics.PresentationParameters  (out; BL 12/13; game has type; native in FNA)
     ~ ctor .ctor()  [game lacks it]
@@ -1513,24 +1201,15 @@ Microsoft.Xna.Framework.Graphics.SkinnedEffect  (out; BL no type; game no type; 
     - property World  [no type]
     - field _Name  [no type]
 
-Microsoft.Xna.Framework.Graphics.SpriteBatch  (2 game; BL 23/31; game has type; native in FNA)
+Microsoft.Xna.Framework.Graphics.SpriteBatch  (2 game; BL 26/31; game has type; native in FNA)
     ~ ctor .ctor(GraphicsDevice)  [game lacks it]
     ~ method Dispose(bool)  [game has another overload]
-    ~ method DrawString(SpriteFont, StringBuilder, Vector2, Color)  [game has it] ExampleMod .DrawString x1
-    ~ method DrawString(SpriteFont, StringBuilder, Vector2, Color, float, Vector2, Vector2, SpriteEffects, float)  [game has it] ExampleMod .DrawString x1
-    ~ method DrawString(SpriteFont, StringBuilder, Vector2, Color, float, Vector2, float, SpriteEffects, float)  [game has it] ExampleMod .DrawString x1
     - property IsDisposed  [game lacks it]
     - property IsHarmlessToLeakInstance  [game lacks it]
     - field _Name  [game lacks it]
 
-Microsoft.Xna.Framework.Graphics.SpriteFont  (2 game; BL 4/6; game has type)
+Microsoft.Xna.Framework.Graphics.SpriteFont  (2 game; BL 5/6; game has type)
     - property Characters  [game lacks it]
-    ~ method MeasureString(StringBuilder)  [game has it]
-
-Microsoft.Xna.Framework.Graphics.SpriteSortMode  (2 game; BL 2/5; game has type)
-    - value BackToFront  [game lacks it]
-    - value FrontToBack  [game lacks it]
-    - value Texture  [game lacks it] ExampleMod .Texture x5
 
 Microsoft.Xna.Framework.Graphics.SurfaceFormat  (1 copy; BL 20/25; game has type)
     - value Bc7EXT  [game lacks it]
@@ -1547,7 +1226,7 @@ Microsoft.Xna.Framework.Graphics.Texture  (2 game; BL 9/15; game has type; nativ
     - property IsHarmlessToLeakInstance  [game lacks it]
     - field _Name  [game lacks it]
 
-Microsoft.Xna.Framework.Graphics.Texture2D  (2 game; BL 21/32; game has type; native in FNA)
+Microsoft.Xna.Framework.Graphics.Texture2D  (2 game; BL 22/32; game has type; native in FNA)
     - static method DDSFromStreamEXT(GraphicsDevice, Stream)  [game lacks it]
     ~ method Dispose(bool)  [game has another overload]
     ~ static method FromStream(GraphicsDevice, Stream, int, int, bool)  [game lacks it]
@@ -1555,7 +1234,6 @@ Microsoft.Xna.Framework.Graphics.Texture2D  (2 game; BL 21/32; game has type; na
     - property IsDisposed  [game lacks it]
     - property IsHarmlessToLeakInstance  [game lacks it]
     - method SaveAsJpeg(Stream, int, int)  [game lacks it]
-    ~ method SaveAsPng(Stream, int, int)  [game has it]
     - method SetDataPointerEXT(int, Rectangle, nint, int)  [game lacks it]
     - static method TextureDataFromStreamEXT(Stream, out int, out int, out byte[], int, int, bool)  [game lacks it]
     - field _Name  [game lacks it]
@@ -1633,11 +1311,6 @@ Microsoft.Xna.Framework.Graphics.VertexDeclaration  (1 copy; BL 8/15; game no ty
     - method ToString()  [no type]
     - field _Name  [no type]
 
-Microsoft.Xna.Framework.Graphics.Viewport  (2 game; BL 11/14; game has type; native in FNA)
-    - ctor .ctor(Rectangle)  [game lacks it]
-    - ctor .ctor(int, int, int, int)  [game lacks it]
-    - method ToString()  [game has it]
-
 Microsoft.Xna.Framework.GraphicsDeviceInformation  (out; BL no type; game no type)
     - property Adapter  [no type]
     - method Clone()  [no type]
@@ -1704,12 +1377,8 @@ Microsoft.Xna.Framework.Input.GamePad  (2 game; BL 4/9; game has type; native in
     - static method SetLightBarEXT(PlayerIndex, Color)  [game lacks it]
     - static method SetTriggerVibrationEXT(PlayerIndex, float, float)  [game lacks it]
 
-Microsoft.Xna.Framework.Input.GamePadButtons  (1 copy; BL 11/16; game has type)
+Microsoft.Xna.Framework.Input.GamePadButtons  (1 copy; BL 15/16; game has type)
     - ctor .ctor(Buttons)  [game lacks it]
-    - method Equals(object)  [game has it]
-    - method GetHashCode()  [game has it]
-    - operator operator !=(GamePadButtons, GamePadButtons)  [game lacks it]
-    - operator operator ==(GamePadButtons, GamePadButtons)  [game lacks it]
 
 Microsoft.Xna.Framework.Input.GamePadCapabilities  (1 copy; BL 26/36; game has type)
     - property HasAccelerometerEXT  [game lacks it]
@@ -1723,59 +1392,27 @@ Microsoft.Xna.Framework.Input.GamePadCapabilities  (1 copy; BL 26/36; game has t
     - property HasTouchPadEXT  [game lacks it]
     - property HasTriggerVibrationMotorsEXT  [game lacks it]
 
-Microsoft.Xna.Framework.Input.GamePadDPad  (1 copy; BL 4/9; game has type)
+Microsoft.Xna.Framework.Input.GamePadDPad  (1 copy; BL 8/9; game has type)
     - ctor .ctor(ButtonState, ButtonState, ButtonState, ButtonState)  [game lacks it]
-    - method Equals(object)  [game has it]
-    - method GetHashCode()  [game has it]
-    - operator operator !=(GamePadDPad, GamePadDPad)  [game lacks it]
-    - operator operator ==(GamePadDPad, GamePadDPad)  [game lacks it]
 
-Microsoft.Xna.Framework.Input.GamePadState  (1 copy; BL 8/15; game has type)
+Microsoft.Xna.Framework.Input.GamePadState  (1 copy; BL 12/15; game has type)
     - ctor .ctor(GamePadThumbSticks, GamePadTriggers, GamePadButtons, GamePadDPad)  [game lacks it]
     - ctor .ctor(Vector2, Vector2, float, float, Buttons[])  [game lacks it]
-    - method Equals(object)  [game has it]
-    - method GetHashCode()  [game has it]
     - method ToString()  [game has it]
-    - operator operator !=(GamePadState, GamePadState)  [game lacks it]
-    - operator operator ==(GamePadState, GamePadState)  [game lacks it]
 
-Microsoft.Xna.Framework.Input.GamePadThumbSticks  (1 copy; BL 2/7; game has type)
+Microsoft.Xna.Framework.Input.GamePadThumbSticks  (1 copy; BL 6/7; game has type)
     - ctor .ctor(Vector2, Vector2)  [game lacks it]
-    - method Equals(object)  [game has it]
-    - method GetHashCode()  [game has it]
-    - operator operator !=(GamePadThumbSticks, GamePadThumbSticks)  [game lacks it]
-    - operator operator ==(GamePadThumbSticks, GamePadThumbSticks)  [game lacks it]
 
-Microsoft.Xna.Framework.Input.GamePadTriggers  (1 copy; BL 2/7; game has type)
+Microsoft.Xna.Framework.Input.GamePadTriggers  (1 copy; BL 6/7; game has type)
     - ctor .ctor(float, float)  [game lacks it]
-    - method Equals(object)  [game has it]
-    - method GetHashCode()  [game has it]
-    - operator operator !=(GamePadTriggers, GamePadTriggers)  [game lacks it]
-    - operator operator ==(GamePadTriggers, GamePadTriggers)  [game lacks it]
 
 Microsoft.Xna.Framework.Input.Keyboard  (2 game; BL 2/3; game has type; native in FNA)
     - static method GetKeyFromScancodeEXT(Keys)  [game lacks it]
-
-Microsoft.Xna.Framework.Input.KeyboardState  (1 copy; BL 3/9; game has type)
-    - ctor .ctor(Keys[])  [game lacks it]
-    - method Equals(object)  [game has it]
-    - method GetHashCode()  [game has it]
-    - operator operator !=(KeyboardState, KeyboardState)  [game lacks it]
-    - operator operator ==(KeyboardState, KeyboardState)  [game lacks it]
-    - indexer this[Keys]  [game lacks it]
 
 Microsoft.Xna.Framework.Input.Mouse  (2 game; BL 2/5; game has type; native in FNA)
     - static field ClickedEXT  [game lacks it]
     - static property IsRelativeMouseModeEXT  [game lacks it]
     - static property WindowHandle  [game lacks it]
-
-Microsoft.Xna.Framework.Input.MouseState  (1 copy; BL 8/14; game has type)
-    - ctor .ctor(int, int, int, ButtonState, ButtonState, ButtonState, ButtonState, ButtonState)  [game lacks it]
-    - method Equals(object)  [game has it]
-    - method GetHashCode()  [game has it]
-    - method ToString()  [game lacks it]
-    - operator operator !=(MouseState, MouseState)  [game lacks it]
-    - operator operator ==(MouseState, MouseState)  [game lacks it]
 
 Microsoft.Xna.Framework.Input.TextInputEXT  (out; BL no type; game no type; native in FNA)
     - static method IsScreenKeyboardShown()  [no type]
@@ -1872,13 +1509,11 @@ Microsoft.Xna.Framework.Input.Touch.TouchPanelCapabilities  (2 game; BL no type;
 Microsoft.Xna.Framework.LaunchParameters  (out; BL no type; game no type)
     - ctor .ctor()  [no type]
 
-Microsoft.Xna.Framework.Matrix  (1 copy; BL 100/106; game has type)
+Microsoft.Xna.Framework.Matrix  (1 copy; BL 102/106; game has type)
     ~ static method CreateBillboard(Vector3, Vector3, Vector3, Vector3)  [game has it]
     ~ static method CreateConstrainedBillboard(Vector3, Vector3, Vector3, Vector3, Vector3)  [game has it]
     ~ static method CreateLookAt(Vector3, Vector3, Vector3)  [game has it]
     ~ static method CreateWorld(Vector3, Vector3, Vector3)  [game has it]
-    ~ operator operator *(Matrix, Matrix)  [game lacks it]
-    ~ operator operator +(Matrix, Matrix)  [game lacks it]
 
 Microsoft.Xna.Framework.Media.Album  (out; BL no type; game no type)
     - property Artist  [no type]
@@ -2133,81 +1768,13 @@ Microsoft.Xna.Framework.Media.VisualizationData  (out; BL no type; game no type)
     - property Frequencies  [no type]
     - property Samples  [no type]
 
-Microsoft.Xna.Framework.Plane  (1 copy; BL 15/30; game has type)
-    - ctor .ctor(Vector3, Vector3, Vector3)  [game lacks it]
-    - ctor .ctor(Vector3, float)  [game lacks it]
-    - ctor .ctor(Vector4)  [game lacks it]
-    - ctor .ctor(float, float, float, float)  [game lacks it]
-    - method Equals(Plane)  [game has it]
-    - method Equals(object)  [game has it]
-    - method GetHashCode()  [game has it]
-    - method Intersects(BoundingBox)  [game lacks it]
-    - method Intersects(BoundingFrustum)  [game lacks it]
-    - method Intersects(BoundingSphere)  [game lacks it]
-    - method Intersects(ref BoundingBox, out PlaneIntersectionType)  [game lacks it]
-    - method Intersects(ref BoundingSphere, out PlaneIntersectionType)  [game lacks it]
-    - method ToString()  [game has it]
-    - operator operator !=(Plane, Plane)  [game lacks it]
-    - operator operator ==(Plane, Plane)  [game lacks it]
-
-Microsoft.Xna.Framework.Point  (1 copy; BL 4/14; game has type)
-    - method Equals(Point)  [game has it] ExampleMod .Equals x18
-    - method Equals(object)  [game has it] ExampleMod .Equals x18
-    - method GetHashCode()  [game has it] ExampleMod .GetHashCode x7
-    - method ToString()  [game has it] ExampleMod .ToString x6
-    - operator operator !=(Point, Point)  [game lacks it]
-    - operator operator *(Point, Point)  [game lacks it]
-    - operator operator +(Point, Point)  [game lacks it]
-    - operator operator -(Point, Point)  [game lacks it]
-    - operator operator /(Point, Point)  [game lacks it]
-    - operator operator ==(Point, Point)  [game lacks it]
-
 Microsoft.Xna.Framework.PreparingDeviceSettingsEventArgs  (out; BL no type; game no type)
     - ctor .ctor(GraphicsDeviceInformation)  [no type]
     - property GraphicsDeviceInformation  [no type]
 
-Microsoft.Xna.Framework.Quaternion  (1 copy; BL 39/55; game has type)
-    - ctor .ctor(Vector3, float)  [game lacks it]
-    - ctor .ctor(float, float, float, float)  [game lacks it]
-    - method Equals(Quaternion)  [game has it]
-    - method Equals(object)  [game has it]
-    - method GetHashCode()  [game has it]
+Microsoft.Xna.Framework.Quaternion  (1 copy; BL 53/55; game has type)
     ~ static method Lerp(Quaternion, Quaternion, float)  [game has it]
     ~ static method Slerp(Quaternion, Quaternion, float)  [game has it]
-    - method ToString()  [game has it]
-    - operator operator !=(Quaternion, Quaternion)  [game lacks it]
-    - operator operator *(Quaternion, Quaternion)  [game lacks it]
-    - operator operator *(Quaternion, float)  [game lacks it]
-    - operator operator +(Quaternion, Quaternion)  [game lacks it]
-    - operator operator -(Quaternion)  [game lacks it]
-    - operator operator -(Quaternion, Quaternion)  [game lacks it]
-    - operator operator /(Quaternion, Quaternion)  [game lacks it]
-    - operator operator ==(Quaternion, Quaternion)  [game lacks it]
-
-Microsoft.Xna.Framework.Ray  (1 copy; BL no type; game no type)
-    - ctor .ctor(Vector3, Vector3)  [no type]
-    - field Direction  [no type]
-    - method Equals(Ray)  [no type]
-    - method Equals(object)  [no type]
-    - method GetHashCode()  [no type]
-    - method Intersects(BoundingBox)  [no type]
-    - method Intersects(BoundingFrustum)  [no type]
-    - method Intersects(BoundingSphere)  [no type]
-    - method Intersects(Plane)  [no type]
-    - method Intersects(ref BoundingBox, out float)  [no type]
-    - method Intersects(ref BoundingSphere, out float)  [no type]
-    - method Intersects(ref Plane, out float)  [no type]
-    - field Position  [no type]
-    - method ToString()  [no type]
-    - operator operator !=(Ray, Ray)  [no type]
-    - operator operator ==(Ray, Ray)  [no type]
-
-Microsoft.Xna.Framework.Rectangle  (1 copy; BL 28/33; game has type)
-    - method Equals(Rectangle)  [game has it] ExampleMod .Equals x18
-    - method Equals(object)  [game has it] ExampleMod .Equals x18
-    - method GetHashCode()  [game has it] ExampleMod .GetHashCode x7
-    - operator operator !=(Rectangle, Rectangle)  [game lacks it]
-    - operator operator ==(Rectangle, Rectangle)  [game lacks it]
 
 Microsoft.Xna.Framework.Storage.StorageContainer  (out; BL no type; game no type)
     - method CreateDirectory(string)  [no type]
@@ -2252,49 +1819,21 @@ Microsoft.Xna.Framework.ThreadCheck  (out; BL no type; game no type)
     - static method CheckThread()  [no type]
     - static property IsMainThread  [no type]
 
-Microsoft.Xna.Framework.Vector2  (1 copy; BL 74/77; game has type)
+Microsoft.Xna.Framework.Vector2  (1 copy; BL 75/77; game has type)
     ~ static method CatmullRom(Vector2, Vector2, Vector2, Vector2, float)  [game has it]
-    ~ method Equals(Vector2)  [game has it] ExampleMod .Equals x18
     ~ static method Hermite(Vector2, Vector2, Vector2, Vector2, float)  [game has it]
 
-Microsoft.Xna.Framework.Vector3  (1 copy; BL 74/88; game has type)
-    ~ ctor .ctor(Vector2, float)  [game lacks it]
-    ~ ctor .ctor(float)  [game lacks it]
+Microsoft.Xna.Framework.Vector3  (1 copy; BL 84/88; game has type)
     ~ static method Barycentric(Vector3, Vector3, Vector3, float, float)  [game has it]
     ~ static method CatmullRom(Vector3, Vector3, Vector3, Vector3, float)  [game has it]
     ~ static method Clamp(Vector3, Vector3, Vector3)  [game has it] ExampleMod .Clamp x35
-    - method Equals(Vector3)  [game has it] ExampleMod .Equals x18
-    - method Equals(object)  [game has it] ExampleMod .Equals x18
-    - method GetHashCode()  [game has it] ExampleMod .GetHashCode x7
     ~ static method Hermite(Vector3, Vector3, Vector3, Vector3, float)  [game has it]
-    - operator operator !=(Vector3, Vector3)  [game lacks it]
-    ~ operator operator *(Vector3, Vector3)  [game lacks it]
-    ~ operator operator -(Vector3)  [game lacks it]
-    ~ operator operator /(Vector3, Vector3)  [game lacks it]
-    - operator operator ==(Vector3, Vector3)  [game lacks it]
 
-Microsoft.Xna.Framework.Vector4  (1 copy; BL 62/85; game has type)
-    ~ ctor .ctor(Vector2, float, float)  [game lacks it]
-    ~ ctor .ctor(Vector3, float)  [game lacks it]
-    ~ ctor .ctor(float)  [game lacks it]
+Microsoft.Xna.Framework.Vector4  (1 copy; BL 79/85; game has type)
     ~ static method Barycentric(Vector4, Vector4, Vector4, float, float)  [game has it]
     ~ static method CatmullRom(Vector4, Vector4, Vector4, Vector4, float)  [game has it]
     ~ static method Clamp(Vector4, Vector4, Vector4)  [game has it] ExampleMod .Clamp x35
-    - method Equals(Vector4)  [game has it] ExampleMod .Equals x18
-    - method Equals(object)  [game has it] ExampleMod .Equals x18
-    - method GetHashCode()  [game has it] ExampleMod .GetHashCode x7
     ~ static method Hermite(Vector4, Vector4, Vector4, Vector4, float)  [game has it]
     ~ static method Lerp(Vector4, Vector4, float)  [game has it] ExampleMod .Lerp x39
     ~ static method SmoothStep(Vector4, Vector4, float)  [game has it] ExampleMod .SmoothStep x10
-    - method ToString()  [game has it] ExampleMod .ToString x6
-    - operator operator !=(Vector4, Vector4)  [game lacks it]
-    - operator operator *(Vector4, Vector4)  [game lacks it]
-    - operator operator *(Vector4, float)  [game lacks it]
-    - operator operator *(float, Vector4)  [game lacks it]
-    - operator operator +(Vector4, Vector4)  [game lacks it]
-    - operator operator -(Vector4)  [game lacks it]
-    - operator operator -(Vector4, Vector4)  [game lacks it]
-    - operator operator /(Vector4, Vector4)  [game lacks it]
-    - operator operator /(Vector4, float)  [game lacks it]
-    - operator operator ==(Vector4, Vector4)  [game lacks it]
 

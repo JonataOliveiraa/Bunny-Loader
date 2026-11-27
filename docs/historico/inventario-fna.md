@@ -28,26 +28,26 @@ with another signature); **Game** whether the mobile dump has the type;
 
 | Kind | Types | Members missing in BL | Types ExampleMod uses |
 |---|---|---|---|
-| 1 copy | 61 | 539 | 9 |
-| 2 game | 36 | 208 | 12 |
+| 1 copy | 46 | 168 | 6 |
+| 2 game | 28 | 164 | 10 |
 | 3 native | 10 | 157 | 0 |
-| done | 56 | 0 | 4 |
+| done | 79 | 0 | 9 |
 | out | 107 | 972 | 2 |
-| all | 270 | 1876 | 27 |
+| all | 270 | 1461 | 27 |
 
 ## Microsoft.Xna.Framework
 
 | Type | Kind | BL | Game | ExampleMod | Note |
 |---|---|---|---|---|---|
-| `BoundingBox` struct | 1 copy | no type | no |  |  |
-| `BoundingFrustum` | 1 copy | no type | no |  |  |
-| `BoundingSphere` struct | 1 copy | no type | no |  |  |
-| `Color` struct | 1 copy | 160/165 +3 (in Microsoft.Xna.Framework.Graphics) | yes (in Microsoft.Xna.Framework.Graphics) | 610 | BL and the game keep Color in Microsoft.Xna.Framework.Graphics; a fully qualified Microsoft.Xna.Framework.Color does not compile |
+| `BoundingBox` struct | done | 33/33 | no |  |  |
+| `BoundingFrustum` | done | 33/33 | no |  |  |
+| `BoundingSphere` struct | done | 33/33 | no |  |  |
+| `Color` struct | done | 165/165 (in Microsoft.Xna.Framework.Graphics) | yes (in Microsoft.Xna.Framework.Graphics) | 610 | BL and the game keep Color in Microsoft.Xna.Framework.Graphics; a fully qualified Microsoft.Xna.Framework.Color does not compile |
 | `ContainmentType` enum | done | 3/3 | yes |  |  |
-| `Curve` | 1 copy | no type | no |  |  |
+| `Curve` | done | 11/11 | no |  |  |
 | `CurveContinuity` enum | done | 2/2 | yes |  |  |
-| `CurveKey` | 1 copy | no type | no |  |  |
-| `CurveKeyCollection` | 1 copy | no type | no |  |  |
+| `CurveKey` | done | 15/15 | no |  |  |
+| `CurveKeyCollection` | done | 13/13 | no |  |  |
 | `CurveLoopType` enum | done | 5/5 | yes |  |  |
 | `CurveTangent` enum | done | 3/3 | yes |  |  |
 | `DisplayOrientation` enum | done | 4/4 | yes |  |  |
@@ -59,7 +59,7 @@ with another signature); **Game** whether the mobile dump has the type;
 | `GameComponentCollection` | done | 6/6 | yes |  |  |
 | `GameComponentCollectionEventArgs` | out | 1/2 +1 | yes |  | engine |
 | `GameServiceContainer` | out | 0/4 +4 | yes |  | engine |
-| `GameTime` | 2 game | 3/6 +3 | yes | 12 | constructors only |
+| `GameTime` | done | 6/6 | yes | 12 | constructors only |
 | `GameWindow` | out | 13/22 +1 | yes |  | Unity owns the window |
 | `GraphicsDeviceInformation` | out | no type | no |  | device setup |
 | `GraphicsDeviceManager` | out | 9/30 +1 | yes |  | device setup; Main.graphics.GraphicsDevice already works |
@@ -69,20 +69,20 @@ with another signature); **Game** whether the mobile dump has the type;
 | `IUpdateable` interface | out | no type | yes |  | engine |
 | `LaunchParameters` | out | no type | no |  | engine |
 | `MathHelper` | done | 19/19 | yes | 154 |  |
-| `Matrix` struct | 1 copy | 100/106 +6 | yes | 8 |  |
-| `Plane` struct | 1 copy | 15/30 | yes |  |  |
+| `Matrix` struct | 1 copy | 102/106 +4 | yes | 8 |  |
+| `Plane` struct | done | 30/30 | yes |  |  |
 | `PlaneIntersectionType` enum | done | 3/3 | yes |  |  |
 | `PlayerIndex` enum | done | 4/4 | yes |  |  |
-| `Point` struct | 1 copy | 4/14 | yes | 20 | FNA adds +, -, *, / and ==; the game's Point has none |
+| `Point` struct | done | 14/14 | yes | 20 | FNA adds +, -, *, / and ==; the game's Point has none |
 | `PreparingDeviceSettingsEventArgs` | out | no type | no |  | device setup |
-| `Quaternion` struct | 1 copy | 39/55 +2 | yes |  |  |
-| `Ray` struct | 1 copy | no type | no |  |  |
-| `Rectangle` struct | 1 copy | 28/33 | yes | 168 |  |
+| `Quaternion` struct | 1 copy | 53/55 +2 | yes |  |  |
+| `Ray` struct | done | 16/16 | no |  |  |
+| `Rectangle` struct | done | 33/33 | yes | 168 |  |
 | `ThreadCheck` | out | no type | no |  | FNA internal helper |
 | `TitleContainer` | done | 1/1 | yes |  |  |
-| `Vector2` struct | 1 copy | 74/77 +3 | yes | 1065 | array Transform overloads only |
-| `Vector3` struct | 1 copy | 74/88 +9 | yes | 5 |  |
-| `Vector4` struct | 1 copy | 62/85 +9 | yes | 2 |  |
+| `Vector2` struct | 1 copy | 75/77 +2 | yes | 1065 | array Transform overloads only |
+| `Vector3` struct | 1 copy | 84/88 +4 | yes | 5 |  |
+| `Vector4` struct | 1 copy | 79/85 +6 | yes | 2 |  |
 
 ## Microsoft.Xna.Framework.Audio
 
@@ -131,7 +131,7 @@ with another signature); **Game** whether the mobile dump has the type;
 |---|---|---|---|---|---|
 | `BoundingBoxConverter` | out | no type | no |  | designer TypeConverters; ModConfig's [DefaultValue(typeof(Color), "r, g, b, a")] needs ColorConverter, so that one is 1 copy |
 | `BoundingSphereConverter` | out | no type | no |  | designer TypeConverters; ModConfig's [DefaultValue(typeof(Color), "r, g, b, a")] needs ColorConverter, so that one is 1 copy |
-| `ColorConverter` | 1 copy | no type | no | 1 | ModConfig [DefaultValue(typeof(Color), "...")] |
+| `ColorConverter` | 1 copy | 6/11 | no | 1 | ModConfig [DefaultValue(typeof(Color), "...")] |
 | `MathTypeConverter` | out | no type | no |  | designer TypeConverters; ModConfig's [DefaultValue(typeof(Color), "r, g, b, a")] needs ColorConverter, so that one is 1 copy |
 | `MatrixConverter` | out | no type | no |  | designer TypeConverters; ModConfig's [DefaultValue(typeof(Color), "r, g, b, a")] needs ColorConverter, so that one is 1 copy |
 | `PlaneConverter` | out | no type | no |  | designer TypeConverters; ModConfig's [DefaultValue(typeof(Color), "r, g, b, a")] needs ColorConverter, so that one is 1 copy |
@@ -168,17 +168,17 @@ with another signature); **Game** whether the mobile dump has the type;
 | `DualTextureEffect` | 3 native | no type | no |  | after BasicEffect, same path |
 | `DynamicIndexBuffer` | 3 native | 20/27 +1 | no |  | managed copy |
 | `DynamicVertexBuffer` | 3 native | 18/25 +1 | no |  | managed copy |
-| `Effect` | 2 game | 12/18 +3 | yes | 4 | over FxcGameEffect and MojoShader |
-| `EffectAnnotation` | 2 game | no type | no |  | over FxcGameEffect |
-| `EffectAnnotationCollection` | 2 game | no type | no |  | over FxcGameEffect |
+| `Effect` | 2 game | 14/18 +1 | yes | 4 | over FxcGameEffect and MojoShader |
+| `EffectAnnotation` | done | 14/14 | no |  | over FxcGameEffect |
+| `EffectAnnotationCollection` | done | 4/4 | no |  | over FxcGameEffect |
 | `EffectMaterial` | out | no type | no |  | Model |
-| `EffectParameter` | 2 game | 32/51 | yes |  | SetValue and GetValue written by hand (the game's SetValue(Matrix) is empty) |
-| `EffectParameterClass` enum | 1 copy | no type | no |  |  |
-| `EffectParameterCollection` | 2 game | 4/5 | yes |  | over FxcGameEffect |
-| `EffectParameterType` enum | 1 copy | no type | no |  |  |
-| `EffectPass` | 2 game | 2/3 | yes |  | over FxcGameEffect |
+| `EffectParameter` | 2 game | 39/51 | yes |  | SetValue and GetValue written by hand (the game's SetValue(Matrix) is empty) |
+| `EffectParameterClass` enum | done | 5/5 | no |  |  |
+| `EffectParameterCollection` | done | 5/5 | yes |  | over FxcGameEffect |
+| `EffectParameterType` enum | done | 10/10 | no |  |  |
+| `EffectPass` | done | 3/3 | yes |  | over FxcGameEffect |
 | `EffectPassCollection` | done | 4/4 | yes |  |  |
-| `EffectTechnique` | 2 game | 2/3 | yes |  | over FxcGameEffect |
+| `EffectTechnique` | done | 3/3 | yes |  | over FxcGameEffect |
 | `EffectTechniqueCollection` | done | 4/4 | yes |  |  |
 | `EnvironmentMapEffect` | out | no type | no |  | 3D |
 | `FNA3D` | out | no type | no |  | FNA's P/Invoke binding to FNA3D |
@@ -233,14 +233,14 @@ with another signature); **Game** whether the mobile dump has the type;
 | `SamplerStateCollection` | 2 game | 0/1 | yes |  | GraphicsDevice.SamplerStates[n] |
 | `SetDataOptions` enum | done | 3/3 | no |  | needed by the buffers |
 | `SkinnedEffect` | out | no type | no |  | 3D |
-| `SpriteBatch` | 2 game | 23/31 +5 | yes | 82 |  |
+| `SpriteBatch` | 2 game | 26/31 +2 | yes | 82 |  |
 | `SpriteEffects` enum | done | 3/3 | yes | 142 |  |
-| `SpriteFont` | 2 game | 4/6 +1 | yes |  |  |
-| `SpriteSortMode` enum | 2 game | 2/5 | yes | 5 | the game's enum lacks Texture, BackToFront and FrontToBack; the game's batcher has to honor them |
+| `SpriteFont` | 2 game | 5/6 | yes |  |  |
+| `SpriteSortMode` enum | done | 5/5 | yes | 5 | the game's enum lacks Texture, BackToFront and FrontToBack; the game's batcher has to honor them |
 | `StencilOperation` enum | done | 8/8 | yes |  |  |
 | `SurfaceFormat` enum | 1 copy | 20/25 | yes |  | the game lacks the FNA EXT formats |
 | `Texture` | 2 game | 9/15 +1 | yes | 119 |  |
-| `Texture2D` | 2 game | 21/32 +3 | yes | 214 | SetData, GetData, FromStream and the constructors are done; SaveAsPng/SaveAsJpeg and the EXT pointer methods are left |
+| `Texture2D` | 2 game | 22/32 +2 | yes | 214 | SetData, GetData, FromStream and the constructors are done; SaveAsPng/SaveAsJpeg and the EXT pointer methods are left |
 | `Texture3D` | out | no type | no |  | 3D |
 | `TextureAddressMode` enum | done | 3/3 | yes |  |  |
 | `TextureCollection` | 2 game | no type | no |  | GraphicsDevice.Textures[n], how tML mods bind uImage1..3; tied to the sprite shader units |
@@ -256,31 +256,31 @@ with another signature); **Game** whether the mobile dump has the type;
 | `VertexPositionColorTexture` struct | done | 10/10 | no |  | plain vertex data, needed by the primitives |
 | `VertexPositionNormalTexture` struct | done | 10/10 | no |  | plain vertex data, needed by the primitives |
 | `VertexPositionTexture` struct | done | 9/9 | no |  | plain vertex data, needed by the primitives |
-| `Viewport` struct | 2 game | 11/14 | yes |  |  |
+| `Viewport` struct | done | 14/14 | yes |  |  |
 
 ## Microsoft.Xna.Framework.Graphics.PackedVector
 
 | Type | Kind | BL | Game | ExampleMod | Note |
 |---|---|---|---|---|---|
-| `Alpha8` struct | 1 copy | 2/9 | yes |  | plain packing math |
-| `Bgr565` struct | 1 copy | 2/10 | yes |  | plain packing math |
-| `Bgra4444` struct | 1 copy | 2/10 | yes |  | plain packing math |
-| `Bgra5551` struct | 1 copy | 2/10 | yes |  | plain packing math |
-| `Byte4` struct | 1 copy | 2/10 | yes |  | plain packing math |
-| `HalfSingle` struct | 1 copy | 2/9 | yes |  | plain packing math |
-| `HalfVector2` struct | 1 copy | 2/10 | yes | 5 | plain packing math |
-| `HalfVector4` struct | 1 copy | 2/10 | yes |  | plain packing math |
+| `Alpha8` struct | 1 copy | 7/9 | yes |  | plain packing math |
+| `Bgr565` struct | 1 copy | 7/10 | yes |  | plain packing math |
+| `Bgra4444` struct | 1 copy | 7/10 | yes |  | plain packing math |
+| `Bgra5551` struct | 1 copy | 7/10 | yes |  | plain packing math |
+| `Byte4` struct | 1 copy | 7/10 | yes |  | plain packing math |
+| `HalfSingle` struct | 1 copy | 7/9 | yes |  | plain packing math |
+| `HalfVector2` struct | 1 copy | 7/10 | yes | 5 | plain packing math |
+| `HalfVector4` struct | 1 copy | 7/10 | yes |  | plain packing math |
 | `IPackedVector` interface | 1 copy | no type | yes |  | plain packing math |
 | `IPackedVector`1` interface | 1 copy | no type | yes |  | plain packing math |
-| `NormalizedByte2` struct | 1 copy | 2/10 | yes |  | plain packing math |
-| `NormalizedByte4` struct | 1 copy | 2/10 | yes |  | plain packing math |
-| `NormalizedShort2` struct | 1 copy | 2/10 | yes |  | plain packing math |
-| `NormalizedShort4` struct | 1 copy | 2/10 | yes |  | plain packing math |
-| `Rg32` struct | 1 copy | 2/10 | yes |  | plain packing math |
-| `Rgba1010102` struct | 1 copy | 2/10 | yes |  | plain packing math |
-| `Rgba64` struct | 1 copy | 2/10 | yes |  | plain packing math |
-| `Short2` struct | 1 copy | 2/10 | yes |  | plain packing math |
-| `Short4` struct | 1 copy | 2/10 | yes |  | plain packing math |
+| `NormalizedByte2` struct | 1 copy | 7/10 | yes |  | plain packing math |
+| `NormalizedByte4` struct | 1 copy | 7/10 | yes |  | plain packing math |
+| `NormalizedShort2` struct | 1 copy | 7/10 | yes |  | plain packing math |
+| `NormalizedShort4` struct | 1 copy | 7/10 | yes |  | plain packing math |
+| `Rg32` struct | 1 copy | 7/10 | yes |  | plain packing math |
+| `Rgba1010102` struct | 1 copy | 7/10 | yes |  | plain packing math |
+| `Rgba64` struct | 1 copy | 7/10 | yes |  | plain packing math |
+| `Short2` struct | 1 copy | 7/10 | yes |  | plain packing math |
+| `Short4` struct | 1 copy | 7/10 | yes |  | plain packing math |
 
 ## Microsoft.Xna.Framework.Input
 
@@ -289,20 +289,20 @@ with another signature); **Game** whether the mobile dump has the type;
 | `ButtonState` enum | done | 2/2 | yes |  | over the game's input state |
 | `Buttons` enum | 1 copy | 25/31 | yes |  |  |
 | `GamePad` | 2 game | 4/9 | yes |  | over the game's input state |
-| `GamePadButtons` struct | 1 copy | 11/16 | yes |  |  |
+| `GamePadButtons` struct | 1 copy | 15/16 | yes |  |  |
 | `GamePadCapabilities` struct | 1 copy | 26/36 | yes |  |  |
-| `GamePadDPad` struct | 1 copy | 4/9 | yes |  |  |
+| `GamePadDPad` struct | 1 copy | 8/9 | yes |  |  |
 | `GamePadDeadZone` enum | done | 3/3 | yes |  | over the game's input state |
-| `GamePadState` struct | 1 copy | 8/15 | yes |  |  |
-| `GamePadThumbSticks` struct | 1 copy | 2/7 | yes |  |  |
-| `GamePadTriggers` struct | 1 copy | 2/7 | yes |  |  |
+| `GamePadState` struct | 1 copy | 12/15 | yes |  |  |
+| `GamePadThumbSticks` struct | 1 copy | 6/7 | yes |  |  |
+| `GamePadTriggers` struct | 1 copy | 6/7 | yes |  |  |
 | `GamePadType` enum | done | 10/10 | yes |  | over the game's input state |
 | `KeyState` enum | done | 2/2 | yes |  | over the game's input state |
 | `Keyboard` | 2 game | 2/3 | yes |  | over the game's input state |
-| `KeyboardState` struct | 1 copy | 3/9 | yes |  |  |
+| `KeyboardState` struct | done | 9/9 | yes |  |  |
 | `Keys` enum | done | 160/160 | yes | 4 | over the game's input state |
 | `Mouse` | 2 game | 2/5 | yes | 4 | over the game's input state |
-| `MouseState` struct | 1 copy | 8/14 | yes |  |  |
+| `MouseState` struct | done | 14/14 | yes |  |  |
 | `TextInputEXT` | out | no type | no |  | SDL text input; the phone has its own keyboard flow |
 
 ## Microsoft.Xna.Framework.Input.Touch

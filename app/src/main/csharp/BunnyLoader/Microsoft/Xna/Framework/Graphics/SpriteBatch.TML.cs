@@ -9,8 +9,11 @@ public readonly unsafe partial struct SpriteBatch
 
     public void Begin(SpriteSortMode sortMode = SpriteSortMode.Deferred, BlendState blendState = default, SamplerState samplerState = default,
                       DepthStencilState depthStencilState = default, RasterizerState rasterizerState = default, Effect effect = default,
-                      GameNullable<Matrix> transformMatrix = default, bool defferedBatch = true) =>
+                      GameNullable<Matrix> transformMatrix = default, bool defferedBatch = true)
+    {
         Begin_(GameSortMode(sortMode), blendState, samplerState, depthStencilState, rasterizerState, effect, transformMatrix, defferedBatch);
+        SpriteBatchMatrix.Begin(this, sortMode, transformMatrix);
+    }
 
     public void Begin(SpriteSortMode sortMode, BlendState blendState, SamplerState samplerState, DepthStencilState depthStencilState,
                       RasterizerState rasterizerState, Effect? effect) =>
