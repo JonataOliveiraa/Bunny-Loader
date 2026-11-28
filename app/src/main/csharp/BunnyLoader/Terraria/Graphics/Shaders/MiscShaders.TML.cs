@@ -18,6 +18,9 @@ namespace Terraria.Graphics.Shaders
             KeepMatrix();
         }
 
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+        public void Apply() => Apply(default(GameNullable<DataStructures.DrawData>));
+
         public void Apply(Entity entity, GameNullable<DataStructures.DrawData> drawData)
         {
             Apply_(entity, drawData);
@@ -47,6 +50,9 @@ namespace Terraria.Graphics.Shaders
         static MiscShaderDictionary? misc;
 
         public static MiscShaderDictionary Misc => misc ??= new MiscShaderDictionary(() => Misc_.Pointer);
+
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+        public static ref GameObject __BinaryCompat_get_Misc() => ref Misc_;
     }
 
     public sealed unsafe class MiscShaderDictionary

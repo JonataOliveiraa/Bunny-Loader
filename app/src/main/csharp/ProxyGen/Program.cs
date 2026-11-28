@@ -18,6 +18,8 @@ static class Program
 
     static int Main(string[] args)
     {
+        if (args.Length == 2 && args[0] == "--binary-compat") return BinaryCompat.Patch(args[1]);
+
         string? dummy = null, outDir = null;
         var typesFiles = new List<string>();
         for (int i = 0; i + 1 < args.Length; i += 2)
@@ -755,6 +757,8 @@ static class Program
             if (p.Get != null && p.Set == null && p.HoldsReference)
             {
                 sb.Append(ind).Append($"public {st}ref readonly {type} {p.Name} => ref {RT}.GameSlot<{type}>.Hold({getName}());\n");
+                sb.Append(ind).Append("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]\n");
+                sb.Append(ind).Append($"public {st}{type} {BinaryCompat.Prefix}get_{p.Name.TrimStart('@')}() => {getName}();\n");
                 continue;
             }
             sb.Append(ind).Append($"public {st}{type} {p.Name}\n").Append(ind).Append("{\n");

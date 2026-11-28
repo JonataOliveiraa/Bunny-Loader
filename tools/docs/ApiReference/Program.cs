@@ -376,6 +376,7 @@ static void AddMember(TypeInfo info, MemberDeclarationSyntax member, bool open, 
     SyntaxTokenList modifiers = member.Modifiers;
     bool visible = open || modifiers.Any(SyntaxKind.PublicKeyword) || (modifiers.Any(SyntaxKind.ProtectedKeyword) && !modifiers.Any(SyntaxKind.PrivateKeyword) && !modifiers.Any(SyntaxKind.InternalKeyword));
     if (!visible || modifiers.Any(SyntaxKind.OverrideKeyword) && modifiers.Any(SyntaxKind.SealedKeyword)) return;
+    if (member.AttributeLists.SelectMany(a => a.Attributes).Any(a => a.ToString().Contains("EditorBrowsableState.Never"))) return;
     bool obsolete = member.AttributeLists.SelectMany(a => a.Attributes).Any(a => a.Name.ToString().Contains("Obsolete"));
     string prefix = modifiers.Any(SyntaxKind.StaticKeyword) ? "static " : "";
     string flavor = modifiers.Any(SyntaxKind.VirtualKeyword) || modifiers.Any(SyntaxKind.AbstractKeyword) || open ? "hook" : modifiers.Any(SyntaxKind.OverrideKeyword) ? "override" : "";

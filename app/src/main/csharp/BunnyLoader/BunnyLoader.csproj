@@ -44,6 +44,11 @@
     <ProjectReference Include="../BunnyLoader.Compiler/BunnyLoader.Compiler.csproj" />
   </ItemGroup>
 
+  <Target Name="PatchBinaryCompatGetters" AfterTargets="CoreCompile">
+    <Exec Condition="!Exists('$(ProxyGenDll)')" Command="dotnet build &quot;$(ProxyGenProject)&quot; -c Release -nologo -v q" />
+    <Exec Command="dotnet &quot;$(ProxyGenDll)&quot; --binary-compat &quot;@(IntermediateAssembly->'%(FullPath)')&quot;" />
+  </Target>
+
   <Target Name="IncludeGameProxies" AfterTargets="GenerateGameProxies" BeforeTargets="CoreCompile">
     <ItemGroup>
       <Compile Include="$(ProxyGenOut)*.g.cs" />
