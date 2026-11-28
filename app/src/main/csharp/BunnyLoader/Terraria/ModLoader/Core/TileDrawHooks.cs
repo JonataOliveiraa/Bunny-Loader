@@ -20,6 +20,8 @@ internal static unsafe partial class TileHooks
 
     static readonly List<Point> vines = new();
 
+    static readonly List<Point> vineRoots = new(), reverseVineRoots = new();
+
     static SceneMetrics scanning;
 
     internal static SceneMetrics ScanningMetrics => scanning.IsNull ? Main.PlayerSceneMetrics : scanning;
@@ -132,6 +134,42 @@ internal static unsafe partial class TileHooks
             vines.Add(new Point(i, j));
     }
 
+    internal static bool AddVineRoot(int i, int j, bool reverse)
+    {
+        if (!drawing)
+            return false;
+
+        int y = j;
+        if (reverse)
+        {
+            for (int k = j; k < Main.maxTilesY; k++)
+            {
+                if (WorldGen.TopEdgeCanBeAttachedTo(i, k) || !Main.tile[i, k].HasTile)
+                {
+                    y = k - 1;
+                    break;
+                }
+            }
+        }
+        else
+        {
+            for (int k = j - 1; k > 0; k--)
+            {
+                if (WorldGen.BottomEdgeCanBeAttachedTo(i, k) || !Main.tile[i, k].HasTile)
+                {
+                    y = k + 1;
+                    break;
+                }
+            }
+        }
+
+        List<Point> roots = reverse ? reverseVineRoots : vineRoots;
+        var root = new Point(i, y);
+        if (!roots.Contains(root))
+            roots.Add(root);
+        return true;
+    }
+
     static void Draw(On_TileDrawing.orig_PostDrawTiles orig, TileDrawing self, bool solid, bool targets, bool intoTargets)
     {
         orig(self, solid, targets, intoTargets);
@@ -150,6 +188,8 @@ internal static unsafe partial class TileHooks
         drawing = true;
         special.Clear();
         vines.Clear();
+        vineRoots.Clear();
+        reverseVineRoots.Clear();
         if (drawHandle == null)
             drawHandle = new GameHandle(TileDrawInfo.New().Pointer);
         bool globalHidden = TileLoader.Hooks.PreDraw.Length > 0 || TileLoader.Hooks.DrawEffects.Length > 0;
@@ -246,6 +286,12 @@ internal static unsafe partial class TileHooks
                 if (!data.IsNull)
                     self.DrawMultiTileVinesInWind(Main.screenPosition, Vector2.Zero, point.X, point.Y, data.Width, data.Height);
             }
+
+            for (int k = 0; k < vineRoots.Count; k++)
+                self.DrawVineStrip(Main.screenPosition, Vector2.Zero, vineRoots[k].X, vineRoots[k].Y);
+
+            for (int k = 0; k < reverseVineRoots.Count; k++)
+                self.DrawRisingVineStrip(Main.screenPosition, Vector2.Zero, reverseVineRoots[k].X, reverseVineRoots[k].Y);
         }
         finally
         {

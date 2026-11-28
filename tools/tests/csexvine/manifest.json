@@ -1,0 +1,17 @@
+{
+  "uid": "a072169f-1242-40e0-906a-1fd3c3abe4a0",
+  "id": "CsExVine",
+  "name": "Test: Example Mod vine (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "ExampleVine hanging from ExampleBlock next to vanilla vines, with the vine strips drawn per frame.",
+  "description": "Needs samples/ExampleModCSharp enabled next to it. Logs csexvine SHOT vines, csexvine <case>: ok | FAIL and csexvine END pass=N fail=M.",
+  "updated": "2026-11-27",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

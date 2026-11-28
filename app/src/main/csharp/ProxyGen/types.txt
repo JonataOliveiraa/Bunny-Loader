@@ -419,6 +419,8 @@ Terraria.GameContent.FlexibleTileWand
 Terraria.ID.BiomeConversionID
 Terraria.GameContent.DoorOpeningHelper
 !Terraria.GameContent.Drawing.TileDrawing.IsVisible
+!Terraria.GameContent.Drawing.TileDrawing.CrawlToTopOfVineAndAddSpecialPoint
+!Terraria.GameContent.Drawing.TileDrawing.CrawlToBottomOfReverseVineAndAddSpecialPoint
 !Terraria.Main.SceneMetrics
 Terraria.DataStructures.TileDrawInfo
 Terraria.Enums.AnchorType
